@@ -1,0 +1,10 @@
+# Database (SQLite), config, secrets and uploads. Back up this volume.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: skinloom-data
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi

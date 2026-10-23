@@ -1,0 +1,62 @@
+# Single-instance PostgreSQL for clusters without a managed database.
+apiVersion: v1
+kind: Service
+metadata:
+  name: skinloom-postgres
+spec:
+  selector:
+    app.kubernetes.io/instance: skinloom-postgres
+  ports:
+    - name: postgres
+      port: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: skinloom-postgres
+spec:
+  serviceName: skinloom-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: skinloom-postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: skinloom-postgres
+        app.kubernetes.io/name: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: skinloom
+            - name: POSTGRES_USER
+              value: skinloom
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: skinloom-db, key: password }
+            - name: PGDATA # a subdirectory: volume roots may contain lost+found
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "skinloom", "-d", "skinloom"]
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 1Gi }
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi

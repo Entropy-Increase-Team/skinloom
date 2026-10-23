@@ -16,9 +16,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/Entropy-Increase-Team/skinloom/internal/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/buildinfo"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/httpx"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/realip"
 	"github.com/Entropy-Increase-Team/skinloom/internal/pubsub"
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/theme"
@@ -31,7 +33,12 @@ type Deps struct {
 	Settings *settings.Service
 	Themes   *theme.Registry
 	Broker   *pubsub.Broker
-	// AdminToken guards /api/v1/admin until accounts and roles land in M1.
+	Accounts *account.Service
+	// ClientInfo resolves the client address and public host behind trusted proxies
+	// (the gateway's live resolver). Nil = trust no proxy.
+	ClientInfo func(*http.Request) realip.Info
+	// AdminToken also authorizes /api/v1/admin, for scripts, until personal access
+	// tokens land (M3). Browsers use an admin session.
 	AdminToken string
 	// MaxEventStreams caps concurrent /events connections (0 = default 5000), so a
 	// flood of idle SSE clients cannot exhaust memory and file descriptors.
@@ -54,7 +61,8 @@ var Locales = []LocaleInfo{
 // New returns the HTTP handler and the Huma API (whose OpenAPI document can be exported).
 func New(d Deps) (http.Handler, huma.API) {
 	r := chi.NewRouter()
-	r.Use(httpx.WithSecurityHeaders, middleware.RequestID, middleware.Recoverer, requestLog(d.Log))
+	r.Use(httpx.WithSecurityHeaders, middleware.RequestID, middleware.Recoverer, requestLog(d.Log),
+		withRequestInfo(d), csrfGuard(d))
 
 	cfg := huma.DefaultConfig("SkinLoom API", buildinfo.Version)
 	cfg.Info.Description = "SkinLoom (云织) REST API. Game protocols (CSL/USM/Legacy/Yggdrasil) are documented separately."
@@ -63,11 +71,14 @@ func New(d Deps) (http.Handler, huma.API) {
 	cfg.DocsPath = "/api/docs"
 	cfg.SchemasPath = "/api/schemas"
 	cfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
-		"adminToken": {Type: "http", Scheme: "bearer", Description: "Temporary admin token from data/secrets/admin.token (replaced by sessions and roles in M1)."},
+		"session": {Type: "apiKey", In: "cookie", Name: SessionCookie,
+			Description: "Browser session from /api/v1/auth/login. State-changing requests must also send the " + CSRFHeader + " header."},
+		"adminToken": {Type: "http", Scheme: "bearer", Description: "Admin token from data/secrets/admin.token, for scripts until personal access tokens land (M3)."},
 	}
 	api := humachi.New(r, cfg)
 
 	registerSite(api, d)
+	registerAuth(api, d)
 	registerAdmin(api, d)
 
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok")) })
@@ -103,11 +114,18 @@ func requestLog(log *slog.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-// checkAdmin validates the temporary bearer token.
-func checkAdmin(d Deps, authorization string) error {
+// checkAdmin accepts an admin session or the admin bearer token. It returns the acting
+// user's id (nil for the token) for audit records and settings.updated_by.
+func checkAdmin(ctx context.Context, d Deps, authorization string) (*int64, error) {
+	if v := requestInfo(ctx).viewer(); v != nil {
+		if !v.IsAdmin() {
+			return nil, huma.Error403Forbidden("administrators only")
+		}
+		return &v.User.ID, nil
+	}
 	token, ok := strings.CutPrefix(authorization, "Bearer ")
 	if !ok || d.AdminToken == "" || subtle.ConstantTimeCompare([]byte(token), []byte(d.AdminToken)) != 1 {
-		return huma.Error401Unauthorized("admin token required")
+		return nil, huma.Error401Unauthorized("sign in as an administrator or send the admin token")
 	}
-	return nil
+	return nil, nil
 }

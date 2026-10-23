@@ -43,5 +43,6 @@ function offlineBootstrap(acceptLanguage: string): SiteBootstrap {
     menus: { explore: [], user: [], admin: [] },
     plugins: [],
     server: { name: 'SkinLoom', version: 'unknown' },
+    needsSetup: false,
   }
 }

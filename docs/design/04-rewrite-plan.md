@@ -53,14 +53,14 @@
 **入口与路由归属**：默认由 Go 做唯一入口（一个端口），按路径分流——
 
 ```
-                    :8080（唯一对外端口）
+                    :17546（唯一对外端口）
 用户/游戏/启动器 ──▶ skinloom（Go）
                      ├─ 后端保留路径 → Go 直接处理
                      │   /api/*  /oauth/*  /.well-known/*
                      │   /{name}.json  /csl/*  /usm/*  /skin/*  /cape/*  /textures/*  /raw/*
                      │   /avatar/*  /preview/*  /plugins-assets/*  /themes-assets/*  /events (SSE)
                      ├─ /_next/static/*、/public 静态文件 → Go 直接从前端产物目录读文件（不经过 Node）
-                     └─ 其它所有页面 → 反向代理到 Next.js（127.0.0.1:3000，内部端口）
+                     └─ 其它所有页面 → 反向代理到 Next.js（127.0.0.1:17547，内部端口）
 ```
 
 - 小站和桌面发行包：`skinloom up` 一个命令，Go 作为监管者拉起 Node 子进程（崩溃自动重启、日志合并、优雅退出）。
@@ -143,8 +143,8 @@
 桌面/小站（发行包）            中站（Compose）                       大站（k8s / Helm）
 ┌───────────────────┐    ┌──────────┐ ┌─────┐ ┌──────┐        Ingress / CDN
 │ skinloom up       │    │ skinloom │ │MySQL│ │Valkey│          ├─ game 路径 → server(role=game) ×N HPA
-│  ├ Go :8080       │    │  (all)   │ └─────┘ └──────┘          ├─ api 路径  → server(role=api)  ×2
-│  └ Node(内部:3000)│    │  + web   │                            ├─ 页面      → web(Next.js)      ×2..N
+│  ├ Go :17546       │    │  (all)   │ └─────┘ └──────┘          ├─ api 路径  → server(role=api)  ×2
+│  └ Node(内部:17547)│    │  + web   │                            ├─ 页面      → web(Next.js)      ×2..N
 │ SQLite + 本地盘    │    └──────────┘                            └─ worker    → server(role=worker)×1..2
 └───────────────────┘                                            外部：MySQL/PG · Valkey · S3/OSS
 ```
@@ -348,7 +348,7 @@ argon2id + 旧算法透明升级；会话表与一键吊销；一次性令牌存
 | `skinloom-<ver>-darwin-{arm64,amd64}.tar.gz` | 同上，`start.command` | 双击 `start.command`；`skinloom service install` 注册 launchd；可选 Homebrew tap |
 | `skinloom-<ver>-linux-{amd64,arm64}.tar.gz` | 同上，`start.sh` | `./start.sh`；`skinloom service install` 注册 systemd；另出 deb/rpm |
 | `skinloom-server-<ver>-<os>-<arch>` | 仅 Go 后端 | 前端单独部署时使用 |
-| Docker `skinloom/server`、`skinloom/web`、`skinloom/skinloom`（all-in-one） | 多架构 amd64/arm64，非 root，`/data` 卷 | `docker run -p 8080:8080 -v ./data:/data skinloom/skinloom` |
+| Docker `skinloom/server`、`skinloom/web`、`skinloom/skinloom`（all-in-one） | 多架构 amd64/arm64，非 root，`/data` 卷 | `docker run -p 17546:17546 -v ./data:/data skinloom/skinloom` |
 | Compose 模板 | `minimal`（all-in-one + SQLite）、`standard`（server + web + MySQL/MariaDB + Valkey）、`postgres`、`full`（+ MinIO + Caddy 自动 HTTPS） | `docker compose up -d` |
 | Helm Chart | server（按 role 拆多个 Deployment）、web、HPA、PDB、Ingress（gateway / split 两种模式）、ServiceMonitor、迁移 Job | `helm install` |
 

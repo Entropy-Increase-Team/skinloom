@@ -1,17 +1,25 @@
-# Smallest setup: one container (backend + frontend), SQLite and local uploads in a volume.
-#   docker compose up -d   →   http://localhost:8080
+# Smallest setup: one container (backend + frontend), SQLite and uploads in a volume.
+# Good for personal and small sites; everything lives in the "data" volume.
+#
+#   docker compose up -d
+#   docker compose logs skinloom | grep setup   # one-time setup link (first start)
+#   → http://localhost:17546
+#
+# Pin a release with SKINLOOM_VERSION=0.1.0 (default: latest release; "edge" = main).
 name: skinloom
 
 services:
   skinloom:
-    image: ghcr.io/entropy-increase-team/skinloom:latest
-    build:
+    image: ghcr.io/entropy-increase-team/skinloom:${SKINLOOM_VERSION:-latest}
+    build: # used only when the image cannot be pulled (e.g. before the first release)
       context: ../../..
       dockerfile: deploy/docker/all-in-one.Dockerfile
     ports:
-      - "8080:8080"
+      - "${SKINLOOM_PORT:-17546}:17546"
     volumes:
       - data:/data
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
     restart: unless-stopped
 
 volumes:

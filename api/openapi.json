@@ -48,6 +48,9 @@
             "description": "Keyed by area: explore, user, admin",
             "type": "object"
           },
+          "needsSetup": {
+            "type": "boolean"
+          },
           "plugins": {
             "items": {
               "$ref": "#/components/schemas/PluginFrontend"
@@ -77,7 +80,8 @@
           "theme",
           "menus",
           "plugins",
-          "server"
+          "server",
+          "needsSetup"
         ],
         "type": "object"
       },
@@ -178,6 +182,37 @@
         "required": [
           "code",
           "name"
+        ],
+        "type": "object"
+      },
+      "LoginInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/LoginInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "remember": {
+            "description": "Keep the session for 30 days instead of until the browser closes",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "email",
+          "password"
         ],
         "type": "object"
       },
@@ -355,6 +390,75 @@
         ],
         "type": "object"
       },
+      "SetupInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/SetupInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "nickname": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "siteName": {
+            "description": "Site name for every language; can be refined later in the admin panel",
+            "maxLength": 256,
+            "type": "string"
+          },
+          "siteUrl": {
+            "description": "Public URL, e.g. https://skins.example.com",
+            "maxLength": 512,
+            "type": "string"
+          },
+          "token": {
+            "description": "One-time setup token printed on the server console",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "email",
+          "nickname",
+          "password"
+        ],
+        "type": "object"
+      },
+      "SetupStatusOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/SetupStatusOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "needsSetup": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "needsSetup"
+        ],
+        "type": "object"
+      },
       "SiteInfo": {
         "additionalProperties": false,
         "properties": {
@@ -451,13 +555,67 @@
           "dark"
         ],
         "type": "object"
+      },
+      "UserView": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/UserView.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "locale": {
+            "description": "Preferred UI language; empty = follow the browser",
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "admin",
+              "superadmin"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "nickname",
+          "role",
+          "emailVerified",
+          "locale"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
       "adminToken": {
-        "description": "Temporary admin token from data/secrets/admin.token (replaced by sessions and roles in M1).",
+        "description": "Admin token from data/secrets/admin.token, for scripts until personal access tokens land (M3).",
         "scheme": "bearer",
         "type": "http"
+      },
+      "session": {
+        "description": "Browser session from /api/v1/auth/login. State-changing requests must also send the X-SkinLoom-Request header.",
+        "in": "cookie",
+        "name": "skinloom_session",
+        "type": "apiKey"
       }
     }
   },
@@ -477,11 +635,11 @@
         "operationId": "listSettings",
         "parameters": [
           {
-            "description": "Bearer \u003cadmin token\u003e",
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
             "in": "header",
             "name": "Authorization",
             "schema": {
-              "description": "Bearer \u003cadmin token\u003e",
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
               "type": "string"
             }
           }
@@ -509,6 +667,9 @@
           }
         },
         "security": [
+          {
+            "session": []
+          },
           {
             "adminToken": []
           }
@@ -568,6 +729,9 @@
         },
         "security": [
           {
+            "session": []
+          },
+          {
             "adminToken": []
           }
         ],
@@ -583,11 +747,11 @@
         "operationId": "listThemes",
         "parameters": [
           {
-            "description": "Bearer \u003cadmin token\u003e",
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
             "in": "header",
             "name": "Authorization",
             "schema": {
-              "description": "Bearer \u003cadmin token\u003e",
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
               "type": "string"
             }
           }
@@ -619,12 +783,250 @@
         },
         "security": [
           {
+            "session": []
+          },
+          {
             "adminToken": []
           }
         ],
         "summary": "List installed themes",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "description": "Sets the session cookie. Every failure returns the same 401, whether or not the account exists; repeated failures return 429 with Retry-After.",
+        "operationId": "login",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "User-Agent",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "skinloom_session",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserView"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Sign in with email and password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "skinloom_session",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Sign out",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "getMe",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The signed-in user",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/setup": {
+      "get": {
+        "operationId": "getSetupStatus",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupStatusOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Whether first-run setup is pending",
+        "tags": [
+          "setup"
+        ]
+      },
+      "post": {
+        "description": "Needs the one-time token printed on the server console at startup (`skinloom setup-link` prints a new one). Signs the new administrator in.",
+        "operationId": "completeSetup",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "User-Agent",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "skinloom_session",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetupInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserView"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create the first administrator",
+        "tags": [
+          "setup"
         ]
       }
     },

@@ -16,6 +16,19 @@ export function safeHref(value: unknown, fallback: string): string {
   return fallback
 }
 
+/**
+ * Where to go after signing in: only a path on this site (an attacker-supplied
+ * ?next=https://evil would otherwise turn the login page into an open redirect), and
+ * never back to the auth pages themselves.
+ */
+export function safeNext(value: unknown): string {
+  if (typeof value !== 'string') return '/'
+  const v = value.trim()
+  if (!v.startsWith('/') || v.startsWith('//') || v.startsWith('/\\') || /[\u0000-\u001f]/.test(v)) return '/'
+  if (v === '/setup' || v.startsWith('/setup?') || v.startsWith('/auth/')) return '/'
+  return v
+}
+
 /** Like safeHref, for CSS url(): undefined when the value is not acceptable. */
 export function safeImageUrl(value: unknown): string | undefined {
   const href = safeHref(value, '')

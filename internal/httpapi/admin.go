@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"maps"
 	"net/http"
+	"slices"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -31,7 +33,7 @@ type SettingsList struct {
 // The header is optional in the schema so a missing token yields 401 (checked in the
 // handler) instead of a 422 validation error.
 type adminAuth struct {
-	Authorization string `header:"Authorization" doc:"Bearer <admin token>"`
+	Authorization string `header:"Authorization" doc:"Bearer <admin token>; not needed with an admin session"`
 }
 
 type settingsOutput struct {
@@ -58,7 +60,7 @@ type themesOutput struct {
 	Body []ThemeView
 }
 
-var adminSecurity = []map[string][]string{{"adminToken": {}}}
+var adminSecurity = []map[string][]string{{"session": {}}, {"adminToken": {}}}
 
 func registerAdmin(api huma.API, d Deps) {
 	huma.Register(api, huma.Operation{
@@ -69,7 +71,7 @@ func registerAdmin(api huma.API, d Deps) {
 		Tags:        []string{"admin"},
 		Security:    adminSecurity,
 	}, func(ctx context.Context, in *adminAuth) (*settingsOutput, error) {
-		if err := checkAdmin(d, in.Authorization); err != nil {
+		if _, err := checkAdmin(ctx, d, in.Authorization); err != nil {
 			return nil, err
 		}
 		return &settingsOutput{Body: settingsList(d.Settings)}, nil
@@ -84,7 +86,8 @@ func registerAdmin(api huma.API, d Deps) {
 		Tags:        []string{"admin"},
 		Security:    adminSecurity,
 	}, func(ctx context.Context, in *updateSettingsInput) (*settingsOutput, error) {
-		if err := checkAdmin(d, in.Authorization); err != nil {
+		actor, err := checkAdmin(ctx, d, in.Authorization)
+		if err != nil {
 			return nil, err
 		}
 		changes := make(map[string]json.RawMessage, len(in.Body))
@@ -95,7 +98,7 @@ func registerAdmin(api huma.API, d Deps) {
 			}
 			changes[k] = raw
 		}
-		if _, err := d.Settings.Set(ctx, nil, changes); err != nil {
+		if _, err := d.Settings.Set(ctx, actor, changes); err != nil {
 			var verr *settings.ValidationError
 			if errors.As(err, &verr) {
 				details := make([]error, 0, len(verr.Fields))
@@ -105,6 +108,13 @@ func registerAdmin(api huma.API, d Deps) {
 				return nil, huma.Error422UnprocessableEntity("invalid settings", details...)
 			}
 			return nil, err
+		}
+		if d.Accounts != nil {
+			keys := slices.Sorted(maps.Keys(in.Body))
+			if err := d.Accounts.Audit(ctx, actor, "settings.update", "settings", "", requestInfo(ctx).client.ClientIP,
+				map[string]any{"keys": keys}); err != nil {
+				d.Log.Warn("audit settings.update", "err", err)
+			}
 		}
 		return &settingsOutput{Body: settingsList(d.Settings)}, nil
 	})
@@ -118,7 +128,7 @@ func registerAdmin(api huma.API, d Deps) {
 		Tags:        []string{"admin"},
 		Security:    adminSecurity,
 	}, func(ctx context.Context, in *adminAuth) (*themesOutput, error) {
-		if err := checkAdmin(d, in.Authorization); err != nil {
+		if _, err := checkAdmin(ctx, d, in.Authorization); err != nil {
 			return nil, err
 		}
 		active := d.Settings.Current().String("theme.active")

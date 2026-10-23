@@ -57,9 +57,11 @@ func Run(ctx context.Context, o RunOptions) error {
 	defer stop()
 	go core.Settings.Watch(runCtx, 2*time.Second)
 
+	var gw *gateway.Gateway // created below; serves requests only after Serve starts
 	api, _ := httpapi.New(httpapi.Deps{
 		Log: log.With("component", "http"), DB: core.DB, Settings: core.Settings,
-		Themes: core.Themes, Broker: core.Broker, AdminToken: sec.AdminToken,
+		Themes: core.Themes, Broker: core.Broker, Accounts: core.Accounts, AdminToken: sec.AdminToken,
+		ClientInfo: func(r *http.Request) realip.Info { return gw.ClientInfo(r) },
 	})
 
 	ln, err := net.Listen("tcp", cfg.Server.Listen)
@@ -73,7 +75,7 @@ func Run(ctx context.Context, o RunOptions) error {
 		return err
 	}
 	var handler http.Handler = api
-	gw := gateway.New(api, log.With("component", "gateway"), resolver)
+	gw = gateway.New(api, log.With("component", "gateway"), resolver)
 	web := launcher.NewWeb(log.With("component", "launcher"), log.With("component", "web"))
 	if cfg.Server.Role == "all" {
 		handler = gw
@@ -137,9 +139,17 @@ func Run(ctx context.Context, o RunOptions) error {
 		log.Info("wrote default config; edit it any time, most keys apply without a restart", "path", core.Paths.ConfigPath)
 	}
 	warnUnknownKeys(core.Paths.ConfigPath, log)
-	log.Info("admin API token (temporary until accounts land in M1)", "file", secrets.AdminTokenFile(core.Paths.DataDir))
+	log.Debug("admin API token for scripts", "file", secrets.AdminTokenFile(core.Paths.DataDir))
+	open := local
+	if link, err := core.SetupLink(ctx, local); err != nil {
+		log.Warn("cannot create a setup link", "err", err)
+	} else if link != "" {
+		// Only someone who can read this console (or the logs) can claim the new site.
+		log.Info("first run: open this one-time link to create the administrator account", "url", link)
+		open = link
+	}
 	if o.Open {
-		launcher.OpenBrowser(local)
+		launcher.OpenBrowser(open)
 	}
 	if o.Ready != nil {
 		o.Ready(ln.Addr())

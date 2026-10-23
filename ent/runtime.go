@@ -5,15 +5,125 @@ package ent
 import (
 	"time"
 
+	"github.com/Entropy-Increase-Team/skinloom/ent/auditlog"
+	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/schema"
+	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/setting"
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
+	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 )
 
 // The init function reads all schema descriptors with runtime code
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	auditlogFields := schema.AuditLog{}.Fields()
+	_ = auditlogFields
+	// auditlogDescAction is the schema descriptor for action field.
+	auditlogDescAction := auditlogFields[2].Descriptor()
+	// auditlog.ActionValidator is a validator for the "action" field. It is called by the builders before save.
+	auditlog.ActionValidator = func() func(string) error {
+		validators := auditlogDescAction.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(action string) error {
+			for _, fn := range fns {
+				if err := fn(action); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// auditlogDescTargetType is the schema descriptor for target_type field.
+	auditlogDescTargetType := auditlogFields[3].Descriptor()
+	// auditlog.DefaultTargetType holds the default value on creation for the target_type field.
+	auditlog.DefaultTargetType = auditlogDescTargetType.Default.(string)
+	// auditlog.TargetTypeValidator is a validator for the "target_type" field. It is called by the builders before save.
+	auditlog.TargetTypeValidator = auditlogDescTargetType.Validators[0].(func(string) error)
+	// auditlogDescTargetID is the schema descriptor for target_id field.
+	auditlogDescTargetID := auditlogFields[4].Descriptor()
+	// auditlog.DefaultTargetID holds the default value on creation for the target_id field.
+	auditlog.DefaultTargetID = auditlogDescTargetID.Default.(string)
+	// auditlog.TargetIDValidator is a validator for the "target_id" field. It is called by the builders before save.
+	auditlog.TargetIDValidator = auditlogDescTargetID.Validators[0].(func(string) error)
+	// auditlogDescIP is the schema descriptor for ip field.
+	auditlogDescIP := auditlogFields[5].Descriptor()
+	// auditlog.DefaultIP holds the default value on creation for the ip field.
+	auditlog.DefaultIP = auditlogDescIP.Default.(string)
+	// auditlog.IPValidator is a validator for the "ip" field. It is called by the builders before save.
+	auditlog.IPValidator = auditlogDescIP.Validators[0].(func(string) error)
+	// auditlogDescCreatedAt is the schema descriptor for created_at field.
+	auditlogDescCreatedAt := auditlogFields[7].Descriptor()
+	// auditlog.DefaultCreatedAt holds the default value on creation for the created_at field.
+	auditlog.DefaultCreatedAt = auditlogDescCreatedAt.Default.(func() time.Time)
+	authtokenFields := schema.AuthToken{}.Fields()
+	_ = authtokenFields
+	// authtokenDescTokenHash is the schema descriptor for token_hash field.
+	authtokenDescTokenHash := authtokenFields[3].Descriptor()
+	// authtoken.TokenHashValidator is a validator for the "token_hash" field. It is called by the builders before save.
+	authtoken.TokenHashValidator = func() func(string) error {
+		validators := authtokenDescTokenHash.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(token_hash string) error {
+			for _, fn := range fns {
+				if err := fn(token_hash); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// authtokenDescCreatedAt is the schema descriptor for created_at field.
+	authtokenDescCreatedAt := authtokenFields[6].Descriptor()
+	// authtoken.DefaultCreatedAt holds the default value on creation for the created_at field.
+	authtoken.DefaultCreatedAt = authtokenDescCreatedAt.Default.(func() time.Time)
+	sessionFields := schema.Session{}.Fields()
+	_ = sessionFields
+	// sessionDescIP is the schema descriptor for ip field.
+	sessionDescIP := sessionFields[2].Descriptor()
+	// session.DefaultIP holds the default value on creation for the ip field.
+	session.DefaultIP = sessionDescIP.Default.(string)
+	// session.IPValidator is a validator for the "ip" field. It is called by the builders before save.
+	session.IPValidator = sessionDescIP.Validators[0].(func(string) error)
+	// sessionDescUserAgent is the schema descriptor for user_agent field.
+	sessionDescUserAgent := sessionFields[3].Descriptor()
+	// session.DefaultUserAgent holds the default value on creation for the user_agent field.
+	session.DefaultUserAgent = sessionDescUserAgent.Default.(string)
+	// session.UserAgentValidator is a validator for the "user_agent" field. It is called by the builders before save.
+	session.UserAgentValidator = sessionDescUserAgent.Validators[0].(func(string) error)
+	// sessionDescCreatedAt is the schema descriptor for created_at field.
+	sessionDescCreatedAt := sessionFields[4].Descriptor()
+	// session.DefaultCreatedAt holds the default value on creation for the created_at field.
+	session.DefaultCreatedAt = sessionDescCreatedAt.Default.(func() time.Time)
+	// sessionDescLastSeenAt is the schema descriptor for last_seen_at field.
+	sessionDescLastSeenAt := sessionFields[5].Descriptor()
+	// session.DefaultLastSeenAt holds the default value on creation for the last_seen_at field.
+	session.DefaultLastSeenAt = sessionDescLastSeenAt.Default.(func() time.Time)
+	// sessionDescID is the schema descriptor for id field.
+	sessionDescID := sessionFields[0].Descriptor()
+	// session.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	session.IDValidator = func() func(string) error {
+		validators := sessionDescID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(id string) error {
+			for _, fn := range fns {
+				if err := fn(id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	settingFields := schema.Setting{}.Fields()
 	_ = settingFields
 	// settingDescUpdatedAt is the schema descriptor for updated_at field.
@@ -70,4 +180,96 @@ func init() {
 			return nil
 		}
 	}()
+	userFields := schema.User{}.Fields()
+	_ = userFields
+	// userDescEmail is the schema descriptor for email field.
+	userDescEmail := userFields[1].Descriptor()
+	// user.EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	user.EmailValidator = func() func(string) error {
+		validators := userDescEmail.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(email string) error {
+			for _, fn := range fns {
+				if err := fn(email); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// userDescEmailNormalized is the schema descriptor for email_normalized field.
+	userDescEmailNormalized := userFields[2].Descriptor()
+	// user.EmailNormalizedValidator is a validator for the "email_normalized" field. It is called by the builders before save.
+	user.EmailNormalizedValidator = func() func(string) error {
+		validators := userDescEmailNormalized.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(email_normalized string) error {
+			for _, fn := range fns {
+				if err := fn(email_normalized); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// userDescNickname is the schema descriptor for nickname field.
+	userDescNickname := userFields[3].Descriptor()
+	// user.NicknameValidator is a validator for the "nickname" field. It is called by the builders before save.
+	user.NicknameValidator = func() func(string) error {
+		validators := userDescNickname.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(nickname string) error {
+			for _, fn := range fns {
+				if err := fn(nickname); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// userDescPasswordHash is the schema descriptor for password_hash field.
+	userDescPasswordHash := userFields[4].Descriptor()
+	// user.PasswordHashValidator is a validator for the "password_hash" field. It is called by the builders before save.
+	user.PasswordHashValidator = userDescPasswordHash.Validators[0].(func(string) error)
+	// userDescPasswordAlgo is the schema descriptor for password_algo field.
+	userDescPasswordAlgo := userFields[5].Descriptor()
+	// user.DefaultPasswordAlgo holds the default value on creation for the password_algo field.
+	user.DefaultPasswordAlgo = userDescPasswordAlgo.Default.(string)
+	// user.PasswordAlgoValidator is a validator for the "password_algo" field. It is called by the builders before save.
+	user.PasswordAlgoValidator = userDescPasswordAlgo.Validators[0].(func(string) error)
+	// userDescScore is the schema descriptor for score field.
+	userDescScore := userFields[8].Descriptor()
+	// user.DefaultScore holds the default value on creation for the score field.
+	user.DefaultScore = userDescScore.Default.(int64)
+	// userDescLocale is the schema descriptor for locale field.
+	userDescLocale := userFields[9].Descriptor()
+	// user.DefaultLocale holds the default value on creation for the locale field.
+	user.DefaultLocale = userDescLocale.Default.(string)
+	// user.LocaleValidator is a validator for the "locale" field. It is called by the builders before save.
+	user.LocaleValidator = userDescLocale.Validators[0].(func(string) error)
+	// userDescRegisterIP is the schema descriptor for register_ip field.
+	userDescRegisterIP := userFields[11].Descriptor()
+	// user.DefaultRegisterIP holds the default value on creation for the register_ip field.
+	user.DefaultRegisterIP = userDescRegisterIP.Default.(string)
+	// user.RegisterIPValidator is a validator for the "register_ip" field. It is called by the builders before save.
+	user.RegisterIPValidator = userDescRegisterIP.Validators[0].(func(string) error)
+	// userDescCreatedAt is the schema descriptor for created_at field.
+	userDescCreatedAt := userFields[14].Descriptor()
+	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
+	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
+	// userDescUpdatedAt is the schema descriptor for updated_at field.
+	userDescUpdatedAt := userFields[15].Descriptor()
+	// user.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
+	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
 }

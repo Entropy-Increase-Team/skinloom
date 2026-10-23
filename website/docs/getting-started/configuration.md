@@ -18,7 +18,7 @@ SkinLoom 有两类配置：
 
 ```toml
 [server]
-listen = ":8080"          # [cold] 唯一需要开放的端口
+listen = ":17546"         # [cold] 唯一需要开放的端口
 role = "all"              # [cold] all | api
 trusted_proxies = []      # [hot]  允许设置 X-Forwarded-* 的代理（IP 或网段），例如 ["127.0.0.1", "10.0.0.0/8"]
 
@@ -28,7 +28,7 @@ dsn = "skinloom.db"       # [cold]
 
 [web]
 mode = "managed"          # [hot]  managed | dev | external | off
-port = 3000               # [hot]  前端进程的内部端口；被占用或设为 0 时自动选择空闲端口
+port = 17547              # [hot]  前端进程的内部端口；被占用或设为 0 时自动选择空闲端口
 url = ""                  # [hot]  mode = external 时的前端地址
 node = ""                 # [hot]  指定 node 可执行文件
 package_manager = "auto"  # [hot]  仅 dev 模式：auto（依次找 bun、pnpm、npm）| bun | pnpm | npm
@@ -81,6 +81,6 @@ skinloom settings set theme.overrides '{"light":{"primary":"oklch(0.6 0.2 300)"}
 skinloom settings set site.name null                    # 恢复默认
 ```
 
-运行中的站点会在 2 秒内感知命令行或其它节点做的修改。也可以调用 `PATCH /api/v1/admin/settings`（M1 前使用 `skinloom admin token` 输出的临时令牌）。
+运行中的站点会在 2 秒内感知命令行或其它节点做的修改。也可以调用 `PATCH /api/v1/admin/settings`：浏览器里以管理员身份登录即可（写请求需带 `X-SkinLoom-Request: 1` 头，站点前端会自动加上）；脚本使用 `skinloom admin token` 输出的令牌（`Authorization: Bearer …`）。每次修改都会记录修改人和审计日志。
 
 M0 可用的设置：`site.name`、`site.description`、`site.url`、`site.announcement`、`theme.active`、`theme.overrides`、`home.blocks`。

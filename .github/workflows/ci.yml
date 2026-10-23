@@ -176,3 +176,20 @@ jobs:
           node-version: 24
       - run: bun install --frozen-lockfile
       - run: bun run build
+
+  deploy-files:
+    name: Deployment files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Kubernetes manifests render and match the API schemas
+        run: |
+          for v in all-in-one split; do kubectl kustomize deploy/kubernetes/$v > /tmp/k8s-$v.yaml; done
+          go run github.com/yannh/kubeconform/cmd/kubeconform@v0.8.0 -strict -summary /tmp/k8s-*.yaml
+      - name: Compose files are valid
+        env:
+          DB_PASSWORD: ci
+        run: for f in deploy/compose/*/compose.yaml; do docker compose -f "$f" config --quiet && echo "ok $f"; done

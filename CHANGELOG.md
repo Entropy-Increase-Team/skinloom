@@ -4,6 +4,43 @@
 
 ## [Unreleased]
 
+### 新增（M1 账号 · 第一部分）
+- **首次安装向导**：首次启动时控制台打印一次性安装链接（`/setup?token=…`，24 小时有效，`--open` 直接打开）。在向导里设置站点名称、站点地址并创建超级管理员，完成后自动登录、链接作废。`skinloom setup-link` 可随时生成新链接（容器内同样可用）。
+- **登录与会话**：`/auth/login` 页面与 `POST /api/v1/auth/login`、`POST /api/v1/auth/logout`、`GET /api/v1/auth/me`；"记住我"保持 30 天，否则关闭浏览器即失效。页头显示当前用户与退出按钮。
+- 管理 API 接受管理员会话（`admin.token` 保留给脚本使用）；设置修改记录修改人并写审计日志。
+- 从 Blessing Skin 导入的密码哈希（BCRYPT、ARGON2I、MD5、SHA256、SHA512 及其 SALTED2* 变体）可以直接登录，首次登录后自动升级为 argon2id。
+- 数据库新增 `users`、`sessions`、`auth_tokens`、`audit_logs` 表（迁移 `20261023095021_accounts`）。
+- 站点 bootstrap 增加 `needsSetup`，未完成安装时所有页面顶部提示如何找到安装链接。
+
+### 安全（M1 账号 · 第一部分）
+- 安装向导只能凭控制台打印的一次性令牌进入，完成后永久关闭（修 Blessing Skin S11）；并发的两次安装只会有一次成功。
+- 密码使用 argon2id，并发哈希数受限；长度规则统一为 8–128 个字符（S15）。
+- 会话令牌在数据库中只存 SHA-256；Cookie 为 `HttpOnly`、`SameSite=Lax`，HTTPS 下加 `Secure`；被封禁用户的会话立即失效。
+- 登录失败一律返回"邮箱或密码不正确"，未注册邮箱与错误密码耗时一致（S05）；失败次数按"客户端地址""地址 + 账号""账号"三层限制，超出返回 429（S01）。单个攻击者无法把真正的用户锁在门外。
+- 带会话 Cookie 的写请求必须带 `X-SkinLoom-Request` 头，且 `Origin` 必须是本站（CSRF 防护）；登录后跳转只接受站内路径（防开放重定向）。
+
+### 变更（部署与发布）
+- **默认端口改为 17546**（前端内部端口 17547），避开 8080 / 3000 以及常用的四位数端口，也不落在系统临时端口与 Kubernetes NodePort 范围内。已有站点的 `config.toml` 保留原端口。见 ADR 0013。
+- Docker Compose 成为推荐部署方式：`minimal`（一体镜像 + SQLite）、`standard`（前后端分离 + MariaDB）、新增 `postgres`；可用 `SKINLOOM_VERSION`、`SKINLOOM_PORT`、`TZ` 调整，拉不到镜像时自动用源码构建。
+- 新增 Kubernetes / k3s 清单（Kustomize）：`deploy/kubernetes/all-in-one`（单 Pod + SQLite）与 `deploy/kubernetes/split`（后端 + 可扩容前端 + PostgreSQL），非 root、带探针，k3s 开箱即用。
+- 发行包附带后台服务配置 `service/`：systemd 单元（带沙箱选项）、macOS launchd、Windows 计划任务安装脚本。
+- 新增 `skinloom healthcheck` 命令；三个镜像都声明了 `HEALTHCHECK`。
+- 发布工作流：推送 `v*` 标签直接发布 Release（带 `-` 的为预发布），附仅后端的单文件程序；镜像增加 `latest`（最新发布）与 `edge`（main 分支）标签；Go 改为原生交叉编译，镜像构建更快。
+- 文档站通过 GitHub Pages 发布（`docs.yml`），自动适配自定义域名或 `/skinloom/` 子路径。
+- README 重写：部署方式一览，Compose、docker run、Kubernetes / k3s、发行包后台常驻、反向代理与 HTTPS、端口说明；文档站新增对应的部署页面。
+
+### 修复（M1 账号审查）
+- 32 个汉字的昵称会让安装失败（数据库层按字节计长度，校验按字符）。
+- 公开的安装接口在检查令牌之前就计算密码哈希，可被用来消耗 CPU 与内存，安装完成后依旧如此；现在先做廉价检查。
+- 任一地址连续 10 次登录失败会把该账号对所有人锁定 15 分钟，攻击者可借此让超级管理员一直无法登录；改为三层计数（见上）。
+- 客户端地址超过 45 个字符（带接口名的 IPv6）或超长 User-Agent 会让登录失败。
+- 导入的 argon2 哈希最多可要求 1 GiB 内存、255 个线程；上限降为 256 MiB、16 个线程。
+- 在同一浏览器再次登录（切换账号）后，旧会话在数据库里仍然有效。
+- 安装完成后保存站点名称与地址时，若浏览器已断开会丢失设置。
+- 旧密码升级为 argon2id 时在事务内计算哈希，延长了事务时间。
+- 安装向导里的字段错误改为当前语言显示。
+- 列表型配置（如 `trusted_proxies`）无法通过环境变量设置：现在用逗号分隔。
+
 ### 变更（2026-10-23 晚）
 - 前端包管理器改为 **bun**（仓库只提交 `bun.lock`）；没有 bun 时可用 pnpm 或 npm 安装和运行全部脚本。`skinloom up --dev` 按 bun → pnpm → npm 自动选择，新增热加载配置 `web.package_manager`。见 ADR 0011。
 - Node.js 统一为 24：发行包内置 Node 24.22.1，Docker 镜像基于 `node:24-alpine`，CI 使用 Node 24。

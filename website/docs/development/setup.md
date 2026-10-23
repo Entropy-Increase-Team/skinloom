@@ -9,10 +9,10 @@ sidebar_position: 1
 
 ```bash
 cd web && bun install && cd ..     # 没有 bun：pnpm install 或 npm install
-go run ./cmd/skinloom up --dev     # http://localhost:8080
+go run ./cmd/skinloom up --dev     # http://localhost:17546
 ```
 
-`up --dev` 启动后端并在 `./web` 运行前端开发服务器（Next.js 热更新照常可用）。包管理器按 bun → pnpm → npm 的顺序自动选择，也可以在 `data/config.toml` 用 `web.package_manager` 指定。请通过 8080 端口访问，这样 `/api`、`/events` 等后端路径与页面同源。
+`up --dev` 启动后端并在 `./web` 运行前端开发服务器（Next.js 热更新照常可用）。包管理器按 bun → pnpm → npm 的顺序自动选择，也可以在 `data/config.toml` 用 `web.package_manager` 指定。请通过 17546 端口访问，这样 `/api`、`/events` 等后端路径与页面同源。
 
 ## 包管理器
 

@@ -52,6 +52,8 @@ type Bootstrap struct {
 	Menus   map[string][]MenuItem `json:"menus" doc:"Keyed by area: explore, user, admin"`
 	Plugins []PluginFrontend      `json:"plugins"`
 	Server  ServerInfo            `json:"server"`
+	// NeedsSetup is true until the first administrator is created (see /api/v1/setup).
+	NeedsSetup bool `json:"needsSetup"`
 }
 
 // ServerInfo identifies the running backend.
@@ -102,6 +104,13 @@ func registerSite(api huma.API, d Deps) {
 			},
 			Plugins: []PluginFrontend{},
 			Server:  ServerInfo{Name: "SkinLoom", Version: buildinfo.Version},
+		}
+		if d.Accounts != nil {
+			needs, err := d.Accounts.NeedsSetup(ctx)
+			if err != nil {
+				return nil, err
+			}
+			out.Body.NeedsSetup = needs
 		}
 		return out, nil
 	})

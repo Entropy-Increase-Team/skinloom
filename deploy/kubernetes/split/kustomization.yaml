@@ -1,0 +1,25 @@
+# Backend + frontend as separate Deployments (the frontend scales horizontally) and
+# PostgreSQL. Create the database password first, then apply:
+#   kubectl create namespace skinloom
+#   kubectl -n skinloom create secret generic skinloom-db --from-literal=password="$(openssl rand -hex 24)"
+#   kubectl apply -k deploy/kubernetes/split
+# Already have PostgreSQL? Drop postgres.yaml from resources and point
+# SKINLOOM_DATABASE__DSN in server.yaml at it.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: skinloom
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: skinloom
+    includeSelectors: false
+resources:
+  - namespace.yaml
+  - postgres.yaml
+  - server.yaml
+  - web.yaml
+  - ingress.yaml
+images:
+  - name: ghcr.io/entropy-increase-team/server
+    newTag: latest # pin a release, e.g. 0.1.0 (keep server and web on the same version)
+  - name: ghcr.io/entropy-increase-team/web
+    newTag: latest

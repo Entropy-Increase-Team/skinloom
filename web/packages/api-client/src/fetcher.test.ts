@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError, apiBase, apiFetch, SERVER_TIMEOUT_MS } from './fetcher'
+import { ApiError, apiBase, apiFetch, CSRF_HEADER, SERVER_TIMEOUT_MS } from './fetcher'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -30,6 +30,18 @@ describe('apiFetch', () => {
     expect(res.data.a).toBe(1)
     expect(res.status).toBe(200)
     expect(fetch.mock.calls[0]?.[0]).toMatch(/\/api\/x$/)
+  })
+
+  it('marks state-changing requests with the CSRF header and keeps caller headers', async () => {
+    const fetch = stubFetch(200, '{}')
+    await apiFetch('/api/x', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+    await apiFetch('/api/x', { headers: { cookie: 'a=b' } })
+    const post = new Headers(fetch.mock.calls[0]?.[1]?.headers)
+    const get = new Headers(fetch.mock.calls[1]?.[1]?.headers)
+    expect(post.get(CSRF_HEADER)).toBe('1')
+    expect(post.get('content-type')).toBe('application/json')
+    expect(get.get(CSRF_HEADER)).toBeNull()
+    expect(get.get('cookie')).toBe('a=b')
   })
 
   it('sets a timeout signal on server-side calls', async () => {

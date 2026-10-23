@@ -9,7 +9,6 @@
   "common": {
     "theme": "Toggle light/dark",
     "language": "Language",
-    "comingSoon": "Coming soon",
     "backHome": "Back to home"
   },
   "offline": "The backend is unreachable right now; showing default content.",
@@ -19,10 +18,22 @@
   },
   "features": {
     "title": "Built for players and site owners",
-    "upload": { "title": "Upload and share", "body": "Upload skins and capes, keep them public or private, and collect others' work in your closet." },
-    "players": { "title": "Many players, one account", "body": "Manage several in-game players from one account; each has its own skin and keeps its UUID when renamed." },
-    "launcher": { "title": "Works with launchers", "body": "Compatible with authlib-injector, CustomSkinLoader and friends; migrated sites need no client changes." },
-    "selfhost": { "title": "Self-host in minutes", "body": "Unzip and run on Windows, macOS or Linux, or deploy with Docker and Kubernetes. Plugins, themes and settings reload live." }
+    "upload": {
+      "title": "Upload and share",
+      "body": "Upload skins and capes, keep them public or private, and collect others' work in your closet."
+    },
+    "players": {
+      "title": "Many players, one account",
+      "body": "Manage several in-game players from one account; each has its own skin and keeps its UUID when renamed."
+    },
+    "launcher": {
+      "title": "Works with launchers",
+      "body": "Compatible with authlib-injector, CustomSkinLoader and friends; migrated sites need no client changes."
+    },
+    "selfhost": {
+      "title": "Self-host in minutes",
+      "body": "Unzip and run on Windows, macOS or Linux, or deploy with Docker and Kubernetes. Plugins, themes and settings reload live."
+    }
   },
   "launcher": {
     "title": "Use it in your launcher",
@@ -57,5 +68,56 @@
   "notFound": {
     "title": "Page not found",
     "body": "The page you are looking for does not exist or was removed."
+  },
+  "setupPending": "This site is not set up yet: open the one-time setup link printed on the server console, or run <code>skinloom setup-link</code> on the server.",
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "remember": "Remember me (30 days)",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "signInTo": "Sign in to {site}",
+    "signOut": "Sign out",
+    "roles": {
+      "admin": "Admin",
+      "superadmin": "Super admin"
+    },
+    "errors": {
+      "invalid": "Incorrect email or password.",
+      "disabled": "This account has been disabled. Contact the site administrator.",
+      "tooMany": "Too many failed attempts. Try again later.",
+      "failed": "Sign-in failed. Check your connection and try again."
+    }
+  },
+  "setup": {
+    "title": "Set up your site",
+    "intro": "Create the first administrator account. The setup link stops working once you finish; sign in with this account afterwards.",
+    "token": "Setup token",
+    "tokenHint": "Printed in the server console at startup, or run skinloom setup-link.",
+    "site": "Site",
+    "siteName": "Site name",
+    "siteUrl": "Site URL",
+    "siteUrlHint": "The address visitors use to open this site. You can change it later.",
+    "admin": "Administrator",
+    "email": "Email",
+    "nickname": "Nickname",
+    "password": "Password",
+    "passwordHint": "8 to 128 characters.",
+    "confirm": "Confirm password",
+    "passwordMismatch": "The passwords do not match.",
+    "submit": "Finish setup",
+    "submitting": "Setting up…",
+    "errors": {
+      "token": "The setup link is invalid, used or expired. Restart SkinLoom or run skinloom setup-link for a new one.",
+      "done": "This site is already set up. Sign in instead.",
+      "failed": "Setup failed. Check your connection and try again."
+    },
+    "fieldErrors": {
+      "email": "Enter a valid email address.",
+      "nickname": "Nickname must be 1 to 32 characters.",
+      "password": "Password must be 8 to 128 characters.",
+      "siteName": "Site name can be at most 64 characters.",
+      "siteUrl": "Enter an address starting with http:// or https://, e.g. https://skins.example.com."
+    }
   }
 }

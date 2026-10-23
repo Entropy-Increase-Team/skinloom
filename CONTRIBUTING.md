@@ -11,7 +11,7 @@
 
 ```bash
 cd web && bun install && cd ..    # 没有 bun：pnpm install 或 npm install
-go run ./cmd/skinloom up --dev      # 后端 + 前端开发服务器，访问 http://localhost:8080
+go run ./cmd/skinloom up --dev      # 后端 + 前端开发服务器，访问 http://localhost:17546
 ```
 
 `up --dev` 自动按 bun → pnpm → npm 的顺序选择包管理器，可用 `data/config.toml` 的 `web.package_manager` 指定。
@@ -29,7 +29,7 @@ go run ./cmd/skinloom up --dev      # 后端 + 前端开发服务器，访问 ht
 | 改了 API | `go generate ./api && cd web && bun run gen:api`（CI 会检查 `api/openapi.json` 与生成的客户端是否漂移） |
 | 查看/修改运行时设置 | `go run ./cmd/skinloom settings get`、`settings set <key> <json>` |
 | 临时管理员令牌（M1 前） | `go run ./cmd/skinloom admin token` |
-| API 文档 | 运行后访问 <http://localhost:8080/api/docs> |
+| API 文档 | 运行后访问 <http://localhost:17546/api/docs> |
 | 打发行包 | `bash deploy/packaging/package.sh [os/arch ...]` |
 | 文档站 | `cd website && bun install && bun run start` |
 

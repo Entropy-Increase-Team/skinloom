@@ -6,6 +6,33 @@
  * OpenAPI spec version: 0.0.0-dev
  */
 import { apiFetch } from '../fetcher';
+
+// https://stackoverflow.com/questions/49579094/typescript-conditional-types-filter-out-readonly-properties-pick-only-requir/49579497#49579497
+type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <
+T,
+>() => T extends Y ? 1 : 2
+? A
+: B;
+
+type WritableKeys<T> = {
+[P in keyof T]-?: IfEquals<
+  { [Q in P]: T[P] },
+  { -readonly [Q in P]: T[P] },
+  P
+>;
+}[keyof T];
+
+type UnionToIntersection<U> =
+  (U extends any ? (k: U)=>void : never) extends ((k: infer I)=>void) ? I : never;
+type DistributeReadOnlyOverUnions<T> = T extends any ? NonReadonly<T> : never;
+
+type Writable<T> = Pick<T, WritableKeys<T>>;
+type NonReadonly<T> = [T] extends [UnionToIntersection<T>] ? {
+  [P in keyof Writable<T>]: T[P] extends object
+    ? NonReadonly<NonNullable<T[P]>>
+    : T[P];
+} : DistributeReadOnlyOverUnions<T>;
+
 export type BlockProps = {[key: string]: unknown};
 
 export interface Block {
@@ -86,6 +113,7 @@ export interface Bootstrap {
   locales: LocaleInfo[];
   /** Keyed by area: explore, user, admin */
   menus: BootstrapMenus;
+  needsSetup: boolean;
   plugins: PluginFrontend[];
   server: ServerInfo;
   site: SiteInfo;
@@ -120,6 +148,17 @@ export interface ErrorModel {
   type?: string;
 }
 
+export interface LoginInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** @maxLength 255 */
+  email: string;
+  /** @maxLength 1024 */
+  password: string;
+  /** Keep the session for 30 days instead of until the browser closes */
+  remember?: boolean;
+}
+
 export interface SettingView {
   default: unknown;
   doc: string;
@@ -138,6 +177,35 @@ export interface SettingsList {
   version: number;
 }
 
+export interface SetupInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** @maxLength 255 */
+  email: string;
+  /** @maxLength 128 */
+  nickname: string;
+  /** @maxLength 1024 */
+  password: string;
+  /**
+     * Site name for every language; can be refined later in the admin panel
+     * @maxLength 256
+     */
+  siteName?: string;
+  /**
+     * Public URL, e.g. https://skins.example.com
+     * @maxLength 512
+     */
+  siteUrl?: string;
+  /** One-time setup token printed on the server console */
+  token: string;
+}
+
+export interface SetupStatusOutputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  needsSetup: boolean;
+}
+
 export type ThemeViewDescription = {[key: string]: string};
 
 export type ThemeViewName = {[key: string]: string};
@@ -149,6 +217,27 @@ export interface ThemeView {
   name: ThemeViewName;
   source: string;
   version: string;
+}
+
+export type UserViewRole = typeof UserViewRole[keyof typeof UserViewRole];
+
+
+export const UserViewRole = {
+  user: 'user',
+  admin: 'admin',
+  superadmin: 'superadmin',
+} as const;
+
+export interface UserView {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  email: string;
+  emailVerified: boolean;
+  id: number;
+  /** Preferred UI language; empty = follow the browser */
+  locale: string;
+  nickname: string;
+  role: UserViewRole;
 }
 
 /**
@@ -310,6 +399,251 @@ export const listThemes = async ( options?: Parameters<typeof apiFetch>[1]): Pro
     method: 'GET'
 
 
+  }
+);}
+
+
+
+export type loginResponse200 = {
+  data: UserView
+  status: 200
+}
+
+export type loginResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type loginResponseSuccess = (loginResponse200) & {
+  headers: Headers;
+};
+export type loginResponseError = (loginResponseDefault) & {
+  headers: Headers;
+};
+
+export type loginResponse = (loginResponseSuccess | loginResponseError)
+
+export const getLoginUrl = () => {
+
+
+
+
+  return `/api/v1/auth/login`
+}
+
+/**
+ * Sets the session cookie. Every failure returns the same 401, whether or not the account exists; repeated failures return 429 with Retry-After.
+ * @summary Sign in with email and password
+ */
+export const login = async (loginInputBody: NonReadonly<LoginInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<loginResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<loginResponse>(getLoginUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(loginInputBody)
+  }
+);}
+
+
+
+export type logoutResponse204 = {
+  data: void
+  status: 204
+}
+
+export type logoutResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 204>
+}
+
+export type logoutResponseSuccess = (logoutResponse204) & {
+  headers: Headers;
+};
+export type logoutResponseError = (logoutResponseDefault) & {
+  headers: Headers;
+};
+
+export type logoutResponse = (logoutResponseSuccess | logoutResponseError)
+
+export const getLogoutUrl = () => {
+
+
+
+
+  return `/api/v1/auth/logout`
+}
+
+/**
+ * @summary Sign out
+ */
+export const logout = async ( options?: Parameters<typeof apiFetch>[1]): Promise<logoutResponse> => {
+
+  return apiFetch<logoutResponse>(getLogoutUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type getMeResponse200 = {
+  data: UserView
+  status: 200
+}
+
+export type getMeResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getMeResponseSuccess = (getMeResponse200) & {
+  headers: Headers;
+};
+export type getMeResponseError = (getMeResponseDefault) & {
+  headers: Headers;
+};
+
+export type getMeResponse = (getMeResponseSuccess | getMeResponseError)
+
+export const getGetMeUrl = () => {
+
+
+
+
+  return `/api/v1/auth/me`
+}
+
+/**
+ * @summary The signed-in user
+ */
+export const getMe = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getMeResponse> => {
+
+  return apiFetch<getMeResponse>(getGetMeUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getSetupStatusResponse200 = {
+  data: SetupStatusOutputBody
+  status: 200
+}
+
+export type getSetupStatusResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getSetupStatusResponseSuccess = (getSetupStatusResponse200) & {
+  headers: Headers;
+};
+export type getSetupStatusResponseError = (getSetupStatusResponseDefault) & {
+  headers: Headers;
+};
+
+export type getSetupStatusResponse = (getSetupStatusResponseSuccess | getSetupStatusResponseError)
+
+export const getGetSetupStatusUrl = () => {
+
+
+
+
+  return `/api/v1/setup`
+}
+
+/**
+ * @summary Whether first-run setup is pending
+ */
+export const getSetupStatus = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getSetupStatusResponse> => {
+
+  return apiFetch<getSetupStatusResponse>(getGetSetupStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type completeSetupResponse200 = {
+  data: UserView
+  status: 200
+}
+
+export type completeSetupResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type completeSetupResponseSuccess = (completeSetupResponse200) & {
+  headers: Headers;
+};
+export type completeSetupResponseError = (completeSetupResponseDefault) & {
+  headers: Headers;
+};
+
+export type completeSetupResponse = (completeSetupResponseSuccess | completeSetupResponseError)
+
+export const getCompleteSetupUrl = () => {
+
+
+
+
+  return `/api/v1/setup`
+}
+
+/**
+ * Needs the one-time token printed on the server console at startup (`skinloom setup-link` prints a new one). Signs the new administrator in.
+ * @summary Create the first administrator
+ */
+export const completeSetup = async (setupInputBody: NonReadonly<SetupInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<completeSetupResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<completeSetupResponse>(getCompleteSetupUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(setupInputBody)
   }
 );}
 

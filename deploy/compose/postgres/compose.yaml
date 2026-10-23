@@ -1,0 +1,59 @@
+# Same as "standard", with PostgreSQL instead of MariaDB.
+#
+#   cp .env.example .env          # set DB_PASSWORD (and optionally the rest)
+#   docker compose up -d
+#   docker compose logs server | grep setup   # one-time setup link (first start)
+#   → http://localhost:17546
+name: skinloom
+
+services:
+  server:
+    image: ghcr.io/entropy-increase-team/server:${SKINLOOM_VERSION:-latest}
+    build: # used only when the image cannot be pulled (e.g. before the first release)
+      context: ../../..
+      dockerfile: deploy/docker/server.Dockerfile
+    command: ["up"]
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      SKINLOOM_DATABASE__DRIVER: postgres
+      SKINLOOM_DATABASE__DSN: postgres://skinloom:${DB_PASSWORD:?set DB_PASSWORD in .env}@db:5432/skinloom?sslmode=disable
+      SKINLOOM_WEB__MODE: external
+      SKINLOOM_WEB__URL: http://web:17547
+    ports:
+      - "${SKINLOOM_PORT:-17546}:17546"
+    volumes:
+      - data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    image: ghcr.io/entropy-increase-team/web:${SKINLOOM_VERSION:-latest}
+    build:
+      context: ../../..
+      dockerfile: deploy/docker/web.Dockerfile
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      SKINLOOM_API_INTERNAL: http://server:17546
+    restart: unless-stopped
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      POSTGRES_DB: skinloom
+      POSTGRES_USER: skinloom
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skinloom -d skinloom"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  data:
+  db:

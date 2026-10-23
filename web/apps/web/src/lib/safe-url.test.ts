@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { safeHref, safeImageUrl } from './safe-url'
+import { safeHref, safeImageUrl, safeNext } from './safe-url'
 
 describe('safeHref', () => {
   it.each([
@@ -39,5 +39,17 @@ describe('safeImageUrl', () => {
   it('keeps site paths and https images', () => {
     expect(safeImageUrl('/themes-assets/a/1/hero.webp')).toBe('/themes-assets/a/1/hero.webp')
     expect(safeImageUrl('https://cdn.example.com/bg.png')).toBe('https://cdn.example.com/bg.png')
+  })
+})
+
+describe('safeNext', () => {
+  it('keeps paths on this site', () => {
+    expect(safeNext('/skinlib?sort=likes')).toBe('/skinlib?sort=likes')
+    expect(safeNext('/user')).toBe('/user')
+  })
+  it('refuses open redirects and loops back to the auth pages', () => {
+    for (const bad of ['https://evil.example', '//evil.example', '/\\evil.example','javascript:alert(1)', '', '/auth/login', '/setup?token=x', '/a\nb', undefined, ['/user']]) {
+      expect(safeNext(bad)).toBe('/')
+    }
   })
 })

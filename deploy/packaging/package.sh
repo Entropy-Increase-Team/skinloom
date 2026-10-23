@@ -15,7 +15,8 @@
 #                    then pnpm, then npm; only bun installs from the committed bun.lock)
 #   SKIP_WEB_BUILD=1 reuse an existing web/apps/web/.next/standalone build
 #
-# Output: dist/skinloom-<version>-<os>-<arch>.{zip,tar.gz} and dist/checksums.txt
+# Output: dist/skinloom-<version>-<os>-<arch>.{zip,tar.gz} (bundles), dist/skinloom-server-<version>-<os>-<arch>[.exe]
+#         (bare backend) and dist/checksums.txt
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -130,15 +131,20 @@ for target in "${targets[@]}"; do
   CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath \
     -ldflags "-s -w -X github.com/Entropy-Increase-Team/skinloom/internal/buildinfo.Version=$VERSION -X github.com/Entropy-Increase-Team/skinloom/internal/buildinfo.Commit=$COMMIT -X github.com/Entropy-Increase-Team/skinloom/internal/buildinfo.Date=$DATE" \
     -o "$stage/$exe" ./cmd/skinloom
+  # The bare backend as well, for split deployments that run the frontend elsewhere.
+  server="skinloom-server-$VERSION-$os-$arch"; [ "$os" = windows ] && server="$server.exe"
+  cp "$stage/$exe" "$DIST/$server"
+  (cd "$DIST" && printf '%s  %s\n' "$(sha256 "$server")" "$server") >> "$DIST/checksums.txt.new"
 
   cp -RL "$BUILD/web" "$stage/web"
   fetch_node "$os" "$arch" "$stage/runtime/node"
   cp LICENSE NOTICE "$stage/"
   cp deploy/packaging/README.txt "$stage/README.txt"
+  mkdir -p "$stage/service"   # run in the background: systemd / launchd / Task Scheduler
   case "$os" in
-    windows) cp deploy/packaging/start.bat "$stage/" ;;
-    darwin)  cp deploy/packaging/start.command "$stage/" && chmod +x "$stage/start.command" ;;
-    *)       cp deploy/packaging/start.sh "$stage/" && chmod +x "$stage/start.sh" ;;
+    windows) cp deploy/packaging/start.bat "$stage/" && cp deploy/service/install-task.ps1 "$stage/service/" ;;
+    darwin)  cp deploy/packaging/start.command "$stage/" && chmod +x "$stage/start.command" && cp deploy/service/cn.skinloom.plist "$stage/service/" ;;
+    *)       cp deploy/packaging/start.sh "$stage/" && chmod +x "$stage/start.sh" && cp deploy/service/skinloom.service "$stage/service/" ;;
   esac
 
   (

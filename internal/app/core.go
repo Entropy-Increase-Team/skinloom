@@ -8,7 +8,9 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/Entropy-Increase-Team/skinloom/internal/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/config"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/logging"
@@ -53,6 +55,7 @@ type Core struct {
 	Bus      *hook.Bus
 	Settings *settings.Service
 	Themes   *theme.Registry
+	Accounts *account.Service
 	// FreshConfig is true when this start wrote the default config file.
 	FreshConfig bool
 }
@@ -105,7 +108,21 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 	return &Core{
 		Paths: p, Config: cfg, LogCtl: logCtl, Log: log, DB: database,
 		Broker: broker, Bus: bus, Settings: svc, Themes: themeReg, FreshConfig: fresh,
+		Accounts: account.NewService(database.Ent, log.With("component", "account")),
 	}, nil
+}
+
+// SetupLink returns a one-time link to the first-run setup page, or "" when setup is
+// done. base is used when site.url is not configured.
+func (c *Core) SetupLink(ctx context.Context, base string) (string, error) {
+	token, err := c.Accounts.NewSetupToken(ctx)
+	if err != nil || token == "" {
+		return "", err
+	}
+	if site := c.Settings.Current().String("site.url"); site != "" {
+		base = site
+	}
+	return strings.TrimRight(base, "/") + "/setup?token=" + token, nil
 }
 
 // Close releases resources.

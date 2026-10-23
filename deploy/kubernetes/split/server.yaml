@@ -1,0 +1,99 @@
+# Backend: API, game protocols and the single public entry point (it proxies page
+# requests to the frontend Service). One replica for now: config, secrets and
+# uploads live on a ReadWriteOnce volume (shared storage arrives with M2/M4).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: skinloom-data
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: skinloom-server
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: skinloom-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: skinloom-server
+        app.kubernetes.io/name: skinloom-server
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532 # distroless "nonroot"
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: server
+          image: ghcr.io/entropy-increase-team/server
+          args: ["up"]
+          ports:
+            - name: http
+              containerPort: 17546
+          env:
+            - name: TZ
+              value: Asia/Shanghai
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: skinloom-db, key: password }
+            - name: SKINLOOM_DATABASE__DRIVER
+              value: postgres
+            - name: SKINLOOM_DATABASE__DSN # Kubernetes expands $(DB_PASSWORD)
+              value: postgres://skinloom:$(DB_PASSWORD)@skinloom-postgres:5432/skinloom?sslmode=disable
+            - name: SKINLOOM_WEB__MODE
+              value: external
+            - name: SKINLOOM_WEB__URL
+              value: http://skinloom-web:17547
+            # Believe X-Forwarded-* from the ingress controller. 10.42.0.0/16 is the
+            # k3s pod network; use the pod CIDR of your cluster elsewhere.
+            - name: SKINLOOM_SERVER__TRUSTED_PROXIES
+              value: 10.42.0.0/16
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          startupProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+            failureThreshold: 60 # waits for PostgreSQL and runs migrations
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: skinloom-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: skinloom-server
+spec:
+  selector:
+    app.kubernetes.io/instance: skinloom-server
+  ports:
+    - name: http
+      port: 17546
+      targetPort: http

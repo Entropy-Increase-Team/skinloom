@@ -1,0 +1,56 @@
+name: Docs site
+
+# Builds website/ (docs, design docs, ADRs, devlog) and publishes it with GitHub Pages.
+# One-time setup in the repository: Settings → Pages → Build and deployment →
+# Source: "GitHub Actions". With a custom domain (Settings → Pages → Custom domain,
+# e.g. skinloom.cn) the site is served at its root; otherwise at
+# https://entropy-increase-team.github.io/skinloom/. Base URL is picked automatically.
+on:
+  push:
+    branches: [main]
+    paths: ["website/**", "docs/**", ".github/workflows/docs.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: actions/configure-pages@v6
+        id: pages
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+        env:
+          SITE_URL: ${{ steps.pages.outputs.origin }}
+          BASE_URL: ${{ steps.pages.outputs.base_path }}/
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: website/build
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v5
+        id: deployment

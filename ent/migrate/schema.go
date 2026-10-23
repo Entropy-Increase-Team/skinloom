@@ -9,6 +9,98 @@ import (
 )
 
 var (
+	// AuditLogsColumns holds the columns for the "audit_logs" table.
+	AuditLogsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "actor_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "action", Type: field.TypeString, Size: 64},
+		{Name: "target_type", Type: field.TypeString, Size: 32, Default: ""},
+		{Name: "target_id", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "ip", Type: field.TypeString, Size: 45, Default: ""},
+		{Name: "meta", Type: field.TypeJSON, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+	}
+	// AuditLogsTable holds the schema information for the "audit_logs" table.
+	AuditLogsTable = &schema.Table{
+		Name:       "audit_logs",
+		Columns:    AuditLogsColumns,
+		PrimaryKey: []*schema.Column{AuditLogsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "auditlog_actor_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{AuditLogsColumns[1], AuditLogsColumns[7]},
+			},
+			{
+				Name:    "auditlog_action_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{AuditLogsColumns[2], AuditLogsColumns[7]},
+			},
+		},
+	}
+	// AuthTokensColumns holds the columns for the "auth_tokens" table.
+	AuthTokensColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "purpose", Type: field.TypeEnum, Enums: []string{"setup", "verify_email", "reset_password"}},
+		{Name: "token_hash", Type: field.TypeString, Unique: true, Size: 64},
+		{Name: "expires_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "used_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "user_id", Type: field.TypeInt64, Nullable: true},
+	}
+	// AuthTokensTable holds the schema information for the "auth_tokens" table.
+	AuthTokensTable = &schema.Table{
+		Name:       "auth_tokens",
+		Columns:    AuthTokensColumns,
+		PrimaryKey: []*schema.Column{AuthTokensColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "auth_tokens_users_auth_tokens",
+				Columns:    []*schema.Column{AuthTokensColumns[6]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "authtoken_user_id_purpose",
+				Unique:  false,
+				Columns: []*schema.Column{AuthTokensColumns[6], AuthTokensColumns[1]},
+			},
+		},
+	}
+	// SessionsColumns holds the columns for the "sessions" table.
+	SessionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Size: 64},
+		{Name: "ip", Type: field.TypeString, Size: 45, Default: ""},
+		{Name: "user_agent", Type: field.TypeString, Size: 512, Default: ""},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "last_seen_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "expires_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "revoked_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "user_id", Type: field.TypeInt64},
+	}
+	// SessionsTable holds the schema information for the "sessions" table.
+	SessionsTable = &schema.Table{
+		Name:       "sessions",
+		Columns:    SessionsColumns,
+		PrimaryKey: []*schema.Column{SessionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "sessions_users_sessions",
+				Columns:    []*schema.Column{SessionsColumns[7]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "session_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{SessionsColumns[7]},
+			},
+		},
+	}
 	// SettingsColumns holds the columns for the "settings" table.
 	SettingsColumns = []*schema.Column{
 		{Name: "key", Type: field.TypeString, Size: 128},
@@ -34,18 +126,68 @@ var (
 		Columns:    SystemStateColumns,
 		PrimaryKey: []*schema.Column{SystemStateColumns[0]},
 	}
+	// UsersColumns holds the columns for the "users" table.
+	UsersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "email", Type: field.TypeString, Size: 255},
+		{Name: "email_normalized", Type: field.TypeString, Unique: true, Size: 255},
+		{Name: "nickname", Type: field.TypeString, Size: 64},
+		{Name: "password_hash", Type: field.TypeString, Size: 255},
+		{Name: "password_algo", Type: field.TypeString, Size: 32, Default: "argon2id"},
+		{Name: "role", Type: field.TypeEnum, Enums: []string{"user", "admin", "superadmin"}, Default: "user"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "banned", "deleted"}, Default: "active"},
+		{Name: "score", Type: field.TypeInt64, Default: 0},
+		{Name: "locale", Type: field.TypeString, Size: 16, Default: ""},
+		{Name: "email_verified_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "register_ip", Type: field.TypeString, Size: 45, Default: ""},
+		{Name: "last_login_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+	}
+	// UsersTable holds the schema information for the "users" table.
+	UsersTable = &schema.Table{
+		Name:       "users",
+		Columns:    UsersColumns,
+		PrimaryKey: []*schema.Column{UsersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "user_register_ip_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{UsersColumns[11], UsersColumns[14]},
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AuditLogsTable,
+		AuthTokensTable,
+		SessionsTable,
 		SettingsTable,
 		SystemStateTable,
+		UsersTable,
 	}
 )
 
 func init() {
+	AuditLogsTable.Annotation = &entsql.Annotation{
+		Table: "audit_logs",
+	}
+	AuthTokensTable.ForeignKeys[0].RefTable = UsersTable
+	AuthTokensTable.Annotation = &entsql.Annotation{
+		Table: "auth_tokens",
+	}
+	SessionsTable.ForeignKeys[0].RefTable = UsersTable
+	SessionsTable.Annotation = &entsql.Annotation{
+		Table: "sessions",
+	}
 	SettingsTable.Annotation = &entsql.Annotation{
 		Table: "settings",
 	}
 	SystemStateTable.Annotation = &entsql.Annotation{
 		Table: "system_state",
+	}
+	UsersTable.Annotation = &entsql.Annotation{
+		Table: "users",
 	}
 }

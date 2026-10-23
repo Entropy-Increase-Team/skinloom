@@ -28,6 +28,9 @@ import (
 // SKINLOOM_DATABASE__DSN=... overrides [database] dsn.
 const EnvPrefix = "SKINLOOM_"
 
+// listKeys are list-valued keys; their environment overrides are comma-separated.
+var listKeys = map[string]bool{"server.trusted_proxies": true}
+
 // Config is the whole static configuration.
 type Config struct {
 	Server   Server   `koanf:"server"`
@@ -37,7 +40,7 @@ type Config struct {
 }
 
 type Server struct {
-	// Listen is the single public address, e.g. ":8080". Cold.
+	// Listen is the single public address, e.g. ":17546". Cold.
 	Listen string `koanf:"listen"`
 	// Role selects the planes this process serves: all | api. Cold.
 	Role string `koanf:"role"`
@@ -59,7 +62,7 @@ type Web struct {
 	// Port is the internal port of the managed/dev Next.js process; 0 or a busy port
 	// means "pick a free one".
 	Port int `koanf:"port"`
-	// URL is the upstream in external mode, e.g. http://web:3000.
+	// URL is the upstream in external mode, e.g. http://web:17547.
 	URL string `koanf:"url"`
 	// Node is an explicit node executable. Empty = bundled runtime, then PATH.
 	Node string `koanf:"node"`
@@ -78,9 +81,9 @@ type Log struct {
 // Defaults is what a fresh install runs with: zero external dependencies.
 func Defaults() Config {
 	return Config{
-		Server:   Server{Listen: ":8080", Role: "all"},
+		Server:   Server{Listen: ":17546", Role: "all"},
 		Database: Database{Driver: "sqlite", DSN: "skinloom.db"},
-		Web:      Web{Mode: "managed", Port: 3000, DevDir: "web", PackageManager: "auto"},
+		Web:      Web{Mode: "managed", Port: 17547, DevDir: "web", PackageManager: "auto"},
 		Log:      Log{Level: "info", Format: "text"},
 	}
 }
@@ -100,10 +103,21 @@ func Load(path string) (Config, error) {
 			return Config{}, err
 		}
 	}
-	envKey := func(s string) string {
-		return strings.ReplaceAll(strings.ToLower(strings.TrimPrefix(s, EnvPrefix)), "__", ".")
+	envKV := func(key, value string) (string, any) {
+		key = strings.ReplaceAll(strings.ToLower(strings.TrimPrefix(key, EnvPrefix)), "__", ".")
+		if listKeys[key] {
+			// SKINLOOM_SERVER__TRUSTED_PROXIES=10.42.0.0/16,10.43.0.0/16
+			var items []string
+			for item := range strings.SplitSeq(value, ",") {
+				if item = strings.TrimSpace(item); item != "" {
+					items = append(items, item)
+				}
+			}
+			return key, items
+		}
+		return key, value
 	}
-	if err := k.Load(env.Provider(EnvPrefix, ".", envKey), nil); err != nil {
+	if err := k.Load(env.ProviderWithValue(EnvPrefix, ".", envKV), nil); err != nil {
 		return Config{}, err
 	}
 	var c Config
@@ -215,7 +229,7 @@ const template = `# SkinLoom configuration.
 # e.g. SKINLOOM_DATABASE__DSN. Site settings (name, theme, rules...) live in the admin panel.
 
 [server]
-listen = ":8080"          # [cold] the only port users need
+listen = ":17546"         # [cold] the only port users need
 role = "all"              # [cold] all | api
 trusted_proxies = []      # [hot] proxies allowed to set X-Forwarded-*, e.g. ["127.0.0.1", "10.0.0.0/8"]
                           #       (the public site URL is the site.url setting, see "skinloom settings")
@@ -228,7 +242,7 @@ dsn = "skinloom.db"       # [cold] sqlite: path relative to the data dir
 
 [web]
 mode = "managed"          # [hot] managed | dev | external | off
-port = 3000               # [hot] internal port of the Next.js process (busy or 0 = pick a free one)
+port = 17547              # [hot] internal port of the Next.js process (busy or 0 = pick a free one)
 url = ""                  # [hot] upstream when mode = external
 node = ""                 # [hot] node executable; empty = bundled runtime, then PATH
 package_manager = "auto"  # [hot] dev mode only: auto (bun, then pnpm, then npm) | bun | pnpm | npm

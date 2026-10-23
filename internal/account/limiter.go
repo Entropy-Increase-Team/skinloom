@@ -1,0 +1,91 @@
+package account
+
+import (
+	"net/netip"
+	"sync"
+	"time"
+)
+
+// Limiter counts failures per key in a fixed window and blocks a key that reached the
+// limit until its window ends. It is per process; with several replicas each one
+// counts on its own, which only makes the limit proportionally looser.
+type Limiter struct {
+	max    int
+	window time.Duration
+	now    func() time.Time
+
+	mu      sync.Mutex
+	hits    map[string]*bucket
+	sweepAt int
+}
+
+type bucket struct {
+	n     int
+	start time.Time
+}
+
+// NewLimiter blocks a key after max failures within window.
+func NewLimiter(max int, window time.Duration) *Limiter {
+	return &Limiter{max: max, window: window, now: time.Now, hits: map[string]*bucket{}, sweepAt: 1024}
+}
+
+// Blocked reports whether key is over the limit and how long until it is not.
+func (l *Limiter) Blocked(key string) (time.Duration, bool) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	b := l.hits[key]
+	if b == nil {
+		return 0, false
+	}
+	left := b.start.Add(l.window).Sub(l.now())
+	if left <= 0 {
+		delete(l.hits, key)
+		return 0, false
+	}
+	return left, b.n >= l.max
+}
+
+// Fail records one failure for key.
+func (l *Limiter) Fail(key string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	now := l.now()
+	b := l.hits[key]
+	if b == nil || now.Sub(b.start) >= l.window {
+		b = &bucket{start: now}
+		l.hits[key] = b
+	}
+	b.n++
+	if len(l.hits) >= l.sweepAt {
+		// Bound memory under a flood of distinct keys: drop finished windows, and let
+		// the map grow again only relative to what is still live.
+		for k, v := range l.hits {
+			if now.Sub(v.start) >= l.window {
+				delete(l.hits, k)
+			}
+		}
+		l.sweepAt = max(1024, 2*len(l.hits))
+	}
+}
+
+// Reset forgets key, e.g. after a successful login.
+func (l *Limiter) Reset(key string) {
+	l.mu.Lock()
+	delete(l.hits, key)
+	l.mu.Unlock()
+}
+
+// ipKey groups IPv6 clients by /64, the smallest block one subscriber usually gets,
+// so rotating addresses inside it does not reset the count.
+func ipKey(ip string) string {
+	a, err := netip.ParseAddr(ip)
+	if err != nil {
+		return ip
+	}
+	a = a.Unmap()
+	if a.Is6() {
+		p, _ := a.Prefix(64)
+		return p.String()
+	}
+	return a.String()
+}

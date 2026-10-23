@@ -1,0 +1,21 @@
+# One pod running backend + frontend (`skinloom up`), SQLite and uploads on a volume.
+# Works as-is on k3s (Traefik ingress, local-path storage):
+#   kubectl apply -k deploy/kubernetes/all-in-one
+# Set your host name in ingress.yaml first, or patch it here.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: skinloom
+labels:
+  - pairs:
+      app.kubernetes.io/name: skinloom
+      app.kubernetes.io/part-of: skinloom
+    includeSelectors: false
+resources:
+  - namespace.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+images:
+  - name: ghcr.io/entropy-increase-team/skinloom
+    newTag: latest # pin a release, e.g. 0.1.0

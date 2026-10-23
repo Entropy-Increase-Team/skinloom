@@ -1,16 +1,28 @@
 name: Release
 
+# v* tag  → GitHub Release (bundles, bare backend binaries, checksums) + images
+#           tagged x.y.z, x.y (stable only) and latest. Tags with a "-" (v0.1.0-alpha.1)
+#           are published as pre-releases.
+# main    → images tagged edge, so the newest code can be tried before a release.
 on:
   push:
     tags: ["v*"]
+    branches: [main]
+    paths-ignore: ["website/**", "docs/**", "**/*.md"] # not applied to tag pushes
+  workflow_dispatch:
 
 permissions:
   contents: write
   packages: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref == 'refs/heads/main' }} # a newer main push supersedes edge
+
 jobs:
   bundles:
     name: Release bundles
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -29,16 +41,30 @@ jobs:
             windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 linux/amd64 linux/arm64
       - uses: softprops/action-gh-release@v3
         with:
-          draft: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+          body: |
+            更新内容见 [CHANGELOG](https://github.com/Entropy-Increase-Team/skinloom/blob/${{ github.ref_name }}/CHANGELOG.md)，部署方式见 [README](https://github.com/Entropy-Increase-Team/skinloom#部署)。
+            See the CHANGELOG for what changed and the README for how to deploy.
+
+            | 文件 / File | 内容 / Contents |
+            |---|---|
+            | `skinloom-*-<os>-<arch>.zip/.tar.gz` | 完整发行包（含前端与 Node.js），解压即用 / full bundle with frontend and Node.js |
+            | `skinloom-server-*` | 仅后端的单文件程序 / backend only, single file |
+            | `checksums.txt` | SHA-256 |
+
+            镜像 / Images: `ghcr.io/entropy-increase-team/{skinloom,server,web}:${{ github.ref_name }}`（去掉开头的 v / without the leading v）
           files: |
             dist/*.zip
             dist/*.tar.gz
+            dist/skinloom-server-*
             dist/checksums.txt
 
   images:
     name: Docker images
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         image:
           - { name: skinloom, file: deploy/docker/all-in-one.Dockerfile }
@@ -57,9 +83,12 @@ jobs:
         id: meta
         with:
           images: ghcr.io/entropy-increase-team/${{ matrix.image.name }}
+          flavor: latest=false
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=edge,branch=main
       - uses: docker/build-push-action@v7
         with:
           context: .
@@ -69,3 +98,5 @@ jobs:
           build-args: VERSION=${{ steps.meta.outputs.version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}

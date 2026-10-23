@@ -77,3 +77,39 @@ func TestTemplateHasNoUnknownKeys(t *testing.T) {
 		t.Fatalf("template has unknown keys %v (err %v)", got, err)
 	}
 }
+
+// The defaults avoid the four-digit ports other software on the same host very often
+// already uses (8080, 3000, ...), and stay below the ephemeral (Linux 32768+, Windows
+// 49152+) and Kubernetes NodePort (30000-32767) ranges: 1 + "SKIN" on a phone keypad,
+// with the frontend next to it.
+func TestDefaultPorts(t *testing.T) {
+	c := Defaults()
+	if c.Server.Listen != ":17546" || c.Web.Port != 17547 {
+		t.Fatalf("defaults = %q / %d, want :17546 / 17547", c.Server.Listen, c.Web.Port)
+	}
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if _, err := WriteTemplate(path); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Load(path)
+	if err != nil || got.Server.Listen != ":17546" || got.Web.Port != 17547 {
+		t.Fatalf("template = %q / %d (%v)", got.Server.Listen, got.Web.Port, err)
+	}
+}
+
+// Container and Kubernetes deployments set list keys through the environment, e.g.
+// the pod network as trusted proxies behind an ingress controller.
+func TestListFromEnvironment(t *testing.T) {
+	t.Setenv("SKINLOOM_SERVER__TRUSTED_PROXIES", "10.42.0.0/16, 10.43.0.0/16")
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if _, err := WriteTemplate(path); err != nil {
+		t.Fatal(err)
+	}
+	c, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"10.42.0.0/16", "10.43.0.0/16"}; !reflect.DeepEqual(c.Server.TrustedProxies, want) {
+		t.Fatalf("trusted_proxies = %q, want %q", c.Server.TrustedProxies, want)
+	}
+}

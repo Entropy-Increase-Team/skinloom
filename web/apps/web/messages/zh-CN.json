@@ -9,7 +9,6 @@
   "common": {
     "theme": "切换明暗",
     "language": "语言",
-    "comingSoon": "即将上线",
     "backHome": "返回首页"
   },
   "offline": "暂时无法连接后端服务，页面显示的是默认内容。",
@@ -19,10 +18,22 @@
   },
   "features": {
     "title": "为玩家和站长而做",
-    "upload": { "title": "上传与分享", "body": "上传皮肤和披风，设为公开或私有，收藏别人的作品放进衣柜。" },
-    "players": { "title": "多角色管理", "body": "一个账号管理多个游戏角色，每个角色单独换肤，改名也不丢 UUID。" },
-    "launcher": { "title": "外置登录", "body": "兼容 authlib-injector、CustomSkinLoader 等主流加载方式，老站迁移后游戏端无需改配置。" },
-    "selfhost": { "title": "一键自托管", "body": "Windows、macOS、Linux 解压即用，也支持 Docker 与 Kubernetes；插件、主题、设置全部热加载。" }
+    "upload": {
+      "title": "上传与分享",
+      "body": "上传皮肤和披风，设为公开或私有，收藏别人的作品放进衣柜。"
+    },
+    "players": {
+      "title": "多角色管理",
+      "body": "一个账号管理多个游戏角色，每个角色单独换肤，改名也不丢 UUID。"
+    },
+    "launcher": {
+      "title": "外置登录",
+      "body": "兼容 authlib-injector、CustomSkinLoader 等主流加载方式，老站迁移后游戏端无需改配置。"
+    },
+    "selfhost": {
+      "title": "一键自托管",
+      "body": "Windows、macOS、Linux 解压即用，也支持 Docker 与 Kubernetes；插件、主题、设置全部热加载。"
+    }
   },
   "launcher": {
     "title": "在启动器中使用",
@@ -57,5 +68,56 @@
   "notFound": {
     "title": "页面不存在",
     "body": "你访问的页面不存在或已被移除。"
+  },
+  "setupPending": "站点尚未完成初始化：请打开服务器控制台打印的一次性安装链接，或在服务器上运行 <code>skinloom setup-link</code>。",
+  "auth": {
+    "email": "邮箱",
+    "password": "密码",
+    "remember": "记住我（30 天）",
+    "signIn": "登录",
+    "signingIn": "正在登录…",
+    "signInTo": "登录到 {site}",
+    "signOut": "退出登录",
+    "roles": {
+      "admin": "管理员",
+      "superadmin": "超级管理员"
+    },
+    "errors": {
+      "invalid": "邮箱或密码不正确。",
+      "disabled": "该账号已被停用，请联系站点管理员。",
+      "tooMany": "失败次数过多，请稍后再试。",
+      "failed": "登录失败，请检查网络后重试。"
+    }
+  },
+  "setup": {
+    "title": "初始化站点",
+    "intro": "创建第一个管理员账号。完成后安装链接立即失效，之后用这个账号登录管理站点。",
+    "token": "安装令牌",
+    "tokenHint": "在服务器控制台的启动日志中，或运行 skinloom setup-link 获取。",
+    "site": "站点",
+    "siteName": "站点名称",
+    "siteUrl": "站点地址",
+    "siteUrlHint": "访问者用来打开本站的地址，之后可在后台修改。",
+    "admin": "管理员账号",
+    "email": "邮箱",
+    "nickname": "昵称",
+    "password": "密码",
+    "passwordHint": "8 到 128 个字符。",
+    "confirm": "确认密码",
+    "passwordMismatch": "两次输入的密码不一致。",
+    "submit": "完成初始化",
+    "submitting": "正在初始化…",
+    "errors": {
+      "token": "安装链接无效、已使用或已过期。请重启 SkinLoom 或运行 skinloom setup-link 获取新链接。",
+      "done": "站点已经初始化过了，请直接登录。",
+      "failed": "初始化失败，请检查网络后重试。"
+    },
+    "fieldErrors": {
+      "email": "请输入有效的邮箱地址。",
+      "nickname": "昵称为 1 到 32 个字符。",
+      "password": "密码为 8 到 128 个字符。",
+      "siteName": "站点名称最多 64 个字符。",
+      "siteUrl": "请输入以 http:// 或 https:// 开头的地址，例如 https://skins.example.com。"
+    }
   }
 }

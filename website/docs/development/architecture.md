@@ -6,7 +6,7 @@ sidebar_position: 2
 # 架构概览
 
 ```text
-                    :8080（唯一对外端口）
+                    :17546（唯一对外端口）
 浏览器 / 游戏 / 启动器 ──▶ skinloom（Go）
                      ├─ 后端保留路径 → API · 游戏协议 · SSE
                      ├─ /_next/static、public → 直接读前端产物

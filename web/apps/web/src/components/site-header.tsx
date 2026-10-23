@@ -3,13 +3,15 @@ import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 
 import { getBootstrap } from '@/lib/bootstrap'
+import { getViewer } from '@/lib/viewer'
 
+import { UserMenu } from './auth/user-menu'
 import { LocaleSwitch } from './locale-switch'
 import { Logo } from './logo'
 import { ThemeToggle } from './theme-toggle'
 
 export async function SiteHeader() {
-  const boot = await getBootstrap()
+  const [boot, viewer] = await Promise.all([getBootstrap(), getViewer()])
   const t = await getTranslations()
   const explore = [...(boot.menus.explore ?? [])].sort((a, b) => a.order - b.order)
 
@@ -33,13 +35,22 @@ export async function SiteHeader() {
         <div className="ml-auto flex items-center gap-2">
           <LocaleSwitch label={t('common.language')} />
           <ThemeToggle label={t('common.theme')} />
-          <Button variant="ghost" size="sm" disabled title={t('common.comingSoon')}>
-            {t('nav.login')}
-          </Button>
+          {viewer ? (
+            <UserMenu viewer={viewer} />
+          ) : (
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/auth/login">{t('nav.login')}</Link>
+            </Button>
+          )}
         </div>
       </div>
       {boot.offline && (
         <div className="bg-destructive/10 px-4 py-2 text-center text-sm text-destructive">{t('offline')}</div>
+      )}
+      {boot.needsSetup && (
+        <div className="bg-primary/10 px-4 py-2 text-center text-sm">
+          {t.rich('setupPending', { code: (chunks) => <code className="font-mono">{chunks}</code> })}
+        </div>
       )}
     </header>
   )

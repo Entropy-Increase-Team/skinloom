@@ -1,0 +1,26 @@
+# Change the host. All traffic goes to the backend, which serves the API and proxies
+# pages to the frontend. k3s ships Traefik as the default ingress class; elsewhere set
+# ingressClassName (e.g. nginx). For HTTPS with cert-manager, uncomment tls and the
+# annotation.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: skinloom
+  # annotations:
+  #   cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  # ingressClassName: traefik
+  rules:
+    - host: skins.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: skinloom-server
+                port:
+                  name: http
+  # tls:
+  #   - hosts: [skins.example.com]
+  #     secretName: skinloom-tls

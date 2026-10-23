@@ -7,7 +7,7 @@
  */
 export function apiBase(): string {
   if (typeof window !== 'undefined') return ''
-  return process.env.SKINLOOM_API_INTERNAL ?? 'http://127.0.0.1:8080'
+  return process.env.SKINLOOM_API_INTERNAL ?? 'http://127.0.0.1:17546'
 }
 
 /** Server-side calls give up after this long so a stuck backend cannot hang page renders. */
@@ -32,9 +32,18 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Sent with every state-changing request. The backend refuses cookie-authenticated
+ * POST/PUT/PATCH/DELETE without it; other sites cannot add it (CSRF protection).
+ */
+export const CSRF_HEADER = 'X-SkinLoom-Request'
+
 export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const signal = init?.signal ?? (typeof window === 'undefined' ? AbortSignal.timeout(SERVER_TIMEOUT_MS) : undefined)
-  const res = await fetch(apiBase() + url, { cache: 'no-store', ...init, signal })
+  const headers = new Headers(init?.headers)
+  const method = (init?.method ?? 'GET').toUpperCase()
+  if (method !== 'GET' && method !== 'HEAD') headers.set(CSRF_HEADER, '1')
+  const res = await fetch(apiBase() + url, { cache: 'no-store', ...init, headers, signal })
   const text = res.status === 204 ? '' : await res.text()
   let body: unknown
   if (text) {

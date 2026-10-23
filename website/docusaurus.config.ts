@@ -2,14 +2,18 @@ import type * as Preset from '@docusaurus/preset-classic'
 import type { Config } from '@docusaurus/types'
 import { themes as prismThemes } from 'prism-react-renderer'
 
+import crossInstanceLinks from './src/remark/cross-instance-links'
+
 const repo = 'https://github.com/Entropy-Increase-Team/skinloom'
 
 const config: Config = {
   title: '云织 SkinLoom',
   tagline: '开源、自托管的 Minecraft 皮肤站',
   favicon: 'img/logo.svg',
-  url: 'https://skinloom.cn',
-  baseUrl: '/',
+  // The Pages workflow passes the real address: the custom domain at its root, or
+  // https://entropy-increase-team.github.io/skinloom/ before one is configured.
+  url: process.env.SITE_URL || 'https://skinloom.cn',
+  baseUrl: process.env.BASE_URL || '/',
   organizationName: 'Entropy-Increase-Team',
   projectName: 'skinloom',
   trailingSlash: false,
@@ -57,6 +61,7 @@ const config: Config = {
         sidebarPath: false,
         numberPrefixParser: false, // keep 04-rewrite-plan as the URL, matching the file name
         editUrl: `${repo}/edit/main/`,
+        remarkPlugins: [crossInstanceLinks],
       },
     ],
     [
@@ -68,6 +73,7 @@ const config: Config = {
         sidebarPath: false,
         numberPrefixParser: false,
         editUrl: `${repo}/edit/main/`,
+        remarkPlugins: [crossInstanceLinks],
       },
     ],
   ],

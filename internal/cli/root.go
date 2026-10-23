@@ -4,7 +4,10 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -47,8 +50,41 @@ func newRoot() *cobra.Command {
 	root.PersistentFlags().StringVar(&paths.ConfigPath, "config", os.Getenv("SKINLOOM_CONFIG"), "config file (default <data>/config.toml); env SKINLOOM_CONFIG")
 
 	root.AddCommand(upCmd(&paths), serveCmd(&paths), migrateCmd(&paths), settingsCmd(&paths),
-		adminCmd(&paths), openapiCmd(), versionCmd())
+		adminCmd(&paths), setupLinkCmd(&paths), healthcheckCmd(), openapiCmd(), versionCmd())
 	return root
+}
+
+// healthcheckCmd lets container images without a shell or curl (the distroless
+// backend) declare a HEALTHCHECK, and gives compose / Kubernetes an exec probe.
+func healthcheckCmd() *cobra.Command {
+	url := os.Getenv("SKINLOOM_HEALTHCHECK_URL")
+	if url == "" {
+		url = "http://127.0.0.1:17546/readyz"
+	}
+	cmd := &cobra.Command{
+		Use:   "healthcheck",
+		Short: "Exit 0 when the local server is ready (for Docker / Kubernetes health checks)",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx, cancel := context.WithTimeout(cmd.Context(), 3*time.Second)
+			defer cancel()
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+			if err != nil {
+				return err
+			}
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return err
+			}
+			_ = res.Body.Close()
+			if res.StatusCode != http.StatusOK {
+				return fmt.Errorf("%s: %s", url, res.Status)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&url, "url", url, "readiness URL; env SKINLOOM_HEALTHCHECK_URL")
+	return cmd
 }
 
 func upCmd(paths *app.Paths) *cobra.Command {
@@ -184,7 +220,7 @@ func adminCmd(paths *app.Paths) *cobra.Command {
 	cmd := &cobra.Command{Use: "admin", Short: "Administration helpers"}
 	cmd.AddCommand(&cobra.Command{
 		Use:   "token",
-		Short: "Print the temporary admin API token (until accounts land in M1)",
+		Short: "Print the admin API token for scripts (browsers sign in as an administrator instead)",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			p, err := paths.Resolve()
 			if err != nil {
@@ -199,6 +235,36 @@ func adminCmd(paths *app.Paths) *cobra.Command {
 		},
 	})
 	return cmd
+}
+
+func setupLinkCmd(paths *app.Paths) *cobra.Command {
+	return &cobra.Command{
+		Use:   "setup-link",
+		Short: "Print a new one-time link to the first-run setup page (valid 24 hours)",
+		Long: `Before the first administrator exists, the setup page only opens with a one-time
+token. "skinloom up" prints a link on every start; this command makes another one,
+e.g. inside a container: docker exec <container> skinloom setup-link`,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			core, err := app.OpenCore(cmd.Context(), *paths)
+			if err != nil {
+				return err
+			}
+			defer core.Close(cmd.Context())
+			base := "http://localhost:17546"
+			if _, port, err := net.SplitHostPort(core.Config.Server.Listen); err == nil && port != "" {
+				base = "http://localhost:" + port
+			}
+			link, err := core.SetupLink(cmd.Context(), base)
+			if err != nil {
+				return err
+			}
+			if link == "" {
+				return errors.New("setup is already complete; sign in with the administrator account")
+			}
+			fmt.Println(link)
+			return nil
+		},
+	}
 }
 
 func openapiCmd() *cobra.Command {

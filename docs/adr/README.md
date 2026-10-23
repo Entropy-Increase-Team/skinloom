@@ -15,3 +15,5 @@
 | [0009](0009-release-bundles.md) | 发行包由脚本构建，前端依赖扁平化 | 已接受 |
 | [0010](0010-trusted-proxies-and-shutdown.md) | 可信代理、路径规范化与快速关闭 | 已接受 |
 | [0011](0011-bun-and-node-24.md) | 包管理器 bun（回退 pnpm / npm），Node.js 24 | 已接受 |
+| [0012](0012-accounts-sessions-setup.md) | 账号、会话与首次安装 | 已接受 |
+| [0013](0013-ports-deployment-release.md) | 默认端口、部署清单与发布渠道 | 已接受 |

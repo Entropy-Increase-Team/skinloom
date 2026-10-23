@@ -71,6 +71,9 @@ func New(api http.Handler, log *slog.Logger, res *realip.Resolver) *Gateway {
 	return g
 }
 
+// ClientInfo resolves r with the current trusted proxy list.
+func (g *Gateway) ClientInfo(r *http.Request) realip.Info { return g.real.Load().Resolve(r) }
+
 // SetResolver replaces the trusted proxy configuration (hot reload).
 func (g *Gateway) SetResolver(res *realip.Resolver) {
 	if res == nil {

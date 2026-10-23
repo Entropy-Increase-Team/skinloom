@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  launchd agent for a SkinLoom release bundle on macOS: starts at login, restarts on crash.
+  Replace every /Users/you/skinloom with the folder you unpacked, then:
+    cp cn.skinloom.plist ~/Library/LaunchAgents/
+    launchctl load -w ~/Library/LaunchAgents/cn.skinloom.plist
+    grep setup /Users/you/skinloom/data/skinloom.log     # one-time setup link (first start)
+  Stop: launchctl unload -w ~/Library/LaunchAgents/cn.skinloom.plist
+  For a server that runs without anyone logged in, put it in /Library/LaunchDaemons
+  instead and add a UserName key.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>cn.skinloom</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/you/skinloom/skinloom</string>
+    <string>up</string>
+    <string>--data</string>
+    <string>/Users/you/skinloom/data</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/you/skinloom</string>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+  <key>ThrottleInterval</key>
+  <integer>5</integer>
+  <key>StandardOutPath</key>
+  <string>/Users/you/skinloom/data/skinloom.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/you/skinloom/data/skinloom.log</string>
+</dict>
+</plist>

@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Entropy-Increase-Team/skinloom/internal/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
@@ -49,7 +50,8 @@ func newTestDeps(t *testing.T) Deps {
 	if err := svc.Load(ctx); err != nil {
 		t.Fatal(err)
 	}
-	return Deps{Log: log, DB: database, Settings: svc, Themes: themeReg, Broker: broker, AdminToken: testToken}
+	return Deps{Log: log, DB: database, Settings: svc, Themes: themeReg, Broker: broker, AdminToken: testToken,
+		Accounts: account.NewService(database.Ent, log)}
 }
 
 func do(t *testing.T, h http.Handler, method, path, auth, body string) *httptest.ResponseRecorder {
