@@ -1,0 +1,22 @@
+{
+  "name": "@skinloom/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Typed client for the SkinLoom REST API, generated from api/openapi.json by orval. Do not edit src/gen by hand.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "orval --config orval.config.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "orval": "^8.44.0",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.5"
+  }
+}

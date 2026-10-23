@@ -1,0 +1,9 @@
+.git
+data
+dist
+build
+**/node_modules
+**/.next
+website/build
+website/.docusaurus
+*.exe

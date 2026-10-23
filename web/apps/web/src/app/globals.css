@@ -1,0 +1,92 @@
+@import 'tailwindcss';
+
+/* Components in the shared UI package use utility classes too. */
+@source '../../../../packages/ui/src';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Fallback token values (= the default theme). The active theme's tokens are injected
+ * by the root layout with a higher-specificity selector, so themes always win.
+ * Token names follow shadcn/ui; themes may only rely on these documented names.
+ */
+:root {
+  --background: oklch(0.99 0.004 247);
+  --foreground: oklch(0.21 0.03 264);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.03 264);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.03 264);
+  --primary: oklch(0.58 0.16 252);
+  --primary-foreground: oklch(0.99 0.01 247);
+  --secondary: oklch(0.96 0.01 252);
+  --secondary-foreground: oklch(0.28 0.04 264);
+  --muted: oklch(0.96 0.008 252);
+  --muted-foreground: oklch(0.52 0.03 257);
+  --accent: oklch(0.94 0.03 230);
+  --accent-foreground: oklch(0.28 0.04 264);
+  --destructive: oklch(0.58 0.22 27);
+  --border: oklch(0.91 0.012 252);
+  --input: oklch(0.91 0.012 252);
+  --ring: oklch(0.58 0.16 252);
+  --radius: 0.75rem;
+  --brand-gradient: linear-gradient(135deg, oklch(0.62 0.15 240), oklch(0.66 0.14 200));
+  --sl-font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+.dark {
+  --background: oklch(0.17 0.02 262);
+  --foreground: oklch(0.95 0.01 252);
+  --card: oklch(0.21 0.025 262);
+  --card-foreground: oklch(0.95 0.01 252);
+  --popover: oklch(0.21 0.025 262);
+  --popover-foreground: oklch(0.95 0.01 252);
+  --primary: oklch(0.7 0.14 245);
+  --primary-foreground: oklch(0.18 0.03 262);
+  --secondary: oklch(0.27 0.03 262);
+  --secondary-foreground: oklch(0.95 0.01 252);
+  --muted: oklch(0.27 0.03 262);
+  --muted-foreground: oklch(0.72 0.03 257);
+  --accent: oklch(0.3 0.04 245);
+  --accent-foreground: oklch(0.95 0.01 252);
+  --destructive: oklch(0.66 0.2 22);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.7 0.14 245);
+  --brand-gradient: linear-gradient(135deg, oklch(0.45 0.12 245), oklch(0.4 0.1 205));
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--sl-font-sans);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-foreground;
+  }
+}

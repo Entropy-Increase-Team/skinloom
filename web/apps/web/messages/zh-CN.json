@@ -1,0 +1,61 @@
+{
+  "nav": {
+    "home": "首页",
+    "skinlib": "皮肤库",
+    "about": "关于",
+    "login": "登录",
+    "register": "注册"
+  },
+  "common": {
+    "theme": "切换明暗",
+    "language": "语言",
+    "comingSoon": "即将上线",
+    "backHome": "返回首页"
+  },
+  "offline": "暂时无法连接后端服务，页面显示的是默认内容。",
+  "hero": {
+    "browse": "浏览皮肤库",
+    "join": "免费注册"
+  },
+  "features": {
+    "title": "为玩家和站长而做",
+    "upload": { "title": "上传与分享", "body": "上传皮肤和披风，设为公开或私有，收藏别人的作品放进衣柜。" },
+    "players": { "title": "多角色管理", "body": "一个账号管理多个游戏角色，每个角色单独换肤，改名也不丢 UUID。" },
+    "launcher": { "title": "外置登录", "body": "兼容 authlib-injector、CustomSkinLoader 等主流加载方式，老站迁移后游戏端无需改配置。" },
+    "selfhost": { "title": "一键自托管", "body": "Windows、macOS、Linux 解压即用，也支持 Docker 与 Kubernetes；插件、主题、设置全部热加载。" }
+  },
+  "launcher": {
+    "title": "在启动器中使用",
+    "body": "在支持 authlib-injector 的启动器里添加外置登录服务器，填入下面的地址：",
+    "copy": "复制",
+    "copied": "已复制",
+    "note": "外置登录服务将在后续版本开放，地址保持不变。"
+  },
+  "announcement": {
+    "title": "公告"
+  },
+  "skinlib": {
+    "title": "皮肤库",
+    "body": "皮肤库正在开发中，将在下一个里程碑（M2）上线。"
+  },
+  "about": {
+    "title": "关于云织",
+    "intro": "云织（SkinLoom）是一个开源、自托管的 Minecraft 皮肤站，后端使用 Go，前端使用 Next.js，以 MIT 协议发布。",
+    "version": "服务端版本",
+    "thanksTitle": "鸣谢",
+    "thanksIntro": "云织站在这些优秀开源项目的肩膀上：",
+    "blessing": "云织的设计参考并致敬 Blessing Skin。部分翻译文本与渲染算法思路源自 Blessing Skin（MIT 协议），版权声明保留在 NOTICE 文件中。",
+    "skinview3d": "三维皮肤预览",
+    "authlib": "外置登录协议与启动器注入",
+    "csl": "客户端皮肤加载",
+    "license": "许可协议"
+  },
+  "footer": {
+    "powered": "由 云织 SkinLoom 驱动",
+    "thanks": "鸣谢 Blessing Skin"
+  },
+  "notFound": {
+    "title": "页面不存在",
+    "body": "你访问的页面不存在或已被移除。"
+  }
+}

@@ -1,0 +1,703 @@
+{
+  "components": {
+    "schemas": {
+      "Block": {
+        "additionalProperties": false,
+        "properties": {
+          "props": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "Bootstrap": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/Bootstrap.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "locales": {
+            "items": {
+              "$ref": "#/components/schemas/LocaleInfo"
+            },
+            "type": "array"
+          },
+          "menus": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/MenuItem"
+              },
+              "type": "array"
+            },
+            "description": "Keyed by area: explore, user, admin",
+            "type": "object"
+          },
+          "plugins": {
+            "items": {
+              "$ref": "#/components/schemas/PluginFrontend"
+            },
+            "type": "array"
+          },
+          "server": {
+            "$ref": "#/components/schemas/ServerInfo"
+          },
+          "site": {
+            "$ref": "#/components/schemas/SiteInfo"
+          },
+          "theme": {
+            "$ref": "#/components/schemas/ResolvedTheme"
+          },
+          "version": {
+            "description": "Config version; changes whenever settings, themes or plugins change",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "locale",
+          "locales",
+          "site",
+          "theme",
+          "menus",
+          "plugins",
+          "server"
+        ],
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "description": "Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'",
+            "type": "string"
+          },
+          "message": {
+            "description": "Error message text",
+            "type": "string"
+          },
+          "value": {
+            "description": "The value at the given location"
+          }
+        },
+        "type": "object"
+      },
+      "ErrorModel": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ErrorModel.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "detail": {
+            "description": "A human-readable explanation specific to this occurrence of the problem.",
+            "examples": [
+              "Property foo is required but is missing."
+            ],
+            "type": "string"
+          },
+          "errors": {
+            "description": "Optional list of individual error details",
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetail"
+            },
+            "type": "array"
+          },
+          "instance": {
+            "description": "A URI reference that identifies the specific occurrence of the problem.",
+            "examples": [
+              "https://example.com/error-log/abc123"
+            ],
+            "format": "uri",
+            "type": "string"
+          },
+          "status": {
+            "description": "HTTP status code",
+            "examples": [
+              400
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type. This value should not change between occurrences of the error.",
+            "examples": [
+              "Bad Request"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "default": "about:blank",
+            "description": "A URI reference to human-readable documentation for the error.",
+            "examples": [
+              "https://example.com/errors/example"
+            ],
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LocaleInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "examples": [
+              "zh-CN"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "简体中文"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ],
+        "type": "object"
+      },
+      "MenuItem": {
+        "additionalProperties": false,
+        "properties": {
+          "href": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "order": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "description": "Message key resolved by the frontend, or literal text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "href",
+          "order"
+        ],
+        "type": "object"
+      },
+      "PluginFrontend": {
+        "additionalProperties": false,
+        "properties": {
+          "entry": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "entry"
+        ],
+        "type": "object"
+      },
+      "ResolvedTheme": {
+        "additionalProperties": false,
+        "properties": {
+          "css": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "home": {
+            "items": {
+              "$ref": "#/components/schemas/Block"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "layout": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "tokens": {
+            "$ref": "#/components/schemas/Tokens"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "tokens",
+          "css",
+          "layout",
+          "home"
+        ],
+        "type": "object"
+      },
+      "ServerInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "examples": [
+              "SkinLoom"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "version"
+        ],
+        "type": "object"
+      },
+      "SettingView": {
+        "additionalProperties": false,
+        "properties": {
+          "default": {},
+          "doc": {
+            "type": "string"
+          },
+          "isSet": {
+            "description": "false when the default is in effect",
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "public": {
+            "type": "boolean"
+          },
+          "type": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "key",
+          "type",
+          "value",
+          "default",
+          "isSet",
+          "public",
+          "doc"
+        ],
+        "type": "object"
+      },
+      "SettingsList": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/SettingsList.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "settings": {
+            "items": {
+              "$ref": "#/components/schemas/SettingView"
+            },
+            "type": "array"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "settings"
+        ],
+        "type": "object"
+      },
+      "SiteInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "announcement": {
+            "description": "Markdown",
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "description": "Canonical public URL; empty when not configured",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "url",
+          "announcement"
+        ],
+        "type": "object"
+      },
+      "ThemeView": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "description": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "source": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "name",
+          "source",
+          "active"
+        ],
+        "type": "object"
+      },
+      "Tokens": {
+        "additionalProperties": false,
+        "properties": {
+          "dark": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "fonts": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "light": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "viewer": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "light",
+          "dark"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "adminToken": {
+        "description": "Temporary admin token from data/secrets/admin.token (replaced by sessions and roles in M1).",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "SkinLoom (云织) REST API. Game protocols (CSL/USM/Legacy/Yggdrasil) are documented separately.",
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "title": "SkinLoom API",
+    "version": "0.0.0-dev"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/admin/settings": {
+      "get": {
+        "operationId": "listSettings",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "List runtime settings",
+        "tags": [
+          "admin"
+        ]
+      },
+      "patch": {
+        "description": "Changes apply immediately on every node and in every open browser tab (hot reload).",
+        "operationId": "updateSettings",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": {},
+                "description": "Keys to change. A null value resets the key to its default.",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Update runtime settings",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/themes": {
+      "get": {
+        "description": "Switch themes by setting theme.active.",
+        "operationId": "listThemes",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ThemeView"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "List installed themes",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/site/bootstrap": {
+      "get": {
+        "description": "Site identity, active theme, menus and plugin frontends for the current locale. Called by the frontend on every page render.",
+        "operationId": "getBootstrap",
+        "parameters": [
+          {
+            "description": "Force a UI language",
+            "explode": false,
+            "in": "query",
+            "name": "lang",
+            "schema": {
+              "description": "Force a UI language",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "locale",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Bootstrap"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Config-Version": {
+                "schema": {
+                  "format": "int64",
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Site bootstrap",
+        "tags": [
+          "site"
+        ]
+      }
+    }
+  }
+}

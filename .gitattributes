@@ -1,0 +1,14 @@
+# Keep LF in the repository and in every checkout, whatever core.autocrlf says.
+# Release bundles are built from the working tree: start.sh / start.command with CRLF
+# fail on Linux and macOS ("bad interpreter"), and generated files must not drift.
+* text=auto eol=lf
+
+# Windows batch files need CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+*.png binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary

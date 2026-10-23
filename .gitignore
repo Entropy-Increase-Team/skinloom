@@ -1,0 +1,33 @@
+# runtime data (database, config, secrets, uploads) created by `skinloom up`
+/data/
+
+# Go
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+coverage.*
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+.pnpm-store/
+
+# Docusaurus
+/website/build/
+/website/.docusaurus/
+
+# release packaging scratch
+/build/
+
+# editors / OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+*.log

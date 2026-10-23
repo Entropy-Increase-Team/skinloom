@@ -1,0 +1,61 @@
+{
+  "nav": {
+    "home": "Home",
+    "skinlib": "Skin Library",
+    "about": "About",
+    "login": "Sign in",
+    "register": "Sign up"
+  },
+  "common": {
+    "theme": "Toggle light/dark",
+    "language": "Language",
+    "comingSoon": "Coming soon",
+    "backHome": "Back to home"
+  },
+  "offline": "The backend is unreachable right now; showing default content.",
+  "hero": {
+    "browse": "Browse skins",
+    "join": "Sign up free"
+  },
+  "features": {
+    "title": "Built for players and site owners",
+    "upload": { "title": "Upload and share", "body": "Upload skins and capes, keep them public or private, and collect others' work in your closet." },
+    "players": { "title": "Many players, one account", "body": "Manage several in-game players from one account; each has its own skin and keeps its UUID when renamed." },
+    "launcher": { "title": "Works with launchers", "body": "Compatible with authlib-injector, CustomSkinLoader and friends; migrated sites need no client changes." },
+    "selfhost": { "title": "Self-host in minutes", "body": "Unzip and run on Windows, macOS or Linux, or deploy with Docker and Kubernetes. Plugins, themes and settings reload live." }
+  },
+  "launcher": {
+    "title": "Use it in your launcher",
+    "body": "In a launcher that supports authlib-injector, add an external authentication server with this address:",
+    "copy": "Copy",
+    "copied": "Copied",
+    "note": "External login opens in an upcoming release; the address will stay the same."
+  },
+  "announcement": {
+    "title": "Announcement"
+  },
+  "skinlib": {
+    "title": "Skin Library",
+    "body": "The skin library is under construction and arrives in the next milestone (M2)."
+  },
+  "about": {
+    "title": "About SkinLoom",
+    "intro": "SkinLoom (云织) is an open-source, self-hosted Minecraft skin site with a Go backend and a Next.js frontend, released under the MIT license.",
+    "version": "Server version",
+    "thanksTitle": "Acknowledgements",
+    "thanksIntro": "SkinLoom stands on the shoulders of these open-source projects:",
+    "blessing": "SkinLoom's design is inspired by and pays tribute to Blessing Skin. Some translations and rendering ideas come from Blessing Skin (MIT); its copyright notice is kept in the NOTICE file.",
+    "skinview3d": "3D skin viewer",
+    "authlib": "External authentication protocol and launcher injection",
+    "csl": "Client-side skin loading",
+    "license": "License"
+  },
+  "footer": {
+    "powered": "Powered by SkinLoom",
+    "thanks": "Thanks to Blessing Skin"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "The page you are looking for does not exist or was removed."
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "skinloom-web-workspace",
+  "private": true,
+  "packageManager": "pnpm@10.20.0",
+  "engines": {
+    "node": ">=20.9"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @skinloom/web dev",
+    "build": "pnpm --filter @skinloom/web build",
+    "typecheck": "pnpm -r typecheck",
+    "gen:api": "pnpm --filter @skinloom/api-client generate",
+    "test": "pnpm -r test"
+  }
+}

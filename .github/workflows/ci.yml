@@ -1,0 +1,159 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    name: Go (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go vet ./...
+      - run: go test ./...
+      - name: Race detector (needs cgo; Linux runners have gcc)
+        if: runner.os == 'Linux'
+        run: go test -race ./...
+
+  security:
+    name: Static analysis and vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go run honnef.co/go/tools/cmd/staticcheck@latest ./...
+      - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  integration:
+    name: MySQL / PostgreSQL
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: pass
+          MYSQL_DATABASE: skinloom
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd "mysqladmin ping -ppass" --health-interval 5s --health-timeout 5s --health-retries 20
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: pass
+          POSTGRES_DB: skinloom
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      SKINLOOM_TEST_MYSQL: root:pass@tcp(127.0.0.1:3306)/skinloom
+      SKINLOOM_TEST_POSTGRES: postgres://postgres:pass@127.0.0.1:5432/skinloom?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go test -p 1 ./...
+
+  generated:
+    name: Generated files are up to date
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: pass
+          MYSQL_DATABASE: dev
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd "mysqladmin ping -ppass" --health-interval 5s --health-timeout 5s --health-retries 20
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: pass
+          POSTGRES_DB: dev
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: test -z "$(gofmt -l $(git ls-files '*.go'))" || { gofmt -l $(git ls-files '*.go'); exit 1; }
+      - name: ent code
+        run: go generate ./ent && git diff --exit-code -- ent/
+      - name: migrations match ent/schema (all dialects)
+        run: |
+          go run ./internal/tools/migdiff -dialect sqlite -name drift
+          go run ./internal/tools/migdiff -dialect mysql -dev "mysql://root:pass@127.0.0.1:3306/dev" -name drift
+          go run ./internal/tools/migdiff -dialect postgres -dev "postgres://postgres:pass@127.0.0.1:5432/dev?sslmode=disable" -name drift
+          if [ -n "$(git status --porcelain -- migrations)" ]; then
+            git status --porcelain -- migrations
+            git diff -- migrations
+            echo "::error::ent/schema changed without a migration; run migdiff and commit the files"
+            exit 1
+          fi
+      - name: OpenAPI document
+        run: go generate ./api && git diff --exit-code -- api/
+
+  web:
+    name: Web
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: API client matches api/openapi.json
+        run: pnpm gen:api && git diff --exit-code -- packages/api-client/src/gen
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm audit --prod
+      - run: pnpm build
+
+  docs:
+    name: Docs site
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: website/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: website/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build

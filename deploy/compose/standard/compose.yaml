@@ -1,0 +1,62 @@
+# Production-style setup: separate backend and frontend containers, MariaDB, Valkey.
+#   cp .env.example .env   # set passwords
+#   docker compose up -d   →   http://localhost:8080
+#
+# The backend is the single public entry point; it proxies page requests to the
+# frontend container (web.mode = external). Valkey is used for multi-node pub/sub and
+# caching once those land (M1+); it is harmless to run now.
+name: skinloom
+
+services:
+  server:
+    image: ghcr.io/entropy-increase-team/server:latest
+    build:
+      context: ../../..
+      dockerfile: deploy/docker/server.Dockerfile
+    command: ["up"]
+    environment:
+      SKINLOOM_DATABASE__DRIVER: mysql
+      SKINLOOM_DATABASE__DSN: skinloom:${DB_PASSWORD:?set DB_PASSWORD in .env}@tcp(db:3306)/skinloom
+      SKINLOOM_WEB__MODE: external
+      SKINLOOM_WEB__URL: http://web:3000
+    ports:
+      - "8080:8080"
+    volumes:
+      - data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    image: ghcr.io/entropy-increase-team/web:latest
+    build:
+      context: ../../..
+      dockerfile: deploy/docker/web.Dockerfile
+    environment:
+      SKINLOOM_API_INTERNAL: http://server:8080
+    restart: unless-stopped
+
+  db:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: skinloom
+      MARIADB_USER: skinloom
+      MARIADB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    volumes:
+      - db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+
+volumes:
+  data:
+  db:

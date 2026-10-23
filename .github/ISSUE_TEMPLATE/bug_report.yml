@@ -1,0 +1,42 @@
+name: 问题反馈 / Bug report
+description: 报告一个缺陷 / Report a bug
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: 安全问题请不要在这里提交，见 SECURITY.md。 / For security issues see SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: 版本 / Version
+      description: "`skinloom version` 的输出"
+    validations:
+      required: true
+  - type: dropdown
+    id: deploy
+    attributes:
+      label: 部署方式 / Deployment
+      options: [Windows 发行包, macOS 发行包, Linux 发行包, Docker / Compose, Kubernetes / Helm, 源码, 其它]
+    validations:
+      required: true
+  - type: dropdown
+    id: database
+    attributes:
+      label: 数据库 / Database
+      options: [SQLite, MySQL, MariaDB, PostgreSQL]
+  - type: textarea
+    id: what
+    attributes:
+      label: 发生了什么 / What happened
+      description: 期望的结果与实际结果 / Expected vs actual
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤 / Steps to reproduce
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志 / Logs
+      render: text

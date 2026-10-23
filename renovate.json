@@ -1,0 +1,13 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["before 6am on monday"],
+  "timezone": "Asia/Shanghai",
+  "postUpdateOptions": ["gomodTidy"],
+  "packageRules": [
+    { "matchManagers": ["gomod"], "groupName": "Go dependencies", "matchUpdateTypes": ["minor", "patch"] },
+    { "matchManagers": ["npm"], "matchFileNames": ["web/**"], "groupName": "web dependencies", "matchUpdateTypes": ["minor", "patch"] },
+    { "matchManagers": ["npm"], "matchFileNames": ["website/**"], "groupName": "docs site dependencies" },
+    { "matchManagers": ["github-actions", "dockerfile"], "groupName": "CI and images" }
+  ]
+}
