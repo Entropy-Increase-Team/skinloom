@@ -83,4 +83,22 @@ skinloom settings set site.name null                    # 恢复默认
 
 运行中的站点会在 2 秒内感知命令行或其它节点做的修改。也可以调用 `PATCH /api/v1/admin/settings`：浏览器里以管理员身份登录即可（写请求需带 `X-SkinLoom-Request: 1` 头，站点前端会自动加上）；脚本使用 `skinloom admin token` 输出的令牌（`Authorization: Bearer …`）。每次修改都会记录修改人和审计日志。
 
-M0 可用的设置：`site.name`、`site.description`、`site.url`、`site.announcement`、`theme.active`、`theme.overrides`、`home.blocks`。
+目前可用的设置（全部即时生效）：
+
+| 键 | 默认 | 说明 |
+|---|---|---|
+| `site.name` / `site.description` / `site.announcement` | — | 站点名称、简介、公告（多语言对象） |
+| `site.url` | 空 | 站点公开地址，如 `https://skins.example.com`。邮件里的链接（验证邮箱、重置密码）只用它生成，没有设置时这两项功能不可用 |
+| `theme.active` / `theme.overrides` / `home.blocks` | `default` | 当前主题、主题 token 覆盖、首页区块 |
+| `auth.registration` | `open` | `open` 开放注册；`closed` 关闭注册 |
+| `auth.registrations_per_ip` | `3` | 同一地址（IPv6 按 /64）24 小时内最多注册几个账号，`0` 不限 |
+| `auth.login_captcha_after` | `3` | 同一客户端对同一账号登录失败几次后要求验证码，`0` 每次都要 |
+| `score.initial` | `1000` | 新账号的初始积分 |
+| `captcha.provider` | `image` | `none` / `image`（内置图形验证码）/ `turnstile` / `recaptcha` / `hcaptcha` |
+| `captcha.<turnstile\|recaptcha\|hcaptcha>.site_key` / `.secret_key` | 空 | 第三方验证码的站点密钥（公开）与服务端密钥（不会发给浏览器） |
+| `mail.driver` | `none` | `none` 不发邮件（无法验证邮箱、找回密码）/ `smtp` / `log`（写进服务端日志，开发用） |
+| `mail.from` | 空 | 发件人，如 `云织 <noreply@skins.example.com>` |
+| `mail.smtp.host` / `.port` / `.username` / `.password` | 空 / `465` | SMTP 服务器与账号（很多邮箱要用"授权码"而不是登录密码） |
+| `mail.smtp.encryption` | `tls` | `tls`（465 端口）/ `starttls`（587）/ `none`（仅限本机中继） |
+
+账号、验证码与邮件的详细说明见 [账号与用户管理](accounts.md)。

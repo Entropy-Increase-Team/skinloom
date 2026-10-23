@@ -8,7 +8,7 @@
 
 ---
 
-> **状态：开发中（M1 账号）。** 尚不能用于生产。路线图见 [设计文档 04 §13](docs/design/04-rewrite-plan.md#13-路线图)。
+> **状态：开发中（M1 账号已完成，下一步 M2 材质与角色）。** 尚不能用于生产。路线图见 [设计文档 04 §13](docs/design/04-rewrite-plan.md#13-路线图)。
 
 SkinLoom 是以 [Blessing Skin](https://github.com/bs-community/blessing-skin-server) 为蓝本重新设计实现的皮肤站：上传、分享皮肤与披风，管理游戏角色，并为 CustomSkinLoader、authlib-injector（外置登录）等客户端提供皮肤与认证服务。目标是在保持对 Blessing Skin 外部协议兼容（老站可迁移、游戏端无需改配置）的同时，从数据模型、运行模型到插件体系全面重做。
 

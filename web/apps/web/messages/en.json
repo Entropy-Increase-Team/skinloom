@@ -86,8 +86,13 @@
       "invalid": "Incorrect email or password.",
       "disabled": "This account has been disabled. Contact the site administrator.",
       "tooMany": "Too many failed attempts. Try again later.",
-      "failed": "Sign-in failed. Check your connection and try again."
-    }
+      "failed": "Sign-in failed. Check your connection and try again.",
+      "captchaDown": "The captcha service is unavailable. Try again later."
+    },
+    "noAccount": "No account yet?",
+    "register": "Register",
+    "forgot": "Forgot your password?",
+    "admin": "Open the admin panel"
   },
   "setup": {
     "title": "Set up your site",
@@ -104,20 +109,194 @@
     "password": "Password",
     "passwordHint": "8 to 128 characters.",
     "confirm": "Confirm password",
-    "passwordMismatch": "The passwords do not match.",
     "submit": "Finish setup",
     "submitting": "Setting up…",
     "errors": {
       "token": "The setup link is invalid, used or expired. Restart SkinLoom or run skinloom setup-link for a new one.",
       "done": "This site is already set up. Sign in instead.",
       "failed": "Setup failed. Check your connection and try again."
+    }
+  },
+  "register": {
+    "title": "Register",
+    "intro": "Create your {site} account.",
+    "closed": "Registration is closed on this site. Contact the site administrator.",
+    "email": "Email",
+    "nickname": "Nickname",
+    "password": "Password",
+    "passwordHint": "8 to 128 characters.",
+    "confirm": "Confirm password",
+    "submit": "Register",
+    "submitting": "Registering…",
+    "haveAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "errors": {
+      "closed": "Registration is closed.",
+      "tooMany": "Too many accounts were registered from your network. Try again later.",
+      "captchaDown": "The captcha service is unavailable. Try again later.",
+      "failed": "Registration failed. Check your connection and try again."
+    }
+  },
+  "captcha": {
+    "label": "Captcha",
+    "alt": "Captcha image",
+    "refresh": "New image",
+    "loading": "Loading…",
+    "loadFailed": "The captcha could not be loaded. Reload the page or try again later."
+  },
+  "fieldErrors": {
+    "email": "Enter a valid email address.",
+    "nickname": "Nickname must be 1 to 32 characters.",
+    "password": "Password must be 8 to 128 characters.",
+    "siteName": "Site name can be at most 64 characters.",
+    "siteUrl": "Enter an address starting with http:// or https://, e.g. https://skins.example.com.",
+    "passwordMismatch": "The passwords do not match.",
+    "emailTaken": "This email is already registered.",
+    "captchaRequired": "Complete the captcha first.",
+    "captchaWrong": "The captcha is wrong or expired. Try again.",
+    "wrongPassword": "Incorrect password."
+  },
+  "forgot": {
+    "title": "Reset password",
+    "intro": "Enter the email you registered with and we will send you a link to reset your password.",
+    "noMail": "This site has no mail configured, so passwords cannot be reset by email. Contact the site administrator.",
+    "email": "Email",
+    "submit": "Send reset email",
+    "submitting": "Sending…",
+    "back": "Back to sign in",
+    "sent": "If an account uses this address, we have sent a password reset email. The link works once and expires in 30 minutes. Check your spam folder if it does not arrive.",
+    "errors": {
+      "tooMany": "Too many requests. Try again later.",
+      "unavailable": "Mail or captcha is temporarily unavailable. Try again later.",
+      "failed": "Sending failed. Check your connection and try again."
+    }
+  },
+  "reset": {
+    "title": "Choose a new password",
+    "intro": "After you set a new password you will be signed out on every device.",
+    "password": "New password",
+    "passwordHint": "8 to 128 characters.",
+    "confirm": "Confirm new password",
+    "submit": "Set new password",
+    "submitting": "Saving…",
+    "done": "Your password has been changed. Sign in with the new one.",
+    "signIn": "Sign in",
+    "invalid": "This link is invalid, already used or expired (it lasts 30 minutes).",
+    "again": "Send a new reset email",
+    "errors": {
+      "failed": "Saving failed. Check your connection and try again."
+    }
+  },
+  "verify": {
+    "title": "Verify email",
+    "intro": "Confirm that this email address belongs to you.",
+    "confirm": "Verify my email",
+    "confirming": "Verifying…",
+    "done": "Your email address is verified.",
+    "invalid": "This link is invalid, already used or expired (it lasts 24 hours). Sign in to send a new one.",
+    "failed": "Verification failed. Check your connection and try again.",
+    "home": "Back to home",
+    "banner": "Your email {email} is not verified yet.",
+    "resend": "Send the verification email again",
+    "resent": "Sent, check your inbox.",
+    "wait": "Just sent one, try again later",
+    "resendFailed": "Sending failed, click to retry"
+  },
+  "profile": {
+    "title": "Profile",
+    "score": "Score: {score}",
+    "profile": "Profile",
+    "nickname": "Nickname",
+    "language": "Language",
+    "followBrowser": "Follow the browser",
+    "languageHint": "Also the language of the mail this site sends you.",
+    "save": "Save",
+    "saved": "Saved.",
+    "password": "Change password",
+    "passwordHint": "Your other devices will be signed out; this one stays signed in.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "changePassword": "Change password",
+    "passwordChanged": "Password changed. Your other devices were signed out.",
+    "email": "Change email",
+    "currentEmail": "Current email: {email}",
+    "newEmail": "New email",
+    "emailHint": "Your other devices will be signed out, and your old address gets a notice.",
+    "changeEmail": "Change email",
+    "emailChanged": "Email changed.",
+    "emailChangedMail": "Email changed. Check your new inbox for the verification link.",
+    "devices": "Signed-in devices",
+    "devicesHint": "Your account is signed in on these devices.",
+    "thisDevice": "This device",
+    "lastSeen": "Last active {when}",
+    "signOutDevice": "Sign out",
+    "signOutOthers": "Sign out all other devices",
+    "delete": "Delete account",
+    "deleteHint": "You are signed out at once. Sign in within 30 days to restore the account; after that it is deleted for good.",
+    "deleteButton": "Delete my account",
+    "deleteConfirm": "Delete your account? After 30 days it cannot be restored.",
+    "deleted": "Account deleted.",
+    "adminNoDelete": "Administrators cannot delete their own account. Ask a super administrator to make you an ordinary user first.",
+    "errors": {
+      "tooMany": "Too many wrong passwords. Try again later.",
+      "failed": "Something went wrong. Check your connection and try again."
+    }
+  },
+  "admin": {
+    "title": "Admin",
+    "users": "Users",
+    "audit": "Audit log",
+    "search": "Search",
+    "searchHint": "Email, nickname or user ID",
+    "role": "Role",
+    "status": "Status",
+    "allRoles": "All roles",
+    "allStatuses": "All statuses",
+    "user": "User",
+    "score": "Score",
+    "registered": "Registered",
+    "lastLogin": "Last sign-in",
+    "edit": "Edit",
+    "close": "Close",
+    "empty": "Nothing here.",
+    "more": "Load more",
+    "unverified": "unverified",
+    "save": "Save",
+    "delete": "Delete",
+    "passwordHint": "Leave empty to keep",
+    "saveHint": "Banning a user or setting a password signs them out everywhere; a new email needs verifying again.",
+    "deleteConfirm": "Delete {email} now? This cannot be undone.",
+    "roles": {
+      "user": "User",
+      "admin": "Admin",
+      "superadmin": "Super admin"
     },
-    "fieldErrors": {
-      "email": "Enter a valid email address.",
-      "nickname": "Nickname must be 1 to 32 characters.",
-      "password": "Password must be 8 to 128 characters.",
-      "siteName": "Site name can be at most 64 characters.",
-      "siteUrl": "Enter an address starting with http:// or https://, e.g. https://skins.example.com."
+    "statuses": {
+      "active": "Active",
+      "banned": "Banned",
+      "deleted": "Deleted"
+    },
+    "fields": {
+      "nickname": "Nickname",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "score": "Score",
+      "password": "New password",
+      "emailVerified": "Email verified"
+    },
+    "filter": "Filter",
+    "actionHint": "Action, e.g. auth.login or admin.",
+    "time": "Time",
+    "action": "Action",
+    "actor": "Actor",
+    "target": "Target",
+    "details": "Details",
+    "system": "System / token",
+    "errors": {
+      "load": "Loading failed. Reload to try again.",
+      "save": "Saving failed."
     }
   }
 }

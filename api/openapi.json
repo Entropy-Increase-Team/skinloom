@@ -1,6 +1,199 @@
 {
   "components": {
     "schemas": {
+      "AdminUserView": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/AdminUserView.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "deletedAt": {
+            "description": "Set while a self-deleted account waits out its grace period",
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastLoginAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "registerIp": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "admin",
+              "superadmin"
+            ],
+            "type": "string"
+          },
+          "score": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "banned",
+              "deleted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "nickname",
+          "role",
+          "status",
+          "score",
+          "emailVerified",
+          "locale",
+          "registerIp",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "Answer": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "Image captcha challenge id",
+            "type": "string"
+          },
+          "value": {
+            "description": "Typed text (image captcha) or the widget token",
+            "maxLength": 4096,
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "type": "object"
+      },
+      "AuditPage": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/AuditPage.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "next": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/AuditView"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "records",
+          "next"
+        ],
+        "type": "object"
+      },
+      "AuditView": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "actorId": {
+            "description": "Absent for the system and the admin token",
+            "format": "int64",
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "meta": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "targetType": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "targetType",
+          "targetId",
+          "ip",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "AuthInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "captcha": {
+            "$ref": "#/components/schemas/CaptchaInfo"
+          },
+          "mail": {
+            "type": "boolean"
+          },
+          "registration": {
+            "enum": [
+              "open",
+              "closed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "registration",
+          "captcha",
+          "mail"
+        ],
+        "type": "object"
+      },
       "Block": {
         "additionalProperties": false,
         "properties": {
@@ -28,6 +221,9 @@
             "format": "uri",
             "readOnly": true,
             "type": "string"
+          },
+          "auth": {
+            "$ref": "#/components/schemas/AuthInfo"
           },
           "locale": {
             "type": "string"
@@ -81,7 +277,133 @@
           "menus",
           "plugins",
           "server",
-          "needsSetup"
+          "needsSetup",
+          "auth"
+        ],
+        "type": "object"
+      },
+      "CaptchaImage": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/CaptchaImage.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "image": {
+            "description": "data:image/png;base64,…",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "image"
+        ],
+        "type": "object"
+      },
+      "CaptchaInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "enum": [
+              "none",
+              "image",
+              "turnstile",
+              "recaptcha",
+              "hcaptcha"
+            ],
+            "type": "string"
+          },
+          "siteKey": {
+            "description": "Widget site key (turnstile, recaptcha, hcaptcha)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "type": "object"
+      },
+      "ChangeEmailInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ChangeEmailInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "type": "string"
+          }
+        },
+        "required": [
+          "password",
+          "email"
+        ],
+        "type": "object"
+      },
+      "ChangePasswordInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ChangePasswordInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "currentPassword": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "newPassword": {
+            "maxLength": 1024,
+            "type": "string"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object"
+      },
+      "DeleteMeInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/DeleteMeInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
         ],
         "type": "object"
       },
@@ -163,6 +485,32 @@
         },
         "type": "object"
       },
+      "ForgotInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ForgotInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "captcha": {
+            "$ref": "#/components/schemas/Answer",
+            "description": "Required unless captcha.provider is none"
+          },
+          "email": {
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
       "LocaleInfo": {
         "additionalProperties": false,
         "properties": {
@@ -197,6 +545,10 @@
             "readOnly": true,
             "type": "string"
           },
+          "captcha": {
+            "$ref": "#/components/schemas/Answer",
+            "description": "Needed after failed attempts; a 422 on body.captcha asks for it"
+          },
           "email": {
             "maxLength": 255,
             "type": "string"
@@ -214,6 +566,26 @@
           "email",
           "password"
         ],
+        "type": "object"
+      },
+      "MailTestInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/MailTestInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "to": {
+            "description": "Recipient; default: the signed-in administrator",
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "MenuItem": {
@@ -265,6 +637,69 @@
           "id",
           "version",
           "entry"
+        ],
+        "type": "object"
+      },
+      "RegisterInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/RegisterInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "captcha": {
+            "$ref": "#/components/schemas/Answer",
+            "description": "Required unless captcha.provider is none"
+          },
+          "email": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "nickname": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "nickname",
+          "password"
+        ],
+        "type": "object"
+      },
+      "ResetInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ResetInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "password"
         ],
         "type": "object"
       },
@@ -325,6 +760,41 @@
         "required": [
           "name",
           "version"
+        ],
+        "type": "object"
+      },
+      "SessionView": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "current": {
+            "description": "The session making this request",
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "lastSeenAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "userAgent": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "ip",
+          "userAgent",
+          "createdAt",
+          "lastSeenAt",
+          "current"
         ],
         "type": "object"
       },
@@ -556,6 +1026,114 @@
         ],
         "type": "object"
       },
+      "UpdateMeInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/UpdateMeInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "locale": {
+            "description": "One of the site's languages, or empty to follow the browser",
+            "maxLength": 16,
+            "type": "string"
+          },
+          "nickname": {
+            "maxLength": 128,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateUserInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/UpdateUserInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "email": {
+            "description": "A new address is unverified unless emailVerified is also given",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
+          "nickname": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "password": {
+            "description": "Signs the user out everywhere",
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "role": {
+            "description": "Super administrators only",
+            "enum": [
+              "user",
+              "admin",
+              "superadmin"
+            ],
+            "type": "string"
+          },
+          "score": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "status": {
+            "description": "Banning signs the user out everywhere; any change cancels a pending account deletion",
+            "enum": [
+              "active",
+              "banned"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UserPage": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/UserPage.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "next": {
+            "description": "Pass as before= for the next page; 0 = last page",
+            "format": "int64",
+            "type": "integer"
+          },
+          "users": {
+            "items": {
+              "$ref": "#/components/schemas/AdminUserView"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "users",
+          "next"
+        ],
+        "type": "object"
+      },
       "UserView": {
         "additionalProperties": false,
         "properties": {
@@ -566,6 +1144,10 @@
             ],
             "format": "uri",
             "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
             "type": "string"
           },
           "email": {
@@ -592,6 +1174,10 @@
               "superadmin"
             ],
             "type": "string"
+          },
+          "score": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
@@ -600,7 +1186,31 @@
           "nickname",
           "role",
           "emailVerified",
-          "locale"
+          "locale",
+          "score",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "VerifyInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/VerifyInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
         ],
         "type": "object"
       }
@@ -630,6 +1240,152 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/audit": {
+      "get": {
+        "operationId": "listAudit",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Exact action, or a prefix ending in a dot (auth.)",
+            "explode": false,
+            "in": "query",
+            "name": "action",
+            "schema": {
+              "description": "Exact action, or a prefix ending in a dot (auth.)",
+              "maxLength": 64,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "actor",
+            "schema": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Audit log",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/mail/test": {
+      "post": {
+        "description": "Sent right away (not queued). On failure the SMTP error is returned, for administrators only.",
+        "operationId": "sendTestMail",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MailTestInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Send a test email with the current mail settings",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/settings": {
       "get": {
         "operationId": "listSettings",
@@ -795,9 +1551,359 @@
         ]
       }
     },
+    "/api/v1/admin/users": {
+      "get": {
+        "operationId": "listUsers",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Email or nickname fragment, or a user id",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Email or nickname fragment, or a user id",
+              "maxLength": 255,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "role",
+            "schema": {
+              "enum": [
+                "user",
+                "admin",
+                "superadmin",
+                ""
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "active",
+                "banned",
+                "deleted",
+                ""
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "List users",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{id}": {
+      "delete": {
+        "operationId": "deleteUser",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Delete a user now",
+        "tags": [
+          "admin"
+        ]
+      },
+      "get": {
+        "operationId": "getUser",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Get a user",
+        "tags": [
+          "admin"
+        ]
+      },
+      "patch": {
+        "operationId": "updateUser",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Change a user",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/auth/email/resend": {
+      "post": {
+        "operationId": "resendVerification",
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Send a new verification link to the signed-in user",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/email/verify": {
+      "post": {
+        "description": "A POST from the verification page (not a GET on the link), so mail scanners that open links do not use them up.",
+        "operationId": "verifyEmail",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Confirm an email address with a verification link",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
-        "description": "Sets the session cookie. Every failure returns the same 401, whether or not the account exists; repeated failures return 429 with Retry-After.",
+        "description": "Sets the session cookie. Every failure returns the same 401, whether or not the account exists. After failed attempts a captcha is required (422 on body.captcha); repeated failures return 429 with Retry-After.",
         "operationId": "login",
         "parameters": [
           {
@@ -933,6 +2039,465 @@
         "summary": "The signed-in user",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/password/forgot": {
+      "post": {
+        "description": "Always 202, whether or not the address belongs to an account. The link is valid for 30 minutes and works once.",
+        "operationId": "forgotPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Mail a password reset link",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/password/reset": {
+      "post": {
+        "description": "Signs the account out everywhere. The link stops working once used.",
+        "operationId": "resetPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Set a new password with a reset link",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "description": "Signs the new user in. Needs auth.registration = open and, unless captcha.provider is none, a solved captcha.",
+        "operationId": "register",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "User-Agent",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "skinloom_session",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserView"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create an account",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/captcha/image": {
+      "get": {
+        "description": "Only when captcha.provider is image. Each challenge works once and expires after 5 minutes.",
+        "operationId": "getCaptchaImage",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptchaImage"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "New image captcha",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/me": {
+      "patch": {
+        "operationId": "updateMe",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change your nickname or language",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/api/v1/me/delete": {
+      "post": {
+        "operationId": "deleteMe",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteMeInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Delete your account",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/api/v1/me/email": {
+      "post": {
+        "operationId": "changeEmail",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeEmailInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change your email address",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/api/v1/me/password": {
+      "post": {
+        "operationId": "changePassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change your password",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/api/v1/me/sessions": {
+      "get": {
+        "operationId": "listSessions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SessionView"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Your signed-in devices",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/api/v1/me/sessions/revoke-others": {
+      "post": {
+        "operationId": "revokeOtherSessions",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Sign out all your other devices",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/api/v1/me/sessions/{id}": {
+      "delete": {
+        "operationId": "revokeSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Sign one of your devices out",
+        "tags": [
+          "me"
         ]
       }
     },

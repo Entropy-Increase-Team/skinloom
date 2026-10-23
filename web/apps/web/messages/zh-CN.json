@@ -86,8 +86,13 @@
       "invalid": "邮箱或密码不正确。",
       "disabled": "该账号已被停用，请联系站点管理员。",
       "tooMany": "失败次数过多，请稍后再试。",
-      "failed": "登录失败，请检查网络后重试。"
-    }
+      "failed": "登录失败，请检查网络后重试。",
+      "captchaDown": "验证码服务暂时不可用，请稍后再试。"
+    },
+    "noAccount": "还没有账号？",
+    "register": "注册",
+    "forgot": "忘记密码？",
+    "admin": "进入管理后台"
   },
   "setup": {
     "title": "初始化站点",
@@ -104,20 +109,194 @@
     "password": "密码",
     "passwordHint": "8 到 128 个字符。",
     "confirm": "确认密码",
-    "passwordMismatch": "两次输入的密码不一致。",
     "submit": "完成初始化",
     "submitting": "正在初始化…",
     "errors": {
       "token": "安装链接无效、已使用或已过期。请重启 SkinLoom 或运行 skinloom setup-link 获取新链接。",
       "done": "站点已经初始化过了，请直接登录。",
       "failed": "初始化失败，请检查网络后重试。"
+    }
+  },
+  "register": {
+    "title": "注册",
+    "intro": "创建一个 {site} 账号。",
+    "closed": "本站暂未开放注册，请联系站点管理员。",
+    "email": "邮箱",
+    "nickname": "昵称",
+    "password": "密码",
+    "passwordHint": "8 到 128 个字符。",
+    "confirm": "确认密码",
+    "submit": "注册",
+    "submitting": "正在注册…",
+    "haveAccount": "已有账号？",
+    "signIn": "登录",
+    "errors": {
+      "closed": "本站暂未开放注册。",
+      "tooMany": "这个网络注册的账号太多了，请稍后再试。",
+      "captchaDown": "验证码服务暂时不可用，请稍后再试。",
+      "failed": "注册失败，请检查网络后重试。"
+    }
+  },
+  "captcha": {
+    "label": "验证码",
+    "alt": "验证码图片",
+    "refresh": "换一张",
+    "loading": "正在加载…",
+    "loadFailed": "验证码加载失败，请刷新页面或稍后再试。"
+  },
+  "fieldErrors": {
+    "email": "请输入有效的邮箱地址。",
+    "nickname": "昵称为 1 到 32 个字符。",
+    "password": "密码为 8 到 128 个字符。",
+    "siteName": "站点名称最多 64 个字符。",
+    "siteUrl": "请输入以 http:// 或 https:// 开头的地址，例如 https://skins.example.com。",
+    "passwordMismatch": "两次输入的密码不一致。",
+    "emailTaken": "这个邮箱已经注册过了。",
+    "captchaRequired": "请先完成验证码。",
+    "captchaWrong": "验证码不正确或已过期，请重新验证。",
+    "wrongPassword": "密码不正确。"
+  },
+  "forgot": {
+    "title": "找回密码",
+    "intro": "输入注册时使用的邮箱，我们会发送一封重置密码的邮件。",
+    "noMail": "本站没有配置邮件，无法通过邮件重置密码。请联系站点管理员。",
+    "email": "邮箱",
+    "submit": "发送重置邮件",
+    "submitting": "正在发送…",
+    "back": "返回登录",
+    "sent": "如果这个邮箱注册过账号，我们已经发送了一封重置密码的邮件。链接 30 分钟内有效，只能使用一次。没有收到的话，请检查垃圾邮件文件夹。",
+    "errors": {
+      "tooMany": "请求太频繁了，请稍后再试。",
+      "unavailable": "邮件或验证码服务暂时不可用，请稍后再试。",
+      "failed": "发送失败，请检查网络后重试。"
+    }
+  },
+  "reset": {
+    "title": "设置新密码",
+    "intro": "设置新密码后，所有设备上的登录都会失效。",
+    "password": "新密码",
+    "passwordHint": "8 到 128 个字符。",
+    "confirm": "确认新密码",
+    "submit": "设置新密码",
+    "submitting": "正在保存…",
+    "done": "密码已经更新，请使用新密码登录。",
+    "signIn": "去登录",
+    "invalid": "这个链接无效、已经用过或已过期（有效期 30 分钟）。",
+    "again": "重新发送重置邮件",
+    "errors": {
+      "failed": "保存失败，请检查网络后重试。"
+    }
+  },
+  "verify": {
+    "title": "验证邮箱",
+    "intro": "点击下面的按钮，确认这个邮箱属于你。",
+    "confirm": "确认验证邮箱",
+    "confirming": "正在验证…",
+    "done": "邮箱验证成功。",
+    "invalid": "这个链接无效、已经用过或已过期（有效期 24 小时）。登录后可以重新发送验证邮件。",
+    "failed": "验证失败，请检查网络后重试。",
+    "home": "返回首页",
+    "banner": "你的邮箱 {email} 还没有验证。",
+    "resend": "重新发送验证邮件",
+    "resent": "已发送，请查收邮件。",
+    "wait": "刚刚发送过，请稍后再试",
+    "resendFailed": "发送失败，点此重试"
+  },
+  "profile": {
+    "title": "个人资料",
+    "score": "积分：{score}",
+    "profile": "基本资料",
+    "nickname": "昵称",
+    "language": "语言",
+    "followBrowser": "跟随浏览器",
+    "languageHint": "也决定站点发给你的邮件使用的语言。",
+    "save": "保存",
+    "saved": "已保存。",
+    "password": "修改密码",
+    "passwordHint": "修改后，其它设备上的登录会失效，当前设备保持登录。",
+    "currentPassword": "当前密码",
+    "newPassword": "新密码",
+    "confirmPassword": "确认新密码",
+    "changePassword": "修改密码",
+    "passwordChanged": "密码已修改，其它设备已退出登录。",
+    "email": "修改邮箱",
+    "currentEmail": "当前邮箱：{email}",
+    "newEmail": "新邮箱",
+    "emailHint": "修改后，其它设备上的登录会失效；原邮箱会收到通知。",
+    "changeEmail": "修改邮箱",
+    "emailChanged": "邮箱已修改。",
+    "emailChangedMail": "邮箱已修改，请到新邮箱查收验证邮件。",
+    "devices": "登录设备",
+    "devicesHint": "在这些设备上，你的账号处于登录状态。",
+    "thisDevice": "当前设备",
+    "lastSeen": "最近活动 {when}",
+    "signOutDevice": "退出",
+    "signOutOthers": "退出其它所有设备",
+    "delete": "注销账号",
+    "deleteHint": "注销后立即退出登录。30 天内重新登录即可恢复账号，之后账号与资料将被永久删除。",
+    "deleteButton": "注销我的账号",
+    "deleteConfirm": "确定要注销账号吗？30 天后将无法恢复。",
+    "deleted": "账号已注销。",
+    "adminNoDelete": "管理员不能注销自己的账号；如需注销，请先让超级管理员把你的角色改为普通用户。",
+    "errors": {
+      "tooMany": "密码错误次数太多，请稍后再试。",
+      "failed": "操作失败，请检查网络后重试。"
+    }
+  },
+  "admin": {
+    "title": "管理后台",
+    "users": "用户",
+    "audit": "审计日志",
+    "search": "搜索",
+    "searchHint": "邮箱、昵称或用户 ID",
+    "role": "角色",
+    "status": "状态",
+    "allRoles": "全部角色",
+    "allStatuses": "全部状态",
+    "user": "用户",
+    "score": "积分",
+    "registered": "注册",
+    "lastLogin": "最近登录",
+    "edit": "编辑",
+    "close": "收起",
+    "empty": "没有记录。",
+    "more": "加载更多",
+    "unverified": "未验证",
+    "save": "保存",
+    "delete": "删除",
+    "passwordHint": "留空则不修改",
+    "saveHint": "封禁用户或设置新密码会让该用户在所有设备上退出登录；换了邮箱需要重新验证。",
+    "deleteConfirm": "确定立即删除 {email} 吗？此操作无法撤销。",
+    "roles": {
+      "user": "普通用户",
+      "admin": "管理员",
+      "superadmin": "超级管理员"
     },
-    "fieldErrors": {
-      "email": "请输入有效的邮箱地址。",
-      "nickname": "昵称为 1 到 32 个字符。",
-      "password": "密码为 8 到 128 个字符。",
-      "siteName": "站点名称最多 64 个字符。",
-      "siteUrl": "请输入以 http:// 或 https:// 开头的地址，例如 https://skins.example.com。"
+    "statuses": {
+      "active": "正常",
+      "banned": "已封禁",
+      "deleted": "已注销"
+    },
+    "fields": {
+      "nickname": "昵称",
+      "email": "邮箱",
+      "role": "角色",
+      "status": "状态",
+      "score": "积分",
+      "password": "新密码",
+      "emailVerified": "邮箱已验证"
+    },
+    "filter": "筛选",
+    "actionHint": "动作，如 auth.login 或 admin.",
+    "time": "时间",
+    "action": "动作",
+    "actor": "操作者",
+    "target": "对象",
+    "details": "详情",
+    "system": "系统 / 令牌",
+    "errors": {
+      "load": "加载失败，请刷新重试。",
+      "save": "保存失败。"
     }
   }
 }

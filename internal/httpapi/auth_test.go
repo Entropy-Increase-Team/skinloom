@@ -27,6 +27,10 @@ func (b *browser) do(method, path, body string) *httptest.ResponseRecorder {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(CSRFHeader, "1")
 	for k, v := range b.headers {
+		if k == "Host" {
+			req.Host = v // what servers read; the header map does not set it
+			continue
+		}
 		if v == "" {
 			req.Header.Del(k)
 		} else {
@@ -179,6 +183,7 @@ func TestLoginRateLimitAndSecureCookie(t *testing.T) {
 	d.ClientInfo = func(*http.Request) realip.Info {
 		return realip.Info{ClientIP: "198.51.100.4", Proto: "https", Host: "skins.example.com"}
 	}
+	setSettings(t, d, `{"captcha.provider": "none"}`) // the hard limit itself, not the captcha in front of it
 	h, _ := New(d)
 	setupSite(t, d, &browser{t: t, h: h})
 

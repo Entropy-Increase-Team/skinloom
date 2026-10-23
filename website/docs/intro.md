@@ -14,7 +14,7 @@ sidebar_position: 1
 
 ## 当前状态
 
-项目处于 **M1（账号）** 阶段：一键启动、热加载、主题、设置、发行包等基础设施已经可用；首次安装向导、管理员登录与会话已经上线，注册、找回密码、个人资料等正在开发；皮肤库、外置登录等功能将在后续里程碑交付。进度见 [开发日志](/devlog) 与 [更新日志](https://github.com/Entropy-Increase-Team/skinloom/blob/main/CHANGELOG.md)。
+项目已完成 **M1（账号）**，下一步是 M2（材质与角色）。一键启动、热加载、主题、设置、发行包等基础设施，以及安装向导、注册与登录、验证码、邮件、邮箱验证、找回密码、个人资料与登录设备、注销账号、后台用户管理与审计日志都已可用；皮肤库、角色、外置登录等功能将在后续里程碑交付。进度见 [开发日志](/devlog) 与 [更新日志](https://github.com/Entropy-Increase-Team/skinloom/blob/main/CHANGELOG.md)。
 
 ## 从哪里开始
 

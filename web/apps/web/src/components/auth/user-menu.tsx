@@ -3,6 +3,7 @@
 import { logout } from '@skinloom/api-client'
 import { Badge, Button } from '@skinloom/ui'
 import { LogOut } from 'lucide-react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
@@ -15,10 +16,14 @@ export function UserMenu({ viewer }: { viewer: Viewer }) {
   const [pending, setPending] = useState(false)
   return (
     <div className="flex items-center gap-2 text-sm">
-      <span className="max-w-32 truncate font-medium" title={viewer.email}>
+      <Link href="/user/profile" className="max-w-32 truncate font-medium hover:underline" title={viewer.email}>
         {viewer.nickname}
-      </span>
-      {viewer.role !== 'user' && <Badge variant="secondary">{t(`roles.${viewer.role}`)}</Badge>}
+      </Link>
+      {viewer.role !== 'user' && (
+        <Link href="/admin/users" title={t('admin')}>
+          <Badge variant="secondary">{t(`roles.${viewer.role}`)}</Badge>
+        </Link>
+      )}
       <Button
         variant="ghost"
         size="icon"

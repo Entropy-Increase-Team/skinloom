@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"cmp"
 	"context"
 	"net/http"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/buildinfo"
+	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
 	"github.com/Entropy-Increase-Team/skinloom/internal/theme"
 )
 
@@ -53,7 +55,23 @@ type Bootstrap struct {
 	Plugins []PluginFrontend      `json:"plugins"`
 	Server  ServerInfo            `json:"server"`
 	// NeedsSetup is true until the first administrator is created (see /api/v1/setup).
-	NeedsSetup bool `json:"needsSetup"`
+	NeedsSetup bool     `json:"needsSetup"`
+	Auth       AuthInfo `json:"auth"`
+}
+
+// AuthInfo tells the frontend which account forms to show.
+type AuthInfo struct {
+	Registration string      `json:"registration" enum:"open,closed"`
+	Captcha      CaptchaInfo `json:"captcha"`
+	// Mail is true when mail and site.url are configured: password reset and email
+	// verification work.
+	Mail bool `json:"mail"`
+}
+
+// CaptchaInfo is the public half of the captcha configuration.
+type CaptchaInfo struct {
+	Provider string `json:"provider" enum:"none,image,turnstile,recaptcha,hcaptcha"`
+	SiteKey  string `json:"siteKey,omitempty" doc:"Widget site key (turnstile, recaptcha, hcaptcha)"`
 }
 
 // ServerInfo identifies the running backend.
@@ -104,6 +122,12 @@ func registerSite(api huma.API, d Deps) {
 			},
 			Plugins: []PluginFrontend{},
 			Server:  ServerInfo{Name: "SkinLoom", Version: buildinfo.Version},
+		}
+		cc := captcha.ConfigFrom(snap)
+		out.Body.Auth = AuthInfo{
+			Registration: snap.String("auth.registration"),
+			Captcha:      CaptchaInfo{Provider: cmp.Or(cc.Provider, captcha.None), SiteKey: cc.SiteKey},
+			Mail:         mailReady(snap),
 		}
 		if d.Accounts != nil {
 			needs, err := d.Accounts.NeedsSetup(ctx)

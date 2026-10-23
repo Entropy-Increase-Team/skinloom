@@ -7,6 +7,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/ent/auditlog"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
+	"github.com/Entropy-Increase-Team/skinloom/ent/job"
 	"github.com/Entropy-Increase-Team/skinloom/ent/schema"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/setting"
@@ -84,6 +85,44 @@ func init() {
 	authtokenDescCreatedAt := authtokenFields[6].Descriptor()
 	// authtoken.DefaultCreatedAt holds the default value on creation for the created_at field.
 	authtoken.DefaultCreatedAt = authtokenDescCreatedAt.Default.(func() time.Time)
+	jobFields := schema.Job{}.Fields()
+	_ = jobFields
+	// jobDescKind is the schema descriptor for kind field.
+	jobDescKind := jobFields[1].Descriptor()
+	// job.KindValidator is a validator for the "kind" field. It is called by the builders before save.
+	job.KindValidator = func() func(string) error {
+		validators := jobDescKind.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(kind string) error {
+			for _, fn := range fns {
+				if err := fn(kind); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// jobDescAttempts is the schema descriptor for attempts field.
+	jobDescAttempts := jobFields[4].Descriptor()
+	// job.DefaultAttempts holds the default value on creation for the attempts field.
+	job.DefaultAttempts = jobDescAttempts.Default.(int)
+	// jobDescRunAt is the schema descriptor for run_at field.
+	jobDescRunAt := jobFields[5].Descriptor()
+	// job.DefaultRunAt holds the default value on creation for the run_at field.
+	job.DefaultRunAt = jobDescRunAt.Default.(func() time.Time)
+	// jobDescLastError is the schema descriptor for last_error field.
+	jobDescLastError := jobFields[7].Descriptor()
+	// job.DefaultLastError holds the default value on creation for the last_error field.
+	job.DefaultLastError = jobDescLastError.Default.(string)
+	// job.LastErrorValidator is a validator for the "last_error" field. It is called by the builders before save.
+	job.LastErrorValidator = jobDescLastError.Validators[0].(func(string) error)
+	// jobDescCreatedAt is the schema descriptor for created_at field.
+	jobDescCreatedAt := jobFields[8].Descriptor()
+	// job.DefaultCreatedAt holds the default value on creation for the created_at field.
+	job.DefaultCreatedAt = jobDescCreatedAt.Default.(func() time.Time)
 	sessionFields := schema.Session{}.Fields()
 	_ = sessionFields
 	// sessionDescIP is the schema descriptor for ip field.

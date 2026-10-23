@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/internal/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/realip"
 )
 
@@ -37,6 +37,9 @@ type reqInfo struct {
 	// viewer resolves the session cookie on first use, so endpoints that do not care
 	// who is signed in (bootstrap on every page render) cost no session lookup.
 	viewer func() *account.Viewer
+	// locale is the UI language of the request (cookie, then Accept-Language), used for
+	// mail when the user has no preference.
+	locale string
 }
 
 func requestInfo(ctx context.Context) reqInfo {
@@ -65,7 +68,7 @@ func withRequestInfo(d Deps) func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			ri := reqInfo{client: resolve(r)}
+			ri := reqInfo{client: resolve(r), locale: requestLocale(r)}
 			ctx := r.Context()
 			ri.viewer = sync.OnceValue(func() *account.Viewer {
 				c, err := r.Cookie(SessionCookie)
@@ -83,9 +86,11 @@ func withRequestInfo(d Deps) func(http.Handler) http.Handler {
 	}
 }
 
-// sessionEndpoints set a session cookie, so they need CSRF protection even before the
-// browser has one (login CSRF would sign the victim into the attacker's account).
-var sessionEndpoints = map[string]bool{"/api/v1/auth/login": true, "/api/v1/setup": true}
+// sessionEndpoints always need the CSRF header, cookie or not: they set a session
+// (login CSRF would sign the victim into the attacker's account) or act on a
+// one-time link or mailbox, which another site must not trigger through a visitor.
+var sessionEndpoints = map[string]bool{"/api/v1/auth/login": true, "/api/v1/auth/register": true, "/api/v1/setup": true,
+	"/api/v1/auth/password/forgot": true, "/api/v1/auth/password/reset": true, "/api/v1/auth/email/verify": true}
 
 // csrfGuard rejects state-changing /api requests that ride on a session cookie (or
 // create one) unless they carry CSRFHeader and, when the browser sends Origin, come
@@ -141,17 +146,19 @@ func writeProblem(w http.ResponseWriter, status int, detail string) {
 
 // UserView is the signed-in user as shown to themselves.
 type UserView struct {
-	ID            int64  `json:"id"`
-	Email         string `json:"email"`
-	Nickname      string `json:"nickname"`
-	Role          string `json:"role" enum:"user,admin,superadmin"`
-	EmailVerified bool   `json:"emailVerified"`
-	Locale        string `json:"locale" doc:"Preferred UI language; empty = follow the browser"`
+	ID            int64     `json:"id"`
+	Email         string    `json:"email"`
+	Nickname      string    `json:"nickname"`
+	Role          string    `json:"role" enum:"user,admin,superadmin"`
+	EmailVerified bool      `json:"emailVerified"`
+	Locale        string    `json:"locale" doc:"Preferred UI language; empty = follow the browser"`
+	Score         int64     `json:"score"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
 func userView(u *ent.User) UserView {
 	return UserView{ID: u.ID, Email: u.Email, Nickname: u.Nickname, Role: string(u.Role),
-		EmailVerified: u.EmailVerifiedAt != nil, Locale: u.Locale}
+		EmailVerified: u.EmailVerifiedAt != nil, Locale: u.Locale, Score: u.Score, CreatedAt: u.CreatedAt}
 }
 
 type userOutput struct {
@@ -182,9 +189,10 @@ type loginInput struct {
 	UserAgent string `header:"User-Agent"`
 	Session   string `cookie:"skinloom_session"`
 	Body      struct {
-		Email    string `json:"email" maxLength:"255"`
-		Password string `json:"password" maxLength:"1024"`
-		Remember bool   `json:"remember,omitempty" doc:"Keep the session for 30 days instead of until the browser closes"`
+		Email    string          `json:"email" maxLength:"255"`
+		Password string          `json:"password" maxLength:"1024"`
+		Remember bool            `json:"remember,omitempty" doc:"Keep the session for 30 days instead of until the browser closes"`
+		Captcha  *captcha.Answer `json:"captcha,omitempty" doc:"Needed after failed attempts; a 422 on body.captcha asks for it"`
 	}
 }
 
@@ -255,17 +263,26 @@ func registerAuth(api huma.API, d Deps) {
 		Method:      http.MethodPost,
 		Path:        "/api/v1/auth/login",
 		Summary:     "Sign in with email and password",
-		Description: "Sets the session cookie. Every failure returns the same 401, whether or not the account exists; repeated failures return 429 with Retry-After.",
-		Tags:        []string{"auth"},
+		Description: "Sets the session cookie. Every failure returns the same 401, whether or not the account exists. " +
+			"After failed attempts a captcha is required (422 on body.captcha); repeated failures return 429 with Retry-After.",
+		Tags: []string{"auth"},
 	}, func(ctx context.Context, in *loginInput) (*userOutput, error) {
 		ri := requestInfo(ctx)
-		u, sess, err := d.Accounts.Login(ctx, in.Body.Email, in.Body.Password, in.Body.Remember, ri.meta(in.UserAgent))
-		var rl *account.RateLimitError
+		cc := captcha.ConfigFrom(d.Settings.Current())
+		_, policy := account.PoliciesFrom(d.Settings.Current(), cc.Enabled())
+		login := account.LoginInput{Email: in.Body.Email, Password: in.Body.Password, Remember: in.Body.Remember}
+		if d.Accounts.CaptchaRequired(in.Body.Email, ri.client.ClientIP, policy) {
+			if err := checkCaptcha(ctx, d, cc, in.Body.Captcha, ri.client.ClientIP); err != nil {
+				return nil, err
+			}
+			login.CaptchaSolved = true
+		}
+		u, sess, err := d.Accounts.Login(ctx, login, policy, ri.meta(in.UserAgent))
 		switch {
-		case errors.As(err, &rl):
-			secs := int(rl.RetryAfter.Round(time.Second) / time.Second)
-			return nil, huma.ErrorWithHeaders(huma.Error429TooManyRequests("too many failed attempts, try again later"),
-				http.Header{"Retry-After": {strconv.Itoa(max(1, secs))}})
+		case errors.Is(err, account.ErrCaptchaRequired):
+			return nil, captchaError("required")
+		case isRateLimit(err):
+			return nil, rateLimitError(err, "too many failed attempts, try again later")
 		case errors.Is(err, account.ErrInvalidCredentials):
 			return nil, huma.Error401Unauthorized("incorrect email or password")
 		case errors.Is(err, account.ErrAccountDisabled):
@@ -288,10 +305,7 @@ func registerAuth(api huma.API, d Deps) {
 		if err := d.Accounts.Logout(ctx, in.Session); err != nil {
 			return nil, err
 		}
-		return &logoutOutput{SetCookie: http.Cookie{
-			Name: SessionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode,
-			Secure: requestInfo(ctx).client.Proto == "https",
-		}}, nil
+		return &logoutOutput{SetCookie: clearedSessionCookie(requestInfo(ctx))}, nil
 	})
 
 	huma.Register(api, huma.Operation{
@@ -319,6 +333,12 @@ func replaceSession(ctx context.Context, d Deps, old string) {
 	if err := d.Accounts.Logout(ctx, old); err != nil {
 		d.Log.Warn("revoke replaced session", "err", err)
 	}
+}
+
+// clearedSessionCookie tells the browser to drop its session cookie.
+func clearedSessionCookie(ri reqInfo) http.Cookie {
+	return http.Cookie{Name: SessionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true,
+		SameSite: http.SameSiteLaxMode, Secure: ri.client.Proto == "https"}
 }
 
 func sessionCookie(s *account.NewSession, ri reqInfo) http.Cookie {
@@ -367,4 +387,12 @@ func apiError(err error) error {
 		return huma.Error422UnprocessableEntity("invalid input", details...)
 	}
 	return err
+}
+
+func requestLocale(r *http.Request) string {
+	cookie := ""
+	if c, err := r.Cookie("locale"); err == nil {
+		cookie = c.Value
+	}
+	return PickLocale("", cookie, r.Header.Get("Accept-Language"))
 }

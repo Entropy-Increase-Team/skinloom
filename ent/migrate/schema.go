@@ -69,6 +69,32 @@ var (
 			},
 		},
 	}
+	// JobsColumns holds the columns for the "jobs" table.
+	JobsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "kind", Type: field.TypeString, Size: 64},
+		{Name: "payload", Type: field.TypeString, Size: 2147483647},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "done", "failed"}, Default: "pending"},
+		{Name: "attempts", Type: field.TypeInt, Default: 0},
+		{Name: "run_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "locked_until", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "last_error", Type: field.TypeString, Size: 1024, Default: ""},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "finished_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+	}
+	// JobsTable holds the schema information for the "jobs" table.
+	JobsTable = &schema.Table{
+		Name:       "jobs",
+		Columns:    JobsColumns,
+		PrimaryKey: []*schema.Column{JobsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "job_status_run_at",
+				Unique:  false,
+				Columns: []*schema.Column{JobsColumns[3], JobsColumns[5]},
+			},
+		},
+	}
 	// SessionsColumns holds the columns for the "sessions" table.
 	SessionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Size: 64},
@@ -162,6 +188,7 @@ var (
 	Tables = []*schema.Table{
 		AuditLogsTable,
 		AuthTokensTable,
+		JobsTable,
 		SessionsTable,
 		SettingsTable,
 		SystemStateTable,
@@ -176,6 +203,9 @@ func init() {
 	AuthTokensTable.ForeignKeys[0].RefTable = UsersTable
 	AuthTokensTable.Annotation = &entsql.Annotation{
 		Table: "auth_tokens",
+	}
+	JobsTable.Annotation = &entsql.Annotation{
+		Table: "jobs",
 	}
 	SessionsTable.ForeignKeys[0].RefTable = UsersTable
 	SessionsTable.Annotation = &entsql.Annotation{

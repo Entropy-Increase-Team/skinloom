@@ -12,6 +12,7 @@ import { Field, FormError } from './field'
 
 export function SetupForm({ token, siteName }: { token: string; siteName: string }) {
   const t = useTranslations('setup')
+  const tf = useTranslations('fieldErrors')
   const router = useRouter()
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -25,7 +26,7 @@ export function SetupForm({ token, siteName }: { token: string; siteName: string
     const f = new FormData(e.currentTarget)
     const get = (k: string) => String(f.get(k) ?? '')
     if (get('password') !== get('confirm')) {
-      setFields({ confirm: t('passwordMismatch') })
+      setFields({ confirm: tf('passwordMismatch') })
       return
     }
     setPending(true)
@@ -47,7 +48,7 @@ export function SetupForm({ token, siteName }: { token: string; siteName: string
       // The server explains in English; show our own words for the fields we know.
       setFields(
         Object.fromEntries(
-          Object.entries(p.fields).map(([k, v]) => [k, t.has(`fieldErrors.${k}`) ? t(`fieldErrors.${k}` as 'fieldErrors.email') : v]),
+          Object.entries(p.fields).map(([k, v]) => [k, tf.has(k) ? tf(k as 'email') : v]),
         ),
       )
       if (p.status === 403) setError(t('errors.token'))

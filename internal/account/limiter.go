@@ -68,12 +68,27 @@ func (l *Limiter) Fail(key string) {
 	}
 }
 
+// Count is the number of events recorded for key in its current window.
+func (l *Limiter) Count(key string) int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	b := l.hits[key]
+	if b == nil || l.now().Sub(b.start) >= l.window {
+		return 0
+	}
+	return b.n
+}
+
 // Reset forgets key, e.g. after a successful login.
 func (l *Limiter) Reset(key string) {
 	l.mu.Lock()
 	delete(l.hits, key)
 	l.mu.Unlock()
 }
+
+// ClientKey is the limiter key for a client address (see ipKey), for limits kept
+// outside this package.
+func ClientKey(ip string) string { return ipKey(ip) }
 
 // ipKey groups IPv6 clients by /64, the smallest block one subscriber usually gets,
 // so rotating addresses inside it does not reset the count.

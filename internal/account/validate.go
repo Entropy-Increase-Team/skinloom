@@ -22,6 +22,14 @@ var (
 	ErrAccountDisabled = errors.New("account is disabled")
 	ErrSetupDone       = errors.New("setup has already been completed")
 	ErrInvalidToken    = errors.New("invalid, used or expired token")
+	// ErrCaptchaRequired means this login attempt must come with a solved captcha.
+	ErrCaptchaRequired    = errors.New("captcha required")
+	ErrRegistrationClosed = errors.New("registration is closed")
+	// ErrSetupPending refuses registration before the first administrator exists.
+	ErrSetupPending = errors.New("the site has not been set up yet")
+	// ErrMailDisabled means the action needs mail, and no mail driver is configured.
+	ErrMailDisabled    = errors.New("mail is not configured on this site")
+	ErrAlreadyVerified = errors.New("the email address is already verified")
 )
 
 // FieldError rejects one input field; the API reports it as a validation error.

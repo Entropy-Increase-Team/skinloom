@@ -19,6 +19,8 @@ require (
 	github.com/knadh/koanf/v2 v2.4.1
 	github.com/pressly/goose/v3 v3.29.0
 	github.com/spf13/cobra v1.10.2
+	golang.org/x/crypto v0.58.0
+	golang.org/x/image v0.47.0
 	golang.org/x/sys v0.49.0
 	modernc.org/sqlite v1.61.0
 )
@@ -53,7 +55,6 @@ require (
 	github.com/zclconf/go-cty v1.14.4 // indirect
 	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/text v0.43.0 // indirect

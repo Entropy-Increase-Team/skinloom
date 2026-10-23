@@ -149,7 +149,7 @@ func TestValidateEmailAndNickname(t *testing.T) {
 			t.Errorf("ValidateNickname(%q) = %v, want ok=%v", nick, err, ok)
 		}
 	}
-	errs := FieldErrors(validateNewAccount("bad", "", "short"))
+	errs := FieldErrors(ValidateNewAccount("bad", "", "short"))
 	if len(errs) != 3 {
 		t.Fatalf("want one error per bad field, got %v", errs)
 	}

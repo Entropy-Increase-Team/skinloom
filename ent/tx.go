@@ -18,6 +18,8 @@ type Tx struct {
 	AuditLog *AuditLogClient
 	// AuthToken is the client for interacting with the AuthToken builders.
 	AuthToken *AuthTokenClient
+	// Job is the client for interacting with the Job builders.
+	Job *JobClient
 	// Session is the client for interacting with the Session builders.
 	Session *SessionClient
 	// Setting is the client for interacting with the Setting builders.
@@ -159,6 +161,7 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.AuditLog = NewAuditLogClient(tx.config)
 	tx.AuthToken = NewAuthTokenClient(tx.config)
+	tx.Job = NewJobClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)
 	tx.Setting = NewSettingClient(tx.config)
 	tx.SystemState = NewSystemStateClient(tx.config)

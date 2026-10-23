@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@skinloom/ui'
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 
@@ -27,9 +28,24 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <CardDescription>{t('signInTo', { site: boot.site.name })}</CardDescription>
         </CardHeader>
         <CardContent>
-          <LoginForm next={next} />
+          <LoginForm next={next} captcha={boot.auth.captcha} />
         </CardContent>
       </Card>
+      <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
+        {boot.auth.mail && (
+          <Link href="/auth/forgot" className="underline-offset-4 hover:text-foreground hover:underline">
+            {t('forgot')}
+          </Link>
+        )}
+        {boot.auth.registration === 'open' && (
+          <p>
+            {t('noAccount')}{' '}
+            <Link href="/auth/register" className="font-medium text-foreground underline-offset-4 hover:underline">
+              {t('register')}
+            </Link>
+          </p>
+        )}
+      </div>
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { getBootstrap } from '@/lib/bootstrap'
 import { getViewer } from '@/lib/viewer'
 
 import { UserMenu } from './auth/user-menu'
+import { VerifyBanner } from './auth/verify-email'
 import { LocaleSwitch } from './locale-switch'
 import { Logo } from './logo'
 import { ThemeToggle } from './theme-toggle'
@@ -38,9 +39,16 @@ export async function SiteHeader() {
           {viewer ? (
             <UserMenu viewer={viewer} />
           ) : (
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/auth/login">{t('nav.login')}</Link>
-            </Button>
+            <>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/auth/login">{t('nav.login')}</Link>
+              </Button>
+              {boot.auth.registration === 'open' && !boot.needsSetup && (
+                <Button size="sm" asChild>
+                  <Link href="/auth/register">{t('nav.register')}</Link>
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -52,6 +60,7 @@ export async function SiteHeader() {
           {t.rich('setupPending', { code: (chunks) => <code className="font-mono">{chunks}</code> })}
         </div>
       )}
+      {viewer && !viewer.emailVerified && boot.auth.mail && <VerifyBanner email={viewer.email} />}
     </header>
   )
 }

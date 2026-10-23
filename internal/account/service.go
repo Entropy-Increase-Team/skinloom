@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"math"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -73,21 +74,45 @@ type Service struct {
 	ipLimit            *Limiter
 	clientAccountLimit *Limiter
 	accountLimit       *Limiter
+	registrations      *Limiter // per address (IPv6 /64) per day; only counted, see Register
+	registerAttempts   *Limiter // registration requests per address, successful or not
+	forgotIP           *Limiter // password reset requests per address
+	forgotAccount      *Limiter // password reset requests per email
+	resendMinute       *Limiter // verification mails per user
+	resendDay          *Limiter
+	passwordChecks     *Limiter // wrong current passwords per user (profile changes)
+	emailChanges       *Limiter // email change attempts per user
 	setupDone          atomic.Bool
+	notify             func() // see SetJobNotifier
 }
+
+// accountCaptchaAt is the number of failures on one account, from all clients
+// together, after which every client must solve a captcha (a distributed attack).
+const accountCaptchaAt = 20
 
 // NewService creates the service. Failed logins are limited per 15 minutes:
 //   - 50 per client address (IPv6 per /64), whatever the account;
 //   - 10 per account from one address, which stops guessing without letting a
 //     single attacker lock the real user (e.g. the administrator) out;
-//   - 100 per account from all addresses together, so a distributed attack still
-//     hits a ceiling. Until captcha lands this one blocks; then it will ask for one.
+//   - per account from all addresses together: with a captcha provider, 20
+//     failures make every client solve a captcha; without one, 100 failures block.
+//
+// With a captcha provider a client also has to solve one after
+// auth.login_captcha_after failures of its own (LoginPolicy).
 func NewService(db *ent.Client, log *slog.Logger) *Service {
 	return &Service{
 		db: db, log: log, hasher: NewHasher(0), now: time.Now,
 		ipLimit:            NewLimiter(50, 15*time.Minute),
 		clientAccountLimit: NewLimiter(10, 15*time.Minute),
 		accountLimit:       NewLimiter(100, 15*time.Minute),
+		registrations:      NewLimiter(math.MaxInt, 24*time.Hour),
+		registerAttempts:   NewLimiter(30, time.Hour),
+		forgotIP:           NewLimiter(10, time.Hour),
+		forgotAccount:      NewLimiter(3, time.Hour),
+		resendMinute:       NewLimiter(1, time.Minute),
+		resendDay:          NewLimiter(5, 24*time.Hour),
+		passwordChecks:     NewLimiter(5, 15*time.Minute),
+		emailChanges:       NewLimiter(10, time.Hour),
 	}
 }
 
@@ -164,7 +189,7 @@ func (s *Service) CompleteSetup(ctx context.Context, in SetupInput, meta Request
 	if found, err := s.db.AuthToken.Query().Where(live...).Exist(ctx); err != nil || !found {
 		return nil, nil, cmp.Or(err, ErrInvalidToken)
 	}
-	if err := validateNewAccount(in.Email, in.Nickname, in.Password); err != nil {
+	if err := ValidateNewAccount(in.Email, in.Nickname, in.Password); err != nil {
 		return nil, nil, err
 	}
 	hash, err := s.hasher.Hash(ctx, in.Password)
@@ -225,20 +250,47 @@ func (s *Service) CompleteSetup(ctx context.Context, in SetupInput, meta Request
 	return u, sess, nil
 }
 
+// LoginInput is one sign-in attempt. CaptchaSolved says the caller verified a captcha
+// answer with this request (see CaptchaRequired).
+type LoginInput struct {
+	Email         string
+	Password      string
+	Remember      bool
+	CaptchaSolved bool
+}
+
+// CaptchaRequired reports whether a login for email from ip must come with a solved
+// captcha: after p.CaptchaAfter failures of this client on this account, or after a
+// distributed attack on the account. Always false without a captcha provider.
+func (s *Service) CaptchaRequired(email, ip string, p LoginPolicy) bool {
+	if !p.CaptchaEnabled {
+		return false
+	}
+	acct := NormalizeEmail(email)
+	return s.clientAccountLimit.Count(ipKey(ip)+"|"+acct) >= p.CaptchaAfter ||
+		s.accountLimit.Count(acct) >= accountCaptchaAt
+}
+
 // Login checks an email and password. Every failure looks the same to the client,
 // and repeated failures are rate limited (see NewService).
-func (s *Service) Login(ctx context.Context, email, password string, remember bool, meta RequestMeta) (*ent.User, *NewSession, error) {
+func (s *Service) Login(ctx context.Context, in LoginInput, p LoginPolicy, meta RequestMeta) (*ent.User, *NewSession, error) {
 	meta = meta.clipped()
-	acct, ip := NormalizeEmail(email), ipKey(meta.IP)
+	acct, ip := NormalizeEmail(in.Email), ipKey(meta.IP)
 	clientAcct := ip + "|" + acct
 	limits := []struct {
 		l   *Limiter
 		key string
 	}{{s.ipLimit, ip}, {s.clientAccountLimit, clientAcct}, {s.accountLimit, acct}}
 	for _, c := range limits {
+		if c.l == s.accountLimit && p.CaptchaEnabled {
+			continue // a captcha, not a lockout, answers attacks spread over many clients
+		}
 		if wait, blocked := c.l.Blocked(c.key); blocked {
 			return nil, nil, &RateLimitError{RetryAfter: wait}
 		}
+	}
+	if !in.CaptchaSolved && s.CaptchaRequired(in.Email, meta.IP, p) {
+		return nil, nil, ErrCaptchaRequired
 	}
 	fail := func() (*ent.User, *NewSession, error) {
 		for _, c := range limits {
@@ -246,6 +298,7 @@ func (s *Service) Login(ctx context.Context, email, password string, remember bo
 		}
 		return nil, nil, ErrInvalidCredentials
 	}
+	password := in.Password
 	if utf8Len := len([]rune(password)); utf8Len == 0 || utf8Len > MaxPasswordLen {
 		return fail()
 	}
@@ -265,8 +318,15 @@ func (s *Service) Login(ctx context.Context, email, password string, remember bo
 		}
 		s.log.Warn("stored password hash cannot be verified", "user", u.ID, "algo", u.PasswordAlgo, "err", err)
 	}
-	if !ok || u.Status == user.StatusDeleted {
+	if !ok {
 		return fail()
+	}
+	restore := false
+	if u.Status == user.StatusDeleted {
+		if u.DeletedAt == nil || !s.now().Before(u.DeletedAt.Add(DeleteGrace)) {
+			return fail() // gone for good, just not purged yet
+		}
+		restore = true // signing in within the grace period cancels the deletion
 	}
 	if u.Status == user.StatusBanned {
 		return nil, nil, ErrAccountDisabled
@@ -290,12 +350,20 @@ func (s *Service) Login(ctx context.Context, email, password string, remember bo
 		if newHash != "" {
 			upd.SetPasswordHash(newHash).SetPasswordAlgo(AlgoArgon2id)
 		}
+		if restore {
+			upd.SetStatus(user.StatusActive).ClearDeletedAt()
+		}
 		if err := upd.Exec(ctx); err != nil {
 			return err
 		}
 		var err error
-		if sess, err = s.createSession(ctx, tx, u.ID, remember, meta); err != nil {
+		if sess, err = s.createSession(ctx, tx, u.ID, in.Remember, meta); err != nil {
 			return err
+		}
+		if restore {
+			if err := audit(ctx, tx, &u.ID, "account.restored", "user", strconv.FormatInt(u.ID, 10), meta.IP, nil); err != nil {
+				return err
+			}
 		}
 		return audit(ctx, tx, &u.ID, "auth.login", "user", strconv.FormatInt(u.ID, 10), meta.IP, nil)
 	})
@@ -303,6 +371,114 @@ func (s *Service) Login(ctx context.Context, email, password string, remember bo
 		return nil, nil, err
 	}
 	return u, sess, nil
+}
+
+// RegisterInput is a new account from the registration form.
+type RegisterInput struct {
+	Email    string
+	Nickname string
+	Password string
+}
+
+// Register creates an ordinary account and signs it in. The caller has already
+// checked the captcha, so the expensive part (hashing) only runs for people.
+func (s *Service) Register(ctx context.Context, in RegisterInput, p RegisterPolicy, mc MailContext, meta RequestMeta) (*ent.User, *NewSession, error) {
+	meta = meta.clipped()
+	if !p.Open {
+		return nil, nil, ErrRegistrationClosed
+	}
+	if needs, err := s.NeedsSetup(ctx); err != nil || needs {
+		return nil, nil, cmp.Or(err, ErrSetupPending)
+	}
+	if err := ValidateNewAccount(in.Email, in.Nickname, in.Password); err != nil {
+		return nil, nil, err
+	}
+	if wait, err := s.registrationWait(ctx, meta.IP, p.PerIPPerDay); err != nil || wait > 0 {
+		return nil, nil, cmp.Or(err, error(&RateLimitError{RetryAfter: wait}))
+	}
+	// Attempts count too, not only accounts created: otherwise a client (above all
+	// with captcha.provider = none) could post forever, each request holding one of
+	// the few password hashing slots that sign-ins need too. PerIPPerDay = 0 means the
+	// site does not limit by address (e.g. everyone shares one), so neither does this.
+	if ip := ipKey(meta.IP); p.PerIPPerDay > 0 {
+		if wait, blocked := s.registerAttempts.Blocked(ip); blocked {
+			return nil, nil, &RateLimitError{RetryAfter: wait}
+		}
+		s.registerAttempts.Fail(ip)
+	}
+	// The answer for a taken address is explicit anyway; finding it out costs no hash.
+	if taken, err := s.db.User.Query().Where(user.EmailNormalized(NormalizeEmail(in.Email))).Exist(ctx); err != nil || taken {
+		return nil, nil, cmp.Or(err, error(&FieldError{Field: "email", Message: "already registered"}))
+	}
+	hash, err := s.hasher.Hash(ctx, in.Password)
+	if err != nil {
+		return nil, nil, err
+	}
+	var (
+		u    *ent.User
+		sess *NewSession
+	)
+	err = s.withTx(ctx, func(tx *ent.Client) error {
+		var err error
+		u, err = tx.User.Create().
+			SetEmail(strings.TrimSpace(in.Email)).
+			SetEmailNormalized(NormalizeEmail(in.Email)).
+			SetNickname(strings.TrimSpace(in.Nickname)).
+			SetPasswordHash(hash).
+			SetPasswordAlgo(AlgoArgon2id).
+			SetScore(p.InitialScore).
+			SetRegisterIP(meta.IP).
+			SetLastLoginAt(s.now()).
+			Save(ctx)
+		if err != nil {
+			if ent.IsConstraintError(err) {
+				return &FieldError{Field: "email", Message: "already registered"}
+			}
+			return err
+		}
+		if sess, err = s.createSession(ctx, tx, u.ID, false, meta); err != nil {
+			return err
+		}
+		if mc.Enabled {
+			if err := s.sendVerification(ctx, tx, u, mc); err != nil {
+				return err
+			}
+		}
+		return audit(ctx, tx, &u.ID, "auth.register", "user", strconv.FormatInt(u.ID, 10), meta.IP, nil)
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	s.registrations.Fail(ipKey(meta.IP)) // counts a registration, not a failure
+	if mc.Enabled {
+		s.kick()
+	}
+	return u, sess, nil
+}
+
+// registrationWait returns how long ip must wait before registering again, given at
+// most perDay accounts per 24 hours. The database counts exact addresses (and
+// survives restarts); the in-memory counter groups IPv6 by /64, so rotating
+// addresses inside one subscriber's block does not help.
+func (s *Service) registrationWait(ctx context.Context, ip string, perDay int) (time.Duration, error) {
+	if perDay <= 0 {
+		return 0, nil
+	}
+	if s.registrations.Count(ipKey(ip)) >= perDay {
+		wait, _ := s.registrations.Blocked(ipKey(ip))
+		return max(wait, time.Minute), nil
+	}
+	since := s.now().Add(-24 * time.Hour)
+	recent := s.db.User.Query().Where(user.RegisterIP(ip), user.CreatedAtGT(since))
+	n, err := recent.Count(ctx)
+	if err != nil || n < perDay {
+		return 0, err
+	}
+	oldest, err := recent.Order(ent.Asc(user.FieldCreatedAt)).First(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return max(oldest.CreatedAt.Add(24*time.Hour).Sub(s.now()), time.Minute), nil
 }
 
 // Authenticate resolves a session cookie. It returns (nil, nil) for anything that is
@@ -398,7 +574,8 @@ func audit(ctx context.Context, tx *ent.Client, actor *int64, action, targetType
 	return c.Exec(ctx)
 }
 
-func validateNewAccount(email, nickname, password string) error {
+// ValidateNewAccount checks the fields of a new account, one FieldError per bad field.
+func ValidateNewAccount(email, nickname, password string) error {
 	return errors.Join(ValidateEmail(email), ValidateNickname(nickname), ValidatePassword(password))
 }
 

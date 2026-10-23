@@ -4,16 +4,22 @@ package app
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
 	"github.com/Entropy-Increase-Team/skinloom/internal/config"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
+	"github.com/Entropy-Increase-Team/skinloom/internal/jobs"
 	"github.com/Entropy-Increase-Team/skinloom/internal/logging"
+	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/pubsub"
@@ -56,6 +62,10 @@ type Core struct {
 	Settings *settings.Service
 	Themes   *theme.Registry
 	Accounts *account.Service
+	Captcha  *captcha.Service
+	Mailer   *mail.Mailer
+	// Jobs runs background work; Run starts its worker (CLI commands do not).
+	Jobs *jobs.Queue
 	// FreshConfig is true when this start wrote the default config file.
 	FreshConfig bool
 }
@@ -99,17 +109,42 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 		return nil, fmt.Errorf("load built-in themes: %w", err)
 	}
 	reg := settings.NewRegistry()
+	defs := slices.Concat(account.SettingDefs(), captcha.SettingDefs(), mail.SettingDefs())
+	if err := reg.Register(defs...); err != nil {
+		database.Close()
+		return nil, err
+	}
 	reg.SetValidator("theme.active", themeReg.ValidateActive)
 	svc := settings.NewService(reg, database.Ent, broker, bus, log.With("component", "settings"))
 	if err := svc.Load(ctx); err != nil {
 		database.Close()
 		return nil, err
 	}
-	return &Core{
+	c := &Core{
 		Paths: p, Config: cfg, LogCtl: logCtl, Log: log, DB: database,
 		Broker: broker, Bus: bus, Settings: svc, Themes: themeReg, FreshConfig: fresh,
 		Accounts: account.NewService(database.Ent, log.With("component", "account")),
-	}, nil
+		Captcha:  captcha.NewService(captcha.Options{Log: log.With("component", "captcha")}),
+		Mailer:   mail.New(log.With("component", "mail")),
+		Jobs:     jobs.New(database.Ent, log.With("component", "jobs")),
+	}
+	c.Jobs.Register(account.MailJobKind, c.sendMail)
+	c.Accounts.SetJobNotifier(c.Jobs.Kick)
+	return c, nil
+}
+
+// sendMail is the background job that delivers a queued mail with the mail settings
+// in effect when it runs.
+func (c *Core) sendMail(ctx context.Context, payload json.RawMessage) error {
+	var m mail.Message
+	if err := json.Unmarshal(payload, &m); err != nil {
+		return jobs.Permanent(err)
+	}
+	err := c.Mailer.Send(ctx, mail.ConfigFrom(c.Settings.Current()), m)
+	if errors.Is(err, mail.ErrDisabled) {
+		return jobs.Permanent(err)
+	}
+	return err
 }
 
 // SetupLink returns a one-time link to the first-run setup page, or "" when setup is

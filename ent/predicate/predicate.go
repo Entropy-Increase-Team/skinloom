@@ -12,6 +12,9 @@ type AuditLog func(*sql.Selector)
 // AuthToken is the predicate function for authtoken builders.
 type AuthToken func(*sql.Selector)
 
+// Job is the predicate function for job builders.
+type Job func(*sql.Selector)
+
 // Session is the predicate function for session builders.
 type Session func(*sql.Selector)
 

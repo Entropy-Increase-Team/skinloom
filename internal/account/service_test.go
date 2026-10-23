@@ -52,7 +52,7 @@ func newService(t *testing.T, driver, dsn string) *Service {
 	}
 	if driver != "sqlite" { // shared server database: start from empty account tables
 		for _, q := range []string{
-			"DELETE FROM sessions", "DELETE FROM auth_tokens", "DELETE FROM users",
+			"DELETE FROM jobs", "DELETE FROM sessions", "DELETE FROM auth_tokens", "DELETE FROM users",
 			"DELETE FROM audit_logs", "DELETE FROM system_state WHERE " + quoteKey(driver) + " = 'setup.completed'",
 		} {
 			if _, err := database.SQL.Exec(q); err != nil {
@@ -178,14 +178,14 @@ func testLogin(t *testing.T, s *Service) {
 	ctx := context.Background()
 	admin, _ := setupAdmin(t, s)
 
-	if _, _, err := s.Login(ctx, "admin@example.com", "wrong-pass-1", false, meta); !errors.Is(err, ErrInvalidCredentials) {
+	if _, _, err := s.Login(ctx, LoginInput{Email: "admin@example.com", Password: "wrong-pass-1", Remember: false}, noCaptcha, meta); !errors.Is(err, ErrInvalidCredentials) {
 		t.Fatalf("wrong password: %v", err)
 	}
-	if _, _, err := s.Login(ctx, "nobody@example.com", "admin-pass-1", false, meta); !errors.Is(err, ErrInvalidCredentials) {
+	if _, _, err := s.Login(ctx, LoginInput{Email: "nobody@example.com", Password: "admin-pass-1", Remember: false}, noCaptcha, meta); !errors.Is(err, ErrInvalidCredentials) {
 		t.Fatalf("unknown account must look exactly like a wrong password: %v", err)
 	}
 	// Email is case-insensitive (BS #581).
-	u, sess, err := s.Login(ctx, "  ADMIN@example.COM", "admin-pass-1", true, meta)
+	u, sess, err := s.Login(ctx, LoginInput{Email: "  ADMIN@example.COM", Password: "admin-pass-1", Remember: true}, noCaptcha, meta)
 	if err != nil || u.ID != admin.ID {
 		t.Fatalf("Login = %v, %v", u, err)
 	}
@@ -220,7 +220,7 @@ func testSessionExpiryAndBan(t *testing.T, s *Service) {
 	}
 	s.now = real
 
-	_, sess, err := s.Login(ctx, "admin@example.com", "admin-pass-1", false, meta)
+	_, sess, err := s.Login(ctx, LoginInput{Email: "admin@example.com", Password: "admin-pass-1", Remember: false}, noCaptcha, meta)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,10 +228,10 @@ func testSessionExpiryAndBan(t *testing.T, s *Service) {
 	if v, _ := s.Authenticate(ctx, sess.Token); v != nil {
 		t.Fatal("a banned user's sessions must stop working at once")
 	}
-	if _, _, err := s.Login(ctx, "admin@example.com", "admin-pass-1", false, meta); !errors.Is(err, ErrAccountDisabled) {
+	if _, _, err := s.Login(ctx, LoginInput{Email: "admin@example.com", Password: "admin-pass-1", Remember: false}, noCaptcha, meta); !errors.Is(err, ErrAccountDisabled) {
 		t.Fatalf("banned login: %v", err)
 	}
-	if _, _, err := s.Login(ctx, "admin@example.com", "wrong-pass-1", false, meta); !errors.Is(err, ErrInvalidCredentials) {
+	if _, _, err := s.Login(ctx, LoginInput{Email: "admin@example.com", Password: "wrong-pass-1", Remember: false}, noCaptcha, meta); !errors.Is(err, ErrInvalidCredentials) {
 		t.Fatalf("banned + wrong password must not reveal the ban: %v", err)
 	}
 }
@@ -242,15 +242,15 @@ func testLoginRateLimit(t *testing.T, s *Service) {
 	ctx := context.Background()
 	setupAdmin(t, s)
 	for range 10 {
-		_, _, _ = s.Login(ctx, "admin@example.com", "wrong-pass-1", false, meta)
+		_, _, _ = s.Login(ctx, LoginInput{Email: "admin@example.com", Password: "wrong-pass-1", Remember: false}, noCaptcha, meta)
 	}
 	var rl *RateLimitError
-	if _, _, err := s.Login(ctx, "admin@example.com", "admin-pass-1", false, meta); !errors.As(err, &rl) || rl.RetryAfter <= 0 {
+	if _, _, err := s.Login(ctx, LoginInput{Email: "admin@example.com", Password: "admin-pass-1", Remember: false}, noCaptcha, meta); !errors.As(err, &rl) || rl.RetryAfter <= 0 {
 		t.Fatalf("11th attempt on one account: %v, want a rate limit even with the right password", err)
 	}
 	// Another account from another address is unaffected.
 	other := RequestMeta{IP: "198.51.100.1"}
-	if _, _, err := s.Login(ctx, "someone@example.com", "whatever-123", false, other); !errors.Is(err, ErrInvalidCredentials) {
+	if _, _, err := s.Login(ctx, LoginInput{Email: "someone@example.com", Password: "whatever-123", Remember: false}, noCaptcha, other); !errors.Is(err, ErrInvalidCredentials) {
 		t.Fatalf("other account: %v", err)
 	}
 }
@@ -264,14 +264,14 @@ func testLegacyHashUpgrade(t *testing.T, s *Service) {
 	u := s.db.User.Create().SetEmail("old@example.com").SetEmailNormalized("old@example.com").SetNickname("Old").
 		SetPasswordHash(digest + ":pepper").SetPasswordAlgo(AlgoSalted2MD5).SaveX(ctx)
 
-	if _, _, err := s.Login(ctx, "old@example.com", "old-pass-1", false, meta); err != nil {
+	if _, _, err := s.Login(ctx, LoginInput{Email: "old@example.com", Password: "old-pass-1", Remember: false}, noCaptcha, meta); err != nil {
 		t.Fatal(err)
 	}
 	after := s.db.User.GetX(ctx, u.ID)
 	if after.PasswordAlgo != AlgoArgon2id || after.PasswordHash == u.PasswordHash || after.LastLoginAt == nil {
 		t.Fatalf("legacy hash not upgraded: %s %s", after.PasswordAlgo, after.PasswordHash)
 	}
-	if _, _, err := s.Login(ctx, "old@example.com", "old-pass-1", false, meta); err != nil {
+	if _, _, err := s.Login(ctx, LoginInput{Email: "old@example.com", Password: "old-pass-1", Remember: false}, noCaptcha, meta); err != nil {
 		t.Fatalf("login after upgrade: %v", err)
 	}
 }
@@ -324,22 +324,22 @@ func testLoginLockoutIsPerClient(t *testing.T, s *Service) {
 	setupAdmin(t, s)
 	attacker := RequestMeta{IP: "198.51.100.66"}
 	for range 10 {
-		_, _, _ = s.Login(ctx, "admin@example.com", "wrong-pass-1", false, attacker)
+		_, _, _ = s.Login(ctx, LoginInput{Email: "admin@example.com", Password: "wrong-pass-1", Remember: false}, noCaptcha, attacker)
 	}
 	var rl *RateLimitError
-	if _, _, err := s.Login(ctx, "admin@example.com", "admin-pass-1", false, attacker); !errors.As(err, &rl) {
+	if _, _, err := s.Login(ctx, LoginInput{Email: "admin@example.com", Password: "admin-pass-1", Remember: false}, noCaptcha, attacker); !errors.As(err, &rl) {
 		t.Fatalf("the failing client must be blocked: %v", err)
 	}
-	if _, _, err := s.Login(ctx, "admin@example.com", "admin-pass-1", false, meta); err != nil {
+	if _, _, err := s.Login(ctx, LoginInput{Email: "admin@example.com", Password: "admin-pass-1", Remember: false}, noCaptcha, meta); err != nil {
 		t.Fatalf("the real admin from another address must still get in: %v", err)
 	}
 	for i := range 10 { // 100 failures spread over 10 addresses
 		m := RequestMeta{IP: fmt.Sprintf("203.0.113.%d", 100+i)}
 		for range 10 {
-			_, _, _ = s.Login(ctx, "admin@example.com", "wrong-pass-1", false, m)
+			_, _, _ = s.Login(ctx, LoginInput{Email: "admin@example.com", Password: "wrong-pass-1", Remember: false}, noCaptcha, m)
 		}
 	}
-	if _, _, err := s.Login(ctx, "admin@example.com", "admin-pass-1", false, RequestMeta{IP: "192.0.2.99"}); !errors.As(err, &rl) {
+	if _, _, err := s.Login(ctx, LoginInput{Email: "admin@example.com", Password: "admin-pass-1", Remember: false}, noCaptcha, RequestMeta{IP: "192.0.2.99"}); !errors.As(err, &rl) {
 		t.Fatalf("a distributed attack must still lock the account: %v", err)
 	}
 }
@@ -352,7 +352,190 @@ func testLongClientAddress(t *testing.T, s *Service) {
 	ctx := context.Background()
 	setupAdmin(t, s)
 	long := RequestMeta{IP: "fe80::1234:5678:9abc:def0%" + strings.Repeat("x", 40), UserAgent: strings.Repeat("ü", 600)}
-	if _, _, err := s.Login(ctx, "admin@example.com", "admin-pass-1", false, long); err != nil {
+	if _, _, err := s.Login(ctx, LoginInput{Email: "admin@example.com", Password: "admin-pass-1", Remember: false}, noCaptcha, long); err != nil {
 		t.Fatalf("login with a long client address: %v", err)
 	}
 }
+
+// noCaptcha is the login policy of a site without a captcha provider.
+var noCaptcha = LoginPolicy{}
+
+var openRegistration = RegisterPolicy{Open: true, PerIPPerDay: 3, InitialScore: 1000}
+
+func TestRegister(t *testing.T) { forEachDB(t, testRegister) }
+
+func testRegister(t *testing.T, s *Service) {
+	ctx := context.Background()
+	in := RegisterInput{Email: "Steve@Example.com", Nickname: "Steve", Password: "steve-pass-1"}
+	if _, _, err := s.Register(ctx, in, openRegistration, noMail, meta); !errors.Is(err, ErrSetupPending) {
+		t.Fatalf("before setup: %v, want ErrSetupPending (the first account comes from the setup page)", err)
+	}
+	setupAdmin(t, s)
+	if _, _, err := s.Register(ctx, in, RegisterPolicy{}, noMail, meta); !errors.Is(err, ErrRegistrationClosed) {
+		t.Fatalf("closed: %v", err)
+	}
+	bad := RegisterInput{Email: "nope", Nickname: "", Password: "short"}
+	if _, _, err := s.Register(ctx, bad, openRegistration, noMail, meta); len(FieldErrors(err)) != 3 {
+		t.Fatalf("invalid input: %v, want three field errors", err)
+	}
+
+	u, sess, err := s.Register(ctx, in, openRegistration, noMail, meta)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u.Role != user.RoleUser || u.Score != 1000 || u.EmailNormalized != "steve@example.com" || u.RegisterIP != meta.IP || u.EmailVerifiedAt != nil {
+		t.Fatalf("registered %+v", u)
+	}
+	if v, _ := s.Authenticate(ctx, sess.Token); v == nil || v.User.ID != u.ID || v.IsAdmin() {
+		t.Fatal("registration must sign the new user in as an ordinary user")
+	}
+	if _, _, err := s.Login(ctx, LoginInput{Email: "steve@example.com", Password: "steve-pass-1"}, noCaptcha, meta); err != nil {
+		t.Fatalf("login after registration: %v", err)
+	}
+	dup := RegisterInput{Email: "STEVE@example.com", Nickname: "Other", Password: "other-pass-1"}
+	errs := FieldErrors(func() error {
+		_, _, err := s.Register(ctx, dup, openRegistration, noMail, RequestMeta{IP: "198.51.100.9"})
+		return err
+	}())
+	if len(errs) != 1 || errs[0].Field != "email" {
+		t.Fatalf("same email in another case: %v", errs)
+	}
+	if n := s.db.AuditLog.Query().Where(auditlog.Action("auth.register")).CountX(ctx); n != 1 {
+		t.Fatalf("want one registration audit record, got %d", n)
+	}
+}
+
+func TestRegistrationsPerAddress(t *testing.T) { forEachDB(t, testRegistrationsPerAddress) }
+
+func testRegistrationsPerAddress(t *testing.T, s *Service) {
+	ctx := context.Background()
+	setupAdmin(t, s)
+	p := RegisterPolicy{Open: true, PerIPPerDay: 2}
+	reg := func(svc *Service, i int, ip string) error {
+		_, _, err := svc.Register(ctx, RegisterInput{Email: fmt.Sprintf("u%d@example.com", i), Nickname: "U", Password: "user-pass-1"}, p, noMail, RequestMeta{IP: ip})
+		return err
+	}
+	var rl *RateLimitError
+	for i := range 2 {
+		if err := reg(s, i, "198.51.100.20"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := reg(s, 2, "198.51.100.20"); !errors.As(err, &rl) || rl.RetryAfter <= 0 {
+		t.Fatalf("third account from one address: %v", err)
+	}
+	if err := reg(s, 3, "198.51.100.21"); err != nil {
+		t.Fatalf("another address: %v", err)
+	}
+	// The database remembers exact addresses across restarts (a fresh service has no
+	// in-memory counts).
+	if err := reg(NewService(s.db, s.log), 4, "198.51.100.20"); !errors.As(err, &rl) {
+		t.Fatalf("after a restart: %v", err)
+	}
+	// Rotating IPv6 addresses inside one /64 does not reset the count.
+	for i, ip := range []string{"2001:db8:5::1", "2001:db8:5::2"} {
+		if err := reg(s, 10+i, ip); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := reg(s, 12, "2001:db8:5::3"); !errors.As(err, &rl) {
+		t.Fatalf("third address in the same /64: %v", err)
+	}
+	if err := reg(s, 13, "198.51.100.30"); err != nil {
+		t.Fatal(err)
+	}
+	unlimited := RegisterPolicy{Open: true}
+	if _, _, err := s.Register(ctx, RegisterInput{Email: "x@example.com", Nickname: "X", Password: "user-pass-1"}, unlimited, noMail, RequestMeta{IP: "198.51.100.20"}); err != nil {
+		t.Fatalf("0 = unlimited: %v", err)
+	}
+}
+
+// Regression: registration hashed the password before learning the address was taken,
+// and only counted accounts created, so a client could keep posting taken addresses
+// and hold the hashing slots that sign-ins need.
+func TestRegisterAttempts(t *testing.T) { forEachDB(t, testRegisterAttempts) }
+
+func testRegisterAttempts(t *testing.T, s *Service) {
+	ctx := context.Background()
+	setupAdmin(t, s)
+	taken := RegisterInput{Email: "ADMIN@example.com", Nickname: "X", Password: "user-pass-1"}
+	s.hasher = NewHasher(1)
+	s.hasher.sem <- struct{}{} // any hash attempt now blocks until ctx ends
+	busy, cancel := context.WithTimeout(ctx, 200*time.Millisecond)
+	defer cancel()
+	if _, _, err := s.Register(busy, taken, openRegistration, noMail, meta); len(FieldErrors(err)) != 1 {
+		t.Fatalf("taken address: %v, want a field error without hashing", err)
+	}
+	var rl *RateLimitError
+	attacker := RequestMeta{IP: "198.51.100.77"}
+	for range 40 {
+		_, _, err := s.Register(ctx, taken, openRegistration, noMail, attacker)
+		if errors.As(err, &rl) {
+			break
+		}
+	}
+	if rl == nil {
+		t.Fatal("endless failed registrations from one address must be limited")
+	}
+	// A site that does not limit by address (everyone behind one NAT) is not limited.
+	unlimited := RegisterPolicy{Open: true}
+	if _, _, err := s.Register(ctx, taken, unlimited, noMail, attacker); errors.As(err, new(*RateLimitError)) {
+		t.Fatalf("auth.registrations_per_ip = 0: %v", err)
+	}
+}
+
+func TestLoginCaptcha(t *testing.T) { forEachDB(t, testLoginCaptcha) }
+
+func testLoginCaptcha(t *testing.T, s *Service) {
+	ctx := context.Background()
+	setupAdmin(t, s)
+	p := LoginPolicy{CaptchaEnabled: true, CaptchaAfter: 3}
+	wrong := LoginInput{Email: "admin@example.com", Password: "wrong-pass-1"}
+	right := LoginInput{Email: "admin@example.com", Password: "admin-pass-1"}
+
+	if s.CaptchaRequired(right.Email, meta.IP, p) {
+		t.Fatal("no captcha before any failure")
+	}
+	for range 3 {
+		_, _, _ = s.Login(ctx, wrong, p, meta)
+	}
+	if !s.CaptchaRequired(right.Email, meta.IP, p) {
+		t.Fatal("captcha required after 3 failures")
+	}
+	if _, _, err := s.Login(ctx, right, p, meta); !errors.Is(err, ErrCaptchaRequired) {
+		t.Fatalf("right password without captcha: %v, want ErrCaptchaRequired", err)
+	}
+	other := RequestMeta{IP: "198.51.100.77"}
+	if s.CaptchaRequired(right.Email, other.IP, p) {
+		t.Fatal("another client does not need a captcha yet")
+	}
+	solved := right
+	solved.CaptchaSolved = true
+	if _, _, err := s.Login(ctx, solved, p, meta); err != nil {
+		t.Fatalf("with a solved captcha: %v", err)
+	}
+	if s.CaptchaRequired(right.Email, meta.IP, p) {
+		t.Fatal("a successful login forgives this client")
+	}
+
+	// A distributed attack: 120 failures from 15 addresses. Every client now needs a
+	// captcha, but the account is never locked for someone who solves one.
+	wrongSolved := wrong
+	wrongSolved.CaptchaSolved = true
+	for i := range 15 {
+		m := RequestMeta{IP: fmt.Sprintf("203.0.113.%d", 100+i)}
+		for range 8 {
+			_, _, _ = s.Login(ctx, wrongSolved, p, m)
+		}
+	}
+	fresh := RequestMeta{IP: "192.0.2.200"}
+	if !s.CaptchaRequired(right.Email, fresh.IP, p) {
+		t.Fatal("after a distributed attack every client needs a captcha")
+	}
+	if _, _, err := s.Login(ctx, solved, p, fresh); err != nil {
+		t.Fatalf("real user with a captcha after 120 failures: %v", err)
+	}
+}
+
+// noMail is a site without a mail driver.
+var noMail = MailContext{}

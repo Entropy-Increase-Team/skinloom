@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server'
 
 import { getBootstrap } from '@/lib/bootstrap'
 import { safeHref, safeImageUrl } from '@/lib/safe-url'
+import { getViewer } from '@/lib/viewer'
 
 function str(v: unknown): string | undefined {
   return typeof v === 'string' && v !== '' ? v : undefined
@@ -11,9 +12,14 @@ function str(v: unknown): string | undefined {
 
 /** props: title, subtitle, background (image URL), primaryAction, secondaryAction (paths). */
 export async function HeroBlock({ props }: { props: Record<string, unknown> }) {
-  const boot = await getBootstrap()
+  const [boot, viewer] = await Promise.all([getBootstrap(), getViewer()])
   const t = await getTranslations('hero')
   const background = safeImageUrl(props.background)
+  // The second button usually leads to registration, which is only useful to signed-out
+  // visitors of a site that accepts registrations. Other targets are always shown.
+  const join = safeHref(props.secondaryAction, '/auth/register')
+  const toRegister = join === '/auth/register' || join.startsWith('/auth/register?')
+  const showJoin = !toRegister || (boot.auth.registration === 'open' && !boot.needsSetup && !viewer)
   return (
     <section
       className="sl-hero relative isolate overflow-hidden text-white"
@@ -26,9 +32,11 @@ export async function HeroBlock({ props }: { props: Record<string, unknown> }) {
           <Button asChild size="lg" className="bg-white text-slate-900 hover:bg-white/90">
             <Link href={safeHref(props.primaryAction, '/skinlib')}>{t('browse')}</Link>
           </Button>
-          <Button asChild size="lg" variant="outline" className="border-white/60 bg-transparent text-white hover:bg-white/10 hover:text-white">
-            <Link href={safeHref(props.secondaryAction, '/auth/register')}>{t('join')}</Link>
-          </Button>
+          {showJoin && (
+            <Button asChild size="lg" variant="outline" className="border-white/60 bg-transparent text-white hover:bg-white/10 hover:text-white">
+              <Link href={join}>{t('join')}</Link>
+            </Button>
+          )}
         </div>
       </div>
     </section>

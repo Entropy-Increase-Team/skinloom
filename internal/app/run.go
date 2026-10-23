@@ -56,11 +56,13 @@ func Run(ctx context.Context, o RunOptions) error {
 	runCtx, stop := context.WithCancel(ctx)
 	defer stop()
 	go core.Settings.Watch(runCtx, 2*time.Second)
+	go core.Jobs.Run(runCtx, 5*time.Second)
+	go purgeDeletedAccounts(runCtx, core)
 
 	var gw *gateway.Gateway // created below; serves requests only after Serve starts
 	api, _ := httpapi.New(httpapi.Deps{
 		Log: log.With("component", "http"), DB: core.DB, Settings: core.Settings,
-		Themes: core.Themes, Broker: core.Broker, Accounts: core.Accounts, AdminToken: sec.AdminToken,
+		Themes: core.Themes, Broker: core.Broker, Accounts: core.Accounts, Captcha: core.Captcha, Mailer: core.Mailer, AdminToken: sec.AdminToken,
 		ClientInfo: func(r *http.Request) realip.Info { return gw.ClientInfo(r) },
 	})
 
@@ -262,5 +264,24 @@ func frontendPort(want int, gw *gateway.Gateway, web *launcher.Web, log interfac
 func warnUnknownKeys(path string, log interface{ Warn(string, ...any) }) {
 	if keys, err := config.UnknownKeys(path); err == nil && len(keys) > 0 {
 		log.Warn("unknown keys in config file (typo?); they are ignored", "path", path, "keys", keys)
+	}
+}
+
+// purgeDeletedAccounts removes accounts whose deletion grace period is over, at start
+// and then hourly. Every node may do it; deleting twice is harmless.
+func purgeDeletedAccounts(ctx context.Context, core *Core) {
+	t := time.NewTicker(time.Hour)
+	defer t.Stop()
+	for {
+		if n, err := core.Accounts.PurgeDeleted(ctx); err != nil && ctx.Err() == nil {
+			core.Log.Warn("purge deleted accounts", "err", err)
+		} else if n > 0 {
+			core.Log.Info("purged deleted accounts", "count", n)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
 	}
 }

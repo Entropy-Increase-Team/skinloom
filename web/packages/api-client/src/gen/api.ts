@@ -33,6 +33,104 @@ type NonReadonly<T> = [T] extends [UnionToIntersection<T>] ? {
     : T[P];
 } : DistributeReadOnlyOverUnions<T>;
 
+export type AdminUserViewRole = typeof AdminUserViewRole[keyof typeof AdminUserViewRole];
+
+
+export const AdminUserViewRole = {
+  user: 'user',
+  admin: 'admin',
+  superadmin: 'superadmin',
+} as const;
+
+export type AdminUserViewStatus = typeof AdminUserViewStatus[keyof typeof AdminUserViewStatus];
+
+
+export const AdminUserViewStatus = {
+  active: 'active',
+  banned: 'banned',
+  deleted: 'deleted',
+} as const;
+
+export interface AdminUserView {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  createdAt: string;
+  /** Set while a self-deleted account waits out its grace period */
+  deletedAt?: string;
+  email: string;
+  emailVerified: boolean;
+  id: number;
+  lastLoginAt?: string;
+  locale: string;
+  nickname: string;
+  registerIp: string;
+  role: AdminUserViewRole;
+  score: number;
+  status: AdminUserViewStatus;
+}
+
+export interface Answer {
+  /** Image captcha challenge id */
+  id?: string;
+  /**
+     * Typed text (image captcha) or the widget token
+     * @maxLength 4096
+     */
+  value: string;
+}
+
+export type AuditViewMeta = {[key: string]: unknown};
+
+export interface AuditView {
+  action: string;
+  /** Absent for the system and the admin token */
+  actorId?: number;
+  createdAt: string;
+  id: number;
+  ip: string;
+  meta?: AuditViewMeta;
+  targetId: string;
+  targetType: string;
+}
+
+export interface AuditPage {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  next: number;
+  records: AuditView[];
+}
+
+export type AuthInfoRegistration = typeof AuthInfoRegistration[keyof typeof AuthInfoRegistration];
+
+
+export const AuthInfoRegistration = {
+  open: 'open',
+  closed: 'closed',
+} as const;
+
+export type CaptchaInfoProvider = typeof CaptchaInfoProvider[keyof typeof CaptchaInfoProvider];
+
+
+export const CaptchaInfoProvider = {
+  none: 'none',
+  image: 'image',
+  turnstile: 'turnstile',
+  recaptcha: 'recaptcha',
+  hcaptcha: 'hcaptcha',
+} as const;
+
+export interface CaptchaInfo {
+  provider: CaptchaInfoProvider;
+  /** Widget site key (turnstile, recaptcha, hcaptcha) */
+  siteKey?: string;
+}
+
+export interface AuthInfo {
+  captcha: CaptchaInfo;
+  mail: boolean;
+  registration: AuthInfoRegistration;
+}
+
 export type BlockProps = {[key: string]: unknown};
 
 export interface Block {
@@ -109,6 +207,7 @@ export interface ResolvedTheme {
 export interface Bootstrap {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
+  auth: AuthInfo;
   locale: string;
   locales: LocaleInfo[];
   /** Keyed by area: explore, user, admin */
@@ -120,6 +219,39 @@ export interface Bootstrap {
   theme: ResolvedTheme;
   /** Config version; changes whenever settings, themes or plugins change */
   version: number;
+}
+
+export interface CaptchaImage {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  id: string;
+  /** data:image/png;base64,… */
+  image: string;
+}
+
+export interface ChangeEmailInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** @maxLength 255 */
+  email: string;
+  /** @maxLength 1024 */
+  password: string;
+}
+
+export interface ChangePasswordInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** @maxLength 1024 */
+  currentPassword: string;
+  /** @maxLength 1024 */
+  newPassword: string;
+}
+
+export interface DeleteMeInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** @maxLength 1024 */
+  password: string;
 }
 
 export interface ErrorDetail {
@@ -148,15 +280,68 @@ export interface ErrorModel {
   type?: string;
 }
 
+export interface ForgotInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** Required unless captcha.provider is none */
+  captcha?: Answer;
+  /** @maxLength 255 */
+  email: string;
+}
+
 export interface LoginInputBody {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
+  /** Needed after failed attempts; a 422 on body.captcha asks for it */
+  captcha?: Answer;
   /** @maxLength 255 */
   email: string;
   /** @maxLength 1024 */
   password: string;
   /** Keep the session for 30 days instead of until the browser closes */
   remember?: boolean;
+}
+
+export interface MailTestInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /**
+     * Recipient; default: the signed-in administrator
+     * @maxLength 255
+     */
+  to?: string;
+}
+
+export interface RegisterInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** Required unless captcha.provider is none */
+  captcha?: Answer;
+  /** @maxLength 255 */
+  email: string;
+  /** @maxLength 128 */
+  nickname: string;
+  /** @maxLength 1024 */
+  password: string;
+}
+
+export interface ResetInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** @maxLength 1024 */
+  password: string;
+  /** @maxLength 64 */
+  token: string;
+}
+
+export interface SessionView {
+  createdAt: string;
+  /** The session making this request */
+  current: boolean;
+  id: string;
+  ip: string;
+  lastSeenAt: string;
+  userAgent: string;
 }
 
 export interface SettingView {
@@ -219,6 +404,73 @@ export interface ThemeView {
   version: string;
 }
 
+export interface UpdateMeInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /**
+     * One of the site's languages, or empty to follow the browser
+     * @maxLength 16
+     */
+  locale?: string;
+  /** @maxLength 128 */
+  nickname?: string;
+}
+
+/**
+ * Super administrators only
+ */
+export type UpdateUserInputBodyRole = typeof UpdateUserInputBodyRole[keyof typeof UpdateUserInputBodyRole];
+
+
+export const UpdateUserInputBodyRole = {
+  user: 'user',
+  admin: 'admin',
+  superadmin: 'superadmin',
+} as const;
+
+/**
+ * Banning signs the user out everywhere; any change cancels a pending account deletion
+ */
+export type UpdateUserInputBodyStatus = typeof UpdateUserInputBodyStatus[keyof typeof UpdateUserInputBodyStatus];
+
+
+export const UpdateUserInputBodyStatus = {
+  active: 'active',
+  banned: 'banned',
+} as const;
+
+export interface UpdateUserInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /**
+     * A new address is unverified unless emailVerified is also given
+     * @maxLength 255
+     */
+  email?: string;
+  emailVerified?: boolean;
+  /** @maxLength 128 */
+  nickname?: string;
+  /**
+     * Signs the user out everywhere
+     * @maxLength 1024
+     */
+  password?: string;
+  /** Super administrators only */
+  role?: UpdateUserInputBodyRole;
+  /** @minimum 0 */
+  score?: number;
+  /** Banning signs the user out everywhere; any change cancels a pending account deletion */
+  status?: UpdateUserInputBodyStatus;
+}
+
+export interface UserPage {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** Pass as before= for the next page; 0 = last page */
+  next: number;
+  users: AdminUserView[];
+}
+
 export type UserViewRole = typeof UserViewRole[keyof typeof UserViewRole];
 
 
@@ -231,6 +483,7 @@ export const UserViewRole = {
 export interface UserView {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
+  createdAt: string;
   email: string;
   emailVerified: boolean;
   id: number;
@@ -238,12 +491,80 @@ export interface UserView {
   locale: string;
   nickname: string;
   role: UserViewRole;
+  score: number;
 }
+
+export interface VerifyInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** @maxLength 64 */
+  token: string;
+}
+
+export type ListAuditParams = {
+/**
+ * Exact action, or a prefix ending in a dot (auth.)
+ * @maxLength 64
+ */
+action?: string;
+/**
+ * @minimum 0
+ */
+actor?: number;
+/**
+ * @minimum 0
+ */
+before?: number;
+/**
+ * @minimum 0
+ * @maximum 100
+ */
+limit?: number;
+};
 
 /**
  * Keys to change. A null value resets the key to its default.
  */
 export type UpdateSettingsBody = {[key: string]: unknown};
+
+export type ListUsersParams = {
+/**
+ * Email or nickname fragment, or a user id
+ * @maxLength 255
+ */
+q?: string;
+role?: ListUsersRole;
+status?: ListUsersStatus;
+/**
+ * @minimum 0
+ */
+before?: number;
+/**
+ * @minimum 0
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type ListUsersRole = typeof ListUsersRole[keyof typeof ListUsersRole];
+
+
+export const ListUsersRole = {
+  user: 'user',
+  admin: 'admin',
+  superadmin: 'superadmin',
+  '': '',
+} as const;
+
+export type ListUsersStatus = typeof ListUsersStatus[keyof typeof ListUsersStatus];
+
+
+export const ListUsersStatus = {
+  active: 'active',
+  banned: 'banned',
+  deleted: 'deleted',
+  '': '',
+} as const;
 
 export type GetBootstrapParams = {
 /**
@@ -258,6 +579,114 @@ export type HTTPStatusCode3xx = 300 | 301 | 302 | 303 | 304 | 305 | 307 | 308;
 export type HTTPStatusCode4xx = 400 | 401 | 402 | 403 | 404 | 405 | 406 | 407 | 408 | 409 | 410 | 411 | 412 | 413 | 414 | 415 | 416 | 417 | 418 | 419 | 420 | 421 | 422 | 423 | 424 | 426 | 428 | 429 | 431 | 451;
 export type HTTPStatusCode5xx = 500 | 501 | 502 | 503 | 504 | 505 | 507 | 511;
 export type HTTPStatusCodes = HTTPStatusCode1xx | HTTPStatusCode2xx | HTTPStatusCode3xx | HTTPStatusCode4xx | HTTPStatusCode5xx;
+
+export type listAuditResponse200 = {
+  data: AuditPage
+  status: 200
+}
+
+export type listAuditResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listAuditResponseSuccess = (listAuditResponse200) & {
+  headers: Headers;
+};
+export type listAuditResponseError = (listAuditResponseDefault) & {
+  headers: Headers;
+};
+
+export type listAuditResponse = (listAuditResponseSuccess | listAuditResponseError)
+
+export const getListAuditUrl = (params?: ListAuditParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/admin/audit?${stringifiedParams}` : `/api/v1/admin/audit`
+}
+
+/**
+ * @summary Audit log
+ */
+export const listAudit = async (params?: ListAuditParams, options?: Parameters<typeof apiFetch>[1]): Promise<listAuditResponse> => {
+
+  return apiFetch<listAuditResponse>(getListAuditUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type sendTestMailResponse204 = {
+  data: void
+  status: 204
+}
+
+export type sendTestMailResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 204>
+}
+
+export type sendTestMailResponseSuccess = (sendTestMailResponse204) & {
+  headers: Headers;
+};
+export type sendTestMailResponseError = (sendTestMailResponseDefault) & {
+  headers: Headers;
+};
+
+export type sendTestMailResponse = (sendTestMailResponseSuccess | sendTestMailResponseError)
+
+export const getSendTestMailUrl = () => {
+
+
+
+
+  return `/api/v1/admin/mail/test`
+}
+
+/**
+ * Sent right away (not queued). On failure the SMTP error is returned, for administrators only.
+ * @summary Send a test email with the current mail settings
+ */
+export const sendTestMail = async (mailTestInputBody: NonReadonly<MailTestInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<sendTestMailResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<sendTestMailResponse>(getSendTestMailUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(mailTestInputBody)
+  }
+);}
+
+
 
 export type listSettingsResponse200 = {
   data: SettingsList
@@ -404,6 +833,301 @@ export const listThemes = async ( options?: Parameters<typeof apiFetch>[1]): Pro
 
 
 
+export type listUsersResponse200 = {
+  data: UserPage
+  status: 200
+}
+
+export type listUsersResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listUsersResponseSuccess = (listUsersResponse200) & {
+  headers: Headers;
+};
+export type listUsersResponseError = (listUsersResponseDefault) & {
+  headers: Headers;
+};
+
+export type listUsersResponse = (listUsersResponseSuccess | listUsersResponseError)
+
+export const getListUsersUrl = (params?: ListUsersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/admin/users?${stringifiedParams}` : `/api/v1/admin/users`
+}
+
+/**
+ * @summary List users
+ */
+export const listUsers = async (params?: ListUsersParams, options?: Parameters<typeof apiFetch>[1]): Promise<listUsersResponse> => {
+
+  return apiFetch<listUsersResponse>(getListUsersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type deleteUserResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteUserResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 204>
+}
+
+export type deleteUserResponseSuccess = (deleteUserResponse204) & {
+  headers: Headers;
+};
+export type deleteUserResponseError = (deleteUserResponseDefault) & {
+  headers: Headers;
+};
+
+export type deleteUserResponse = (deleteUserResponseSuccess | deleteUserResponseError)
+
+export const getDeleteUserUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/admin/users/${id}`
+}
+
+/**
+ * @summary Delete a user now
+ */
+export const deleteUser = async (id: number, options?: Parameters<typeof apiFetch>[1]): Promise<deleteUserResponse> => {
+
+  return apiFetch<deleteUserResponse>(getDeleteUserUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type getUserResponse200 = {
+  data: AdminUserView
+  status: 200
+}
+
+export type getUserResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getUserResponseSuccess = (getUserResponse200) & {
+  headers: Headers;
+};
+export type getUserResponseError = (getUserResponseDefault) & {
+  headers: Headers;
+};
+
+export type getUserResponse = (getUserResponseSuccess | getUserResponseError)
+
+export const getGetUserUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/admin/users/${id}`
+}
+
+/**
+ * @summary Get a user
+ */
+export const getUser = async (id: number, options?: Parameters<typeof apiFetch>[1]): Promise<getUserResponse> => {
+
+  return apiFetch<getUserResponse>(getGetUserUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateUserResponse200 = {
+  data: AdminUserView
+  status: 200
+}
+
+export type updateUserResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type updateUserResponseSuccess = (updateUserResponse200) & {
+  headers: Headers;
+};
+export type updateUserResponseError = (updateUserResponseDefault) & {
+  headers: Headers;
+};
+
+export type updateUserResponse = (updateUserResponseSuccess | updateUserResponseError)
+
+export const getUpdateUserUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/admin/users/${id}`
+}
+
+/**
+ * @summary Change a user
+ */
+export const updateUser = async (id: number,
+    updateUserInputBody: NonReadonly<UpdateUserInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<updateUserResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateUserResponse>(getUpdateUserUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateUserInputBody)
+  }
+);}
+
+
+
+export type resendVerificationResponse202 = {
+  data: void
+  status: 202
+}
+
+export type resendVerificationResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 202>
+}
+
+export type resendVerificationResponseSuccess = (resendVerificationResponse202) & {
+  headers: Headers;
+};
+export type resendVerificationResponseError = (resendVerificationResponseDefault) & {
+  headers: Headers;
+};
+
+export type resendVerificationResponse = (resendVerificationResponseSuccess | resendVerificationResponseError)
+
+export const getResendVerificationUrl = () => {
+
+
+
+
+  return `/api/v1/auth/email/resend`
+}
+
+/**
+ * @summary Send a new verification link to the signed-in user
+ */
+export const resendVerification = async ( options?: Parameters<typeof apiFetch>[1]): Promise<resendVerificationResponse> => {
+
+  return apiFetch<resendVerificationResponse>(getResendVerificationUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type verifyEmailResponse204 = {
+  data: void
+  status: 204
+}
+
+export type verifyEmailResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 204>
+}
+
+export type verifyEmailResponseSuccess = (verifyEmailResponse204) & {
+  headers: Headers;
+};
+export type verifyEmailResponseError = (verifyEmailResponseDefault) & {
+  headers: Headers;
+};
+
+export type verifyEmailResponse = (verifyEmailResponseSuccess | verifyEmailResponseError)
+
+export const getVerifyEmailUrl = () => {
+
+
+
+
+  return `/api/v1/auth/email/verify`
+}
+
+/**
+ * A POST from the verification page (not a GET on the link), so mail scanners that open links do not use them up.
+ * @summary Confirm an email address with a verification link
+ */
+export const verifyEmail = async (verifyInputBody: NonReadonly<VerifyInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<verifyEmailResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<verifyEmailResponse>(getVerifyEmailUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(verifyInputBody)
+  }
+);}
+
+
+
 export type loginResponse200 = {
   data: UserView
   status: 200
@@ -432,7 +1156,7 @@ export const getLoginUrl = () => {
 }
 
 /**
- * Sets the session cookie. Every failure returns the same 401, whether or not the account exists; repeated failures return 429 with Retry-After.
+ * Sets the session cookie. Every failure returns the same 401, whether or not the account exists. After failed attempts a captcha is required (422 on body.captcha); repeated failures return 429 with Retry-After.
  * @summary Sign in with email and password
  */
 export const login = async (loginInputBody: NonReadonly<LoginInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<loginResponse> => {
@@ -541,6 +1265,581 @@ export const getMe = async ( options?: Parameters<typeof apiFetch>[1]): Promise<
   {
     ...options,
     method: 'GET'
+
+
+  }
+);}
+
+
+
+export type forgotPasswordResponse202 = {
+  data: void
+  status: 202
+}
+
+export type forgotPasswordResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 202>
+}
+
+export type forgotPasswordResponseSuccess = (forgotPasswordResponse202) & {
+  headers: Headers;
+};
+export type forgotPasswordResponseError = (forgotPasswordResponseDefault) & {
+  headers: Headers;
+};
+
+export type forgotPasswordResponse = (forgotPasswordResponseSuccess | forgotPasswordResponseError)
+
+export const getForgotPasswordUrl = () => {
+
+
+
+
+  return `/api/v1/auth/password/forgot`
+}
+
+/**
+ * Always 202, whether or not the address belongs to an account. The link is valid for 30 minutes and works once.
+ * @summary Mail a password reset link
+ */
+export const forgotPassword = async (forgotInputBody: NonReadonly<ForgotInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<forgotPasswordResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<forgotPasswordResponse>(getForgotPasswordUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(forgotInputBody)
+  }
+);}
+
+
+
+export type resetPasswordResponse204 = {
+  data: void
+  status: 204
+}
+
+export type resetPasswordResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 204>
+}
+
+export type resetPasswordResponseSuccess = (resetPasswordResponse204) & {
+  headers: Headers;
+};
+export type resetPasswordResponseError = (resetPasswordResponseDefault) & {
+  headers: Headers;
+};
+
+export type resetPasswordResponse = (resetPasswordResponseSuccess | resetPasswordResponseError)
+
+export const getResetPasswordUrl = () => {
+
+
+
+
+  return `/api/v1/auth/password/reset`
+}
+
+/**
+ * Signs the account out everywhere. The link stops working once used.
+ * @summary Set a new password with a reset link
+ */
+export const resetPassword = async (resetInputBody: NonReadonly<ResetInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<resetPasswordResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<resetPasswordResponse>(getResetPasswordUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(resetInputBody)
+  }
+);}
+
+
+
+export type registerResponse200 = {
+  data: UserView
+  status: 200
+}
+
+export type registerResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type registerResponseSuccess = (registerResponse200) & {
+  headers: Headers;
+};
+export type registerResponseError = (registerResponseDefault) & {
+  headers: Headers;
+};
+
+export type registerResponse = (registerResponseSuccess | registerResponseError)
+
+export const getRegisterUrl = () => {
+
+
+
+
+  return `/api/v1/auth/register`
+}
+
+/**
+ * Signs the new user in. Needs auth.registration = open and, unless captcha.provider is none, a solved captcha.
+ * @summary Create an account
+ */
+export const register = async (registerInputBody: NonReadonly<RegisterInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<registerResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<registerResponse>(getRegisterUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(registerInputBody)
+  }
+);}
+
+
+
+export type getCaptchaImageResponse200 = {
+  data: CaptchaImage
+  status: 200
+}
+
+export type getCaptchaImageResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getCaptchaImageResponseSuccess = (getCaptchaImageResponse200) & {
+  headers: Headers;
+};
+export type getCaptchaImageResponseError = (getCaptchaImageResponseDefault) & {
+  headers: Headers;
+};
+
+export type getCaptchaImageResponse = (getCaptchaImageResponseSuccess | getCaptchaImageResponseError)
+
+export const getGetCaptchaImageUrl = () => {
+
+
+
+
+  return `/api/v1/captcha/image`
+}
+
+/**
+ * Only when captcha.provider is image. Each challenge works once and expires after 5 minutes.
+ * @summary New image captcha
+ */
+export const getCaptchaImage = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getCaptchaImageResponse> => {
+
+  return apiFetch<getCaptchaImageResponse>(getGetCaptchaImageUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateMeResponse200 = {
+  data: UserView
+  status: 200
+}
+
+export type updateMeResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type updateMeResponseSuccess = (updateMeResponse200) & {
+  headers: Headers;
+};
+export type updateMeResponseError = (updateMeResponseDefault) & {
+  headers: Headers;
+};
+
+export type updateMeResponse = (updateMeResponseSuccess | updateMeResponseError)
+
+export const getUpdateMeUrl = () => {
+
+
+
+
+  return `/api/v1/me`
+}
+
+/**
+ * @summary Change your nickname or language
+ */
+export const updateMe = async (updateMeInputBody: NonReadonly<UpdateMeInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<updateMeResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateMeResponse>(getUpdateMeUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateMeInputBody)
+  }
+);}
+
+
+
+export type deleteMeResponse200 = {
+  data: void
+  status: 200
+}
+
+export type deleteMeResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type deleteMeResponseSuccess = (deleteMeResponse200) & {
+  headers: Headers;
+};
+export type deleteMeResponseError = (deleteMeResponseDefault) & {
+  headers: Headers;
+};
+
+export type deleteMeResponse = (deleteMeResponseSuccess | deleteMeResponseError)
+
+export const getDeleteMeUrl = () => {
+
+
+
+
+  return `/api/v1/me/delete`
+}
+
+/**
+ * @summary Delete your account
+ */
+export const deleteMe = async (deleteMeInputBody: NonReadonly<DeleteMeInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<deleteMeResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<deleteMeResponse>(getDeleteMeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(deleteMeInputBody)
+  }
+);}
+
+
+
+export type changeEmailResponse200 = {
+  data: UserView
+  status: 200
+}
+
+export type changeEmailResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type changeEmailResponseSuccess = (changeEmailResponse200) & {
+  headers: Headers;
+};
+export type changeEmailResponseError = (changeEmailResponseDefault) & {
+  headers: Headers;
+};
+
+export type changeEmailResponse = (changeEmailResponseSuccess | changeEmailResponseError)
+
+export const getChangeEmailUrl = () => {
+
+
+
+
+  return `/api/v1/me/email`
+}
+
+/**
+ * @summary Change your email address
+ */
+export const changeEmail = async (changeEmailInputBody: NonReadonly<ChangeEmailInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<changeEmailResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<changeEmailResponse>(getChangeEmailUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(changeEmailInputBody)
+  }
+);}
+
+
+
+export type changePasswordResponse204 = {
+  data: void
+  status: 204
+}
+
+export type changePasswordResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 204>
+}
+
+export type changePasswordResponseSuccess = (changePasswordResponse204) & {
+  headers: Headers;
+};
+export type changePasswordResponseError = (changePasswordResponseDefault) & {
+  headers: Headers;
+};
+
+export type changePasswordResponse = (changePasswordResponseSuccess | changePasswordResponseError)
+
+export const getChangePasswordUrl = () => {
+
+
+
+
+  return `/api/v1/me/password`
+}
+
+/**
+ * @summary Change your password
+ */
+export const changePassword = async (changePasswordInputBody: NonReadonly<ChangePasswordInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<changePasswordResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<changePasswordResponse>(getChangePasswordUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(changePasswordInputBody)
+  }
+);}
+
+
+
+export type listSessionsResponse200 = {
+  data: SessionView[]
+  status: 200
+}
+
+export type listSessionsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listSessionsResponseSuccess = (listSessionsResponse200) & {
+  headers: Headers;
+};
+export type listSessionsResponseError = (listSessionsResponseDefault) & {
+  headers: Headers;
+};
+
+export type listSessionsResponse = (listSessionsResponseSuccess | listSessionsResponseError)
+
+export const getListSessionsUrl = () => {
+
+
+
+
+  return `/api/v1/me/sessions`
+}
+
+/**
+ * @summary Your signed-in devices
+ */
+export const listSessions = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listSessionsResponse> => {
+
+  return apiFetch<listSessionsResponse>(getListSessionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type revokeOtherSessionsResponse204 = {
+  data: void
+  status: 204
+}
+
+export type revokeOtherSessionsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 204>
+}
+
+export type revokeOtherSessionsResponseSuccess = (revokeOtherSessionsResponse204) & {
+  headers: Headers;
+};
+export type revokeOtherSessionsResponseError = (revokeOtherSessionsResponseDefault) & {
+  headers: Headers;
+};
+
+export type revokeOtherSessionsResponse = (revokeOtherSessionsResponseSuccess | revokeOtherSessionsResponseError)
+
+export const getRevokeOtherSessionsUrl = () => {
+
+
+
+
+  return `/api/v1/me/sessions/revoke-others`
+}
+
+/**
+ * @summary Sign out all your other devices
+ */
+export const revokeOtherSessions = async ( options?: Parameters<typeof apiFetch>[1]): Promise<revokeOtherSessionsResponse> => {
+
+  return apiFetch<revokeOtherSessionsResponse>(getRevokeOtherSessionsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type revokeSessionResponse204 = {
+  data: void
+  status: 204
+}
+
+export type revokeSessionResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 204>
+}
+
+export type revokeSessionResponseSuccess = (revokeSessionResponse204) & {
+  headers: Headers;
+};
+export type revokeSessionResponseError = (revokeSessionResponseDefault) & {
+  headers: Headers;
+};
+
+export type revokeSessionResponse = (revokeSessionResponseSuccess | revokeSessionResponseError)
+
+export const getRevokeSessionUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/me/sessions/${id}`
+}
+
+/**
+ * @summary Sign one of your devices out
+ */
+export const revokeSession = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<revokeSessionResponse> => {
+
+  return apiFetch<revokeSessionResponse>(getRevokeSessionUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
 
 
   }

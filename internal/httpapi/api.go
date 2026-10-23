@@ -18,6 +18,8 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/buildinfo"
+	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
+	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/httpx"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/realip"
@@ -34,6 +36,8 @@ type Deps struct {
 	Themes   *theme.Registry
 	Broker   *pubsub.Broker
 	Accounts *account.Service
+	Captcha  *captcha.Service
+	Mailer   *mail.Mailer
 	// ClientInfo resolves the client address and public host behind trusted proxies
 	// (the gateway's live resolver). Nil = trust no proxy.
 	ClientInfo func(*http.Request) realip.Info
@@ -79,6 +83,10 @@ func New(d Deps) (http.Handler, huma.API) {
 
 	registerSite(api, d)
 	registerAuth(api, d)
+	registerAccounts(api, d)
+	registerMail(api, d)
+	registerMe(api, d)
+	registerAdminUsers(api, d)
 	registerAdmin(api, d)
 
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok")) })
@@ -92,6 +100,10 @@ func New(d Deps) (http.Handler, huma.API) {
 		_, _ = w.Write([]byte("ready"))
 	})
 	r.Get("/events", serveEvents(d))
+	// Password managers send people here to change a password (W3C "well-known URL").
+	r.Get("/.well-known/change-password", func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, "/user/profile", http.StatusFound)
+	})
 	if d.Themes != nil {
 		r.Handle("/themes-assets/*", d.Themes.AssetHandler())
 	}

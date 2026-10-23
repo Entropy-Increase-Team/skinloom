@@ -8,12 +8,15 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
+	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/pubsub"
@@ -45,13 +48,16 @@ func newTestDeps(t *testing.T) Deps {
 		t.Fatal(err)
 	}
 	reg := settings.NewRegistry()
+	if err := reg.Register(slices.Concat(account.SettingDefs(), captcha.SettingDefs(), mail.SettingDefs())...); err != nil {
+		t.Fatal(err)
+	}
 	reg.SetValidator("theme.active", themeReg.ValidateActive)
 	svc := settings.NewService(reg, database.Ent, broker, bus, log)
 	if err := svc.Load(ctx); err != nil {
 		t.Fatal(err)
 	}
 	return Deps{Log: log, DB: database, Settings: svc, Themes: themeReg, Broker: broker, AdminToken: testToken,
-		Accounts: account.NewService(database.Ent, log)}
+		Accounts: account.NewService(database.Ent, log), Captcha: captcha.NewService(captcha.Options{}), Mailer: mail.New(log)}
 }
 
 func do(t *testing.T, h http.Handler, method, path, auth, body string) *httptest.ResponseRecorder {

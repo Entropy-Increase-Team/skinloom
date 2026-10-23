@@ -44,5 +44,6 @@ function offlineBootstrap(acceptLanguage: string): SiteBootstrap {
     plugins: [],
     server: { name: 'SkinLoom', version: 'unknown' },
     needsSetup: false,
+    auth: { registration: 'closed', captcha: { provider: 'none' }, mail: false },
   }
 }

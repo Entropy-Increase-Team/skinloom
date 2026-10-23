@@ -17,3 +17,6 @@
 | [0011](0011-bun-and-node-24.md) | 包管理器 bun（回退 pnpm / npm），Node.js 24 | 已接受 |
 | [0012](0012-accounts-sessions-setup.md) | 账号、会话与首次安装 | 已接受 |
 | [0013](0013-ports-deployment-release.md) | 默认端口、部署清单与发布渠道 | 已接受 |
+| [0014](0014-registration-and-captcha.md) | 注册与验证码 | 已接受 |
+| [0015](0015-jobs-and-mail.md) | 后台任务队列与邮件 | 已接受 |
+| [0016](0016-profile-and-user-management.md) | 个人资料、设备管理、注销与后台用户管理 | 已接受 |
