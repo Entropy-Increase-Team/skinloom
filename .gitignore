@@ -16,6 +16,11 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 .pnpm-store/
+# bun.lock is the only committed lockfile; fallback installs must not add others
+/web/pnpm-lock.yaml
+/web/package-lock.json
+/website/pnpm-lock.yaml
+/website/package-lock.json
 
 # Docusaurus
 /website/build/

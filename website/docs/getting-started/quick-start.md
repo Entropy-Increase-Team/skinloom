@@ -36,11 +36,11 @@ docker compose -f deploy/compose/minimal/compose.yaml up -d
 
 ## 方式三：从源码运行
 
-需要 Go 1.26+、Node.js 20.9+（推荐 22）与 pnpm 10：
+需要 Go 1.26+、Node.js 24 与 [bun](https://bun.sh)（没有 bun 也可以用 pnpm 或 npm）：
 
 ```bash
 git clone https://github.com/Entropy-Increase-Team/skinloom
-cd skinloom/web && pnpm install && cd ..
+cd skinloom/web && bun install && cd ..   # 或 pnpm install / npm install
 go run ./cmd/skinloom up --dev
 ```
 

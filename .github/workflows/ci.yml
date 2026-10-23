@@ -21,8 +21,8 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - run: go vet ./...
@@ -35,8 +35,8 @@ jobs:
     name: Static analysis and vulnerabilities
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - run: go run honnef.co/go/tools/cmd/staticcheck@latest ./...
@@ -66,8 +66,8 @@ jobs:
       SKINLOOM_TEST_MYSQL: root:pass@tcp(127.0.0.1:3306)/skinloom
       SKINLOOM_TEST_POSTGRES: postgres://postgres:pass@127.0.0.1:5432/skinloom?sslmode=disable
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - run: go test -p 1 ./...
@@ -93,8 +93,8 @@ jobs:
         options: >-
           --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: gofmt
@@ -116,28 +116,51 @@ jobs:
         run: go generate ./api && git diff --exit-code -- api/
 
   web:
-    name: Web
+    name: Web (bun)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
         with:
-          package_json_file: web/package.json
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: web/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
+          node-version: 24
+      - run: bun install --frozen-lockfile
       - name: API client matches api/openapi.json
-        run: pnpm gen:api && git diff --exit-code -- packages/api-client/src/gen
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm audit --prod
-      - run: pnpm build
+        run: bun run gen:api && git diff --exit-code -- packages/api-client/src/gen
+      - run: bun run typecheck
+      - run: bun run test
+      - run: bun audit --audit-level=high
+      - run: bun run build
+      - name: Standalone output has no symlinks (release zips and images copy it)
+        run: test -z "$(find apps/web/.next/standalone -type l)"
+
+  web-fallback:
+    name: Web (${{ matrix.pm }} fallback)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # pnpm turns on --frozen-lockfile in CI by default; only bun.lock is committed.
+          - { pm: pnpm, install: pnpm install --no-frozen-lockfile }
+          - { pm: npm, install: npm install --no-audit --no-fund }
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - if: matrix.pm == 'pnpm'
+        run: npm install -g pnpm@10
+      - name: Install without bun (no committed lockfile for this manager)
+        run: ${{ matrix.install }}
+      - run: ${{ matrix.pm }} run typecheck
+      - run: ${{ matrix.pm }} run test
 
   docs:
     name: Docs site
@@ -146,14 +169,10 @@ jobs:
       run:
         working-directory: website
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
         with:
-          package_json_file: website/package.json
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: website/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+          node-version: 24
+      - run: bun install --frozen-lockfile
+      - run: bun run build

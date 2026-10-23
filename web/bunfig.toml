@@ -1,0 +1,4 @@
+# Flat node_modules (no symlinked dependency trees): the Next.js standalone build is
+# copied into release zips and Docker images, where isolated layouts break on Windows.
+[install]
+linker = "hoisted"

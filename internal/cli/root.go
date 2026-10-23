@@ -60,14 +60,15 @@ func upCmd(paths *app.Paths) *cobra.Command {
 
 Release bundles ship the frontend in web/ and Node.js in runtime/node next to the binary;
 the start scripts (start.bat, start.command, start.sh) just run "skinloom up --open".
-In a source checkout use --dev, which runs "pnpm dev" in ./web.`,
+In a source checkout use --dev, which runs the frontend dev server from ./web with
+bun (or pnpm / npm when bun is not installed; see web.package_manager).`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			o.Paths = *paths
 			return app.Run(cmd.Context(), o)
 		},
 	}
 	cmd.Flags().BoolVar(&o.Open, "open", false, "open the site in the default browser")
-	cmd.Flags().BoolVar(&o.Dev, "dev", false, "development: run the frontend with `pnpm dev` from ./web")
+	cmd.Flags().BoolVar(&o.Dev, "dev", false, "development: run the frontend dev server from ./web (bun, pnpm or npm)")
 	cmd.Flags().BoolVar(&o.NoWeb, "no-web", false, "backend only; same as `skinloom serve`")
 	return cmd
 }

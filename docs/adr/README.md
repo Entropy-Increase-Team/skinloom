@@ -14,3 +14,4 @@
 | [0008](0008-project-name.md) | 项目命名：SkinLoom · 云织 | 已接受 |
 | [0009](0009-release-bundles.md) | 发行包由脚本构建，前端依赖扁平化 | 已接受 |
 | [0010](0010-trusted-proxies-and-shutdown.md) | 可信代理、路径规范化与快速关闭 | 已接受 |
+| [0011](0011-bun-and-node-24.md) | 包管理器 bun（回退 pnpm / npm），Node.js 24 | 已接受 |

@@ -5,13 +5,16 @@
 ## 开发环境
 
 - Go 1.26+（`go.mod` 的 toolchain 指令会自动下载所需版本）
-- Node.js 20.9+（推荐 22 LTS）与 pnpm 10
+- Node.js 24 LTS
+- 包管理器：**bun**（推荐，仓库提交的是 `bun.lock`）；没有 bun 时可用 pnpm 10 或 npm，但不会按锁文件安装
 - 无需 Docker；默认使用 SQLite
 
 ```bash
-cd web && pnpm install && cd ..
-go run ./cmd/skinloom up --dev      # 后端 + pnpm dev，访问 http://localhost:8080
+cd web && bun install && cd ..    # 没有 bun：pnpm install 或 npm install
+go run ./cmd/skinloom up --dev      # 后端 + 前端开发服务器，访问 http://localhost:8080
 ```
+
+`up --dev` 自动按 bun → pnpm → npm 的顺序选择包管理器，可用 `data/config.toml` 的 `web.package_manager` 指定。
 
 数据（数据库、配置、密钥）在 `./data`，已被 git 忽略。改 `data/config.toml` 大多数键立即生效。
 
@@ -20,15 +23,15 @@ go run ./cmd/skinloom up --dev      # 后端 + pnpm dev，访问 http://localhos
 | 目的 | 命令 |
 |---|---|
 | 只起后端 | `go run ./cmd/skinloom serve` |
-| 测试 | `go test ./...`、`cd web && pnpm typecheck && pnpm test`（Linux/macOS 另可 `go test -race ./...`，需要 cgo） |
+| 测试 | `go test ./...`、`cd web && bun run typecheck && bun run test`（Linux/macOS 另可 `go test -race ./...`，需要 cgo） |
 | 静态检查 | `go run honnef.co/go/tools/cmd/staticcheck@latest ./...`、`go run golang.org/x/vuln/cmd/govulncheck@latest ./...` |
 | 改了 `ent/schema` | `go generate ./ent`，然后 `go run ./internal/tools/migdiff -dialect sqlite -name <变更名>`（MySQL/PostgreSQL 用 `-dev <开发库 URL>`，或交给 CI 生成） |
-| 改了 API | `go generate ./api && cd web && pnpm gen:api`（CI 会检查 `api/openapi.json` 与生成的客户端是否漂移） |
+| 改了 API | `go generate ./api && cd web && bun run gen:api`（CI 会检查 `api/openapi.json` 与生成的客户端是否漂移） |
 | 查看/修改运行时设置 | `go run ./cmd/skinloom settings get`、`settings set <key> <json>` |
 | 临时管理员令牌（M1 前） | `go run ./cmd/skinloom admin token` |
 | API 文档 | 运行后访问 <http://localhost:8080/api/docs> |
 | 打发行包 | `bash deploy/packaging/package.sh [os/arch ...]` |
-| 文档站 | `cd website && pnpm install && pnpm start` |
+| 文档站 | `cd website && bun install && bun run start` |
 
 ## 约定
 

@@ -52,7 +52,7 @@ type Database struct {
 }
 
 type Web struct {
-	// Mode: managed (start bundled Next.js), dev (run `pnpm dev`), external (proxy URL), off.
+	// Mode: managed (start bundled Next.js), dev (frontend dev server), external (proxy URL), off.
 	Mode string `koanf:"mode"`
 	// Dir holds the Next.js standalone build (managed mode). Empty = <exe dir>/web.
 	Dir string `koanf:"dir"`
@@ -63,8 +63,11 @@ type Web struct {
 	URL string `koanf:"url"`
 	// Node is an explicit node executable. Empty = bundled runtime, then PATH.
 	Node string `koanf:"node"`
-	// DevDir is the pnpm workspace used in dev mode.
+	// DevDir is the frontend workspace used in dev mode.
 	DevDir string `koanf:"dev_dir"`
+	// PackageManager runs the frontend in dev mode: auto (bun, then pnpm, then npm),
+	// bun, pnpm or npm.
+	PackageManager string `koanf:"package_manager"`
 }
 
 type Log struct {
@@ -77,7 +80,7 @@ func Defaults() Config {
 	return Config{
 		Server:   Server{Listen: ":8080", Role: "all"},
 		Database: Database{Driver: "sqlite", DSN: "skinloom.db"},
-		Web:      Web{Mode: "managed", Port: 3000, DevDir: "web"},
+		Web:      Web{Mode: "managed", Port: 3000, DevDir: "web", PackageManager: "auto"},
 		Log:      Log{Level: "info", Format: "text"},
 	}
 }
@@ -126,6 +129,11 @@ func (c Config) Validate() error {
 	}
 	if c.Web.Mode == "external" && c.Web.URL == "" {
 		return errors.New("web.url is required when web.mode = external")
+	}
+	switch c.Web.PackageManager {
+	case "", "auto", "bun", "pnpm", "npm": // "" = auto, like the launcher
+	default:
+		return fmt.Errorf("web.package_manager must be auto, bun, pnpm or npm, got %q", c.Web.PackageManager)
 	}
 	if c.Web.Port < 0 || c.Web.Port > 65535 {
 		return fmt.Errorf("web.port must be 0-65535, got %d", c.Web.Port)
@@ -223,6 +231,7 @@ mode = "managed"          # [hot] managed | dev | external | off
 port = 3000               # [hot] internal port of the Next.js process (busy or 0 = pick a free one)
 url = ""                  # [hot] upstream when mode = external
 node = ""                 # [hot] node executable; empty = bundled runtime, then PATH
+package_manager = "auto"  # [hot] dev mode only: auto (bun, then pnpm, then npm) | bun | pnpm | npm
 
 [log]
 level = "info"            # [hot] debug | info | warn | error

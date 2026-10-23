@@ -11,6 +11,8 @@
 #   NODE_MIRROR      download base (default https://nodejs.org/dist;
 #                    in mainland China https://npmmirror.com/mirrors/node is faster)
 #   NODE_BINARY      use this local node executable instead of downloading (current-platform builds only)
+#   PACKAGE_MANAGER  bun | pnpm | npm for the frontend build (default: bun if installed,
+#                    then pnpm, then npm; only bun installs from the committed bun.lock)
 #   SKIP_WEB_BUILD=1 reuse an existing web/apps/web/.next/standalone build
 #
 # Output: dist/skinloom-<version>-<os>-<arch>.{zip,tar.gz} and dist/checksums.txt
@@ -19,7 +21,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
-NODE_VERSION="${NODE_VERSION:-22.21.1}"
+NODE_VERSION="${NODE_VERSION:-24.22.1}"
 NODE_MIRROR="${NODE_MIRROR:-https://nodejs.org/dist}"
 VERSION="${VERSION:-$(git describe --tags --always --dirty 2>/dev/null | sed 's/^v//' || true)}"
 VERSION="${VERSION:-0.0.0-dev}"
@@ -41,15 +43,24 @@ mkdir -p "$BUILD" "$DIST"
 
 # ---- frontend (platform independent JavaScript) ---------------------------------------
 if [ "${SKIP_WEB_BUILD:-}" != "1" ]; then
-  echo "==> building frontend"
-  (cd web && pnpm install --frozen-lockfile && pnpm build)
+  pm="${PACKAGE_MANAGER:-}"
+  if [ -z "$pm" ]; then
+    for cand in bun pnpm npm; do command -v "$cand" >/dev/null && { pm="$cand"; break; }; done
+  fi
+  echo "==> building frontend with $pm"
+  case "$pm" in
+    bun)  (cd web && bun install --frozen-lockfile && bun run build) ;;
+    pnpm) (cd web && pnpm install --no-frozen-lockfile && pnpm run build) ;;   # no committed pnpm lockfile (CI=true implies frozen)
+    npm)  (cd web && npm install --no-audit --no-fund && npm run build) ;;
+    *)    echo "no package manager found (bun, pnpm or npm)" >&2; exit 1 ;;
+  esac
 fi
 STANDALONE="web/apps/web/.next/standalone"
 [ -f "$STANDALONE/apps/web/server.js" ] || { echo "missing $STANDALONE/apps/web/server.js; build the frontend first" >&2; exit 1; }
 echo "==> staging frontend"
 rm -rf "$BUILD/web"
 mkdir -p "$BUILD/web"
-# -L: pnpm puts symlinks in node_modules; copy real files so archives work everywhere
+# -L: copy real files even if the package manager left symlinks, so archives work everywhere
 cp -RL "$STANDALONE/." "$BUILD/web/"
 # standalone output leaves static assets and public/ to the deployer
 mkdir -p "$BUILD/web/apps/web/.next"

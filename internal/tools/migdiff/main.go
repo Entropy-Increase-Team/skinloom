@@ -20,14 +20,19 @@ import (
 	"ariga.io/atlas/sql/sqltool"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql/schema"
+	_ "github.com/go-sql-driver/mysql" // database/sql driver "mysql" used by Atlas' MySQL dev URL
+	"github.com/jackc/pgx/v5/stdlib"
 	sqlite "modernc.org/sqlite"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent/migrate"
 )
 
 func init() {
-	// Atlas' SQLite driver opens "sqlite3"; serve it with the pure-Go driver.
+	// Atlas opens dev databases with database/sql driver names it expects: "sqlite3"
+	// and "postgres". Serve them with the drivers SkinLoom already uses (pure-Go SQLite,
+	// pgx) instead of adding cgo / lib/pq dependencies.
 	sql.Register("sqlite3", &sqlite.Driver{})
+	sql.Register("postgres", stdlib.GetDefaultDriver())
 }
 
 func main() {

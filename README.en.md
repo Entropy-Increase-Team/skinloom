@@ -24,10 +24,10 @@ SkinLoom is a redesign and rewrite modelled on [Blessing Skin](https://github.co
 
 **Release bundle**: unzip, then run `start.bat` (Windows), `start.command` (macOS) or `./start.sh` (Linux) and open <http://localhost:8080>. Data lives in `data/` next to the scripts.
 
-**From source** (Go 1.26+, Node.js 20.9+, pnpm 10):
+**From source** (Go 1.26+, Node.js 24, and [bun](https://bun.sh) — pnpm or npm work too):
 
 ```bash
-cd web && pnpm install && cd ..
+cd web && bun install && cd ..   # or: pnpm install / npm install
 go run ./cmd/skinloom up --dev
 ```
 

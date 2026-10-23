@@ -10,7 +10,7 @@
 - Go 后端与 Next.js 前端是两个独立程序，可分别部署与扩容。
 - Go 二进制内置启动器 `skinloom up`：拉起并监管 Next.js 子进程（崩溃退避重启、日志合并、优雅退出、进程树终止），对外只暴露一个端口。
 - Go 做唯一入口（网关）：后端保留路径直接处理；`/_next/static/*` 与 `public/` 由 Go 从磁盘直接提供；其余页面反代到 Next.js。保留路径清单在 `internal/gateway`，前端不得占用。
-- `web.mode`：`managed`（发行包）、`dev`（源码开发，运行 `pnpm dev`）、`external`（容器/k8s 分离部署）、`off`（只要后端）。
+- `web.mode`：`managed`（发行包）、`dev`（源码开发，运行前端开发服务器，包管理器见 ADR 0011）、`external`（容器/k8s 分离部署）、`off`（只要后端）。
 
 ## 备选方案
 - 前端静态导出后嵌入 Go 二进制：失去 SSR。

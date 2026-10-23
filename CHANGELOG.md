@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### 变更（2026-10-23 晚）
+- 前端包管理器改为 **bun**（仓库只提交 `bun.lock`）；没有 bun 时可用 pnpm 或 npm 安装和运行全部脚本。`skinloom up --dev` 按 bun → pnpm → npm 自动选择，新增热加载配置 `web.package_manager`。见 ADR 0011。
+- Node.js 统一为 24：发行包内置 Node 24.22.1，Docker 镜像基于 `node:24-alpine`，CI 使用 Node 24。
+- GitHub Actions 升级到 Node 24 版本（checkout / setup-go / setup-node v7，docker v4–v7，action-gh-release v3）。
+
+### 修复（2026-10-23 晚）
+- CI "Generated files are up to date" 失败：迁移生成工具 `migdiff` 没有注册 MySQL / PostgreSQL 的 `database/sql` 驱动，漂移检查在这两种数据库上无法运行。
+
 ### 新增（M0 地基）
 - `skinloom` 命令行：`up`（后端 + 前端 + 网关，单端口）、`serve`、`migrate [status]`、`settings get|set`、`admin token`、`openapi`、`version`。
 - 启动器：监管 Next.js 子进程（`web.mode = managed | dev | external | off`），崩溃退避重启，日志合并，Windows 下终止整个进程树。

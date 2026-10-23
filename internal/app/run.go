@@ -26,7 +26,7 @@ type RunOptions struct {
 	Paths Paths
 	// NoWeb never starts or proxies the frontend (backend only).
 	NoWeb bool
-	// Dev forces web.mode = dev (runs `pnpm dev` from the repository).
+	// Dev forces web.mode = dev (runs the frontend dev server with bun, pnpm or npm).
 	Dev bool
 	// Open opens the site in the default browser once it is listening.
 	Open bool
@@ -197,7 +197,7 @@ func applyWebConfig(ctx context.Context, c config.Config, apiInternal string, gw
 		if !ok {
 			return
 		}
-		spec := launcher.Spec{Mode: "dev", DevDir: devDir, Port: port, APIInternal: apiInternal}
+		spec := launcher.Spec{Mode: "dev", DevDir: devDir, PackageManager: c.Web.PackageManager, Port: port, APIInternal: apiInternal}
 		gw.SetWeb(spec.Upstream(), "")
 		web.Start(ctx, spec)
 	case "managed":

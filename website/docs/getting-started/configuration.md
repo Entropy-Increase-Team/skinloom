@@ -31,6 +31,7 @@ mode = "managed"          # [hot]  managed | dev | external | off
 port = 3000               # [hot]  前端进程的内部端口；被占用或设为 0 时自动选择空闲端口
 url = ""                  # [hot]  mode = external 时的前端地址
 node = ""                 # [hot]  指定 node 可执行文件
+package_manager = "auto"  # [hot]  仅 dev 模式：auto（依次找 bun、pnpm、npm）| bun | pnpm | npm
 
 [log]
 level = "info"            # [hot]  debug | info | warn | error
@@ -67,7 +68,7 @@ SKINLOOM_SERVER__LISTEN=:9000
 | 值 | 用途 |
 |---|---|
 | `managed` | 发行包默认：由 SkinLoom 启动并监管 `web/` 里的前端 |
-| `dev` | 源码开发：在 `./web` 运行 `pnpm dev` |
+| `dev` | 源码开发：用 `web.package_manager` 选出的包管理器（默认 bun，没有则 pnpm、npm）在 `./web` 运行前端开发服务器 |
 | `external` | 前端单独部署（容器、k8s），SkinLoom 把页面请求转发到 `url` |
 | `off` | 只提供 API 与游戏接口 |
 

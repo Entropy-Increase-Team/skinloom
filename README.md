@@ -28,14 +28,14 @@ SkinLoom 是以 [Blessing Skin](https://github.com/bs-community/blessing-skin-se
 
 ### 从源码运行（开发）
 
-需要 Go 1.26+、Node.js 20.9+（推荐 22）、pnpm 10。
+需要 Go 1.26+、Node.js 24 与 [bun](https://bun.sh)（没有 bun 也可以用 pnpm 或 npm）。
 
 ```bash
-cd web && pnpm install && cd ..
+cd web && bun install && cd ..   # 或 pnpm install / npm install
 go run ./cmd/skinloom up --dev
 ```
 
-`up --dev` 会启动后端并在 `./web` 里运行 `pnpm dev`，统一从 <http://localhost:8080> 访问。更多命令见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+`up --dev` 会启动后端并在 `./web` 里运行前端开发服务器（依次尝试 bun、pnpm、npm），统一从 <http://localhost:8080> 访问。更多命令见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ### Docker
 

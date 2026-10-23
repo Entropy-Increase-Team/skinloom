@@ -1,15 +1,19 @@
 {
   "name": "skinloom-web-workspace",
   "private": true,
-  "packageManager": "pnpm@10.20.0",
+  "description": "SkinLoom frontend workspace. bun is the primary package manager (bun.lock); pnpm and npm work as fallbacks.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "engines": {
-    "node": ">=20.9"
+    "node": ">=24"
   },
   "scripts": {
-    "dev": "pnpm --filter @skinloom/web dev",
-    "build": "pnpm --filter @skinloom/web build",
-    "typecheck": "pnpm -r typecheck",
-    "gen:api": "pnpm --filter @skinloom/api-client generate",
-    "test": "pnpm -r test"
+    "dev": "node scripts/ws.mjs dev --only @skinloom/web",
+    "build": "node scripts/ws.mjs build --only @skinloom/web",
+    "typecheck": "node scripts/ws.mjs typecheck",
+    "test": "node --test scripts/ws.test.mjs && node scripts/ws.mjs test",
+    "gen:api": "node scripts/ws.mjs generate --only @skinloom/api-client"
   }
 }

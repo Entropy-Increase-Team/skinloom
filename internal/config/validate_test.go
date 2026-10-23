@@ -22,6 +22,23 @@ func TestValidatePorts(t *testing.T) {
 	}
 }
 
+func TestValidatePackageManager(t *testing.T) {
+	for _, pm := range []string{"", "auto", "bun", "pnpm", "npm"} {
+		c := Defaults()
+		c.Web.PackageManager = pm
+		if err := c.Validate(); err != nil {
+			t.Errorf("web.package_manager %q must be accepted: %v", pm, err)
+		}
+	}
+	for _, pm := range []string{"yarn", "Bun"} {
+		c := Defaults()
+		c.Web.PackageManager = pm
+		if err := c.Validate(); err == nil {
+			t.Errorf("web.package_manager %q: want error", pm)
+		}
+	}
+}
+
 func TestValidateTrustedProxies(t *testing.T) {
 	c := Defaults()
 	c.Server.TrustedProxies = []string{"10.0.0.0/8", "bogus"}

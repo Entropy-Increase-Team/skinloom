@@ -22,12 +22,14 @@ import (
 
 // Spec describes how to run the frontend.
 type Spec struct {
-	Mode        string // managed | dev
-	ServerDir   string // managed: directory containing server.js
-	Node        string // managed: node executable
-	DevDir      string // dev: pnpm workspace root (web/)
-	Port        int
-	APIInternal string // URL the frontend uses for server-side calls to the backend
+	Mode      string // managed | dev
+	ServerDir string // managed: directory containing server.js
+	Node      string // managed: node executable
+	DevDir    string // dev: frontend workspace root (web/)
+	// PackageManager for dev mode: auto | bun | pnpm | npm.
+	PackageManager string
+	Port           int
+	APIInternal    string // URL the frontend uses for server-side calls to the backend
 
 	// argv/env replace the command for Mode "custom" (tests).
 	argv []string
@@ -153,7 +155,7 @@ func (w *Web) runOnce(ctx context.Context, spec Spec) error {
 		return fmt.Errorf("start frontend: %w", err)
 	}
 	adopt(cmd, w.log)
-	w.log.Info("frontend started", "mode", spec.Mode, "pid", cmd.Process.Pid, "port", spec.Port)
+	w.log.Info("frontend started", "mode", spec.Mode, "program", filepath.Base(cmd.Path), "pid", cmd.Process.Pid, "port", spec.Port)
 
 	exited := make(chan error, 1)
 	go func() { exited <- cmd.Wait() }()
@@ -183,13 +185,7 @@ func command(spec Spec) (*exec.Cmd, error) {
 		cmd.Dir = spec.ServerDir
 		return cmd, nil
 	case "dev":
-		pnpm, err := exec.LookPath("pnpm")
-		if err != nil {
-			return nil, errors.New("dev mode needs pnpm on PATH (https://pnpm.io/installation)")
-		}
-		cmd := exec.Command(pnpm, "--filter", "@skinloom/web", "dev", "--port", strconv.Itoa(spec.Port), "--hostname", "127.0.0.1")
-		cmd.Dir = spec.DevDir
-		return cmd, nil
+		return devCommand(spec)
 	case "custom":
 		if len(spec.argv) == 0 {
 			return nil, errors.New("custom mode needs a command")
@@ -289,7 +285,7 @@ func FindNode(explicit string) (string, error) {
 	}
 	p, err := exec.LookPath("node")
 	if err != nil {
-		return "", errors.New("node not found: use the release bundle (ships runtime/node) or install Node.js 20.9+")
+		return "", errors.New("node not found: use the release bundle (ships runtime/node) or install Node.js 24")
 	}
 	return p, nil
 }
