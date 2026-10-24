@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 
+### 安全（依赖）
+- 前端工作区强制 undici ≥ 7.30.1（`overrides` 与 `pnpm.overrides`）：API 客户端生成工具 orval 经 `@scalar/json-magic@0.15.x` 锁定了受 GHSA-xjj6-f33q-929c（拒绝服务）影响的 undici 7.29.1，0.15 系列没有修复版本。只影响开发时生成客户端，运行中的站点不受影响；等 orval 升级依赖后可以移除这条覆盖。
+
 ### 新增（M2 材质与角色 · 第一部分：上传、皮肤库与衣柜）
 - **上传材质** `/skinlib/upload`：PNG 皮肤（经典 / 纤细）与披风，自动识别类型并预览，提前显示所需积分。接口 `POST /api/v1/textures`（multipart），上传规则 `GET /api/v1/textures/rules`。
 - **皮肤库** `/skinlib`：按类型筛选、按名称搜索、按最新或最受欢迎排序，"加载更多"翻页；首屏服务端渲染，筛选结果的地址可以分享。接口 `GET /api/v1/textures`。

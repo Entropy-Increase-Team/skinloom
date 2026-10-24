@@ -9,6 +9,14 @@
   "engines": {
     "node": ">=24"
   },
+  "overrides": {
+    "undici": "^7.30.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "undici": "^7.30.1"
+    }
+  },
   "scripts": {
     "dev": "node scripts/ws.mjs dev --only @skinloom/web",
     "build": "node scripts/ws.mjs build --only @skinloom/web",
