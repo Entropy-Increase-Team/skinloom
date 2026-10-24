@@ -69,6 +69,61 @@ var (
 			},
 		},
 	}
+	// BlobsColumns holds the columns for the "blobs" table.
+	BlobsColumns = []*schema.Column{
+		{Name: "hash", Type: field.TypeString, Size: 64},
+		{Name: "size", Type: field.TypeInt64},
+		{Name: "width", Type: field.TypeInt},
+		{Name: "height", Type: field.TypeInt},
+		{Name: "ref_count", Type: field.TypeInt, Default: 0},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+	}
+	// BlobsTable holds the schema information for the "blobs" table.
+	BlobsTable = &schema.Table{
+		Name:       "blobs",
+		Columns:    BlobsColumns,
+		PrimaryKey: []*schema.Column{BlobsColumns[0]},
+	}
+	// ClosetItemsColumns holds the columns for the "closet_items" table.
+	ClosetItemsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "name", Type: field.TypeString, Size: 50},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "texture_id", Type: field.TypeInt64},
+		{Name: "user_id", Type: field.TypeInt64},
+	}
+	// ClosetItemsTable holds the schema information for the "closet_items" table.
+	ClosetItemsTable = &schema.Table{
+		Name:       "closet_items",
+		Columns:    ClosetItemsColumns,
+		PrimaryKey: []*schema.Column{ClosetItemsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "closet_items_textures_closet_items",
+				Columns:    []*schema.Column{ClosetItemsColumns[3]},
+				RefColumns: []*schema.Column{TexturesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "closet_items_users_closet_items",
+				Columns:    []*schema.Column{ClosetItemsColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "closetitem_user_id_texture_id",
+				Unique:  true,
+				Columns: []*schema.Column{ClosetItemsColumns[4], ClosetItemsColumns[3]},
+			},
+			{
+				Name:    "closetitem_texture_id",
+				Unique:  false,
+				Columns: []*schema.Column{ClosetItemsColumns[3]},
+			},
+		},
+	}
 	// JobsColumns holds the columns for the "jobs" table.
 	JobsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -92,6 +147,39 @@ var (
 				Name:    "job_status_run_at",
 				Unique:  false,
 				Columns: []*schema.Column{JobsColumns[3], JobsColumns[5]},
+			},
+		},
+	}
+	// ScoreLedgerColumns holds the columns for the "score_ledger" table.
+	ScoreLedgerColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "delta", Type: field.TypeInt64},
+		{Name: "balance", Type: field.TypeInt64},
+		{Name: "reason", Type: field.TypeString, Size: 64},
+		{Name: "ref_type", Type: field.TypeString, Size: 32, Default: ""},
+		{Name: "ref_id", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "actor_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "user_id", Type: field.TypeInt64},
+	}
+	// ScoreLedgerTable holds the schema information for the "score_ledger" table.
+	ScoreLedgerTable = &schema.Table{
+		Name:       "score_ledger",
+		Columns:    ScoreLedgerColumns,
+		PrimaryKey: []*schema.Column{ScoreLedgerColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "score_ledger_users_score_entries",
+				Columns:    []*schema.Column{ScoreLedgerColumns[8]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "scoreentry_user_id_id",
+				Unique:  false,
+				Columns: []*schema.Column{ScoreLedgerColumns[8], ScoreLedgerColumns[0]},
 			},
 		},
 	}
@@ -152,6 +240,71 @@ var (
 		Columns:    SystemStateColumns,
 		PrimaryKey: []*schema.Column{SystemStateColumns[0]},
 	}
+	// TexturesColumns holds the columns for the "textures" table.
+	TexturesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "name", Type: field.TypeString, Size: 50},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"steve", "alex", "cape"}},
+		{Name: "size", Type: field.TypeInt64},
+		{Name: "visibility", Type: field.TypeEnum, Enums: []string{"public", "private"}, Default: "public"},
+		{Name: "likes", Type: field.TypeInt, Default: 0},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "hash", Type: field.TypeString, Size: 64},
+		{Name: "uploader_id", Type: field.TypeInt64, Nullable: true},
+	}
+	// TexturesTable holds the schema information for the "textures" table.
+	TexturesTable = &schema.Table{
+		Name:       "textures",
+		Columns:    TexturesColumns,
+		PrimaryKey: []*schema.Column{TexturesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "textures_blobs_textures",
+				Columns:    []*schema.Column{TexturesColumns[8]},
+				RefColumns: []*schema.Column{BlobsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "textures_users_textures",
+				Columns:    []*schema.Column{TexturesColumns[9]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "texture_visibility_id",
+				Unique:  false,
+				Columns: []*schema.Column{TexturesColumns[4], TexturesColumns[0]},
+			},
+			{
+				Name:    "texture_visibility_likes_id",
+				Unique:  false,
+				Columns: []*schema.Column{TexturesColumns[4], TexturesColumns[5], TexturesColumns[0]},
+			},
+			{
+				Name:    "texture_visibility_type_id",
+				Unique:  false,
+				Columns: []*schema.Column{TexturesColumns[4], TexturesColumns[2], TexturesColumns[0]},
+			},
+			{
+				Name:    "texture_visibility_type_likes_id",
+				Unique:  false,
+				Columns: []*schema.Column{TexturesColumns[4], TexturesColumns[2], TexturesColumns[5], TexturesColumns[0]},
+			},
+			{
+				Name:    "texture_uploader_id_hash",
+				Unique:  true,
+				Columns: []*schema.Column{TexturesColumns[9], TexturesColumns[8]},
+			},
+			{
+				Name:    "texture_hash",
+				Unique:  false,
+				Columns: []*schema.Column{TexturesColumns[8]},
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -188,10 +341,14 @@ var (
 	Tables = []*schema.Table{
 		AuditLogsTable,
 		AuthTokensTable,
+		BlobsTable,
+		ClosetItemsTable,
 		JobsTable,
+		ScoreLedgerTable,
 		SessionsTable,
 		SettingsTable,
 		SystemStateTable,
+		TexturesTable,
 		UsersTable,
 	}
 )
@@ -204,8 +361,20 @@ func init() {
 	AuthTokensTable.Annotation = &entsql.Annotation{
 		Table: "auth_tokens",
 	}
+	BlobsTable.Annotation = &entsql.Annotation{
+		Table: "blobs",
+	}
+	ClosetItemsTable.ForeignKeys[0].RefTable = TexturesTable
+	ClosetItemsTable.ForeignKeys[1].RefTable = UsersTable
+	ClosetItemsTable.Annotation = &entsql.Annotation{
+		Table: "closet_items",
+	}
 	JobsTable.Annotation = &entsql.Annotation{
 		Table: "jobs",
+	}
+	ScoreLedgerTable.ForeignKeys[0].RefTable = UsersTable
+	ScoreLedgerTable.Annotation = &entsql.Annotation{
+		Table: "score_ledger",
 	}
 	SessionsTable.ForeignKeys[0].RefTable = UsersTable
 	SessionsTable.Annotation = &entsql.Annotation{
@@ -216,6 +385,11 @@ func init() {
 	}
 	SystemStateTable.Annotation = &entsql.Annotation{
 		Table: "system_state",
+	}
+	TexturesTable.ForeignKeys[0].RefTable = BlobsTable
+	TexturesTable.ForeignKeys[1].RefTable = UsersTable
+	TexturesTable.Annotation = &entsql.Annotation{
+		Table: "textures",
 	}
 	UsersTable.Annotation = &entsql.Annotation{
 		Table: "users",

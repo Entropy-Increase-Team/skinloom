@@ -13,11 +13,15 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/Entropy-Increase-Team/skinloom/ent/auditlog"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
+	"github.com/Entropy-Increase-Team/skinloom/ent/blob"
+	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/job"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
+	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/setting"
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
+	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 )
 
@@ -32,10 +36,14 @@ const (
 	// Node types.
 	TypeAuditLog    = "AuditLog"
 	TypeAuthToken   = "AuthToken"
+	TypeBlob        = "Blob"
+	TypeClosetItem  = "ClosetItem"
 	TypeJob         = "Job"
+	TypeScoreEntry  = "ScoreEntry"
 	TypeSession     = "Session"
 	TypeSetting     = "Setting"
 	TypeSystemState = "SystemState"
+	TypeTexture     = "Texture"
 	TypeUser        = "User"
 )
 
@@ -1473,6 +1481,1379 @@ func (m *AuthTokenMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown AuthToken edge %s", name)
 }
 
+// BlobMutation represents an operation that mutates the Blob nodes in the graph.
+type BlobMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	size            *int64
+	addsize         *int64
+	width           *int
+	addwidth        *int
+	height          *int
+	addheight       *int
+	ref_count       *int
+	addref_count    *int
+	created_at      *time.Time
+	clearedFields   map[string]struct{}
+	textures        map[int64]struct{}
+	removedtextures map[int64]struct{}
+	clearedtextures bool
+	done            bool
+	oldValue        func(context.Context) (*Blob, error)
+	predicates      []predicate.Blob
+}
+
+var _ ent.Mutation = (*BlobMutation)(nil)
+
+// blobOption allows management of the mutation configuration using functional options.
+type blobOption func(*BlobMutation)
+
+// newBlobMutation creates new mutation for the Blob entity.
+func newBlobMutation(c config, op Op, opts ...blobOption) *BlobMutation {
+	m := &BlobMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBlob,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBlobID sets the ID field of the mutation.
+func withBlobID(id string) blobOption {
+	return func(m *BlobMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Blob
+		)
+		m.oldValue = func(ctx context.Context) (*Blob, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Blob.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBlob sets the old Blob of the mutation.
+func withBlob(node *Blob) blobOption {
+	return func(m *BlobMutation) {
+		m.oldValue = func(context.Context) (*Blob, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BlobMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BlobMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Blob entities.
+func (m *BlobMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BlobMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BlobMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Blob.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetSize sets the "size" field.
+func (m *BlobMutation) SetSize(i int64) {
+	m.size = &i
+	m.addsize = nil
+}
+
+// Size returns the value of the "size" field in the mutation.
+func (m *BlobMutation) Size() (r int64, exists bool) {
+	v := m.size
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSize returns the old "size" field's value of the Blob entity.
+// If the Blob object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlobMutation) OldSize(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSize is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSize requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSize: %w", err)
+	}
+	return oldValue.Size, nil
+}
+
+// AddSize adds i to the "size" field.
+func (m *BlobMutation) AddSize(i int64) {
+	if m.addsize != nil {
+		*m.addsize += i
+	} else {
+		m.addsize = &i
+	}
+}
+
+// AddedSize returns the value that was added to the "size" field in this mutation.
+func (m *BlobMutation) AddedSize() (r int64, exists bool) {
+	v := m.addsize
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSize resets all changes to the "size" field.
+func (m *BlobMutation) ResetSize() {
+	m.size = nil
+	m.addsize = nil
+}
+
+// SetWidth sets the "width" field.
+func (m *BlobMutation) SetWidth(i int) {
+	m.width = &i
+	m.addwidth = nil
+}
+
+// Width returns the value of the "width" field in the mutation.
+func (m *BlobMutation) Width() (r int, exists bool) {
+	v := m.width
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWidth returns the old "width" field's value of the Blob entity.
+// If the Blob object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlobMutation) OldWidth(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWidth is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWidth requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWidth: %w", err)
+	}
+	return oldValue.Width, nil
+}
+
+// AddWidth adds i to the "width" field.
+func (m *BlobMutation) AddWidth(i int) {
+	if m.addwidth != nil {
+		*m.addwidth += i
+	} else {
+		m.addwidth = &i
+	}
+}
+
+// AddedWidth returns the value that was added to the "width" field in this mutation.
+func (m *BlobMutation) AddedWidth() (r int, exists bool) {
+	v := m.addwidth
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetWidth resets all changes to the "width" field.
+func (m *BlobMutation) ResetWidth() {
+	m.width = nil
+	m.addwidth = nil
+}
+
+// SetHeight sets the "height" field.
+func (m *BlobMutation) SetHeight(i int) {
+	m.height = &i
+	m.addheight = nil
+}
+
+// Height returns the value of the "height" field in the mutation.
+func (m *BlobMutation) Height() (r int, exists bool) {
+	v := m.height
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHeight returns the old "height" field's value of the Blob entity.
+// If the Blob object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlobMutation) OldHeight(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHeight is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHeight requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHeight: %w", err)
+	}
+	return oldValue.Height, nil
+}
+
+// AddHeight adds i to the "height" field.
+func (m *BlobMutation) AddHeight(i int) {
+	if m.addheight != nil {
+		*m.addheight += i
+	} else {
+		m.addheight = &i
+	}
+}
+
+// AddedHeight returns the value that was added to the "height" field in this mutation.
+func (m *BlobMutation) AddedHeight() (r int, exists bool) {
+	v := m.addheight
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetHeight resets all changes to the "height" field.
+func (m *BlobMutation) ResetHeight() {
+	m.height = nil
+	m.addheight = nil
+}
+
+// SetRefCount sets the "ref_count" field.
+func (m *BlobMutation) SetRefCount(i int) {
+	m.ref_count = &i
+	m.addref_count = nil
+}
+
+// RefCount returns the value of the "ref_count" field in the mutation.
+func (m *BlobMutation) RefCount() (r int, exists bool) {
+	v := m.ref_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRefCount returns the old "ref_count" field's value of the Blob entity.
+// If the Blob object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlobMutation) OldRefCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRefCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRefCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRefCount: %w", err)
+	}
+	return oldValue.RefCount, nil
+}
+
+// AddRefCount adds i to the "ref_count" field.
+func (m *BlobMutation) AddRefCount(i int) {
+	if m.addref_count != nil {
+		*m.addref_count += i
+	} else {
+		m.addref_count = &i
+	}
+}
+
+// AddedRefCount returns the value that was added to the "ref_count" field in this mutation.
+func (m *BlobMutation) AddedRefCount() (r int, exists bool) {
+	v := m.addref_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRefCount resets all changes to the "ref_count" field.
+func (m *BlobMutation) ResetRefCount() {
+	m.ref_count = nil
+	m.addref_count = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *BlobMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *BlobMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Blob entity.
+// If the Blob object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlobMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *BlobMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// AddTextureIDs adds the "textures" edge to the Texture entity by ids.
+func (m *BlobMutation) AddTextureIDs(ids ...int64) {
+	if m.textures == nil {
+		m.textures = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.textures[ids[i]] = struct{}{}
+	}
+}
+
+// ClearTextures clears the "textures" edge to the Texture entity.
+func (m *BlobMutation) ClearTextures() {
+	m.clearedtextures = true
+}
+
+// TexturesCleared reports if the "textures" edge to the Texture entity was cleared.
+func (m *BlobMutation) TexturesCleared() bool {
+	return m.clearedtextures
+}
+
+// RemoveTextureIDs removes the "textures" edge to the Texture entity by IDs.
+func (m *BlobMutation) RemoveTextureIDs(ids ...int64) {
+	if m.removedtextures == nil {
+		m.removedtextures = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.textures, ids[i])
+		m.removedtextures[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedTextures returns the removed IDs of the "textures" edge to the Texture entity.
+func (m *BlobMutation) RemovedTexturesIDs() (ids []int64) {
+	for id := range m.removedtextures {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// TexturesIDs returns the "textures" edge IDs in the mutation.
+func (m *BlobMutation) TexturesIDs() (ids []int64) {
+	for id := range m.textures {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetTextures resets all changes to the "textures" edge.
+func (m *BlobMutation) ResetTextures() {
+	m.textures = nil
+	m.clearedtextures = false
+	m.removedtextures = nil
+}
+
+// Where appends a list predicates to the BlobMutation builder.
+func (m *BlobMutation) Where(ps ...predicate.Blob) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BlobMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BlobMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Blob, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BlobMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BlobMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Blob).
+func (m *BlobMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BlobMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.size != nil {
+		fields = append(fields, blob.FieldSize)
+	}
+	if m.width != nil {
+		fields = append(fields, blob.FieldWidth)
+	}
+	if m.height != nil {
+		fields = append(fields, blob.FieldHeight)
+	}
+	if m.ref_count != nil {
+		fields = append(fields, blob.FieldRefCount)
+	}
+	if m.created_at != nil {
+		fields = append(fields, blob.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BlobMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case blob.FieldSize:
+		return m.Size()
+	case blob.FieldWidth:
+		return m.Width()
+	case blob.FieldHeight:
+		return m.Height()
+	case blob.FieldRefCount:
+		return m.RefCount()
+	case blob.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BlobMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case blob.FieldSize:
+		return m.OldSize(ctx)
+	case blob.FieldWidth:
+		return m.OldWidth(ctx)
+	case blob.FieldHeight:
+		return m.OldHeight(ctx)
+	case blob.FieldRefCount:
+		return m.OldRefCount(ctx)
+	case blob.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown Blob field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BlobMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case blob.FieldSize:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSize(v)
+		return nil
+	case blob.FieldWidth:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWidth(v)
+		return nil
+	case blob.FieldHeight:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHeight(v)
+		return nil
+	case blob.FieldRefCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRefCount(v)
+		return nil
+	case blob.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Blob field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BlobMutation) AddedFields() []string {
+	var fields []string
+	if m.addsize != nil {
+		fields = append(fields, blob.FieldSize)
+	}
+	if m.addwidth != nil {
+		fields = append(fields, blob.FieldWidth)
+	}
+	if m.addheight != nil {
+		fields = append(fields, blob.FieldHeight)
+	}
+	if m.addref_count != nil {
+		fields = append(fields, blob.FieldRefCount)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BlobMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case blob.FieldSize:
+		return m.AddedSize()
+	case blob.FieldWidth:
+		return m.AddedWidth()
+	case blob.FieldHeight:
+		return m.AddedHeight()
+	case blob.FieldRefCount:
+		return m.AddedRefCount()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BlobMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case blob.FieldSize:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSize(v)
+		return nil
+	case blob.FieldWidth:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWidth(v)
+		return nil
+	case blob.FieldHeight:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddHeight(v)
+		return nil
+	case blob.FieldRefCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRefCount(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Blob numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BlobMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BlobMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BlobMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Blob nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BlobMutation) ResetField(name string) error {
+	switch name {
+	case blob.FieldSize:
+		m.ResetSize()
+		return nil
+	case blob.FieldWidth:
+		m.ResetWidth()
+		return nil
+	case blob.FieldHeight:
+		m.ResetHeight()
+		return nil
+	case blob.FieldRefCount:
+		m.ResetRefCount()
+		return nil
+	case blob.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown Blob field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BlobMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.textures != nil {
+		edges = append(edges, blob.EdgeTextures)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BlobMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case blob.EdgeTextures:
+		ids := make([]ent.Value, 0, len(m.textures))
+		for id := range m.textures {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BlobMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.removedtextures != nil {
+		edges = append(edges, blob.EdgeTextures)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BlobMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case blob.EdgeTextures:
+		ids := make([]ent.Value, 0, len(m.removedtextures))
+		for id := range m.removedtextures {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BlobMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedtextures {
+		edges = append(edges, blob.EdgeTextures)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BlobMutation) EdgeCleared(name string) bool {
+	switch name {
+	case blob.EdgeTextures:
+		return m.clearedtextures
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BlobMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Blob unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BlobMutation) ResetEdge(name string) error {
+	switch name {
+	case blob.EdgeTextures:
+		m.ResetTextures()
+		return nil
+	}
+	return fmt.Errorf("unknown Blob edge %s", name)
+}
+
+// ClosetItemMutation represents an operation that mutates the ClosetItem nodes in the graph.
+type ClosetItemMutation struct {
+	config
+	op             Op
+	typ            string
+	id             *int64
+	name           *string
+	created_at     *time.Time
+	clearedFields  map[string]struct{}
+	user           *int64
+	cleareduser    bool
+	texture        *int64
+	clearedtexture bool
+	done           bool
+	oldValue       func(context.Context) (*ClosetItem, error)
+	predicates     []predicate.ClosetItem
+}
+
+var _ ent.Mutation = (*ClosetItemMutation)(nil)
+
+// closetitemOption allows management of the mutation configuration using functional options.
+type closetitemOption func(*ClosetItemMutation)
+
+// newClosetItemMutation creates new mutation for the ClosetItem entity.
+func newClosetItemMutation(c config, op Op, opts ...closetitemOption) *ClosetItemMutation {
+	m := &ClosetItemMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeClosetItem,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withClosetItemID sets the ID field of the mutation.
+func withClosetItemID(id int64) closetitemOption {
+	return func(m *ClosetItemMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ClosetItem
+		)
+		m.oldValue = func(ctx context.Context) (*ClosetItem, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ClosetItem.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withClosetItem sets the old ClosetItem of the mutation.
+func withClosetItem(node *ClosetItem) closetitemOption {
+	return func(m *ClosetItemMutation) {
+		m.oldValue = func(context.Context) (*ClosetItem, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ClosetItemMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ClosetItemMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ClosetItem entities.
+func (m *ClosetItemMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ClosetItemMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ClosetItemMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ClosetItem.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetUserID sets the "user_id" field.
+func (m *ClosetItemMutation) SetUserID(i int64) {
+	m.user = &i
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *ClosetItemMutation) UserID() (r int64, exists bool) {
+	v := m.user
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the ClosetItem entity.
+// If the ClosetItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ClosetItemMutation) OldUserID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *ClosetItemMutation) ResetUserID() {
+	m.user = nil
+}
+
+// SetTextureID sets the "texture_id" field.
+func (m *ClosetItemMutation) SetTextureID(i int64) {
+	m.texture = &i
+}
+
+// TextureID returns the value of the "texture_id" field in the mutation.
+func (m *ClosetItemMutation) TextureID() (r int64, exists bool) {
+	v := m.texture
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTextureID returns the old "texture_id" field's value of the ClosetItem entity.
+// If the ClosetItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ClosetItemMutation) OldTextureID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTextureID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTextureID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTextureID: %w", err)
+	}
+	return oldValue.TextureID, nil
+}
+
+// ResetTextureID resets all changes to the "texture_id" field.
+func (m *ClosetItemMutation) ResetTextureID() {
+	m.texture = nil
+}
+
+// SetName sets the "name" field.
+func (m *ClosetItemMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *ClosetItemMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the ClosetItem entity.
+// If the ClosetItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ClosetItemMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *ClosetItemMutation) ResetName() {
+	m.name = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ClosetItemMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ClosetItemMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ClosetItem entity.
+// If the ClosetItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ClosetItemMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ClosetItemMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (m *ClosetItemMutation) ClearUser() {
+	m.cleareduser = true
+	m.clearedFields[closetitem.FieldUserID] = struct{}{}
+}
+
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *ClosetItemMutation) UserCleared() bool {
+	return m.cleareduser
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UserID instead. It exists only for internal usage by the builders.
+func (m *ClosetItemMutation) UserIDs() (ids []int64) {
+	if id := m.user; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *ClosetItemMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
+}
+
+// ClearTexture clears the "texture" edge to the Texture entity.
+func (m *ClosetItemMutation) ClearTexture() {
+	m.clearedtexture = true
+	m.clearedFields[closetitem.FieldTextureID] = struct{}{}
+}
+
+// TextureCleared reports if the "texture" edge to the Texture entity was cleared.
+func (m *ClosetItemMutation) TextureCleared() bool {
+	return m.clearedtexture
+}
+
+// TextureIDs returns the "texture" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TextureID instead. It exists only for internal usage by the builders.
+func (m *ClosetItemMutation) TextureIDs() (ids []int64) {
+	if id := m.texture; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTexture resets all changes to the "texture" edge.
+func (m *ClosetItemMutation) ResetTexture() {
+	m.texture = nil
+	m.clearedtexture = false
+}
+
+// Where appends a list predicates to the ClosetItemMutation builder.
+func (m *ClosetItemMutation) Where(ps ...predicate.ClosetItem) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ClosetItemMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ClosetItemMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ClosetItem, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ClosetItemMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ClosetItemMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ClosetItem).
+func (m *ClosetItemMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ClosetItemMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.user != nil {
+		fields = append(fields, closetitem.FieldUserID)
+	}
+	if m.texture != nil {
+		fields = append(fields, closetitem.FieldTextureID)
+	}
+	if m.name != nil {
+		fields = append(fields, closetitem.FieldName)
+	}
+	if m.created_at != nil {
+		fields = append(fields, closetitem.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ClosetItemMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case closetitem.FieldUserID:
+		return m.UserID()
+	case closetitem.FieldTextureID:
+		return m.TextureID()
+	case closetitem.FieldName:
+		return m.Name()
+	case closetitem.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ClosetItemMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case closetitem.FieldUserID:
+		return m.OldUserID(ctx)
+	case closetitem.FieldTextureID:
+		return m.OldTextureID(ctx)
+	case closetitem.FieldName:
+		return m.OldName(ctx)
+	case closetitem.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ClosetItem field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ClosetItemMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case closetitem.FieldUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case closetitem.FieldTextureID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTextureID(v)
+		return nil
+	case closetitem.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case closetitem.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ClosetItem field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ClosetItemMutation) AddedFields() []string {
+	var fields []string
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ClosetItemMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ClosetItemMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown ClosetItem numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ClosetItemMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ClosetItemMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ClosetItemMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown ClosetItem nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ClosetItemMutation) ResetField(name string) error {
+	switch name {
+	case closetitem.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case closetitem.FieldTextureID:
+		m.ResetTextureID()
+		return nil
+	case closetitem.FieldName:
+		m.ResetName()
+		return nil
+	case closetitem.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ClosetItem field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ClosetItemMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.user != nil {
+		edges = append(edges, closetitem.EdgeUser)
+	}
+	if m.texture != nil {
+		edges = append(edges, closetitem.EdgeTexture)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ClosetItemMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case closetitem.EdgeUser:
+		if id := m.user; id != nil {
+			return []ent.Value{*id}
+		}
+	case closetitem.EdgeTexture:
+		if id := m.texture; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ClosetItemMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ClosetItemMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ClosetItemMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.cleareduser {
+		edges = append(edges, closetitem.EdgeUser)
+	}
+	if m.clearedtexture {
+		edges = append(edges, closetitem.EdgeTexture)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ClosetItemMutation) EdgeCleared(name string) bool {
+	switch name {
+	case closetitem.EdgeUser:
+		return m.cleareduser
+	case closetitem.EdgeTexture:
+		return m.clearedtexture
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ClosetItemMutation) ClearEdge(name string) error {
+	switch name {
+	case closetitem.EdgeUser:
+		m.ClearUser()
+		return nil
+	case closetitem.EdgeTexture:
+		m.ClearTexture()
+		return nil
+	}
+	return fmt.Errorf("unknown ClosetItem unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ClosetItemMutation) ResetEdge(name string) error {
+	switch name {
+	case closetitem.EdgeUser:
+		m.ResetUser()
+		return nil
+	case closetitem.EdgeTexture:
+		m.ResetTexture()
+		return nil
+	}
+	return fmt.Errorf("unknown ClosetItem edge %s", name)
+}
+
 // JobMutation represents an operation that mutates the Job nodes in the graph.
 type JobMutation struct {
 	config
@@ -2312,6 +3693,895 @@ func (m *JobMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *JobMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown Job edge %s", name)
+}
+
+// ScoreEntryMutation represents an operation that mutates the ScoreEntry nodes in the graph.
+type ScoreEntryMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int64
+	delta         *int64
+	adddelta      *int64
+	balance       *int64
+	addbalance    *int64
+	reason        *string
+	ref_type      *string
+	ref_id        *string
+	actor_id      *int64
+	addactor_id   *int64
+	created_at    *time.Time
+	clearedFields map[string]struct{}
+	user          *int64
+	cleareduser   bool
+	done          bool
+	oldValue      func(context.Context) (*ScoreEntry, error)
+	predicates    []predicate.ScoreEntry
+}
+
+var _ ent.Mutation = (*ScoreEntryMutation)(nil)
+
+// scoreentryOption allows management of the mutation configuration using functional options.
+type scoreentryOption func(*ScoreEntryMutation)
+
+// newScoreEntryMutation creates new mutation for the ScoreEntry entity.
+func newScoreEntryMutation(c config, op Op, opts ...scoreentryOption) *ScoreEntryMutation {
+	m := &ScoreEntryMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeScoreEntry,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withScoreEntryID sets the ID field of the mutation.
+func withScoreEntryID(id int64) scoreentryOption {
+	return func(m *ScoreEntryMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ScoreEntry
+		)
+		m.oldValue = func(ctx context.Context) (*ScoreEntry, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ScoreEntry.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withScoreEntry sets the old ScoreEntry of the mutation.
+func withScoreEntry(node *ScoreEntry) scoreentryOption {
+	return func(m *ScoreEntryMutation) {
+		m.oldValue = func(context.Context) (*ScoreEntry, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ScoreEntryMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ScoreEntryMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ScoreEntry entities.
+func (m *ScoreEntryMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ScoreEntryMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ScoreEntryMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ScoreEntry.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetUserID sets the "user_id" field.
+func (m *ScoreEntryMutation) SetUserID(i int64) {
+	m.user = &i
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *ScoreEntryMutation) UserID() (r int64, exists bool) {
+	v := m.user
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the ScoreEntry entity.
+// If the ScoreEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScoreEntryMutation) OldUserID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *ScoreEntryMutation) ResetUserID() {
+	m.user = nil
+}
+
+// SetDelta sets the "delta" field.
+func (m *ScoreEntryMutation) SetDelta(i int64) {
+	m.delta = &i
+	m.adddelta = nil
+}
+
+// Delta returns the value of the "delta" field in the mutation.
+func (m *ScoreEntryMutation) Delta() (r int64, exists bool) {
+	v := m.delta
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDelta returns the old "delta" field's value of the ScoreEntry entity.
+// If the ScoreEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScoreEntryMutation) OldDelta(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDelta is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDelta requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDelta: %w", err)
+	}
+	return oldValue.Delta, nil
+}
+
+// AddDelta adds i to the "delta" field.
+func (m *ScoreEntryMutation) AddDelta(i int64) {
+	if m.adddelta != nil {
+		*m.adddelta += i
+	} else {
+		m.adddelta = &i
+	}
+}
+
+// AddedDelta returns the value that was added to the "delta" field in this mutation.
+func (m *ScoreEntryMutation) AddedDelta() (r int64, exists bool) {
+	v := m.adddelta
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDelta resets all changes to the "delta" field.
+func (m *ScoreEntryMutation) ResetDelta() {
+	m.delta = nil
+	m.adddelta = nil
+}
+
+// SetBalance sets the "balance" field.
+func (m *ScoreEntryMutation) SetBalance(i int64) {
+	m.balance = &i
+	m.addbalance = nil
+}
+
+// Balance returns the value of the "balance" field in the mutation.
+func (m *ScoreEntryMutation) Balance() (r int64, exists bool) {
+	v := m.balance
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBalance returns the old "balance" field's value of the ScoreEntry entity.
+// If the ScoreEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScoreEntryMutation) OldBalance(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBalance is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBalance requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBalance: %w", err)
+	}
+	return oldValue.Balance, nil
+}
+
+// AddBalance adds i to the "balance" field.
+func (m *ScoreEntryMutation) AddBalance(i int64) {
+	if m.addbalance != nil {
+		*m.addbalance += i
+	} else {
+		m.addbalance = &i
+	}
+}
+
+// AddedBalance returns the value that was added to the "balance" field in this mutation.
+func (m *ScoreEntryMutation) AddedBalance() (r int64, exists bool) {
+	v := m.addbalance
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBalance resets all changes to the "balance" field.
+func (m *ScoreEntryMutation) ResetBalance() {
+	m.balance = nil
+	m.addbalance = nil
+}
+
+// SetReason sets the "reason" field.
+func (m *ScoreEntryMutation) SetReason(s string) {
+	m.reason = &s
+}
+
+// Reason returns the value of the "reason" field in the mutation.
+func (m *ScoreEntryMutation) Reason() (r string, exists bool) {
+	v := m.reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReason returns the old "reason" field's value of the ScoreEntry entity.
+// If the ScoreEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScoreEntryMutation) OldReason(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReason: %w", err)
+	}
+	return oldValue.Reason, nil
+}
+
+// ResetReason resets all changes to the "reason" field.
+func (m *ScoreEntryMutation) ResetReason() {
+	m.reason = nil
+}
+
+// SetRefType sets the "ref_type" field.
+func (m *ScoreEntryMutation) SetRefType(s string) {
+	m.ref_type = &s
+}
+
+// RefType returns the value of the "ref_type" field in the mutation.
+func (m *ScoreEntryMutation) RefType() (r string, exists bool) {
+	v := m.ref_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRefType returns the old "ref_type" field's value of the ScoreEntry entity.
+// If the ScoreEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScoreEntryMutation) OldRefType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRefType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRefType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRefType: %w", err)
+	}
+	return oldValue.RefType, nil
+}
+
+// ResetRefType resets all changes to the "ref_type" field.
+func (m *ScoreEntryMutation) ResetRefType() {
+	m.ref_type = nil
+}
+
+// SetRefID sets the "ref_id" field.
+func (m *ScoreEntryMutation) SetRefID(s string) {
+	m.ref_id = &s
+}
+
+// RefID returns the value of the "ref_id" field in the mutation.
+func (m *ScoreEntryMutation) RefID() (r string, exists bool) {
+	v := m.ref_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRefID returns the old "ref_id" field's value of the ScoreEntry entity.
+// If the ScoreEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScoreEntryMutation) OldRefID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRefID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRefID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRefID: %w", err)
+	}
+	return oldValue.RefID, nil
+}
+
+// ResetRefID resets all changes to the "ref_id" field.
+func (m *ScoreEntryMutation) ResetRefID() {
+	m.ref_id = nil
+}
+
+// SetActorID sets the "actor_id" field.
+func (m *ScoreEntryMutation) SetActorID(i int64) {
+	m.actor_id = &i
+	m.addactor_id = nil
+}
+
+// ActorID returns the value of the "actor_id" field in the mutation.
+func (m *ScoreEntryMutation) ActorID() (r int64, exists bool) {
+	v := m.actor_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorID returns the old "actor_id" field's value of the ScoreEntry entity.
+// If the ScoreEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScoreEntryMutation) OldActorID(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorID: %w", err)
+	}
+	return oldValue.ActorID, nil
+}
+
+// AddActorID adds i to the "actor_id" field.
+func (m *ScoreEntryMutation) AddActorID(i int64) {
+	if m.addactor_id != nil {
+		*m.addactor_id += i
+	} else {
+		m.addactor_id = &i
+	}
+}
+
+// AddedActorID returns the value that was added to the "actor_id" field in this mutation.
+func (m *ScoreEntryMutation) AddedActorID() (r int64, exists bool) {
+	v := m.addactor_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearActorID clears the value of the "actor_id" field.
+func (m *ScoreEntryMutation) ClearActorID() {
+	m.actor_id = nil
+	m.addactor_id = nil
+	m.clearedFields[scoreentry.FieldActorID] = struct{}{}
+}
+
+// ActorIDCleared returns if the "actor_id" field was cleared in this mutation.
+func (m *ScoreEntryMutation) ActorIDCleared() bool {
+	_, ok := m.clearedFields[scoreentry.FieldActorID]
+	return ok
+}
+
+// ResetActorID resets all changes to the "actor_id" field.
+func (m *ScoreEntryMutation) ResetActorID() {
+	m.actor_id = nil
+	m.addactor_id = nil
+	delete(m.clearedFields, scoreentry.FieldActorID)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ScoreEntryMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ScoreEntryMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ScoreEntry entity.
+// If the ScoreEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScoreEntryMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ScoreEntryMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (m *ScoreEntryMutation) ClearUser() {
+	m.cleareduser = true
+	m.clearedFields[scoreentry.FieldUserID] = struct{}{}
+}
+
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *ScoreEntryMutation) UserCleared() bool {
+	return m.cleareduser
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UserID instead. It exists only for internal usage by the builders.
+func (m *ScoreEntryMutation) UserIDs() (ids []int64) {
+	if id := m.user; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *ScoreEntryMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
+}
+
+// Where appends a list predicates to the ScoreEntryMutation builder.
+func (m *ScoreEntryMutation) Where(ps ...predicate.ScoreEntry) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ScoreEntryMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ScoreEntryMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ScoreEntry, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ScoreEntryMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ScoreEntryMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ScoreEntry).
+func (m *ScoreEntryMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ScoreEntryMutation) Fields() []string {
+	fields := make([]string, 0, 8)
+	if m.user != nil {
+		fields = append(fields, scoreentry.FieldUserID)
+	}
+	if m.delta != nil {
+		fields = append(fields, scoreentry.FieldDelta)
+	}
+	if m.balance != nil {
+		fields = append(fields, scoreentry.FieldBalance)
+	}
+	if m.reason != nil {
+		fields = append(fields, scoreentry.FieldReason)
+	}
+	if m.ref_type != nil {
+		fields = append(fields, scoreentry.FieldRefType)
+	}
+	if m.ref_id != nil {
+		fields = append(fields, scoreentry.FieldRefID)
+	}
+	if m.actor_id != nil {
+		fields = append(fields, scoreentry.FieldActorID)
+	}
+	if m.created_at != nil {
+		fields = append(fields, scoreentry.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ScoreEntryMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case scoreentry.FieldUserID:
+		return m.UserID()
+	case scoreentry.FieldDelta:
+		return m.Delta()
+	case scoreentry.FieldBalance:
+		return m.Balance()
+	case scoreentry.FieldReason:
+		return m.Reason()
+	case scoreentry.FieldRefType:
+		return m.RefType()
+	case scoreentry.FieldRefID:
+		return m.RefID()
+	case scoreentry.FieldActorID:
+		return m.ActorID()
+	case scoreentry.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ScoreEntryMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case scoreentry.FieldUserID:
+		return m.OldUserID(ctx)
+	case scoreentry.FieldDelta:
+		return m.OldDelta(ctx)
+	case scoreentry.FieldBalance:
+		return m.OldBalance(ctx)
+	case scoreentry.FieldReason:
+		return m.OldReason(ctx)
+	case scoreentry.FieldRefType:
+		return m.OldRefType(ctx)
+	case scoreentry.FieldRefID:
+		return m.OldRefID(ctx)
+	case scoreentry.FieldActorID:
+		return m.OldActorID(ctx)
+	case scoreentry.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ScoreEntry field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ScoreEntryMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case scoreentry.FieldUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case scoreentry.FieldDelta:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDelta(v)
+		return nil
+	case scoreentry.FieldBalance:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBalance(v)
+		return nil
+	case scoreentry.FieldReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReason(v)
+		return nil
+	case scoreentry.FieldRefType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRefType(v)
+		return nil
+	case scoreentry.FieldRefID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRefID(v)
+		return nil
+	case scoreentry.FieldActorID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorID(v)
+		return nil
+	case scoreentry.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ScoreEntry field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ScoreEntryMutation) AddedFields() []string {
+	var fields []string
+	if m.adddelta != nil {
+		fields = append(fields, scoreentry.FieldDelta)
+	}
+	if m.addbalance != nil {
+		fields = append(fields, scoreentry.FieldBalance)
+	}
+	if m.addactor_id != nil {
+		fields = append(fields, scoreentry.FieldActorID)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ScoreEntryMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case scoreentry.FieldDelta:
+		return m.AddedDelta()
+	case scoreentry.FieldBalance:
+		return m.AddedBalance()
+	case scoreentry.FieldActorID:
+		return m.AddedActorID()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ScoreEntryMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case scoreentry.FieldDelta:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDelta(v)
+		return nil
+	case scoreentry.FieldBalance:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBalance(v)
+		return nil
+	case scoreentry.FieldActorID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddActorID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ScoreEntry numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ScoreEntryMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(scoreentry.FieldActorID) {
+		fields = append(fields, scoreentry.FieldActorID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ScoreEntryMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ScoreEntryMutation) ClearField(name string) error {
+	switch name {
+	case scoreentry.FieldActorID:
+		m.ClearActorID()
+		return nil
+	}
+	return fmt.Errorf("unknown ScoreEntry nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ScoreEntryMutation) ResetField(name string) error {
+	switch name {
+	case scoreentry.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case scoreentry.FieldDelta:
+		m.ResetDelta()
+		return nil
+	case scoreentry.FieldBalance:
+		m.ResetBalance()
+		return nil
+	case scoreentry.FieldReason:
+		m.ResetReason()
+		return nil
+	case scoreentry.FieldRefType:
+		m.ResetRefType()
+		return nil
+	case scoreentry.FieldRefID:
+		m.ResetRefID()
+		return nil
+	case scoreentry.FieldActorID:
+		m.ResetActorID()
+		return nil
+	case scoreentry.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ScoreEntry field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ScoreEntryMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.user != nil {
+		edges = append(edges, scoreentry.EdgeUser)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ScoreEntryMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case scoreentry.EdgeUser:
+		if id := m.user; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ScoreEntryMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ScoreEntryMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ScoreEntryMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.cleareduser {
+		edges = append(edges, scoreentry.EdgeUser)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ScoreEntryMutation) EdgeCleared(name string) bool {
+	switch name {
+	case scoreentry.EdgeUser:
+		return m.cleareduser
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ScoreEntryMutation) ClearEdge(name string) error {
+	switch name {
+	case scoreentry.EdgeUser:
+		m.ClearUser()
+		return nil
+	}
+	return fmt.Errorf("unknown ScoreEntry unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ScoreEntryMutation) ResetEdge(name string) error {
+	switch name {
+	case scoreentry.EdgeUser:
+		m.ResetUser()
+		return nil
+	}
+	return fmt.Errorf("unknown ScoreEntry edge %s", name)
 }
 
 // SessionMutation represents an operation that mutates the Session nodes in the graph.
@@ -3970,38 +6240,1100 @@ func (m *SystemStateMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown SystemState edge %s", name)
 }
 
+// TextureMutation represents an operation that mutates the Texture nodes in the graph.
+type TextureMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *int64
+	name                *string
+	_type               *texture.Type
+	size                *int64
+	addsize             *int64
+	visibility          *texture.Visibility
+	likes               *int
+	addlikes            *int
+	created_at          *time.Time
+	updated_at          *time.Time
+	clearedFields       map[string]struct{}
+	blob                *string
+	clearedblob         bool
+	uploader            *int64
+	cleareduploader     bool
+	closet_items        map[int64]struct{}
+	removedcloset_items map[int64]struct{}
+	clearedcloset_items bool
+	done                bool
+	oldValue            func(context.Context) (*Texture, error)
+	predicates          []predicate.Texture
+}
+
+var _ ent.Mutation = (*TextureMutation)(nil)
+
+// textureOption allows management of the mutation configuration using functional options.
+type textureOption func(*TextureMutation)
+
+// newTextureMutation creates new mutation for the Texture entity.
+func newTextureMutation(c config, op Op, opts ...textureOption) *TextureMutation {
+	m := &TextureMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeTexture,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withTextureID sets the ID field of the mutation.
+func withTextureID(id int64) textureOption {
+	return func(m *TextureMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Texture
+		)
+		m.oldValue = func(ctx context.Context) (*Texture, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Texture.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withTexture sets the old Texture of the mutation.
+func withTexture(node *Texture) textureOption {
+	return func(m *TextureMutation) {
+		m.oldValue = func(context.Context) (*Texture, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m TextureMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m TextureMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Texture entities.
+func (m *TextureMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *TextureMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *TextureMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Texture.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetName sets the "name" field.
+func (m *TextureMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *TextureMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Texture entity.
+// If the Texture object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TextureMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *TextureMutation) ResetName() {
+	m.name = nil
+}
+
+// SetType sets the "type" field.
+func (m *TextureMutation) SetType(t texture.Type) {
+	m._type = &t
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *TextureMutation) GetType() (r texture.Type, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the Texture entity.
+// If the Texture object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TextureMutation) OldType(ctx context.Context) (v texture.Type, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *TextureMutation) ResetType() {
+	m._type = nil
+}
+
+// SetHash sets the "hash" field.
+func (m *TextureMutation) SetHash(s string) {
+	m.blob = &s
+}
+
+// Hash returns the value of the "hash" field in the mutation.
+func (m *TextureMutation) Hash() (r string, exists bool) {
+	v := m.blob
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHash returns the old "hash" field's value of the Texture entity.
+// If the Texture object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TextureMutation) OldHash(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHash is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHash requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHash: %w", err)
+	}
+	return oldValue.Hash, nil
+}
+
+// ResetHash resets all changes to the "hash" field.
+func (m *TextureMutation) ResetHash() {
+	m.blob = nil
+}
+
+// SetSize sets the "size" field.
+func (m *TextureMutation) SetSize(i int64) {
+	m.size = &i
+	m.addsize = nil
+}
+
+// Size returns the value of the "size" field in the mutation.
+func (m *TextureMutation) Size() (r int64, exists bool) {
+	v := m.size
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSize returns the old "size" field's value of the Texture entity.
+// If the Texture object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TextureMutation) OldSize(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSize is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSize requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSize: %w", err)
+	}
+	return oldValue.Size, nil
+}
+
+// AddSize adds i to the "size" field.
+func (m *TextureMutation) AddSize(i int64) {
+	if m.addsize != nil {
+		*m.addsize += i
+	} else {
+		m.addsize = &i
+	}
+}
+
+// AddedSize returns the value that was added to the "size" field in this mutation.
+func (m *TextureMutation) AddedSize() (r int64, exists bool) {
+	v := m.addsize
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSize resets all changes to the "size" field.
+func (m *TextureMutation) ResetSize() {
+	m.size = nil
+	m.addsize = nil
+}
+
+// SetUploaderID sets the "uploader_id" field.
+func (m *TextureMutation) SetUploaderID(i int64) {
+	m.uploader = &i
+}
+
+// UploaderID returns the value of the "uploader_id" field in the mutation.
+func (m *TextureMutation) UploaderID() (r int64, exists bool) {
+	v := m.uploader
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUploaderID returns the old "uploader_id" field's value of the Texture entity.
+// If the Texture object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TextureMutation) OldUploaderID(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUploaderID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUploaderID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUploaderID: %w", err)
+	}
+	return oldValue.UploaderID, nil
+}
+
+// ClearUploaderID clears the value of the "uploader_id" field.
+func (m *TextureMutation) ClearUploaderID() {
+	m.uploader = nil
+	m.clearedFields[texture.FieldUploaderID] = struct{}{}
+}
+
+// UploaderIDCleared returns if the "uploader_id" field was cleared in this mutation.
+func (m *TextureMutation) UploaderIDCleared() bool {
+	_, ok := m.clearedFields[texture.FieldUploaderID]
+	return ok
+}
+
+// ResetUploaderID resets all changes to the "uploader_id" field.
+func (m *TextureMutation) ResetUploaderID() {
+	m.uploader = nil
+	delete(m.clearedFields, texture.FieldUploaderID)
+}
+
+// SetVisibility sets the "visibility" field.
+func (m *TextureMutation) SetVisibility(t texture.Visibility) {
+	m.visibility = &t
+}
+
+// Visibility returns the value of the "visibility" field in the mutation.
+func (m *TextureMutation) Visibility() (r texture.Visibility, exists bool) {
+	v := m.visibility
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVisibility returns the old "visibility" field's value of the Texture entity.
+// If the Texture object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TextureMutation) OldVisibility(ctx context.Context) (v texture.Visibility, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVisibility is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVisibility requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVisibility: %w", err)
+	}
+	return oldValue.Visibility, nil
+}
+
+// ResetVisibility resets all changes to the "visibility" field.
+func (m *TextureMutation) ResetVisibility() {
+	m.visibility = nil
+}
+
+// SetLikes sets the "likes" field.
+func (m *TextureMutation) SetLikes(i int) {
+	m.likes = &i
+	m.addlikes = nil
+}
+
+// Likes returns the value of the "likes" field in the mutation.
+func (m *TextureMutation) Likes() (r int, exists bool) {
+	v := m.likes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLikes returns the old "likes" field's value of the Texture entity.
+// If the Texture object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TextureMutation) OldLikes(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLikes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLikes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLikes: %w", err)
+	}
+	return oldValue.Likes, nil
+}
+
+// AddLikes adds i to the "likes" field.
+func (m *TextureMutation) AddLikes(i int) {
+	if m.addlikes != nil {
+		*m.addlikes += i
+	} else {
+		m.addlikes = &i
+	}
+}
+
+// AddedLikes returns the value that was added to the "likes" field in this mutation.
+func (m *TextureMutation) AddedLikes() (r int, exists bool) {
+	v := m.addlikes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetLikes resets all changes to the "likes" field.
+func (m *TextureMutation) ResetLikes() {
+	m.likes = nil
+	m.addlikes = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *TextureMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *TextureMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Texture entity.
+// If the Texture object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TextureMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *TextureMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *TextureMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *TextureMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Texture entity.
+// If the Texture object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TextureMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *TextureMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetBlobID sets the "blob" edge to the Blob entity by id.
+func (m *TextureMutation) SetBlobID(id string) {
+	m.blob = &id
+}
+
+// ClearBlob clears the "blob" edge to the Blob entity.
+func (m *TextureMutation) ClearBlob() {
+	m.clearedblob = true
+	m.clearedFields[texture.FieldHash] = struct{}{}
+}
+
+// BlobCleared reports if the "blob" edge to the Blob entity was cleared.
+func (m *TextureMutation) BlobCleared() bool {
+	return m.clearedblob
+}
+
+// BlobID returns the "blob" edge ID in the mutation.
+func (m *TextureMutation) BlobID() (id string, exists bool) {
+	if m.blob != nil {
+		return *m.blob, true
+	}
+	return
+}
+
+// BlobIDs returns the "blob" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// BlobID instead. It exists only for internal usage by the builders.
+func (m *TextureMutation) BlobIDs() (ids []string) {
+	if id := m.blob; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetBlob resets all changes to the "blob" edge.
+func (m *TextureMutation) ResetBlob() {
+	m.blob = nil
+	m.clearedblob = false
+}
+
+// ClearUploader clears the "uploader" edge to the User entity.
+func (m *TextureMutation) ClearUploader() {
+	m.cleareduploader = true
+	m.clearedFields[texture.FieldUploaderID] = struct{}{}
+}
+
+// UploaderCleared reports if the "uploader" edge to the User entity was cleared.
+func (m *TextureMutation) UploaderCleared() bool {
+	return m.UploaderIDCleared() || m.cleareduploader
+}
+
+// UploaderIDs returns the "uploader" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UploaderID instead. It exists only for internal usage by the builders.
+func (m *TextureMutation) UploaderIDs() (ids []int64) {
+	if id := m.uploader; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUploader resets all changes to the "uploader" edge.
+func (m *TextureMutation) ResetUploader() {
+	m.uploader = nil
+	m.cleareduploader = false
+}
+
+// AddClosetItemIDs adds the "closet_items" edge to the ClosetItem entity by ids.
+func (m *TextureMutation) AddClosetItemIDs(ids ...int64) {
+	if m.closet_items == nil {
+		m.closet_items = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.closet_items[ids[i]] = struct{}{}
+	}
+}
+
+// ClearClosetItems clears the "closet_items" edge to the ClosetItem entity.
+func (m *TextureMutation) ClearClosetItems() {
+	m.clearedcloset_items = true
+}
+
+// ClosetItemsCleared reports if the "closet_items" edge to the ClosetItem entity was cleared.
+func (m *TextureMutation) ClosetItemsCleared() bool {
+	return m.clearedcloset_items
+}
+
+// RemoveClosetItemIDs removes the "closet_items" edge to the ClosetItem entity by IDs.
+func (m *TextureMutation) RemoveClosetItemIDs(ids ...int64) {
+	if m.removedcloset_items == nil {
+		m.removedcloset_items = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.closet_items, ids[i])
+		m.removedcloset_items[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedClosetItems returns the removed IDs of the "closet_items" edge to the ClosetItem entity.
+func (m *TextureMutation) RemovedClosetItemsIDs() (ids []int64) {
+	for id := range m.removedcloset_items {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ClosetItemsIDs returns the "closet_items" edge IDs in the mutation.
+func (m *TextureMutation) ClosetItemsIDs() (ids []int64) {
+	for id := range m.closet_items {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetClosetItems resets all changes to the "closet_items" edge.
+func (m *TextureMutation) ResetClosetItems() {
+	m.closet_items = nil
+	m.clearedcloset_items = false
+	m.removedcloset_items = nil
+}
+
+// Where appends a list predicates to the TextureMutation builder.
+func (m *TextureMutation) Where(ps ...predicate.Texture) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the TextureMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *TextureMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Texture, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *TextureMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *TextureMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Texture).
+func (m *TextureMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *TextureMutation) Fields() []string {
+	fields := make([]string, 0, 9)
+	if m.name != nil {
+		fields = append(fields, texture.FieldName)
+	}
+	if m._type != nil {
+		fields = append(fields, texture.FieldType)
+	}
+	if m.blob != nil {
+		fields = append(fields, texture.FieldHash)
+	}
+	if m.size != nil {
+		fields = append(fields, texture.FieldSize)
+	}
+	if m.uploader != nil {
+		fields = append(fields, texture.FieldUploaderID)
+	}
+	if m.visibility != nil {
+		fields = append(fields, texture.FieldVisibility)
+	}
+	if m.likes != nil {
+		fields = append(fields, texture.FieldLikes)
+	}
+	if m.created_at != nil {
+		fields = append(fields, texture.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, texture.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *TextureMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case texture.FieldName:
+		return m.Name()
+	case texture.FieldType:
+		return m.GetType()
+	case texture.FieldHash:
+		return m.Hash()
+	case texture.FieldSize:
+		return m.Size()
+	case texture.FieldUploaderID:
+		return m.UploaderID()
+	case texture.FieldVisibility:
+		return m.Visibility()
+	case texture.FieldLikes:
+		return m.Likes()
+	case texture.FieldCreatedAt:
+		return m.CreatedAt()
+	case texture.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *TextureMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case texture.FieldName:
+		return m.OldName(ctx)
+	case texture.FieldType:
+		return m.OldType(ctx)
+	case texture.FieldHash:
+		return m.OldHash(ctx)
+	case texture.FieldSize:
+		return m.OldSize(ctx)
+	case texture.FieldUploaderID:
+		return m.OldUploaderID(ctx)
+	case texture.FieldVisibility:
+		return m.OldVisibility(ctx)
+	case texture.FieldLikes:
+		return m.OldLikes(ctx)
+	case texture.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case texture.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown Texture field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TextureMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case texture.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case texture.FieldType:
+		v, ok := value.(texture.Type)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case texture.FieldHash:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHash(v)
+		return nil
+	case texture.FieldSize:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSize(v)
+		return nil
+	case texture.FieldUploaderID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUploaderID(v)
+		return nil
+	case texture.FieldVisibility:
+		v, ok := value.(texture.Visibility)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVisibility(v)
+		return nil
+	case texture.FieldLikes:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLikes(v)
+		return nil
+	case texture.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case texture.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Texture field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *TextureMutation) AddedFields() []string {
+	var fields []string
+	if m.addsize != nil {
+		fields = append(fields, texture.FieldSize)
+	}
+	if m.addlikes != nil {
+		fields = append(fields, texture.FieldLikes)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *TextureMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case texture.FieldSize:
+		return m.AddedSize()
+	case texture.FieldLikes:
+		return m.AddedLikes()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TextureMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case texture.FieldSize:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSize(v)
+		return nil
+	case texture.FieldLikes:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddLikes(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Texture numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *TextureMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(texture.FieldUploaderID) {
+		fields = append(fields, texture.FieldUploaderID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *TextureMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *TextureMutation) ClearField(name string) error {
+	switch name {
+	case texture.FieldUploaderID:
+		m.ClearUploaderID()
+		return nil
+	}
+	return fmt.Errorf("unknown Texture nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *TextureMutation) ResetField(name string) error {
+	switch name {
+	case texture.FieldName:
+		m.ResetName()
+		return nil
+	case texture.FieldType:
+		m.ResetType()
+		return nil
+	case texture.FieldHash:
+		m.ResetHash()
+		return nil
+	case texture.FieldSize:
+		m.ResetSize()
+		return nil
+	case texture.FieldUploaderID:
+		m.ResetUploaderID()
+		return nil
+	case texture.FieldVisibility:
+		m.ResetVisibility()
+		return nil
+	case texture.FieldLikes:
+		m.ResetLikes()
+		return nil
+	case texture.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case texture.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown Texture field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *TextureMutation) AddedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.blob != nil {
+		edges = append(edges, texture.EdgeBlob)
+	}
+	if m.uploader != nil {
+		edges = append(edges, texture.EdgeUploader)
+	}
+	if m.closet_items != nil {
+		edges = append(edges, texture.EdgeClosetItems)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *TextureMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case texture.EdgeBlob:
+		if id := m.blob; id != nil {
+			return []ent.Value{*id}
+		}
+	case texture.EdgeUploader:
+		if id := m.uploader; id != nil {
+			return []ent.Value{*id}
+		}
+	case texture.EdgeClosetItems:
+		ids := make([]ent.Value, 0, len(m.closet_items))
+		for id := range m.closet_items {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *TextureMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.removedcloset_items != nil {
+		edges = append(edges, texture.EdgeClosetItems)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *TextureMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case texture.EdgeClosetItems:
+		ids := make([]ent.Value, 0, len(m.removedcloset_items))
+		for id := range m.removedcloset_items {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *TextureMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.clearedblob {
+		edges = append(edges, texture.EdgeBlob)
+	}
+	if m.cleareduploader {
+		edges = append(edges, texture.EdgeUploader)
+	}
+	if m.clearedcloset_items {
+		edges = append(edges, texture.EdgeClosetItems)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *TextureMutation) EdgeCleared(name string) bool {
+	switch name {
+	case texture.EdgeBlob:
+		return m.clearedblob
+	case texture.EdgeUploader:
+		return m.cleareduploader
+	case texture.EdgeClosetItems:
+		return m.clearedcloset_items
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *TextureMutation) ClearEdge(name string) error {
+	switch name {
+	case texture.EdgeBlob:
+		m.ClearBlob()
+		return nil
+	case texture.EdgeUploader:
+		m.ClearUploader()
+		return nil
+	}
+	return fmt.Errorf("unknown Texture unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *TextureMutation) ResetEdge(name string) error {
+	switch name {
+	case texture.EdgeBlob:
+		m.ResetBlob()
+		return nil
+	case texture.EdgeUploader:
+		m.ResetUploader()
+		return nil
+	case texture.EdgeClosetItems:
+		m.ResetClosetItems()
+		return nil
+	}
+	return fmt.Errorf("unknown Texture edge %s", name)
+}
+
 // UserMutation represents an operation that mutates the User nodes in the graph.
 type UserMutation struct {
 	config
-	op                 Op
-	typ                string
-	id                 *int64
-	email              *string
-	email_normalized   *string
-	nickname           *string
-	password_hash      *string
-	password_algo      *string
-	role               *user.Role
-	status             *user.Status
-	score              *int64
-	addscore           *int64
-	locale             *string
-	email_verified_at  *time.Time
-	register_ip        *string
-	last_login_at      *time.Time
-	deleted_at         *time.Time
-	created_at         *time.Time
-	updated_at         *time.Time
-	clearedFields      map[string]struct{}
-	sessions           map[string]struct{}
-	removedsessions    map[string]struct{}
-	clearedsessions    bool
-	auth_tokens        map[int64]struct{}
-	removedauth_tokens map[int64]struct{}
-	clearedauth_tokens bool
-	done               bool
-	oldValue           func(context.Context) (*User, error)
-	predicates         []predicate.User
+	op                   Op
+	typ                  string
+	id                   *int64
+	email                *string
+	email_normalized     *string
+	nickname             *string
+	password_hash        *string
+	password_algo        *string
+	role                 *user.Role
+	status               *user.Status
+	score                *int64
+	addscore             *int64
+	locale               *string
+	email_verified_at    *time.Time
+	register_ip          *string
+	last_login_at        *time.Time
+	deleted_at           *time.Time
+	created_at           *time.Time
+	updated_at           *time.Time
+	clearedFields        map[string]struct{}
+	sessions             map[string]struct{}
+	removedsessions      map[string]struct{}
+	clearedsessions      bool
+	auth_tokens          map[int64]struct{}
+	removedauth_tokens   map[int64]struct{}
+	clearedauth_tokens   bool
+	textures             map[int64]struct{}
+	removedtextures      map[int64]struct{}
+	clearedtextures      bool
+	closet_items         map[int64]struct{}
+	removedcloset_items  map[int64]struct{}
+	clearedcloset_items  bool
+	score_entries        map[int64]struct{}
+	removedscore_entries map[int64]struct{}
+	clearedscore_entries bool
+	done                 bool
+	oldValue             func(context.Context) (*User, error)
+	predicates           []predicate.User
 }
 
 var _ ent.Mutation = (*UserMutation)(nil)
@@ -4815,6 +8147,168 @@ func (m *UserMutation) ResetAuthTokens() {
 	m.removedauth_tokens = nil
 }
 
+// AddTextureIDs adds the "textures" edge to the Texture entity by ids.
+func (m *UserMutation) AddTextureIDs(ids ...int64) {
+	if m.textures == nil {
+		m.textures = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.textures[ids[i]] = struct{}{}
+	}
+}
+
+// ClearTextures clears the "textures" edge to the Texture entity.
+func (m *UserMutation) ClearTextures() {
+	m.clearedtextures = true
+}
+
+// TexturesCleared reports if the "textures" edge to the Texture entity was cleared.
+func (m *UserMutation) TexturesCleared() bool {
+	return m.clearedtextures
+}
+
+// RemoveTextureIDs removes the "textures" edge to the Texture entity by IDs.
+func (m *UserMutation) RemoveTextureIDs(ids ...int64) {
+	if m.removedtextures == nil {
+		m.removedtextures = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.textures, ids[i])
+		m.removedtextures[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedTextures returns the removed IDs of the "textures" edge to the Texture entity.
+func (m *UserMutation) RemovedTexturesIDs() (ids []int64) {
+	for id := range m.removedtextures {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// TexturesIDs returns the "textures" edge IDs in the mutation.
+func (m *UserMutation) TexturesIDs() (ids []int64) {
+	for id := range m.textures {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetTextures resets all changes to the "textures" edge.
+func (m *UserMutation) ResetTextures() {
+	m.textures = nil
+	m.clearedtextures = false
+	m.removedtextures = nil
+}
+
+// AddClosetItemIDs adds the "closet_items" edge to the ClosetItem entity by ids.
+func (m *UserMutation) AddClosetItemIDs(ids ...int64) {
+	if m.closet_items == nil {
+		m.closet_items = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.closet_items[ids[i]] = struct{}{}
+	}
+}
+
+// ClearClosetItems clears the "closet_items" edge to the ClosetItem entity.
+func (m *UserMutation) ClearClosetItems() {
+	m.clearedcloset_items = true
+}
+
+// ClosetItemsCleared reports if the "closet_items" edge to the ClosetItem entity was cleared.
+func (m *UserMutation) ClosetItemsCleared() bool {
+	return m.clearedcloset_items
+}
+
+// RemoveClosetItemIDs removes the "closet_items" edge to the ClosetItem entity by IDs.
+func (m *UserMutation) RemoveClosetItemIDs(ids ...int64) {
+	if m.removedcloset_items == nil {
+		m.removedcloset_items = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.closet_items, ids[i])
+		m.removedcloset_items[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedClosetItems returns the removed IDs of the "closet_items" edge to the ClosetItem entity.
+func (m *UserMutation) RemovedClosetItemsIDs() (ids []int64) {
+	for id := range m.removedcloset_items {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ClosetItemsIDs returns the "closet_items" edge IDs in the mutation.
+func (m *UserMutation) ClosetItemsIDs() (ids []int64) {
+	for id := range m.closet_items {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetClosetItems resets all changes to the "closet_items" edge.
+func (m *UserMutation) ResetClosetItems() {
+	m.closet_items = nil
+	m.clearedcloset_items = false
+	m.removedcloset_items = nil
+}
+
+// AddScoreEntryIDs adds the "score_entries" edge to the ScoreEntry entity by ids.
+func (m *UserMutation) AddScoreEntryIDs(ids ...int64) {
+	if m.score_entries == nil {
+		m.score_entries = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.score_entries[ids[i]] = struct{}{}
+	}
+}
+
+// ClearScoreEntries clears the "score_entries" edge to the ScoreEntry entity.
+func (m *UserMutation) ClearScoreEntries() {
+	m.clearedscore_entries = true
+}
+
+// ScoreEntriesCleared reports if the "score_entries" edge to the ScoreEntry entity was cleared.
+func (m *UserMutation) ScoreEntriesCleared() bool {
+	return m.clearedscore_entries
+}
+
+// RemoveScoreEntryIDs removes the "score_entries" edge to the ScoreEntry entity by IDs.
+func (m *UserMutation) RemoveScoreEntryIDs(ids ...int64) {
+	if m.removedscore_entries == nil {
+		m.removedscore_entries = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.score_entries, ids[i])
+		m.removedscore_entries[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedScoreEntries returns the removed IDs of the "score_entries" edge to the ScoreEntry entity.
+func (m *UserMutation) RemovedScoreEntriesIDs() (ids []int64) {
+	for id := range m.removedscore_entries {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ScoreEntriesIDs returns the "score_entries" edge IDs in the mutation.
+func (m *UserMutation) ScoreEntriesIDs() (ids []int64) {
+	for id := range m.score_entries {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetScoreEntries resets all changes to the "score_entries" edge.
+func (m *UserMutation) ResetScoreEntries() {
+	m.score_entries = nil
+	m.clearedscore_entries = false
+	m.removedscore_entries = nil
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -5222,12 +8716,21 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 5)
 	if m.sessions != nil {
 		edges = append(edges, user.EdgeSessions)
 	}
 	if m.auth_tokens != nil {
 		edges = append(edges, user.EdgeAuthTokens)
+	}
+	if m.textures != nil {
+		edges = append(edges, user.EdgeTextures)
+	}
+	if m.closet_items != nil {
+		edges = append(edges, user.EdgeClosetItems)
+	}
+	if m.score_entries != nil {
+		edges = append(edges, user.EdgeScoreEntries)
 	}
 	return edges
 }
@@ -5248,18 +8751,45 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeTextures:
+		ids := make([]ent.Value, 0, len(m.textures))
+		for id := range m.textures {
+			ids = append(ids, id)
+		}
+		return ids
+	case user.EdgeClosetItems:
+		ids := make([]ent.Value, 0, len(m.closet_items))
+		for id := range m.closet_items {
+			ids = append(ids, id)
+		}
+		return ids
+	case user.EdgeScoreEntries:
+		ids := make([]ent.Value, 0, len(m.score_entries))
+		for id := range m.score_entries {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 5)
 	if m.removedsessions != nil {
 		edges = append(edges, user.EdgeSessions)
 	}
 	if m.removedauth_tokens != nil {
 		edges = append(edges, user.EdgeAuthTokens)
+	}
+	if m.removedtextures != nil {
+		edges = append(edges, user.EdgeTextures)
+	}
+	if m.removedcloset_items != nil {
+		edges = append(edges, user.EdgeClosetItems)
+	}
+	if m.removedscore_entries != nil {
+		edges = append(edges, user.EdgeScoreEntries)
 	}
 	return edges
 }
@@ -5280,18 +8810,45 @@ func (m *UserMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeTextures:
+		ids := make([]ent.Value, 0, len(m.removedtextures))
+		for id := range m.removedtextures {
+			ids = append(ids, id)
+		}
+		return ids
+	case user.EdgeClosetItems:
+		ids := make([]ent.Value, 0, len(m.removedcloset_items))
+		for id := range m.removedcloset_items {
+			ids = append(ids, id)
+		}
+		return ids
+	case user.EdgeScoreEntries:
+		ids := make([]ent.Value, 0, len(m.removedscore_entries))
+		for id := range m.removedscore_entries {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 5)
 	if m.clearedsessions {
 		edges = append(edges, user.EdgeSessions)
 	}
 	if m.clearedauth_tokens {
 		edges = append(edges, user.EdgeAuthTokens)
+	}
+	if m.clearedtextures {
+		edges = append(edges, user.EdgeTextures)
+	}
+	if m.clearedcloset_items {
+		edges = append(edges, user.EdgeClosetItems)
+	}
+	if m.clearedscore_entries {
+		edges = append(edges, user.EdgeScoreEntries)
 	}
 	return edges
 }
@@ -5304,6 +8861,12 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 		return m.clearedsessions
 	case user.EdgeAuthTokens:
 		return m.clearedauth_tokens
+	case user.EdgeTextures:
+		return m.clearedtextures
+	case user.EdgeClosetItems:
+		return m.clearedcloset_items
+	case user.EdgeScoreEntries:
+		return m.clearedscore_entries
 	}
 	return false
 }
@@ -5325,6 +8888,15 @@ func (m *UserMutation) ResetEdge(name string) error {
 		return nil
 	case user.EdgeAuthTokens:
 		m.ResetAuthTokens()
+		return nil
+	case user.EdgeTextures:
+		m.ResetTextures()
+		return nil
+	case user.EdgeClosetItems:
+		m.ResetClosetItems()
+		return nil
+	case user.EdgeScoreEntries:
+		m.ResetScoreEntries()
 		return nil
 	}
 	return fmt.Errorf("unknown User edge %s", name)

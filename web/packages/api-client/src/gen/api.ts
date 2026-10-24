@@ -247,6 +247,55 @@ export interface ChangePasswordInputBody {
   newPassword: string;
 }
 
+/**
+ * steve and alex are skins (classic and slim arms)
+ */
+export type TextureViewType = typeof TextureViewType[keyof typeof TextureViewType];
+
+
+export const TextureViewType = {
+  steve: 'steve',
+  alex: 'alex',
+  cape: 'cape',
+} as const;
+
+export interface UploaderView {
+  id: number;
+  nickname: string;
+}
+
+export interface TextureView {
+  createdAt: string;
+  /** SHA-256 of the file; the image is at /textures/{hash} */
+  hash: string;
+  id: number;
+  /** Closets holding it */
+  likes: number;
+  name: string;
+  public: boolean;
+  /** Bytes */
+  size: number;
+  /** steve and alex are skins (classic and slim arms) */
+  type: TextureViewType;
+  /** Absent when the uploader's account is gone */
+  uploader?: UploaderView;
+}
+
+export interface ClosetItemView {
+  addedAt: string;
+  id: number;
+  name: string;
+  texture: TextureView;
+}
+
+export interface ClosetPage {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  items: ClosetItemView[];
+  /** Pass as before= for the next page; 0 = last page */
+  next: number;
+}
+
 export interface DeleteMeInputBody {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
@@ -334,6 +383,16 @@ export interface ResetInputBody {
   token: string;
 }
 
+export interface ScoreRates {
+  /** Earned for a public upload */
+  awardPerTexture: number;
+  perClosetItem: number;
+  /** Per KB of a public upload */
+  perStorage: number;
+  /** Per KB of a private upload */
+  privatePerStorage: number;
+}
+
 export interface SessionView {
   createdAt: string;
   /** The session making this request */
@@ -389,6 +448,62 @@ export interface SetupStatusOutputBody {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
   needsSetup: boolean;
+}
+
+/**
+ * steve and alex are skins (classic and slim arms)
+ */
+export type TextureDetailType = typeof TextureDetailType[keyof typeof TextureDetailType];
+
+
+export const TextureDetailType = {
+  steve: 'steve',
+  alex: 'alex',
+  cape: 'cape',
+} as const;
+
+export interface TextureDetail {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  createdAt: string;
+  /** SHA-256 of the file; the image is at /textures/{hash} */
+  hash: string;
+  id: number;
+  /** In the signed-in user's closet */
+  inCloset: boolean;
+  /** Closets holding it */
+  likes: number;
+  /** Uploaded by the signed-in user */
+  mine: boolean;
+  name: string;
+  public: boolean;
+  /** Bytes */
+  size: number;
+  /** steve and alex are skins (classic and slim arms) */
+  type: TextureDetailType;
+  /** Absent when the uploader's account is gone */
+  uploader?: UploaderView;
+}
+
+export interface TexturePage {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** Pass as cursor= for the next page; empty = last page */
+  next: string;
+  textures: TextureView[];
+}
+
+export interface TextureRules {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  allowDownload: boolean;
+  /** Markdown, in the request's language */
+  contentPolicy?: string;
+  maxSizeKb: number;
+  maxWidth: number;
+  /** Regular expression names must match (RE2) */
+  nameRule?: string;
+  rates: ScoreRates;
 }
 
 export type ThemeViewDescription = {[key: string]: string};
@@ -461,6 +576,18 @@ export interface UpdateUserInputBody {
   score?: number;
   /** Banning signs the user out everywhere; any change cancels a pending account deletion */
   status?: UpdateUserInputBodyStatus;
+}
+
+export interface UploadView {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** Score spent; negative when the upload earned score */
+  cost: number;
+  /** The same image was already in the library: this is that texture, and nothing was charged */
+  duplicate: boolean;
+  /** The uploader's score afterwards */
+  score: number;
+  texture: TextureView;
 }
 
 export interface UserPage {
@@ -566,11 +693,98 @@ export const ListUsersStatus = {
   '': '',
 } as const;
 
+export type ListClosetParams = {
+category?: ListClosetCategory;
+/**
+ * Item name fragment
+ * @maxLength 50
+ */
+q?: string;
+/**
+ * @minimum 0
+ */
+before?: number;
+/**
+ * @minimum 0
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type ListClosetCategory = typeof ListClosetCategory[keyof typeof ListClosetCategory];
+
+
+export const ListClosetCategory = {
+  skin: 'skin',
+  cape: 'cape',
+  '': '',
+} as const;
+
 export type GetBootstrapParams = {
 /**
  * Force a UI language
  */
 lang?: string;
+};
+
+export type ListTexturesParams = {
+/**
+ * skin = steve and alex
+ */
+category?: ListTexturesCategory;
+/**
+ * Name fragment
+ * @maxLength 50
+ */
+q?: string;
+/**
+ * @minimum 0
+ */
+uploader?: number;
+/**
+ * time (default, newest first) or likes
+ */
+sort?: ListTexturesSort;
+/**
+ * @maxLength 40
+ */
+cursor?: string;
+/**
+ * @minimum 0
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type ListTexturesCategory = typeof ListTexturesCategory[keyof typeof ListTexturesCategory];
+
+
+export const ListTexturesCategory = {
+  skin: 'skin',
+  steve: 'steve',
+  alex: 'alex',
+  cape: 'cape',
+  '': '',
+} as const;
+
+export type ListTexturesSort = typeof ListTexturesSort[keyof typeof ListTexturesSort];
+
+
+export const ListTexturesSort = {
+  time: 'time',
+  likes: 'likes',
+  '': '',
+} as const;
+
+export type UploadTextureBody = {
+  /** PNG image */
+  file: string;
+  /** 1 to 50 characters */
+  name: Blob | File | string;
+  /** Shown in the skin library; private textures cost more */
+  public: boolean;
+  /** steve, alex or cape */
+  type: Blob | File | string;
 };
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
@@ -1547,6 +1761,56 @@ return apiFetch<updateMeResponse>(getUpdateMeUrl(),
 
 
 
+export type listClosetResponse200 = {
+  data: ClosetPage
+  status: 200
+}
+
+export type listClosetResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listClosetResponseSuccess = (listClosetResponse200) & {
+  headers: Headers;
+};
+export type listClosetResponseError = (listClosetResponseDefault) & {
+  headers: Headers;
+};
+
+export type listClosetResponse = (listClosetResponseSuccess | listClosetResponseError)
+
+export const getListClosetUrl = (params?: ListClosetParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/me/closet?${stringifiedParams}` : `/api/v1/me/closet`
+}
+
+/**
+ * @summary Your closet
+ */
+export const listCloset = async (params?: ListClosetParams, options?: Parameters<typeof apiFetch>[1]): Promise<listClosetResponse> => {
+
+  return apiFetch<listClosetResponse>(getListClosetUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type deleteMeResponse200 = {
   data: void
   status: 200
@@ -1989,6 +2253,201 @@ export const getGetBootstrapUrl = (params?: GetBootstrapParams,) => {
 export const getBootstrap = async (params?: GetBootstrapParams, options?: Parameters<typeof apiFetch>[1]): Promise<getBootstrapResponse> => {
 
   return apiFetch<getBootstrapResponse>(getGetBootstrapUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type listTexturesResponse200 = {
+  data: TexturePage
+  status: 200
+}
+
+export type listTexturesResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listTexturesResponseSuccess = (listTexturesResponse200) & {
+  headers: Headers;
+};
+export type listTexturesResponseError = (listTexturesResponseDefault) & {
+  headers: Headers;
+};
+
+export type listTexturesResponse = (listTexturesResponseSuccess | listTexturesResponseError)
+
+export const getListTexturesUrl = (params?: ListTexturesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/textures?${stringifiedParams}` : `/api/v1/textures`
+}
+
+/**
+ * Public textures. With uploader set to yourself (or as an administrator), that user's private textures too. Cursor paging: pass next as cursor.
+ * @summary The skin library
+ */
+export const listTextures = async (params?: ListTexturesParams, options?: Parameters<typeof apiFetch>[1]): Promise<listTexturesResponse> => {
+
+  return apiFetch<listTexturesResponse>(getListTexturesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type uploadTextureResponse200 = {
+  data: UploadView
+  status: 200
+}
+
+export type uploadTextureResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type uploadTextureResponseSuccess = (uploadTextureResponse200) & {
+  headers: Headers;
+};
+export type uploadTextureResponseError = (uploadTextureResponseDefault) & {
+  headers: Headers;
+};
+
+export type uploadTextureResponse = (uploadTextureResponseSuccess | uploadTextureResponseError)
+
+export const getUploadTextureUrl = () => {
+
+
+
+
+  return `/api/v1/textures`
+}
+
+/**
+ * The image is checked against texture.* settings, re-encoded and charged for; it goes into the uploader's closet. If the same image is already in the library (public, or the uploader's own), that texture is returned instead and nothing is charged. 402 when the score does not cover the cost.
+ * @summary Upload a skin or cape
+ */
+export const uploadTexture = async (uploadTextureBody?: UploadTextureBody, options?: Parameters<typeof apiFetch>[1]): Promise<uploadTextureResponse> => {
+    const formData = new FormData();
+if(uploadTextureBody?.file !== undefined) {
+ formData.append(`file`, uploadTextureBody.file);
+ }
+if(uploadTextureBody?.name !== undefined) {
+ formData.append(`name`, uploadTextureBody.name instanceof Blob ? uploadTextureBody.name : new Blob([uploadTextureBody.name], { type: 'text/plain' }));
+ }
+if(uploadTextureBody?.public !== undefined) {
+ formData.append(`public`, uploadTextureBody.public.toString())
+ }
+if(uploadTextureBody?.type !== undefined) {
+ formData.append(`type`, uploadTextureBody.type instanceof Blob ? uploadTextureBody.type : new Blob([uploadTextureBody.type], { type: 'text/plain' }));
+ }
+
+  return apiFetch<uploadTextureResponse>(getUploadTextureUrl(),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+);}
+
+
+
+export type getTextureRulesResponse200 = {
+  data: TextureRules
+  status: 200
+}
+
+export type getTextureRulesResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getTextureRulesResponseSuccess = (getTextureRulesResponse200) & {
+  headers: Headers;
+};
+export type getTextureRulesResponseError = (getTextureRulesResponseDefault) & {
+  headers: Headers;
+};
+
+export type getTextureRulesResponse = (getTextureRulesResponseSuccess | getTextureRulesResponseError)
+
+export const getGetTextureRulesUrl = () => {
+
+
+
+
+  return `/api/v1/textures/rules`
+}
+
+/**
+ * @summary Upload rules and costs
+ */
+export const getTextureRules = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getTextureRulesResponse> => {
+
+  return apiFetch<getTextureRulesResponse>(getGetTextureRulesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getTextureResponse200 = {
+  data: TextureDetail
+  status: 200
+}
+
+export type getTextureResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getTextureResponseSuccess = (getTextureResponse200) & {
+  headers: Headers;
+};
+export type getTextureResponseError = (getTextureResponseDefault) & {
+  headers: Headers;
+};
+
+export type getTextureResponse = (getTextureResponseSuccess | getTextureResponseError)
+
+export const getGetTextureUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/textures/${id}`
+}
+
+/**
+ * Private textures only for their uploader and administrators; others get texture.private_status (403 or 404).
+ * @summary A texture
+ */
+export const getTexture = async (id: number, options?: Parameters<typeof apiFetch>[1]): Promise<getTextureResponse> => {
+
+  return apiFetch<getTextureResponse>(getGetTextureUrl(id),
   {
     ...options,
     method: 'GET'

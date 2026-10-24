@@ -18,14 +18,22 @@ type Tx struct {
 	AuditLog *AuditLogClient
 	// AuthToken is the client for interacting with the AuthToken builders.
 	AuthToken *AuthTokenClient
+	// Blob is the client for interacting with the Blob builders.
+	Blob *BlobClient
+	// ClosetItem is the client for interacting with the ClosetItem builders.
+	ClosetItem *ClosetItemClient
 	// Job is the client for interacting with the Job builders.
 	Job *JobClient
+	// ScoreEntry is the client for interacting with the ScoreEntry builders.
+	ScoreEntry *ScoreEntryClient
 	// Session is the client for interacting with the Session builders.
 	Session *SessionClient
 	// Setting is the client for interacting with the Setting builders.
 	Setting *SettingClient
 	// SystemState is the client for interacting with the SystemState builders.
 	SystemState *SystemStateClient
+	// Texture is the client for interacting with the Texture builders.
+	Texture *TextureClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 
@@ -161,10 +169,14 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.AuditLog = NewAuditLogClient(tx.config)
 	tx.AuthToken = NewAuthTokenClient(tx.config)
+	tx.Blob = NewBlobClient(tx.config)
+	tx.ClosetItem = NewClosetItemClient(tx.config)
 	tx.Job = NewJobClient(tx.config)
+	tx.ScoreEntry = NewScoreEntryClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)
 	tx.Setting = NewSettingClient(tx.config)
 	tx.SystemState = NewSystemStateClient(tx.config)
+	tx.Texture = NewTextureClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
 

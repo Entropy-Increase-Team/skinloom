@@ -49,6 +49,12 @@ const (
 	EdgeSessions = "sessions"
 	// EdgeAuthTokens holds the string denoting the auth_tokens edge name in mutations.
 	EdgeAuthTokens = "auth_tokens"
+	// EdgeTextures holds the string denoting the textures edge name in mutations.
+	EdgeTextures = "textures"
+	// EdgeClosetItems holds the string denoting the closet_items edge name in mutations.
+	EdgeClosetItems = "closet_items"
+	// EdgeScoreEntries holds the string denoting the score_entries edge name in mutations.
+	EdgeScoreEntries = "score_entries"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// SessionsTable is the table that holds the sessions relation/edge.
@@ -65,6 +71,27 @@ const (
 	AuthTokensInverseTable = "auth_tokens"
 	// AuthTokensColumn is the table column denoting the auth_tokens relation/edge.
 	AuthTokensColumn = "user_id"
+	// TexturesTable is the table that holds the textures relation/edge.
+	TexturesTable = "textures"
+	// TexturesInverseTable is the table name for the Texture entity.
+	// It exists in this package in order to avoid circular dependency with the "texture" package.
+	TexturesInverseTable = "textures"
+	// TexturesColumn is the table column denoting the textures relation/edge.
+	TexturesColumn = "uploader_id"
+	// ClosetItemsTable is the table that holds the closet_items relation/edge.
+	ClosetItemsTable = "closet_items"
+	// ClosetItemsInverseTable is the table name for the ClosetItem entity.
+	// It exists in this package in order to avoid circular dependency with the "closetitem" package.
+	ClosetItemsInverseTable = "closet_items"
+	// ClosetItemsColumn is the table column denoting the closet_items relation/edge.
+	ClosetItemsColumn = "user_id"
+	// ScoreEntriesTable is the table that holds the score_entries relation/edge.
+	ScoreEntriesTable = "score_ledger"
+	// ScoreEntriesInverseTable is the table name for the ScoreEntry entity.
+	// It exists in this package in order to avoid circular dependency with the "scoreentry" package.
+	ScoreEntriesInverseTable = "score_ledger"
+	// ScoreEntriesColumn is the table column denoting the score_entries relation/edge.
+	ScoreEntriesColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -292,6 +319,48 @@ func ByAuthTokens(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newAuthTokensStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByTexturesCount orders the results by textures count.
+func ByTexturesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newTexturesStep(), opts...)
+	}
+}
+
+// ByTextures orders the results by textures terms.
+func ByTextures(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTexturesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByClosetItemsCount orders the results by closet_items count.
+func ByClosetItemsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newClosetItemsStep(), opts...)
+	}
+}
+
+// ByClosetItems orders the results by closet_items terms.
+func ByClosetItems(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newClosetItemsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByScoreEntriesCount orders the results by score_entries count.
+func ByScoreEntriesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newScoreEntriesStep(), opts...)
+	}
+}
+
+// ByScoreEntries orders the results by score_entries terms.
+func ByScoreEntries(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newScoreEntriesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newSessionsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -304,5 +373,26 @@ func newAuthTokensStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AuthTokensInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, AuthTokensTable, AuthTokensColumn),
+	)
+}
+func newTexturesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TexturesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, TexturesTable, TexturesColumn),
+	)
+}
+func newClosetItemsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ClosetItemsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ClosetItemsTable, ClosetItemsColumn),
+	)
+}
+func newScoreEntriesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ScoreEntriesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ScoreEntriesTable, ScoreEntriesColumn),
 	)
 }

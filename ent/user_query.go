@@ -13,20 +13,26 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
+	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
+	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
+	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 )
 
 // UserQuery is the builder for querying User entities.
 type UserQuery struct {
 	config
-	ctx            *QueryContext
-	order          []user.OrderOption
-	inters         []Interceptor
-	predicates     []predicate.User
-	withSessions   *SessionQuery
-	withAuthTokens *AuthTokenQuery
+	ctx              *QueryContext
+	order            []user.OrderOption
+	inters           []Interceptor
+	predicates       []predicate.User
+	withSessions     *SessionQuery
+	withAuthTokens   *AuthTokenQuery
+	withTextures     *TextureQuery
+	withClosetItems  *ClosetItemQuery
+	withScoreEntries *ScoreEntryQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -100,6 +106,72 @@ func (_q *UserQuery) QueryAuthTokens() *AuthTokenQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(authtoken.Table, authtoken.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.AuthTokensTable, user.AuthTokensColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryTextures chains the current query on the "textures" edge.
+func (_q *UserQuery) QueryTextures() *TextureQuery {
+	query := (&TextureClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(texture.Table, texture.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.TexturesTable, user.TexturesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryClosetItems chains the current query on the "closet_items" edge.
+func (_q *UserQuery) QueryClosetItems() *ClosetItemQuery {
+	query := (&ClosetItemClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(closetitem.Table, closetitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ClosetItemsTable, user.ClosetItemsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryScoreEntries chains the current query on the "score_entries" edge.
+func (_q *UserQuery) QueryScoreEntries() *ScoreEntryQuery {
+	query := (&ScoreEntryClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(scoreentry.Table, scoreentry.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ScoreEntriesTable, user.ScoreEntriesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -294,13 +366,16 @@ func (_q *UserQuery) Clone() *UserQuery {
 		return nil
 	}
 	return &UserQuery{
-		config:         _q.config,
-		ctx:            _q.ctx.Clone(),
-		order:          append([]user.OrderOption{}, _q.order...),
-		inters:         append([]Interceptor{}, _q.inters...),
-		predicates:     append([]predicate.User{}, _q.predicates...),
-		withSessions:   _q.withSessions.Clone(),
-		withAuthTokens: _q.withAuthTokens.Clone(),
+		config:           _q.config,
+		ctx:              _q.ctx.Clone(),
+		order:            append([]user.OrderOption{}, _q.order...),
+		inters:           append([]Interceptor{}, _q.inters...),
+		predicates:       append([]predicate.User{}, _q.predicates...),
+		withSessions:     _q.withSessions.Clone(),
+		withAuthTokens:   _q.withAuthTokens.Clone(),
+		withTextures:     _q.withTextures.Clone(),
+		withClosetItems:  _q.withClosetItems.Clone(),
+		withScoreEntries: _q.withScoreEntries.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -326,6 +401,39 @@ func (_q *UserQuery) WithAuthTokens(opts ...func(*AuthTokenQuery)) *UserQuery {
 		opt(query)
 	}
 	_q.withAuthTokens = query
+	return _q
+}
+
+// WithTextures tells the query-builder to eager-load the nodes that are connected to
+// the "textures" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithTextures(opts ...func(*TextureQuery)) *UserQuery {
+	query := (&TextureClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withTextures = query
+	return _q
+}
+
+// WithClosetItems tells the query-builder to eager-load the nodes that are connected to
+// the "closet_items" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithClosetItems(opts ...func(*ClosetItemQuery)) *UserQuery {
+	query := (&ClosetItemClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withClosetItems = query
+	return _q
+}
+
+// WithScoreEntries tells the query-builder to eager-load the nodes that are connected to
+// the "score_entries" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithScoreEntries(opts ...func(*ScoreEntryQuery)) *UserQuery {
+	query := (&ScoreEntryClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withScoreEntries = query
 	return _q
 }
 
@@ -407,9 +515,12 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [5]bool{
 			_q.withSessions != nil,
 			_q.withAuthTokens != nil,
+			_q.withTextures != nil,
+			_q.withClosetItems != nil,
+			_q.withScoreEntries != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -441,6 +552,27 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := _q.loadAuthTokens(ctx, query, nodes,
 			func(n *User) { n.Edges.AuthTokens = []*AuthToken{} },
 			func(n *User, e *AuthToken) { n.Edges.AuthTokens = append(n.Edges.AuthTokens, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withTextures; query != nil {
+		if err := _q.loadTextures(ctx, query, nodes,
+			func(n *User) { n.Edges.Textures = []*Texture{} },
+			func(n *User, e *Texture) { n.Edges.Textures = append(n.Edges.Textures, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withClosetItems; query != nil {
+		if err := _q.loadClosetItems(ctx, query, nodes,
+			func(n *User) { n.Edges.ClosetItems = []*ClosetItem{} },
+			func(n *User, e *ClosetItem) { n.Edges.ClosetItems = append(n.Edges.ClosetItems, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withScoreEntries; query != nil {
+		if err := _q.loadScoreEntries(ctx, query, nodes,
+			func(n *User) { n.Edges.ScoreEntries = []*ScoreEntry{} },
+			func(n *User, e *ScoreEntry) { n.Edges.ScoreEntries = append(n.Edges.ScoreEntries, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -505,6 +637,99 @@ func (_q *UserQuery) loadAuthTokens(ctx context.Context, query *AuthTokenQuery, 
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadTextures(ctx context.Context, query *TextureQuery, nodes []*User, init func(*User), assign func(*User, *Texture)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(texture.FieldUploaderID)
+	}
+	query.Where(predicate.Texture(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.TexturesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UploaderID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "uploader_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "uploader_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadClosetItems(ctx context.Context, query *ClosetItemQuery, nodes []*User, init func(*User), assign func(*User, *ClosetItem)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(closetitem.FieldUserID)
+	}
+	query.Where(predicate.ClosetItem(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.ClosetItemsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadScoreEntries(ctx context.Context, query *ScoreEntryQuery, nodes []*User, init func(*User), assign func(*User, *ScoreEntry)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(scoreentry.FieldUserID)
+	}
+	query.Where(predicate.ScoreEntry(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.ScoreEntriesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

@@ -47,7 +47,27 @@
   },
   "skinlib": {
     "title": "Skin Library",
-    "body": "The skin library is under construction and arrives in the next milestone (M2)."
+    "description": "Browse and search skins and capes shared by everyone.",
+    "upload": "Upload",
+    "category": "Category",
+    "sort": "Sort",
+    "search": "Search by name",
+    "categories": {
+      "all": "All",
+      "skins": "Skins",
+      "steve": "Classic",
+      "alex": "Slim",
+      "capes": "Capes"
+    },
+    "sorts": {
+      "time": "Newest",
+      "likes": "Most liked"
+    },
+    "empty": "The library is empty. Upload the first texture!",
+    "noMatch": "No textures match.",
+    "loadFailed": "Could not load; please try again later.",
+    "loading": "Loading…",
+    "more": "Load more"
   },
   "about": {
     "title": "About SkinLoom",
@@ -92,7 +112,8 @@
     "noAccount": "No account yet?",
     "register": "Register",
     "forgot": "Forgot your password?",
-    "admin": "Open the admin panel"
+    "admin": "Open the admin panel",
+    "closet": "Closet"
   },
   "setup": {
     "title": "Set up your site",
@@ -298,5 +319,65 @@
       "load": "Loading failed. Reload to try again.",
       "save": "Saving failed."
     }
+  },
+  "texture": {
+    "private": "Private",
+    "types": {
+      "steve": "Classic skin",
+      "alex": "Slim skin",
+      "cape": "Cape"
+    },
+    "deletedUser": "Deleted user",
+    "likes": "Likes",
+    "notAvailable": "Texture not available",
+    "privateNotice": "This texture is private; only its uploader can see it.",
+    "loadFailed": "Could not load; please try again later.",
+    "back": "Back to the library",
+    "preview": "3D preview of {name}",
+    "inCloset": "In your closet",
+    "uploader": "Uploader",
+    "size": "Size",
+    "uploaded": "Uploaded",
+    "hash": "Hash",
+    "download": "Download original"
+  },
+  "upload": {
+    "title": "Upload a texture",
+    "intro": "PNG skins and capes. You have {score} points.",
+    "noPreview": "Pick an image to preview it here",
+    "duplicate": "This image is already in the library: nothing was uploaded or charged.",
+    "viewExisting": "View it",
+    "file": "Image",
+    "picked": "{w} × {h} pixels",
+    "fileHint": "PNG, at most {kb} KB and {width} pixels wide.",
+    "name": "Name",
+    "type": "Type",
+    "typeHint": "Chosen from the image; change it if needed. Slim skins have 3-pixel arms.",
+    "public": "Public (shown in the library; private textures cost more)",
+    "cost": "About {cost} points (you have {score}); the server counts the size after recompressing.",
+    "rates": "Per KB: {pub} points public, {priv} private.",
+    "uploading": "Uploading…",
+    "submit": "Upload",
+    "errors": {
+      "notPng": "Only PNG images are accepted.",
+      "tooLarge": "The image must be at most {kb} KB.",
+      "unreadable": "This image cannot be read.",
+      "noFile": "Pick an image first.",
+      "score": "Not enough points.",
+      "failed": "Upload failed; please try again later."
+    }
+  },
+  "closet": {
+    "title": "My closet",
+    "intro": "Textures you uploaded or saved. Players can only wear textures from your closet.",
+    "skins": "Skins",
+    "capes": "Capes",
+    "search": "Search by name",
+    "loadFailed": "Could not load; please try again later.",
+    "noMatch": "Nothing found.",
+    "empty": "Your closet is empty.",
+    "browse": "Browse the library",
+    "upload": "Upload",
+    "more": "Load more"
   }
 }

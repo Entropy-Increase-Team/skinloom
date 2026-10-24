@@ -12,7 +12,10 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
+	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
+	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
+	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 )
 
@@ -236,6 +239,51 @@ func (_c *UserCreate) AddAuthTokens(v ...*AuthToken) *UserCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddAuthTokenIDs(ids...)
+}
+
+// AddTextureIDs adds the "textures" edge to the Texture entity by IDs.
+func (_c *UserCreate) AddTextureIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddTextureIDs(ids...)
+	return _c
+}
+
+// AddTextures adds the "textures" edges to the Texture entity.
+func (_c *UserCreate) AddTextures(v ...*Texture) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddTextureIDs(ids...)
+}
+
+// AddClosetItemIDs adds the "closet_items" edge to the ClosetItem entity by IDs.
+func (_c *UserCreate) AddClosetItemIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddClosetItemIDs(ids...)
+	return _c
+}
+
+// AddClosetItems adds the "closet_items" edges to the ClosetItem entity.
+func (_c *UserCreate) AddClosetItems(v ...*ClosetItem) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddClosetItemIDs(ids...)
+}
+
+// AddScoreEntryIDs adds the "score_entries" edge to the ScoreEntry entity by IDs.
+func (_c *UserCreate) AddScoreEntryIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddScoreEntryIDs(ids...)
+	return _c
+}
+
+// AddScoreEntries adds the "score_entries" edges to the ScoreEntry entity.
+func (_c *UserCreate) AddScoreEntries(v ...*ScoreEntry) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddScoreEntryIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -508,6 +556,54 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(authtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.TexturesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.TexturesTable,
+			Columns: []string{user.TexturesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(texture.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ClosetItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ClosetItemsTable,
+			Columns: []string{user.ClosetItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(closetitem.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ScoreEntriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ScoreEntriesTable,
+			Columns: []string{user.ScoreEntriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(scoreentry.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

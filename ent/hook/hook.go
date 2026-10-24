@@ -33,6 +33,30 @@ func (f AuthTokenFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, e
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AuthTokenMutation", m)
 }
 
+// The BlobFunc type is an adapter to allow the use of ordinary
+// function as Blob mutator.
+type BlobFunc func(context.Context, *ent.BlobMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BlobFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.BlobMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BlobMutation", m)
+}
+
+// The ClosetItemFunc type is an adapter to allow the use of ordinary
+// function as ClosetItem mutator.
+type ClosetItemFunc func(context.Context, *ent.ClosetItemMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ClosetItemFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ClosetItemMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ClosetItemMutation", m)
+}
+
 // The JobFunc type is an adapter to allow the use of ordinary
 // function as Job mutator.
 type JobFunc func(context.Context, *ent.JobMutation) (ent.Value, error)
@@ -43,6 +67,18 @@ func (f JobFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) 
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.JobMutation", m)
+}
+
+// The ScoreEntryFunc type is an adapter to allow the use of ordinary
+// function as ScoreEntry mutator.
+type ScoreEntryFunc func(context.Context, *ent.ScoreEntryMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ScoreEntryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ScoreEntryMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ScoreEntryMutation", m)
 }
 
 // The SessionFunc type is an adapter to allow the use of ordinary
@@ -79,6 +115,18 @@ func (f SystemStateFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value,
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SystemStateMutation", m)
+}
+
+// The TextureFunc type is an adapter to allow the use of ordinary
+// function as Texture mutator.
+type TextureFunc func(context.Context, *ent.TextureMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f TextureFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.TextureMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TextureMutation", m)
 }
 
 // The UserFunc type is an adapter to allow the use of ordinary

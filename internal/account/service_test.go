@@ -52,6 +52,7 @@ func newService(t *testing.T, driver, dsn string) *Service {
 	}
 	if driver != "sqlite" { // shared server database: start from empty account tables
 		for _, q := range []string{
+			"DELETE FROM closet_items", "DELETE FROM textures", "DELETE FROM blobs", "DELETE FROM score_ledger",
 			"DELETE FROM jobs", "DELETE FROM sessions", "DELETE FROM auth_tokens", "DELETE FROM users",
 			"DELETE FROM audit_logs", "DELETE FROM system_state WHERE " + quoteKey(driver) + " = 'setup.completed'",
 		} {
@@ -385,6 +386,9 @@ func testRegister(t *testing.T, s *Service) {
 	}
 	if u.Role != user.RoleUser || u.Score != 1000 || u.EmailNormalized != "steve@example.com" || u.RegisterIP != meta.IP || u.EmailVerifiedAt != nil {
 		t.Fatalf("registered %+v", u)
+	}
+	if e := s.db.ScoreEntry.Query().OnlyX(ctx); e.UserID != u.ID || e.Delta != 1000 || e.Balance != 1000 || e.Reason != "register" {
+		t.Fatalf("the initial score must be in the ledger: %+v", e)
 	}
 	if v, _ := s.Authenticate(ctx, sess.Token); v == nil || v.User.ID != u.ID || v.IsAdmin() {
 		t.Fatal("registration must sign the new user in as an ordinary user")

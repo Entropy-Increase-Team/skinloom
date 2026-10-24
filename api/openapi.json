@@ -385,6 +385,62 @@
         ],
         "type": "object"
       },
+      "ClosetItemView": {
+        "additionalProperties": false,
+        "properties": {
+          "addedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "texture": {
+            "$ref": "#/components/schemas/TextureView"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "addedAt",
+          "texture"
+        ],
+        "type": "object"
+      },
+      "ClosetPage": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ClosetPage.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ClosetItemView"
+            },
+            "type": "array"
+          },
+          "next": {
+            "description": "Pass as before= for the next page; 0 = last page",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "next"
+        ],
+        "type": "object"
+      },
       "DeleteMeInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -744,6 +800,37 @@
         ],
         "type": "object"
       },
+      "ScoreRates": {
+        "additionalProperties": false,
+        "properties": {
+          "awardPerTexture": {
+            "description": "Earned for a public upload",
+            "format": "int64",
+            "type": "integer"
+          },
+          "perClosetItem": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "perStorage": {
+            "description": "Per KB of a public upload",
+            "format": "int64",
+            "type": "integer"
+          },
+          "privatePerStorage": {
+            "description": "Per KB of a private upload",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "perStorage",
+          "privatePerStorage",
+          "perClosetItem",
+          "awardPerTexture"
+        ],
+        "type": "object"
+      },
       "ServerInfo": {
         "additionalProperties": false,
         "properties": {
@@ -955,6 +1042,211 @@
         ],
         "type": "object"
       },
+      "TextureDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/TextureDetail.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "hash": {
+            "description": "SHA-256 of the file; the image is at /textures/{hash}",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inCloset": {
+            "description": "In the signed-in user's closet",
+            "type": "boolean"
+          },
+          "likes": {
+            "description": "Closets holding it",
+            "format": "int64",
+            "type": "integer"
+          },
+          "mine": {
+            "description": "Uploaded by the signed-in user",
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "public": {
+            "type": "boolean"
+          },
+          "size": {
+            "description": "Bytes",
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": {
+            "description": "steve and alex are skins (classic and slim arms)",
+            "enum": [
+              "steve",
+              "alex",
+              "cape"
+            ],
+            "type": "string"
+          },
+          "uploader": {
+            "$ref": "#/components/schemas/UploaderView",
+            "description": "Absent when the uploader's account is gone"
+          }
+        },
+        "required": [
+          "inCloset",
+          "mine",
+          "id",
+          "name",
+          "type",
+          "hash",
+          "size",
+          "public",
+          "likes",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "TexturePage": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/TexturePage.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "next": {
+            "description": "Pass as cursor= for the next page; empty = last page",
+            "type": "string"
+          },
+          "textures": {
+            "items": {
+              "$ref": "#/components/schemas/TextureView"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "textures",
+          "next"
+        ],
+        "type": "object"
+      },
+      "TextureRules": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/TextureRules.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "allowDownload": {
+            "type": "boolean"
+          },
+          "contentPolicy": {
+            "description": "Markdown, in the request's language",
+            "type": "string"
+          },
+          "maxSizeKb": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "maxWidth": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nameRule": {
+            "description": "Regular expression names must match (RE2)",
+            "type": "string"
+          },
+          "rates": {
+            "$ref": "#/components/schemas/ScoreRates"
+          }
+        },
+        "required": [
+          "maxSizeKb",
+          "maxWidth",
+          "allowDownload",
+          "rates"
+        ],
+        "type": "object"
+      },
+      "TextureView": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "hash": {
+            "description": "SHA-256 of the file; the image is at /textures/{hash}",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "likes": {
+            "description": "Closets holding it",
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "public": {
+            "type": "boolean"
+          },
+          "size": {
+            "description": "Bytes",
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": {
+            "description": "steve and alex are skins (classic and slim arms)",
+            "enum": [
+              "steve",
+              "alex",
+              "cape"
+            ],
+            "type": "string"
+          },
+          "uploader": {
+            "$ref": "#/components/schemas/UploaderView",
+            "description": "Absent when the uploader's account is gone"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "hash",
+          "size",
+          "public",
+          "likes",
+          "createdAt"
+        ],
+        "type": "object"
+      },
       "ThemeView": {
         "additionalProperties": false,
         "properties": {
@@ -1102,6 +1394,61 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "UploadView": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/UploadView.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "cost": {
+            "description": "Score spent; negative when the upload earned score",
+            "format": "int64",
+            "type": "integer"
+          },
+          "duplicate": {
+            "description": "The same image was already in the library: this is that texture, and nothing was charged",
+            "type": "boolean"
+          },
+          "score": {
+            "description": "The uploader's score afterwards",
+            "format": "int64",
+            "type": "integer"
+          },
+          "texture": {
+            "$ref": "#/components/schemas/TextureView"
+          }
+        },
+        "required": [
+          "texture",
+          "duplicate",
+          "cost",
+          "score"
+        ],
+        "type": "object"
+      },
+      "UploaderView": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nickname": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nickname"
+        ],
         "type": "object"
       },
       "UserPage": {
@@ -2262,6 +2609,89 @@
         ]
       }
     },
+    "/api/v1/me/closet": {
+      "get": {
+        "operationId": "listCloset",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "enum": [
+                "skin",
+                "cape",
+                ""
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Item name fragment",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Item name fragment",
+              "maxLength": 50,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosetPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Your closet",
+        "tags": [
+          "me"
+        ]
+      }
+    },
     "/api/v1/me/delete": {
       "post": {
         "operationId": "deleteMe",
@@ -2663,6 +3093,272 @@
         "summary": "Site bootstrap",
         "tags": [
           "site"
+        ]
+      }
+    },
+    "/api/v1/textures": {
+      "get": {
+        "description": "Public textures. With uploader set to yourself (or as an administrator), that user's private textures too. Cursor paging: pass next as cursor.",
+        "operationId": "listTextures",
+        "parameters": [
+          {
+            "description": "skin = steve and alex",
+            "explode": false,
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "description": "skin = steve and alex",
+              "enum": [
+                "skin",
+                "steve",
+                "alex",
+                "cape",
+                ""
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Name fragment",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Name fragment",
+              "maxLength": 50,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "uploader",
+            "schema": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "time (default, newest first) or likes",
+            "explode": false,
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "description": "time (default, newest first) or likes",
+              "enum": [
+                "time",
+                "likes",
+                ""
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TexturePage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "The skin library",
+        "tags": [
+          "textures"
+        ]
+      },
+      "post": {
+        "description": "The image is checked against texture.* settings, re-encoded and charged for; it goes into the uploader's closet. If the same image is already in the library (public, or the uploader's own), that texture is returned instead and nothing is charged. 402 when the score does not cover the cost.",
+        "operationId": "uploadTexture",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "file": {
+                  "contentType": "image/png,application/octet-stream"
+                },
+                "name": {
+                  "contentType": "text/plain"
+                },
+                "public": {
+                  "contentType": "text/plain"
+                },
+                "type": {
+                  "contentType": "text/plain"
+                }
+              },
+              "schema": {
+                "properties": {
+                  "file": {
+                    "contentEncoding": "binary",
+                    "contentMediaType": "application/octet-stream",
+                    "description": "PNG image",
+                    "format": "binary",
+                    "type": "string"
+                  },
+                  "name": {
+                    "description": "1 to 50 characters",
+                    "type": "string"
+                  },
+                  "public": {
+                    "description": "Shown in the skin library; private textures cost more",
+                    "type": "boolean"
+                  },
+                  "type": {
+                    "description": "steve, alex or cape",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file",
+                  "name",
+                  "type",
+                  "public"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Upload a skin or cape",
+        "tags": [
+          "textures"
+        ]
+      }
+    },
+    "/api/v1/textures/rules": {
+      "get": {
+        "operationId": "getTextureRules",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextureRules"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Upload rules and costs",
+        "tags": [
+          "textures"
+        ]
+      }
+    },
+    "/api/v1/textures/{id}": {
+      "get": {
+        "description": "Private textures only for their uploader and administrators; others get texture.private_status (403 or 404).",
+        "operationId": "getTexture",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextureDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "A texture",
+        "tags": [
+          "textures"
         ]
       }
     }

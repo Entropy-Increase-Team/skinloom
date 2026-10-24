@@ -20,6 +20,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 )
 
 // Session lifetimes. A "remember me" session lasts 30 days; otherwise the cookie dies
@@ -426,7 +427,6 @@ func (s *Service) Register(ctx context.Context, in RegisterInput, p RegisterPoli
 			SetNickname(strings.TrimSpace(in.Nickname)).
 			SetPasswordHash(hash).
 			SetPasswordAlgo(AlgoArgon2id).
-			SetScore(p.InitialScore).
 			SetRegisterIP(meta.IP).
 			SetLastLoginAt(s.now()).
 			Save(ctx)
@@ -435,6 +435,11 @@ func (s *Service) Register(ctx context.Context, in RegisterInput, p RegisterPoli
 				return &FieldError{Field: "email", Message: "already registered"}
 			}
 			return err
+		}
+		if p.InitialScore > 0 {
+			if u.Score, err = score.Apply(ctx, tx, score.Change{UserID: u.ID, Delta: p.InitialScore, Reason: score.ReasonRegister}); err != nil {
+				return err
+			}
 		}
 		if sess, err = s.createSession(ctx, tx, u.ID, false, meta); err != nil {
 			return err

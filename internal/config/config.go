@@ -35,8 +35,25 @@ var listKeys = map[string]bool{"server.trusted_proxies": true}
 type Config struct {
 	Server   Server   `koanf:"server"`
 	Database Database `koanf:"database"`
+	Storage  Storage  `koanf:"storage"`
 	Web      Web      `koanf:"web"`
 	Log      Log      `koanf:"log"`
+}
+
+// Storage is where texture files live.
+type Storage struct {
+	// Driver: local (S3-compatible stores arrive later in M2). Cold.
+	Driver string `koanf:"driver"`
+	// Path of the local store: absolute, or relative to the data dir. Cold.
+	Path string `koanf:"path"`
+}
+
+// Dir is the local store's directory for a data dir.
+func (s Storage) Dir(dataDir string) string {
+	if filepath.IsAbs(s.Path) {
+		return s.Path
+	}
+	return filepath.Join(dataDir, s.Path)
 }
 
 type Server struct {
@@ -83,6 +100,7 @@ func Defaults() Config {
 	return Config{
 		Server:   Server{Listen: ":17546", Role: "all"},
 		Database: Database{Driver: "sqlite", DSN: "skinloom.db"},
+		Storage:  Storage{Driver: "local", Path: "textures"},
 		Web:      Web{Mode: "managed", Port: 17547, DevDir: "web", PackageManager: "auto"},
 		Log:      Log{Level: "info", Format: "text"},
 	}
@@ -149,6 +167,16 @@ func (c Config) Validate() error {
 	default:
 		return fmt.Errorf("web.package_manager must be auto, bun, pnpm or npm, got %q", c.Web.PackageManager)
 	}
+	switch c.Storage.Driver {
+	case "local":
+		if c.Storage.Path == "" {
+			return errors.New("storage.path is required for the local driver")
+		}
+	case "s3":
+		return errors.New(`storage.driver "s3" arrives later in M2; use local`)
+	default:
+		return fmt.Errorf("storage.driver must be local, got %q", c.Storage.Driver)
+	}
 	if c.Web.Port < 0 || c.Web.Port > 65535 {
 		return fmt.Errorf("web.port must be 0-65535, got %d", c.Web.Port)
 	}
@@ -188,6 +216,8 @@ var coldKeys = map[string]bool{
 	"database.driver":         true,
 	"database.dsn":            true,
 	"database.max_open_conns": true,
+	"storage.driver":          true,
+	"storage.path":            true,
 }
 
 // Diff lists the dotted keys whose values differ between a and b.
@@ -239,6 +269,10 @@ driver = "sqlite"         # [cold] sqlite | mysql | postgres
 dsn = "skinloom.db"       # [cold] sqlite: path relative to the data dir
                           #        mysql:    user:pass@tcp(127.0.0.1:3306)/skinloom
                           #        postgres: postgres://user:pass@127.0.0.1:5432/skinloom
+
+[storage]
+driver = "local"          # [cold] local (S3-compatible stores arrive later)
+path = "textures"         # [cold] texture files: absolute, or relative to the data dir
 
 [web]
 mode = "managed"          # [hot] managed | dev | external | off

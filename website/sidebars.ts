@@ -3,7 +3,7 @@ import type { SidebarsConfig } from '@docusaurus/plugin-content-docs'
 const sidebars: SidebarsConfig = {
   guide: [
     'intro',
-    { type: 'category', label: '开始使用', collapsed: false, items: ['getting-started/quick-start', 'getting-started/configuration', 'getting-started/accounts'] },
+    { type: 'category', label: '开始使用', collapsed: false, items: ['getting-started/quick-start', 'getting-started/configuration', 'getting-started/accounts', 'getting-started/textures'] },
     {
       type: 'category',
       label: '部署',

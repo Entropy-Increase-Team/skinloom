@@ -20,7 +20,10 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/pubsub"
+	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
+	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
 	"github.com/Entropy-Increase-Team/skinloom/internal/theme"
 	"github.com/Entropy-Increase-Team/skinloom/themes"
 )
@@ -48,7 +51,8 @@ func newTestDeps(t *testing.T) Deps {
 		t.Fatal(err)
 	}
 	reg := settings.NewRegistry()
-	if err := reg.Register(slices.Concat(account.SettingDefs(), captcha.SettingDefs(), mail.SettingDefs())...); err != nil {
+	if err := reg.Register(slices.Concat(account.SettingDefs(), captcha.SettingDefs(), mail.SettingDefs(),
+		score.SettingDefs(), texture.SettingDefs())...); err != nil {
 		t.Fatal(err)
 	}
 	reg.SetValidator("theme.active", themeReg.ValidateActive)
@@ -56,8 +60,13 @@ func newTestDeps(t *testing.T) Deps {
 	if err := svc.Load(ctx); err != nil {
 		t.Fatal(err)
 	}
+	store, err := storage.NewLocal(dir + "/textures")
+	if err != nil {
+		t.Fatal(err)
+	}
 	return Deps{Log: log, DB: database, Settings: svc, Themes: themeReg, Broker: broker, AdminToken: testToken,
-		Accounts: account.NewService(database.Ent, log), Captcha: captcha.NewService(captcha.Options{}), Mailer: mail.New(log)}
+		Accounts: account.NewService(database.Ent, log), Captcha: captcha.NewService(captcha.Options{}), Mailer: mail.New(log),
+		Textures: texture.NewService(database.Ent, store, log)}
 }
 
 func do(t *testing.T, h http.Handler, method, path, auth, body string) *httptest.ResponseRecorder {

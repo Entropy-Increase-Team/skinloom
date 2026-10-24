@@ -931,6 +931,75 @@ func HasAuthTokensWith(preds ...predicate.AuthToken) predicate.User {
 	})
 }
 
+// HasTextures applies the HasEdge predicate on the "textures" edge.
+func HasTextures() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, TexturesTable, TexturesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTexturesWith applies the HasEdge predicate on the "textures" edge with a given conditions (other predicates).
+func HasTexturesWith(preds ...predicate.Texture) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newTexturesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasClosetItems applies the HasEdge predicate on the "closet_items" edge.
+func HasClosetItems() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ClosetItemsTable, ClosetItemsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasClosetItemsWith applies the HasEdge predicate on the "closet_items" edge with a given conditions (other predicates).
+func HasClosetItemsWith(preds ...predicate.ClosetItem) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newClosetItemsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasScoreEntries applies the HasEdge predicate on the "score_entries" edge.
+func HasScoreEntries() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ScoreEntriesTable, ScoreEntriesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasScoreEntriesWith applies the HasEdge predicate on the "score_entries" edge with a given conditions (other predicates).
+func HasScoreEntriesWith(preds ...predicate.ScoreEntry) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newScoreEntriesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.User) predicate.User {
 	return predicate.User(sql.AndPredicates(predicates...))

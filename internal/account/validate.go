@@ -9,9 +9,10 @@ import (
 	"fmt"
 	"net/mail"
 	"strings"
-	"time"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
 )
 
 var (
@@ -33,43 +34,13 @@ var (
 )
 
 // FieldError rejects one input field; the API reports it as a validation error.
-type FieldError struct {
-	Field   string
-	Message string
-}
-
-func (e *FieldError) Error() string { return e.Field + ": " + e.Message }
-
-// FieldErrors returns every FieldError in err (validation joins one per bad field).
-func FieldErrors(err error) []*FieldError {
-	var out []*FieldError
-	var walk func(error)
-	walk = func(e error) {
-		var fe *FieldError
-		switch x := e.(type) {
-		case nil:
-		case interface{ Unwrap() []error }:
-			for _, inner := range x.Unwrap() {
-				walk(inner)
-			}
-		default:
-			if errors.As(e, &fe) {
-				out = append(out, fe)
-			}
-		}
-	}
-	walk(err)
-	return out
-}
+type FieldError = validate.FieldError
 
 // RateLimitError means too many failed attempts; retry after RetryAfter.
-type RateLimitError struct {
-	RetryAfter time.Duration
-}
+type RateLimitError = validate.RateLimitError
 
-func (e *RateLimitError) Error() string {
-	return fmt.Sprintf("too many attempts, retry in %s", e.RetryAfter.Round(time.Second))
-}
+// FieldErrors returns every FieldError in err (validation joins one per bad field).
+func FieldErrors(err error) []*FieldError { return validate.FieldErrors(err) }
 
 // NormalizeEmail is the uniqueness key: trimmed and lower-cased (BS issue #581 made
 // addresses case-sensitive). Provider-specific rules such as Gmail dots are not applied.

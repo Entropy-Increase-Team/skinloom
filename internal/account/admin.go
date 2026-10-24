@@ -14,6 +14,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 )
 
 // superadminLock is the system_state row that transactions removing a super
@@ -225,9 +226,6 @@ func (s *Service) AdminUpdateUser(ctx context.Context, a Actor, id int64, up Adm
 			// Also cancels a pending deletion: an administrator can restore an account.
 			upd.SetStatus(user.Status(*up.Status)).ClearDeletedAt()
 		}
-		if up.Score != nil {
-			upd.SetScore(*up.Score)
-		}
 		if up.EmailVerified != nil {
 			if *up.EmailVerified {
 				upd.SetEmailVerifiedAt(now)
@@ -244,6 +242,14 @@ func (s *Service) AdminUpdateUser(ctx context.Context, a Actor, id int64, up Adm
 				return &FieldError{Field: "email", Message: "already registered"}
 			}
 			return err
+		}
+		// The administrator sets a balance; the ledger records the difference, with
+		// the administrator as the actor (design 02 F31).
+		if up.Score != nil && *up.Score != u.Score {
+			if u.Score, err = score.Apply(ctx, tx, score.Change{UserID: id, Delta: *up.Score - u.Score,
+				Reason: score.ReasonAdmin, Actor: actorID(a)}); err != nil {
+				return err
+			}
 		}
 		if hash != "" || (up.Status != nil && *up.Status == "banned") {
 			if err := revokeSessions(ctx, tx, id, now); err != nil {

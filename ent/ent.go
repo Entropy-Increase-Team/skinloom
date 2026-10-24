@@ -14,10 +14,14 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/Entropy-Increase-Team/skinloom/ent/auditlog"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
+	"github.com/Entropy-Increase-Team/skinloom/ent/blob"
+	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/job"
+	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/setting"
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
+	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 )
 
@@ -81,10 +85,14 @@ func checkColumn(t, c string) error {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			auditlog.Table:    auditlog.ValidColumn,
 			authtoken.Table:   authtoken.ValidColumn,
+			blob.Table:        blob.ValidColumn,
+			closetitem.Table:  closetitem.ValidColumn,
 			job.Table:         job.ValidColumn,
+			scoreentry.Table:  scoreentry.ValidColumn,
 			session.Table:     session.ValidColumn,
 			setting.Table:     setting.ValidColumn,
 			systemstate.Table: systemstate.ValidColumn,
+			texture.Table:     texture.ValidColumn,
 			user.Table:        user.ValidColumn,
 		})
 	})

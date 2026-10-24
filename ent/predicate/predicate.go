@@ -12,8 +12,17 @@ type AuditLog func(*sql.Selector)
 // AuthToken is the predicate function for authtoken builders.
 type AuthToken func(*sql.Selector)
 
+// Blob is the predicate function for blob builders.
+type Blob func(*sql.Selector)
+
+// ClosetItem is the predicate function for closetitem builders.
+type ClosetItem func(*sql.Selector)
+
 // Job is the predicate function for job builders.
 type Job func(*sql.Selector)
+
+// ScoreEntry is the predicate function for scoreentry builders.
+type ScoreEntry func(*sql.Selector)
 
 // Session is the predicate function for session builders.
 type Session func(*sql.Selector)
@@ -23,6 +32,9 @@ type Setting func(*sql.Selector)
 
 // SystemState is the predicate function for systemstate builders.
 type SystemState func(*sql.Selector)
+
+// Texture is the predicate function for texture builders.
+type Texture func(*sql.Selector)
 
 // User is the predicate function for user builders.
 type User func(*sql.Selector)

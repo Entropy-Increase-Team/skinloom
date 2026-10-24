@@ -12,8 +12,11 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
+	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
+	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
+	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 )
 
@@ -273,6 +276,51 @@ func (_u *UserUpdate) AddAuthTokens(v ...*AuthToken) *UserUpdate {
 	return _u.AddAuthTokenIDs(ids...)
 }
 
+// AddTextureIDs adds the "textures" edge to the Texture entity by IDs.
+func (_u *UserUpdate) AddTextureIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddTextureIDs(ids...)
+	return _u
+}
+
+// AddTextures adds the "textures" edges to the Texture entity.
+func (_u *UserUpdate) AddTextures(v ...*Texture) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddTextureIDs(ids...)
+}
+
+// AddClosetItemIDs adds the "closet_items" edge to the ClosetItem entity by IDs.
+func (_u *UserUpdate) AddClosetItemIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddClosetItemIDs(ids...)
+	return _u
+}
+
+// AddClosetItems adds the "closet_items" edges to the ClosetItem entity.
+func (_u *UserUpdate) AddClosetItems(v ...*ClosetItem) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddClosetItemIDs(ids...)
+}
+
+// AddScoreEntryIDs adds the "score_entries" edge to the ScoreEntry entity by IDs.
+func (_u *UserUpdate) AddScoreEntryIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddScoreEntryIDs(ids...)
+	return _u
+}
+
+// AddScoreEntries adds the "score_entries" edges to the ScoreEntry entity.
+func (_u *UserUpdate) AddScoreEntries(v ...*ScoreEntry) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddScoreEntryIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdate) Mutation() *UserMutation {
 	return _u.mutation
@@ -318,6 +366,69 @@ func (_u *UserUpdate) RemoveAuthTokens(v ...*AuthToken) *UserUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveAuthTokenIDs(ids...)
+}
+
+// ClearTextures clears all "textures" edges to the Texture entity.
+func (_u *UserUpdate) ClearTextures() *UserUpdate {
+	_u.mutation.ClearTextures()
+	return _u
+}
+
+// RemoveTextureIDs removes the "textures" edge to Texture entities by IDs.
+func (_u *UserUpdate) RemoveTextureIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemoveTextureIDs(ids...)
+	return _u
+}
+
+// RemoveTextures removes "textures" edges to Texture entities.
+func (_u *UserUpdate) RemoveTextures(v ...*Texture) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveTextureIDs(ids...)
+}
+
+// ClearClosetItems clears all "closet_items" edges to the ClosetItem entity.
+func (_u *UserUpdate) ClearClosetItems() *UserUpdate {
+	_u.mutation.ClearClosetItems()
+	return _u
+}
+
+// RemoveClosetItemIDs removes the "closet_items" edge to ClosetItem entities by IDs.
+func (_u *UserUpdate) RemoveClosetItemIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemoveClosetItemIDs(ids...)
+	return _u
+}
+
+// RemoveClosetItems removes "closet_items" edges to ClosetItem entities.
+func (_u *UserUpdate) RemoveClosetItems(v ...*ClosetItem) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveClosetItemIDs(ids...)
+}
+
+// ClearScoreEntries clears all "score_entries" edges to the ScoreEntry entity.
+func (_u *UserUpdate) ClearScoreEntries() *UserUpdate {
+	_u.mutation.ClearScoreEntries()
+	return _u
+}
+
+// RemoveScoreEntryIDs removes the "score_entries" edge to ScoreEntry entities by IDs.
+func (_u *UserUpdate) RemoveScoreEntryIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemoveScoreEntryIDs(ids...)
+	return _u
+}
+
+// RemoveScoreEntries removes "score_entries" edges to ScoreEntry entities.
+func (_u *UserUpdate) RemoveScoreEntries(v ...*ScoreEntry) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveScoreEntryIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -555,6 +666,141 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(authtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TexturesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.TexturesTable,
+			Columns: []string{user.TexturesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(texture.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedTexturesIDs(); len(nodes) > 0 && !_u.mutation.TexturesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.TexturesTable,
+			Columns: []string{user.TexturesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(texture.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TexturesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.TexturesTable,
+			Columns: []string{user.TexturesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(texture.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ClosetItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ClosetItemsTable,
+			Columns: []string{user.ClosetItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(closetitem.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedClosetItemsIDs(); len(nodes) > 0 && !_u.mutation.ClosetItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ClosetItemsTable,
+			Columns: []string{user.ClosetItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(closetitem.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ClosetItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ClosetItemsTable,
+			Columns: []string{user.ClosetItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(closetitem.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ScoreEntriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ScoreEntriesTable,
+			Columns: []string{user.ScoreEntriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(scoreentry.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedScoreEntriesIDs(); len(nodes) > 0 && !_u.mutation.ScoreEntriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ScoreEntriesTable,
+			Columns: []string{user.ScoreEntriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(scoreentry.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ScoreEntriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ScoreEntriesTable,
+			Columns: []string{user.ScoreEntriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(scoreentry.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {
@@ -825,6 +1071,51 @@ func (_u *UserUpdateOne) AddAuthTokens(v ...*AuthToken) *UserUpdateOne {
 	return _u.AddAuthTokenIDs(ids...)
 }
 
+// AddTextureIDs adds the "textures" edge to the Texture entity by IDs.
+func (_u *UserUpdateOne) AddTextureIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddTextureIDs(ids...)
+	return _u
+}
+
+// AddTextures adds the "textures" edges to the Texture entity.
+func (_u *UserUpdateOne) AddTextures(v ...*Texture) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddTextureIDs(ids...)
+}
+
+// AddClosetItemIDs adds the "closet_items" edge to the ClosetItem entity by IDs.
+func (_u *UserUpdateOne) AddClosetItemIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddClosetItemIDs(ids...)
+	return _u
+}
+
+// AddClosetItems adds the "closet_items" edges to the ClosetItem entity.
+func (_u *UserUpdateOne) AddClosetItems(v ...*ClosetItem) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddClosetItemIDs(ids...)
+}
+
+// AddScoreEntryIDs adds the "score_entries" edge to the ScoreEntry entity by IDs.
+func (_u *UserUpdateOne) AddScoreEntryIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddScoreEntryIDs(ids...)
+	return _u
+}
+
+// AddScoreEntries adds the "score_entries" edges to the ScoreEntry entity.
+func (_u *UserUpdateOne) AddScoreEntries(v ...*ScoreEntry) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddScoreEntryIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdateOne) Mutation() *UserMutation {
 	return _u.mutation
@@ -870,6 +1161,69 @@ func (_u *UserUpdateOne) RemoveAuthTokens(v ...*AuthToken) *UserUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveAuthTokenIDs(ids...)
+}
+
+// ClearTextures clears all "textures" edges to the Texture entity.
+func (_u *UserUpdateOne) ClearTextures() *UserUpdateOne {
+	_u.mutation.ClearTextures()
+	return _u
+}
+
+// RemoveTextureIDs removes the "textures" edge to Texture entities by IDs.
+func (_u *UserUpdateOne) RemoveTextureIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemoveTextureIDs(ids...)
+	return _u
+}
+
+// RemoveTextures removes "textures" edges to Texture entities.
+func (_u *UserUpdateOne) RemoveTextures(v ...*Texture) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveTextureIDs(ids...)
+}
+
+// ClearClosetItems clears all "closet_items" edges to the ClosetItem entity.
+func (_u *UserUpdateOne) ClearClosetItems() *UserUpdateOne {
+	_u.mutation.ClearClosetItems()
+	return _u
+}
+
+// RemoveClosetItemIDs removes the "closet_items" edge to ClosetItem entities by IDs.
+func (_u *UserUpdateOne) RemoveClosetItemIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemoveClosetItemIDs(ids...)
+	return _u
+}
+
+// RemoveClosetItems removes "closet_items" edges to ClosetItem entities.
+func (_u *UserUpdateOne) RemoveClosetItems(v ...*ClosetItem) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveClosetItemIDs(ids...)
+}
+
+// ClearScoreEntries clears all "score_entries" edges to the ScoreEntry entity.
+func (_u *UserUpdateOne) ClearScoreEntries() *UserUpdateOne {
+	_u.mutation.ClearScoreEntries()
+	return _u
+}
+
+// RemoveScoreEntryIDs removes the "score_entries" edge to ScoreEntry entities by IDs.
+func (_u *UserUpdateOne) RemoveScoreEntryIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemoveScoreEntryIDs(ids...)
+	return _u
+}
+
+// RemoveScoreEntries removes "score_entries" edges to ScoreEntry entities.
+func (_u *UserUpdateOne) RemoveScoreEntries(v ...*ScoreEntry) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveScoreEntryIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -1137,6 +1491,141 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(authtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TexturesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.TexturesTable,
+			Columns: []string{user.TexturesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(texture.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedTexturesIDs(); len(nodes) > 0 && !_u.mutation.TexturesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.TexturesTable,
+			Columns: []string{user.TexturesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(texture.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TexturesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.TexturesTable,
+			Columns: []string{user.TexturesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(texture.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ClosetItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ClosetItemsTable,
+			Columns: []string{user.ClosetItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(closetitem.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedClosetItemsIDs(); len(nodes) > 0 && !_u.mutation.ClosetItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ClosetItemsTable,
+			Columns: []string{user.ClosetItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(closetitem.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ClosetItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ClosetItemsTable,
+			Columns: []string{user.ClosetItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(closetitem.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ScoreEntriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ScoreEntriesTable,
+			Columns: []string{user.ScoreEntriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(scoreentry.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedScoreEntriesIDs(); len(nodes) > 0 && !_u.mutation.ScoreEntriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ScoreEntriesTable,
+			Columns: []string{user.ScoreEntriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(scoreentry.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ScoreEntriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ScoreEntriesTable,
+			Columns: []string{user.ScoreEntriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(scoreentry.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

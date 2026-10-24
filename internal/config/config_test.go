@@ -62,3 +62,15 @@ func TestInvalidRole(t *testing.T) {
 		t.Fatal("want error for invalid role")
 	}
 }
+
+// Regression: an absolute storage.path was joined under the data dir.
+func TestStorageDir(t *testing.T) {
+	data := filepath.Join(t.TempDir(), "data")
+	abs := filepath.Join(t.TempDir(), "elsewhere")
+	if got := (Storage{Path: "textures"}).Dir(data); got != filepath.Join(data, "textures") {
+		t.Fatalf("relative: %s", got)
+	}
+	if got := (Storage{Path: abs}).Dir(data); got != abs {
+		t.Fatalf("absolute: %s", got)
+	}
+}

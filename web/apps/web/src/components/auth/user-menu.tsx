@@ -16,6 +16,9 @@ export function UserMenu({ viewer }: { viewer: Viewer }) {
   const [pending, setPending] = useState(false)
   return (
     <div className="flex items-center gap-2 text-sm">
+      <Link href="/user/closet" className="text-muted-foreground hover:text-foreground">
+        {t('closet')}
+      </Link>
       <Link href="/user/profile" className="max-w-32 truncate font-medium hover:underline" title={viewer.email}>
         {viewer.nickname}
       </Link>

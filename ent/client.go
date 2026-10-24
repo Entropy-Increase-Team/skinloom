@@ -17,10 +17,14 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/Entropy-Increase-Team/skinloom/ent/auditlog"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
+	"github.com/Entropy-Increase-Team/skinloom/ent/blob"
+	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/job"
+	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/setting"
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
+	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 
 	stdsql "database/sql"
@@ -35,14 +39,22 @@ type Client struct {
 	AuditLog *AuditLogClient
 	// AuthToken is the client for interacting with the AuthToken builders.
 	AuthToken *AuthTokenClient
+	// Blob is the client for interacting with the Blob builders.
+	Blob *BlobClient
+	// ClosetItem is the client for interacting with the ClosetItem builders.
+	ClosetItem *ClosetItemClient
 	// Job is the client for interacting with the Job builders.
 	Job *JobClient
+	// ScoreEntry is the client for interacting with the ScoreEntry builders.
+	ScoreEntry *ScoreEntryClient
 	// Session is the client for interacting with the Session builders.
 	Session *SessionClient
 	// Setting is the client for interacting with the Setting builders.
 	Setting *SettingClient
 	// SystemState is the client for interacting with the SystemState builders.
 	SystemState *SystemStateClient
+	// Texture is the client for interacting with the Texture builders.
+	Texture *TextureClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -58,10 +70,14 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.AuditLog = NewAuditLogClient(c.config)
 	c.AuthToken = NewAuthTokenClient(c.config)
+	c.Blob = NewBlobClient(c.config)
+	c.ClosetItem = NewClosetItemClient(c.config)
 	c.Job = NewJobClient(c.config)
+	c.ScoreEntry = NewScoreEntryClient(c.config)
 	c.Session = NewSessionClient(c.config)
 	c.Setting = NewSettingClient(c.config)
 	c.SystemState = NewSystemStateClient(c.config)
+	c.Texture = NewTextureClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -157,10 +173,14 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		config:      cfg,
 		AuditLog:    NewAuditLogClient(cfg),
 		AuthToken:   NewAuthTokenClient(cfg),
+		Blob:        NewBlobClient(cfg),
+		ClosetItem:  NewClosetItemClient(cfg),
 		Job:         NewJobClient(cfg),
+		ScoreEntry:  NewScoreEntryClient(cfg),
 		Session:     NewSessionClient(cfg),
 		Setting:     NewSettingClient(cfg),
 		SystemState: NewSystemStateClient(cfg),
+		Texture:     NewTextureClient(cfg),
 		User:        NewUserClient(cfg),
 	}, nil
 }
@@ -183,10 +203,14 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		config:      cfg,
 		AuditLog:    NewAuditLogClient(cfg),
 		AuthToken:   NewAuthTokenClient(cfg),
+		Blob:        NewBlobClient(cfg),
+		ClosetItem:  NewClosetItemClient(cfg),
 		Job:         NewJobClient(cfg),
+		ScoreEntry:  NewScoreEntryClient(cfg),
 		Session:     NewSessionClient(cfg),
 		Setting:     NewSettingClient(cfg),
 		SystemState: NewSystemStateClient(cfg),
+		Texture:     NewTextureClient(cfg),
 		User:        NewUserClient(cfg),
 	}, nil
 }
@@ -217,7 +241,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.AuditLog, c.AuthToken, c.Job, c.Session, c.Setting, c.SystemState, c.User,
+		c.AuditLog, c.AuthToken, c.Blob, c.ClosetItem, c.Job, c.ScoreEntry, c.Session,
+		c.Setting, c.SystemState, c.Texture, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -227,7 +252,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.AuditLog, c.AuthToken, c.Job, c.Session, c.Setting, c.SystemState, c.User,
+		c.AuditLog, c.AuthToken, c.Blob, c.ClosetItem, c.Job, c.ScoreEntry, c.Session,
+		c.Setting, c.SystemState, c.Texture, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -240,14 +266,22 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.AuditLog.mutate(ctx, m)
 	case *AuthTokenMutation:
 		return c.AuthToken.mutate(ctx, m)
+	case *BlobMutation:
+		return c.Blob.mutate(ctx, m)
+	case *ClosetItemMutation:
+		return c.ClosetItem.mutate(ctx, m)
 	case *JobMutation:
 		return c.Job.mutate(ctx, m)
+	case *ScoreEntryMutation:
+		return c.ScoreEntry.mutate(ctx, m)
 	case *SessionMutation:
 		return c.Session.mutate(ctx, m)
 	case *SettingMutation:
 		return c.Setting.mutate(ctx, m)
 	case *SystemStateMutation:
 		return c.SystemState.mutate(ctx, m)
+	case *TextureMutation:
+		return c.Texture.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	default:
@@ -537,6 +571,320 @@ func (c *AuthTokenClient) mutate(ctx context.Context, m *AuthTokenMutation) (Val
 	}
 }
 
+// BlobClient is a client for the Blob schema.
+type BlobClient struct {
+	config
+}
+
+// NewBlobClient returns a client for the Blob from the given config.
+func NewBlobClient(c config) *BlobClient {
+	return &BlobClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `blob.Hooks(f(g(h())))`.
+func (c *BlobClient) Use(hooks ...Hook) {
+	c.hooks.Blob = append(c.hooks.Blob, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `blob.Intercept(f(g(h())))`.
+func (c *BlobClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Blob = append(c.inters.Blob, interceptors...)
+}
+
+// Create returns a builder for creating a Blob entity.
+func (c *BlobClient) Create() *BlobCreate {
+	mutation := newBlobMutation(c.config, OpCreate)
+	return &BlobCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Blob entities.
+func (c *BlobClient) CreateBulk(builders ...*BlobCreate) *BlobCreateBulk {
+	return &BlobCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BlobClient) MapCreateBulk(slice any, setFunc func(*BlobCreate, int)) *BlobCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BlobCreateBulk{err: fmt.Errorf("calling to BlobClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BlobCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BlobCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Blob.
+func (c *BlobClient) Update() *BlobUpdate {
+	mutation := newBlobMutation(c.config, OpUpdate)
+	return &BlobUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BlobClient) UpdateOne(_m *Blob) *BlobUpdateOne {
+	mutation := newBlobMutation(c.config, OpUpdateOne, withBlob(_m))
+	return &BlobUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BlobClient) UpdateOneID(id string) *BlobUpdateOne {
+	mutation := newBlobMutation(c.config, OpUpdateOne, withBlobID(id))
+	return &BlobUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Blob.
+func (c *BlobClient) Delete() *BlobDelete {
+	mutation := newBlobMutation(c.config, OpDelete)
+	return &BlobDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BlobClient) DeleteOne(_m *Blob) *BlobDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BlobClient) DeleteOneID(id string) *BlobDeleteOne {
+	builder := c.Delete().Where(blob.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BlobDeleteOne{builder}
+}
+
+// Query returns a query builder for Blob.
+func (c *BlobClient) Query() *BlobQuery {
+	return &BlobQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBlob},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Blob entity by its id.
+func (c *BlobClient) Get(ctx context.Context, id string) (*Blob, error) {
+	return c.Query().Where(blob.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BlobClient) GetX(ctx context.Context, id string) *Blob {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTextures queries the textures edge of a Blob.
+func (c *BlobClient) QueryTextures(_m *Blob) *TextureQuery {
+	query := (&TextureClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(blob.Table, blob.FieldID, id),
+			sqlgraph.To(texture.Table, texture.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, blob.TexturesTable, blob.TexturesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BlobClient) Hooks() []Hook {
+	return c.hooks.Blob
+}
+
+// Interceptors returns the client interceptors.
+func (c *BlobClient) Interceptors() []Interceptor {
+	return c.inters.Blob
+}
+
+func (c *BlobClient) mutate(ctx context.Context, m *BlobMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BlobCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BlobUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BlobUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BlobDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Blob mutation op: %q", m.Op())
+	}
+}
+
+// ClosetItemClient is a client for the ClosetItem schema.
+type ClosetItemClient struct {
+	config
+}
+
+// NewClosetItemClient returns a client for the ClosetItem from the given config.
+func NewClosetItemClient(c config) *ClosetItemClient {
+	return &ClosetItemClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `closetitem.Hooks(f(g(h())))`.
+func (c *ClosetItemClient) Use(hooks ...Hook) {
+	c.hooks.ClosetItem = append(c.hooks.ClosetItem, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `closetitem.Intercept(f(g(h())))`.
+func (c *ClosetItemClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ClosetItem = append(c.inters.ClosetItem, interceptors...)
+}
+
+// Create returns a builder for creating a ClosetItem entity.
+func (c *ClosetItemClient) Create() *ClosetItemCreate {
+	mutation := newClosetItemMutation(c.config, OpCreate)
+	return &ClosetItemCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ClosetItem entities.
+func (c *ClosetItemClient) CreateBulk(builders ...*ClosetItemCreate) *ClosetItemCreateBulk {
+	return &ClosetItemCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ClosetItemClient) MapCreateBulk(slice any, setFunc func(*ClosetItemCreate, int)) *ClosetItemCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ClosetItemCreateBulk{err: fmt.Errorf("calling to ClosetItemClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ClosetItemCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ClosetItemCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ClosetItem.
+func (c *ClosetItemClient) Update() *ClosetItemUpdate {
+	mutation := newClosetItemMutation(c.config, OpUpdate)
+	return &ClosetItemUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ClosetItemClient) UpdateOne(_m *ClosetItem) *ClosetItemUpdateOne {
+	mutation := newClosetItemMutation(c.config, OpUpdateOne, withClosetItem(_m))
+	return &ClosetItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ClosetItemClient) UpdateOneID(id int64) *ClosetItemUpdateOne {
+	mutation := newClosetItemMutation(c.config, OpUpdateOne, withClosetItemID(id))
+	return &ClosetItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ClosetItem.
+func (c *ClosetItemClient) Delete() *ClosetItemDelete {
+	mutation := newClosetItemMutation(c.config, OpDelete)
+	return &ClosetItemDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ClosetItemClient) DeleteOne(_m *ClosetItem) *ClosetItemDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ClosetItemClient) DeleteOneID(id int64) *ClosetItemDeleteOne {
+	builder := c.Delete().Where(closetitem.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ClosetItemDeleteOne{builder}
+}
+
+// Query returns a query builder for ClosetItem.
+func (c *ClosetItemClient) Query() *ClosetItemQuery {
+	return &ClosetItemQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeClosetItem},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ClosetItem entity by its id.
+func (c *ClosetItemClient) Get(ctx context.Context, id int64) (*ClosetItem, error) {
+	return c.Query().Where(closetitem.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ClosetItemClient) GetX(ctx context.Context, id int64) *ClosetItem {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a ClosetItem.
+func (c *ClosetItemClient) QueryUser(_m *ClosetItem) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(closetitem.Table, closetitem.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, closetitem.UserTable, closetitem.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTexture queries the texture edge of a ClosetItem.
+func (c *ClosetItemClient) QueryTexture(_m *ClosetItem) *TextureQuery {
+	query := (&TextureClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(closetitem.Table, closetitem.FieldID, id),
+			sqlgraph.To(texture.Table, texture.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, closetitem.TextureTable, closetitem.TextureColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ClosetItemClient) Hooks() []Hook {
+	return c.hooks.ClosetItem
+}
+
+// Interceptors returns the client interceptors.
+func (c *ClosetItemClient) Interceptors() []Interceptor {
+	return c.inters.ClosetItem
+}
+
+func (c *ClosetItemClient) mutate(ctx context.Context, m *ClosetItemMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ClosetItemCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ClosetItemUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ClosetItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ClosetItemDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ClosetItem mutation op: %q", m.Op())
+	}
+}
+
 // JobClient is a client for the Job schema.
 type JobClient struct {
 	config
@@ -667,6 +1015,155 @@ func (c *JobClient) mutate(ctx context.Context, m *JobMutation) (Value, error) {
 		return (&JobDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Job mutation op: %q", m.Op())
+	}
+}
+
+// ScoreEntryClient is a client for the ScoreEntry schema.
+type ScoreEntryClient struct {
+	config
+}
+
+// NewScoreEntryClient returns a client for the ScoreEntry from the given config.
+func NewScoreEntryClient(c config) *ScoreEntryClient {
+	return &ScoreEntryClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `scoreentry.Hooks(f(g(h())))`.
+func (c *ScoreEntryClient) Use(hooks ...Hook) {
+	c.hooks.ScoreEntry = append(c.hooks.ScoreEntry, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `scoreentry.Intercept(f(g(h())))`.
+func (c *ScoreEntryClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ScoreEntry = append(c.inters.ScoreEntry, interceptors...)
+}
+
+// Create returns a builder for creating a ScoreEntry entity.
+func (c *ScoreEntryClient) Create() *ScoreEntryCreate {
+	mutation := newScoreEntryMutation(c.config, OpCreate)
+	return &ScoreEntryCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ScoreEntry entities.
+func (c *ScoreEntryClient) CreateBulk(builders ...*ScoreEntryCreate) *ScoreEntryCreateBulk {
+	return &ScoreEntryCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ScoreEntryClient) MapCreateBulk(slice any, setFunc func(*ScoreEntryCreate, int)) *ScoreEntryCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ScoreEntryCreateBulk{err: fmt.Errorf("calling to ScoreEntryClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ScoreEntryCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ScoreEntryCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ScoreEntry.
+func (c *ScoreEntryClient) Update() *ScoreEntryUpdate {
+	mutation := newScoreEntryMutation(c.config, OpUpdate)
+	return &ScoreEntryUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ScoreEntryClient) UpdateOne(_m *ScoreEntry) *ScoreEntryUpdateOne {
+	mutation := newScoreEntryMutation(c.config, OpUpdateOne, withScoreEntry(_m))
+	return &ScoreEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ScoreEntryClient) UpdateOneID(id int64) *ScoreEntryUpdateOne {
+	mutation := newScoreEntryMutation(c.config, OpUpdateOne, withScoreEntryID(id))
+	return &ScoreEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ScoreEntry.
+func (c *ScoreEntryClient) Delete() *ScoreEntryDelete {
+	mutation := newScoreEntryMutation(c.config, OpDelete)
+	return &ScoreEntryDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ScoreEntryClient) DeleteOne(_m *ScoreEntry) *ScoreEntryDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ScoreEntryClient) DeleteOneID(id int64) *ScoreEntryDeleteOne {
+	builder := c.Delete().Where(scoreentry.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ScoreEntryDeleteOne{builder}
+}
+
+// Query returns a query builder for ScoreEntry.
+func (c *ScoreEntryClient) Query() *ScoreEntryQuery {
+	return &ScoreEntryQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeScoreEntry},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ScoreEntry entity by its id.
+func (c *ScoreEntryClient) Get(ctx context.Context, id int64) (*ScoreEntry, error) {
+	return c.Query().Where(scoreentry.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ScoreEntryClient) GetX(ctx context.Context, id int64) *ScoreEntry {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a ScoreEntry.
+func (c *ScoreEntryClient) QueryUser(_m *ScoreEntry) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(scoreentry.Table, scoreentry.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, scoreentry.UserTable, scoreentry.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ScoreEntryClient) Hooks() []Hook {
+	return c.hooks.ScoreEntry
+}
+
+// Interceptors returns the client interceptors.
+func (c *ScoreEntryClient) Interceptors() []Interceptor {
+	return c.inters.ScoreEntry
+}
+
+func (c *ScoreEntryClient) mutate(ctx context.Context, m *ScoreEntryMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ScoreEntryCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ScoreEntryUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ScoreEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ScoreEntryDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ScoreEntry mutation op: %q", m.Op())
 	}
 }
 
@@ -1085,6 +1582,187 @@ func (c *SystemStateClient) mutate(ctx context.Context, m *SystemStateMutation) 
 	}
 }
 
+// TextureClient is a client for the Texture schema.
+type TextureClient struct {
+	config
+}
+
+// NewTextureClient returns a client for the Texture from the given config.
+func NewTextureClient(c config) *TextureClient {
+	return &TextureClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `texture.Hooks(f(g(h())))`.
+func (c *TextureClient) Use(hooks ...Hook) {
+	c.hooks.Texture = append(c.hooks.Texture, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `texture.Intercept(f(g(h())))`.
+func (c *TextureClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Texture = append(c.inters.Texture, interceptors...)
+}
+
+// Create returns a builder for creating a Texture entity.
+func (c *TextureClient) Create() *TextureCreate {
+	mutation := newTextureMutation(c.config, OpCreate)
+	return &TextureCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Texture entities.
+func (c *TextureClient) CreateBulk(builders ...*TextureCreate) *TextureCreateBulk {
+	return &TextureCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TextureClient) MapCreateBulk(slice any, setFunc func(*TextureCreate, int)) *TextureCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TextureCreateBulk{err: fmt.Errorf("calling to TextureClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TextureCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &TextureCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Texture.
+func (c *TextureClient) Update() *TextureUpdate {
+	mutation := newTextureMutation(c.config, OpUpdate)
+	return &TextureUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TextureClient) UpdateOne(_m *Texture) *TextureUpdateOne {
+	mutation := newTextureMutation(c.config, OpUpdateOne, withTexture(_m))
+	return &TextureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TextureClient) UpdateOneID(id int64) *TextureUpdateOne {
+	mutation := newTextureMutation(c.config, OpUpdateOne, withTextureID(id))
+	return &TextureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Texture.
+func (c *TextureClient) Delete() *TextureDelete {
+	mutation := newTextureMutation(c.config, OpDelete)
+	return &TextureDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TextureClient) DeleteOne(_m *Texture) *TextureDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TextureClient) DeleteOneID(id int64) *TextureDeleteOne {
+	builder := c.Delete().Where(texture.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TextureDeleteOne{builder}
+}
+
+// Query returns a query builder for Texture.
+func (c *TextureClient) Query() *TextureQuery {
+	return &TextureQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTexture},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Texture entity by its id.
+func (c *TextureClient) Get(ctx context.Context, id int64) (*Texture, error) {
+	return c.Query().Where(texture.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TextureClient) GetX(ctx context.Context, id int64) *Texture {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryBlob queries the blob edge of a Texture.
+func (c *TextureClient) QueryBlob(_m *Texture) *BlobQuery {
+	query := (&BlobClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(texture.Table, texture.FieldID, id),
+			sqlgraph.To(blob.Table, blob.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, texture.BlobTable, texture.BlobColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUploader queries the uploader edge of a Texture.
+func (c *TextureClient) QueryUploader(_m *Texture) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(texture.Table, texture.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, texture.UploaderTable, texture.UploaderColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryClosetItems queries the closet_items edge of a Texture.
+func (c *TextureClient) QueryClosetItems(_m *Texture) *ClosetItemQuery {
+	query := (&ClosetItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(texture.Table, texture.FieldID, id),
+			sqlgraph.To(closetitem.Table, closetitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, texture.ClosetItemsTable, texture.ClosetItemsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *TextureClient) Hooks() []Hook {
+	return c.hooks.Texture
+}
+
+// Interceptors returns the client interceptors.
+func (c *TextureClient) Interceptors() []Interceptor {
+	return c.inters.Texture
+}
+
+func (c *TextureClient) mutate(ctx context.Context, m *TextureMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TextureCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TextureUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TextureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TextureDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Texture mutation op: %q", m.Op())
+	}
+}
+
 // UserClient is a client for the User schema.
 type UserClient struct {
 	config
@@ -1225,6 +1903,54 @@ func (c *UserClient) QueryAuthTokens(_m *User) *AuthTokenQuery {
 	return query
 }
 
+// QueryTextures queries the textures edge of a User.
+func (c *UserClient) QueryTextures(_m *User) *TextureQuery {
+	query := (&TextureClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(texture.Table, texture.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.TexturesTable, user.TexturesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryClosetItems queries the closet_items edge of a User.
+func (c *UserClient) QueryClosetItems(_m *User) *ClosetItemQuery {
+	query := (&ClosetItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(closetitem.Table, closetitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ClosetItemsTable, user.ClosetItemsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryScoreEntries queries the score_entries edge of a User.
+func (c *UserClient) QueryScoreEntries(_m *User) *ScoreEntryQuery {
+	query := (&ScoreEntryClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(scoreentry.Table, scoreentry.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ScoreEntriesTable, user.ScoreEntriesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
@@ -1253,10 +1979,12 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		AuditLog, AuthToken, Job, Session, Setting, SystemState, User []ent.Hook
+		AuditLog, AuthToken, Blob, ClosetItem, Job, ScoreEntry, Session, Setting,
+		SystemState, Texture, User []ent.Hook
 	}
 	inters struct {
-		AuditLog, AuthToken, Job, Session, Setting, SystemState, User []ent.Interceptor
+		AuditLog, AuthToken, Blob, ClosetItem, Job, ScoreEntry, Session, Setting,
+		SystemState, Texture, User []ent.Interceptor
 	}
 )
 

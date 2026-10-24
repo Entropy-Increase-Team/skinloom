@@ -20,3 +20,4 @@
 | [0014](0014-registration-and-captcha.md) | 注册与验证码 | 已接受 |
 | [0015](0015-jobs-and-mail.md) | 后台任务队列与邮件 | 已接受 |
 | [0016](0016-profile-and-user-management.md) | 个人资料、设备管理、注销与后台用户管理 | 已接受 |
+| [0017](0017-textures-storage-and-score.md) | 材质、文件存储与积分流水 | 已接受 |

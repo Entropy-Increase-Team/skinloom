@@ -64,13 +64,13 @@ type LoginPolicy struct {
 // whether a captcha provider is configured.
 func PoliciesFrom(s *settings.Snapshot, captchaEnabled bool) (RegisterPolicy, LoginPolicy) {
 	return RegisterPolicy{
-			Open:         s.String("auth.registration") == RegistrationOpen,
-			PerIPPerDay:  settings.Decode[int](s, "auth.registrations_per_ip"),
-			InitialScore: settings.Decode[int64](s, "score.initial"),
-		}, LoginPolicy{
-			CaptchaEnabled: captchaEnabled,
-			CaptchaAfter:   settings.Decode[int](s, "auth.login_captcha_after"),
-		}
+		Open:         s.String("auth.registration") == RegistrationOpen,
+		PerIPPerDay:  settings.Decode[int](s, "auth.registrations_per_ip"),
+		InitialScore: settings.Decode[int64](s, "score.initial"),
+	}, LoginPolicy{
+		CaptchaEnabled: captchaEnabled,
+		CaptchaAfter:   settings.Decode[int](s, "auth.login_captcha_after"),
+	}
 }
 
 func toInt(v any) int64 {

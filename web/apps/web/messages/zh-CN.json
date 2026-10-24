@@ -47,7 +47,27 @@
   },
   "skinlib": {
     "title": "皮肤库",
-    "body": "皮肤库正在开发中，将在下一个里程碑（M2）上线。"
+    "description": "浏览、搜索大家分享的皮肤与披风。",
+    "upload": "上传材质",
+    "category": "分类",
+    "sort": "排序",
+    "search": "搜索名称",
+    "categories": {
+      "all": "全部",
+      "skins": "皮肤",
+      "steve": "经典",
+      "alex": "纤细",
+      "capes": "披风"
+    },
+    "sorts": {
+      "time": "最新",
+      "likes": "最受欢迎"
+    },
+    "empty": "皮肤库还是空的，来上传第一个材质吧。",
+    "noMatch": "没有符合条件的材质。",
+    "loadFailed": "加载失败，请稍后重试。",
+    "loading": "加载中…",
+    "more": "加载更多"
   },
   "about": {
     "title": "关于云织",
@@ -92,7 +112,8 @@
     "noAccount": "还没有账号？",
     "register": "注册",
     "forgot": "忘记密码？",
-    "admin": "进入管理后台"
+    "admin": "进入管理后台",
+    "closet": "衣柜"
   },
   "setup": {
     "title": "初始化站点",
@@ -298,5 +319,65 @@
       "load": "加载失败，请刷新重试。",
       "save": "保存失败。"
     }
+  },
+  "texture": {
+    "private": "私有",
+    "types": {
+      "steve": "经典皮肤",
+      "alex": "纤细皮肤",
+      "cape": "披风"
+    },
+    "deletedUser": "已注销用户",
+    "likes": "收藏数",
+    "notAvailable": "材质不可用",
+    "privateNotice": "这是一个私有材质，只有上传者可以查看。",
+    "loadFailed": "加载失败，请稍后重试。",
+    "back": "返回皮肤库",
+    "preview": "{name} 的 3D 预览",
+    "inCloset": "已在衣柜中",
+    "uploader": "上传者",
+    "size": "大小",
+    "uploaded": "上传于",
+    "hash": "哈希",
+    "download": "下载原图"
+  },
+  "upload": {
+    "title": "上传材质",
+    "intro": "支持 PNG 格式的皮肤与披风。你现在有 {score} 积分。",
+    "noPreview": "选择图片后在这里预览",
+    "duplicate": "皮肤库里已经有这张图了，没有重复上传，也没有扣除积分。",
+    "viewExisting": "去看看",
+    "file": "图片",
+    "picked": "{w} × {h} 像素",
+    "fileHint": "PNG，最大 {kb} KB，宽度不超过 {width} 像素。",
+    "name": "名称",
+    "type": "类型",
+    "typeHint": "已根据图片自动选择，可以手动修改。纤细皮肤的手臂宽 3 像素。",
+    "public": "公开（在皮肤库中展示；私有材质需要更多积分）",
+    "cost": "预计消耗 {cost} 积分（你有 {score}），以服务器重新压缩后的大小为准。",
+    "rates": "每 KB 消耗：公开 {pub} 积分，私有 {priv} 积分。",
+    "uploading": "上传中…",
+    "submit": "上传",
+    "errors": {
+      "notPng": "只支持 PNG 图片。",
+      "tooLarge": "图片不能超过 {kb} KB。",
+      "unreadable": "无法读取这张图片。",
+      "noFile": "请先选择图片。",
+      "score": "积分不足。",
+      "failed": "上传失败，请稍后重试。"
+    }
+  },
+  "closet": {
+    "title": "我的衣柜",
+    "intro": "你上传和收藏的材质都在这里，角色只能使用衣柜里的材质。",
+    "skins": "皮肤",
+    "capes": "披风",
+    "search": "搜索名称",
+    "loadFailed": "加载失败，请稍后重试。",
+    "noMatch": "没有找到。",
+    "empty": "衣柜还是空的。",
+    "browse": "逛逛皮肤库",
+    "upload": "上传材质",
+    "more": "加载更多"
   }
 }

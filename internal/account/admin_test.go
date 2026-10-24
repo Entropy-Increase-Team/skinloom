@@ -60,6 +60,11 @@ func testAdminPermissions(t *testing.T, s *Service) {
 	if _, err := s.AdminUpdateUser(ctx, admin, player.User.ID, AdminUpdate{Nickname: ptr("Renamed"), Score: ptr(int64(50))}, meta); err != nil {
 		t.Fatalf("admin edits a user: %v", err)
 	}
+	// newUser registers without an initial score, so the ledger holds only this.
+	if e := s.db.ScoreEntry.Query().OnlyX(ctx); e.UserID != player.User.ID || e.Delta != 50 || e.Balance != 50 ||
+		e.Reason != "admin" || e.ActorID == nil || *e.ActorID != admin.User.ID {
+		t.Fatalf("an administrator's score change must be in the ledger with the actor: %+v", e)
+	}
 	if _, err := s.AdminUpdateUser(ctx, admin, super.User.ID, AdminUpdate{Nickname: ptr("x")}, meta); !errors.Is(err, ErrForbidden) {
 		t.Fatalf("admin edits a super admin: %v", err)
 	}

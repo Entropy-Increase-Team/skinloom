@@ -8,7 +8,7 @@
 
 ---
 
-> **Status: in development (M1 accounts done; next: M2 textures and profiles).** Not ready for production.
+> **Status: in development (M1 accounts done; M2 textures and profiles in progress).** Not ready for production.
 
 SkinLoom is a ground-up redesign of [Blessing Skin](https://github.com/bs-community/blessing-skin-server): upload and share skins and capes, manage game profiles, and serve skins and authentication to CustomSkinLoader, authlib-injector and other clients. It keeps Blessing Skin's external protocols (existing sites can migrate, game clients need no changes) while rebuilding the data model, runtime and plugin system.
 

@@ -59,9 +59,15 @@ type UserEdges struct {
 	Sessions []*Session `json:"sessions,omitempty"`
 	// AuthTokens holds the value of the auth_tokens edge.
 	AuthTokens []*AuthToken `json:"auth_tokens,omitempty"`
+	// Textures holds the value of the textures edge.
+	Textures []*Texture `json:"textures,omitempty"`
+	// ClosetItems holds the value of the closet_items edge.
+	ClosetItems []*ClosetItem `json:"closet_items,omitempty"`
+	// ScoreEntries holds the value of the score_entries edge.
+	ScoreEntries []*ScoreEntry `json:"score_entries,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [5]bool
 }
 
 // SessionsOrErr returns the Sessions value or an error if the edge
@@ -80,6 +86,33 @@ func (e UserEdges) AuthTokensOrErr() ([]*AuthToken, error) {
 		return e.AuthTokens, nil
 	}
 	return nil, &NotLoadedError{edge: "auth_tokens"}
+}
+
+// TexturesOrErr returns the Textures value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) TexturesOrErr() ([]*Texture, error) {
+	if e.loadedTypes[2] {
+		return e.Textures, nil
+	}
+	return nil, &NotLoadedError{edge: "textures"}
+}
+
+// ClosetItemsOrErr returns the ClosetItems value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) ClosetItemsOrErr() ([]*ClosetItem, error) {
+	if e.loadedTypes[3] {
+		return e.ClosetItems, nil
+	}
+	return nil, &NotLoadedError{edge: "closet_items"}
+}
+
+// ScoreEntriesOrErr returns the ScoreEntries value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) ScoreEntriesOrErr() ([]*ScoreEntry, error) {
+	if e.loadedTypes[4] {
+		return e.ScoreEntries, nil
+	}
+	return nil, &NotLoadedError{edge: "score_entries"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -228,6 +261,21 @@ func (_m *User) QuerySessions() *SessionQuery {
 // QueryAuthTokens queries the "auth_tokens" edge of the User entity.
 func (_m *User) QueryAuthTokens() *AuthTokenQuery {
 	return NewUserClient(_m.config).QueryAuthTokens(_m)
+}
+
+// QueryTextures queries the "textures" edge of the User entity.
+func (_m *User) QueryTextures() *TextureQuery {
+	return NewUserClient(_m.config).QueryTextures(_m)
+}
+
+// QueryClosetItems queries the "closet_items" edge of the User entity.
+func (_m *User) QueryClosetItems() *ClosetItemQuery {
+	return NewUserClient(_m.config).QueryClosetItems(_m)
+}
+
+// QueryScoreEntries queries the "score_entries" edge of the User entity.
+func (_m *User) QueryScoreEntries() *ScoreEntryQuery {
+	return NewUserClient(_m.config).QueryScoreEntries(_m)
 }
 
 // Update returns a builder for updating this User.

@@ -49,6 +49,10 @@ func (User) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("sessions", Session.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("auth_tokens", AuthToken.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
+		// Public textures outlive their uploader (shown as a deleted user).
+		edge.To("textures", Texture.Type).Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.To("closet_items", ClosetItem.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("score_entries", ScoreEntry.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

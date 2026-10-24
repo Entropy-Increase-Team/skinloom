@@ -4,6 +4,25 @@
 
 ## [Unreleased]
 
+### 新增（M2 材质与角色 · 第一部分：上传、皮肤库与衣柜）
+- **上传材质** `/skinlib/upload`：PNG 皮肤（经典 / 纤细）与披风，自动识别类型并预览，提前显示所需积分。接口 `POST /api/v1/textures`（multipart），上传规则 `GET /api/v1/textures/rules`。
+- **皮肤库** `/skinlib`：按类型筛选、按名称搜索、按最新或最受欢迎排序，"加载更多"翻页；首屏服务端渲染，筛选结果的地址可以分享。接口 `GET /api/v1/textures`。
+- **材质页** `/skinlib/show/{tid}`：可旋转的 3D 预览、上传者、收藏数、大小、上传时间，下载原图。接口 `GET /api/v1/textures/{tid}`。
+- **我的衣柜** `/user/closet`：皮肤、披风分栏，按名称搜索。接口 `GET /api/v1/me/closet`。页头增加"衣柜"入口。
+- **材质文件**：`/textures/{hash}`（以及 `/csl/textures/`、`/usm/textures/`）可被永久缓存，支持 ETag 与断点续传；`/raw/{tid}` 下载原图。
+- **积分流水**：每次积分变化（注册赠送、上传、管理员修改）都记录变化量、余额与操作人。
+- 新设置 `texture.max_size_kb`、`texture.max_width`、`texture.name_regexp`、`texture.allow_download`、`texture.private_status`、`texture.content_policy`，以及上传费用 `score.per_storage`、`score.private_per_storage`、`score.per_closet_item`、`score.award_per_texture`；新配置段 `[storage]`（材质文件目录，默认数据目录下 `textures/`）。
+- 数据库新增 `blobs`、`textures`、`closet_items`、`score_ledger` 表（迁移 `20261024050244_textures`）。文档站新增"皮肤库与材质"页面；ADR 0017。
+
+### 安全与正确性（M2 第一部分）
+- 上传先读 PNG 头部校验尺寸，再解码整张图片，伪造尺寸的解压炸弹在解码前被拒绝；图片重新编码后保存，元数据不会留下。
+- 同一张图的多个材质共用一个文件并计数引用，删除时不会误删别人的材质文件（修 Blessing Skin C06）。
+- 积分扣减是一条带条件的原子更新，并发上传不会把积分扣成负数（修 C03）；上传奖励只给公开材质（为公开↔私有切换的对称计费做准备，C12）。
+- 皮肤库只接受固定的排序方式（修 S07）；游标分页，不再每页全量计数（P02）。皮肤库只列公开材质（私有材质在上传者的衣柜里），每一页都能沿索引顺序读取。
+- 同一用户同时上传两次同一张图（双击、重放）只会生成一个材质、只扣一次积分（唯一索引裁决并发）。
+- 每个用户 10 分钟内最多上传 30 次；上传的请求体读取时间放宽到 2 分钟，慢速网络也能传完；系统不认识扩展名、以 `application/octet-stream` 发送的 PNG 也能上传（以内容判断）。
+- `[storage] path` 支持绝对路径；材质文件地址支持 `HEAD` 请求。
+
 ### 新增（M1 账号 · 第四部分：个人资料、设备与后台用户管理）
 - **个人资料** `/user/profile`（点击页头的昵称进入）：修改昵称与语言偏好（也决定邮件语言）、修改密码、修改邮箱（向旧地址发通知、向新地址发验证链接）。接口 `PATCH /api/v1/me`、`POST /api/v1/me/password`、`POST /api/v1/me/email`。`/.well-known/change-password` 跳转到这里，密码管理器可以直接带你来改密码。
 - **登录设备**：查看账号在哪些设备上登录（浏览器、地址、最近活跃），可以单独退出某个设备或退出其它所有设备。接口 `GET /api/v1/me/sessions`、`DELETE /api/v1/me/sessions/{id}`、`POST /api/v1/me/sessions/revoke-others`。

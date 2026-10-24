@@ -23,7 +23,10 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/pubsub"
+	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
+	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
 	"github.com/Entropy-Increase-Team/skinloom/internal/theme"
 	"github.com/Entropy-Increase-Team/skinloom/themes"
 )
@@ -65,7 +68,8 @@ type Core struct {
 	Captcha  *captcha.Service
 	Mailer   *mail.Mailer
 	// Jobs runs background work; Run starts its worker (CLI commands do not).
-	Jobs *jobs.Queue
+	Jobs     *jobs.Queue
+	Textures *texture.Service
 	// FreshConfig is true when this start wrote the default config file.
 	FreshConfig bool
 }
@@ -108,8 +112,14 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 		database.Close()
 		return nil, fmt.Errorf("load built-in themes: %w", err)
 	}
+	store, err := storage.NewLocal(cfg.Storage.Dir(p.DataDir))
+	if err != nil {
+		database.Close()
+		return nil, err
+	}
 	reg := settings.NewRegistry()
-	defs := slices.Concat(account.SettingDefs(), captcha.SettingDefs(), mail.SettingDefs())
+	defs := slices.Concat(account.SettingDefs(), captcha.SettingDefs(), mail.SettingDefs(),
+		score.SettingDefs(), texture.SettingDefs())
 	if err := reg.Register(defs...); err != nil {
 		database.Close()
 		return nil, err
@@ -127,6 +137,7 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 		Captcha:  captcha.NewService(captcha.Options{Log: log.With("component", "captcha")}),
 		Mailer:   mail.New(log.With("component", "mail")),
 		Jobs:     jobs.New(database.Ent, log.With("component", "jobs")),
+		Textures: texture.NewService(database.Ent, store, log.With("component", "texture")),
 	}
 	c.Jobs.Register(account.MailJobKind, c.sendMail)
 	c.Accounts.SetJobNotifier(c.Jobs.Kick)

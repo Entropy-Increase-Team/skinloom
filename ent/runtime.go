@@ -7,11 +7,15 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/ent/auditlog"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
+	"github.com/Entropy-Increase-Team/skinloom/ent/blob"
+	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/job"
 	"github.com/Entropy-Increase-Team/skinloom/ent/schema"
+	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/setting"
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
+	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 )
 
@@ -85,6 +89,58 @@ func init() {
 	authtokenDescCreatedAt := authtokenFields[6].Descriptor()
 	// authtoken.DefaultCreatedAt holds the default value on creation for the created_at field.
 	authtoken.DefaultCreatedAt = authtokenDescCreatedAt.Default.(func() time.Time)
+	blobFields := schema.Blob{}.Fields()
+	_ = blobFields
+	// blobDescRefCount is the schema descriptor for ref_count field.
+	blobDescRefCount := blobFields[4].Descriptor()
+	// blob.DefaultRefCount holds the default value on creation for the ref_count field.
+	blob.DefaultRefCount = blobDescRefCount.Default.(int)
+	// blobDescCreatedAt is the schema descriptor for created_at field.
+	blobDescCreatedAt := blobFields[5].Descriptor()
+	// blob.DefaultCreatedAt holds the default value on creation for the created_at field.
+	blob.DefaultCreatedAt = blobDescCreatedAt.Default.(func() time.Time)
+	// blobDescID is the schema descriptor for id field.
+	blobDescID := blobFields[0].Descriptor()
+	// blob.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	blob.IDValidator = func() func(string) error {
+		validators := blobDescID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(id string) error {
+			for _, fn := range fns {
+				if err := fn(id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	closetitemFields := schema.ClosetItem{}.Fields()
+	_ = closetitemFields
+	// closetitemDescName is the schema descriptor for name field.
+	closetitemDescName := closetitemFields[3].Descriptor()
+	// closetitem.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	closetitem.NameValidator = func() func(string) error {
+		validators := closetitemDescName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name string) error {
+			for _, fn := range fns {
+				if err := fn(name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// closetitemDescCreatedAt is the schema descriptor for created_at field.
+	closetitemDescCreatedAt := closetitemFields[4].Descriptor()
+	// closetitem.DefaultCreatedAt holds the default value on creation for the created_at field.
+	closetitem.DefaultCreatedAt = closetitemDescCreatedAt.Default.(func() time.Time)
 	jobFields := schema.Job{}.Fields()
 	_ = jobFields
 	// jobDescKind is the schema descriptor for kind field.
@@ -123,6 +179,42 @@ func init() {
 	jobDescCreatedAt := jobFields[8].Descriptor()
 	// job.DefaultCreatedAt holds the default value on creation for the created_at field.
 	job.DefaultCreatedAt = jobDescCreatedAt.Default.(func() time.Time)
+	scoreentryFields := schema.ScoreEntry{}.Fields()
+	_ = scoreentryFields
+	// scoreentryDescReason is the schema descriptor for reason field.
+	scoreentryDescReason := scoreentryFields[4].Descriptor()
+	// scoreentry.ReasonValidator is a validator for the "reason" field. It is called by the builders before save.
+	scoreentry.ReasonValidator = func() func(string) error {
+		validators := scoreentryDescReason.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(reason string) error {
+			for _, fn := range fns {
+				if err := fn(reason); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// scoreentryDescRefType is the schema descriptor for ref_type field.
+	scoreentryDescRefType := scoreentryFields[5].Descriptor()
+	// scoreentry.DefaultRefType holds the default value on creation for the ref_type field.
+	scoreentry.DefaultRefType = scoreentryDescRefType.Default.(string)
+	// scoreentry.RefTypeValidator is a validator for the "ref_type" field. It is called by the builders before save.
+	scoreentry.RefTypeValidator = scoreentryDescRefType.Validators[0].(func(string) error)
+	// scoreentryDescRefID is the schema descriptor for ref_id field.
+	scoreentryDescRefID := scoreentryFields[6].Descriptor()
+	// scoreentry.DefaultRefID holds the default value on creation for the ref_id field.
+	scoreentry.DefaultRefID = scoreentryDescRefID.Default.(string)
+	// scoreentry.RefIDValidator is a validator for the "ref_id" field. It is called by the builders before save.
+	scoreentry.RefIDValidator = scoreentryDescRefID.Validators[0].(func(string) error)
+	// scoreentryDescCreatedAt is the schema descriptor for created_at field.
+	scoreentryDescCreatedAt := scoreentryFields[8].Descriptor()
+	// scoreentry.DefaultCreatedAt holds the default value on creation for the created_at field.
+	scoreentry.DefaultCreatedAt = scoreentryDescCreatedAt.Default.(func() time.Time)
 	sessionFields := schema.Session{}.Fields()
 	_ = sessionFields
 	// sessionDescIP is the schema descriptor for ip field.
@@ -219,6 +311,58 @@ func init() {
 			return nil
 		}
 	}()
+	textureFields := schema.Texture{}.Fields()
+	_ = textureFields
+	// textureDescName is the schema descriptor for name field.
+	textureDescName := textureFields[1].Descriptor()
+	// texture.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	texture.NameValidator = func() func(string) error {
+		validators := textureDescName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name string) error {
+			for _, fn := range fns {
+				if err := fn(name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// textureDescHash is the schema descriptor for hash field.
+	textureDescHash := textureFields[3].Descriptor()
+	// texture.HashValidator is a validator for the "hash" field. It is called by the builders before save.
+	texture.HashValidator = func() func(string) error {
+		validators := textureDescHash.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(blob string) error {
+			for _, fn := range fns {
+				if err := fn(blob); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// textureDescLikes is the schema descriptor for likes field.
+	textureDescLikes := textureFields[7].Descriptor()
+	// texture.DefaultLikes holds the default value on creation for the likes field.
+	texture.DefaultLikes = textureDescLikes.Default.(int)
+	// textureDescCreatedAt is the schema descriptor for created_at field.
+	textureDescCreatedAt := textureFields[8].Descriptor()
+	// texture.DefaultCreatedAt holds the default value on creation for the created_at field.
+	texture.DefaultCreatedAt = textureDescCreatedAt.Default.(func() time.Time)
+	// textureDescUpdatedAt is the schema descriptor for updated_at field.
+	textureDescUpdatedAt := textureFields[9].Descriptor()
+	// texture.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	texture.DefaultUpdatedAt = textureDescUpdatedAt.Default.(func() time.Time)
+	// texture.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	texture.UpdateDefaultUpdatedAt = textureDescUpdatedAt.UpdateDefault.(func() time.Time)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescEmail is the schema descriptor for email field.
