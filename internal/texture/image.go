@@ -21,6 +21,24 @@ const (
 	MaxUploadKB = 8192
 )
 
+// checkShape checks a w×h image fits the texture type, reporting on field.
+func checkShape(w, h int, typ tex.Type, field string) error {
+	bad := func(format string, a ...any) error {
+		return &validate.FieldError{Field: field, Message: fmt.Sprintf(format, a...)}
+	}
+	switch {
+	case w == 0 || h == 0 || w%64 != 0 || h%32 != 0:
+		return bad("the width must be a multiple of 64 and the height of 32 (got %d×%d)", w, h)
+	case typ == tex.TypeCape && w != 2*h:
+		return bad("a cape must be twice as wide as it is high (got %d×%d)", w, h)
+	case typ == tex.TypeAlex && w != h:
+		return bad("a slim (Alex) skin must be square (got %d×%d)", w, h)
+	case typ == tex.TypeSteve && w != h && w != 2*h:
+		return bad("a skin must be square or twice as wide as it is high (got %d×%d)", w, h)
+	}
+	return nil
+}
+
 // checked is an accepted image, re-encoded.
 type checked struct {
 	png           []byte
@@ -41,17 +59,11 @@ func (s *Service) checkImage(ctx context.Context, data []byte, typ tex.Type, max
 		return nil, bad("not a PNG image")
 	}
 	w, h := cfg.Width, cfg.Height
-	switch {
-	case w > maxWidth:
+	if w > maxWidth {
 		return nil, bad("at most %d pixels wide", maxWidth)
-	case w == 0 || h == 0 || w%64 != 0 || h%32 != 0:
-		return nil, bad("the width must be a multiple of 64 and the height of 32 (got %d×%d)", w, h)
-	case typ == tex.TypeCape && w != 2*h:
-		return nil, bad("a cape must be twice as wide as it is high (got %d×%d)", w, h)
-	case typ == tex.TypeAlex && w != h:
-		return nil, bad("a slim (Alex) skin must be square (got %d×%d)", w, h)
-	case typ == tex.TypeSteve && w != h && w != 2*h:
-		return nil, bad("a skin must be square or twice as wide as it is high (got %d×%d)", w, h)
+	}
+	if err := checkShape(w, h, typ, "file"); err != nil {
+		return nil, err
 	}
 
 	select { // decoding costs memory: a few at a time

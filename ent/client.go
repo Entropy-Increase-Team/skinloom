@@ -20,6 +20,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/blob"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/job"
+	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/setting"
@@ -45,6 +46,8 @@ type Client struct {
 	ClosetItem *ClosetItemClient
 	// Job is the client for interacting with the Job builders.
 	Job *JobClient
+	// Player is the client for interacting with the Player builders.
+	Player *PlayerClient
 	// ScoreEntry is the client for interacting with the ScoreEntry builders.
 	ScoreEntry *ScoreEntryClient
 	// Session is the client for interacting with the Session builders.
@@ -73,6 +76,7 @@ func (c *Client) init() {
 	c.Blob = NewBlobClient(c.config)
 	c.ClosetItem = NewClosetItemClient(c.config)
 	c.Job = NewJobClient(c.config)
+	c.Player = NewPlayerClient(c.config)
 	c.ScoreEntry = NewScoreEntryClient(c.config)
 	c.Session = NewSessionClient(c.config)
 	c.Setting = NewSettingClient(c.config)
@@ -176,6 +180,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Blob:        NewBlobClient(cfg),
 		ClosetItem:  NewClosetItemClient(cfg),
 		Job:         NewJobClient(cfg),
+		Player:      NewPlayerClient(cfg),
 		ScoreEntry:  NewScoreEntryClient(cfg),
 		Session:     NewSessionClient(cfg),
 		Setting:     NewSettingClient(cfg),
@@ -206,6 +211,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Blob:        NewBlobClient(cfg),
 		ClosetItem:  NewClosetItemClient(cfg),
 		Job:         NewJobClient(cfg),
+		Player:      NewPlayerClient(cfg),
 		ScoreEntry:  NewScoreEntryClient(cfg),
 		Session:     NewSessionClient(cfg),
 		Setting:     NewSettingClient(cfg),
@@ -241,8 +247,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.AuditLog, c.AuthToken, c.Blob, c.ClosetItem, c.Job, c.ScoreEntry, c.Session,
-		c.Setting, c.SystemState, c.Texture, c.User,
+		c.AuditLog, c.AuthToken, c.Blob, c.ClosetItem, c.Job, c.Player, c.ScoreEntry,
+		c.Session, c.Setting, c.SystemState, c.Texture, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -252,8 +258,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.AuditLog, c.AuthToken, c.Blob, c.ClosetItem, c.Job, c.ScoreEntry, c.Session,
-		c.Setting, c.SystemState, c.Texture, c.User,
+		c.AuditLog, c.AuthToken, c.Blob, c.ClosetItem, c.Job, c.Player, c.ScoreEntry,
+		c.Session, c.Setting, c.SystemState, c.Texture, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -272,6 +278,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ClosetItem.mutate(ctx, m)
 	case *JobMutation:
 		return c.Job.mutate(ctx, m)
+	case *PlayerMutation:
+		return c.Player.mutate(ctx, m)
 	case *ScoreEntryMutation:
 		return c.ScoreEntry.mutate(ctx, m)
 	case *SessionMutation:
@@ -1018,6 +1026,187 @@ func (c *JobClient) mutate(ctx context.Context, m *JobMutation) (Value, error) {
 	}
 }
 
+// PlayerClient is a client for the Player schema.
+type PlayerClient struct {
+	config
+}
+
+// NewPlayerClient returns a client for the Player from the given config.
+func NewPlayerClient(c config) *PlayerClient {
+	return &PlayerClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `player.Hooks(f(g(h())))`.
+func (c *PlayerClient) Use(hooks ...Hook) {
+	c.hooks.Player = append(c.hooks.Player, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `player.Intercept(f(g(h())))`.
+func (c *PlayerClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Player = append(c.inters.Player, interceptors...)
+}
+
+// Create returns a builder for creating a Player entity.
+func (c *PlayerClient) Create() *PlayerCreate {
+	mutation := newPlayerMutation(c.config, OpCreate)
+	return &PlayerCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Player entities.
+func (c *PlayerClient) CreateBulk(builders ...*PlayerCreate) *PlayerCreateBulk {
+	return &PlayerCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlayerClient) MapCreateBulk(slice any, setFunc func(*PlayerCreate, int)) *PlayerCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlayerCreateBulk{err: fmt.Errorf("calling to PlayerClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlayerCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlayerCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Player.
+func (c *PlayerClient) Update() *PlayerUpdate {
+	mutation := newPlayerMutation(c.config, OpUpdate)
+	return &PlayerUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlayerClient) UpdateOne(_m *Player) *PlayerUpdateOne {
+	mutation := newPlayerMutation(c.config, OpUpdateOne, withPlayer(_m))
+	return &PlayerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlayerClient) UpdateOneID(id int64) *PlayerUpdateOne {
+	mutation := newPlayerMutation(c.config, OpUpdateOne, withPlayerID(id))
+	return &PlayerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Player.
+func (c *PlayerClient) Delete() *PlayerDelete {
+	mutation := newPlayerMutation(c.config, OpDelete)
+	return &PlayerDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlayerClient) DeleteOne(_m *Player) *PlayerDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlayerClient) DeleteOneID(id int64) *PlayerDeleteOne {
+	builder := c.Delete().Where(player.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlayerDeleteOne{builder}
+}
+
+// Query returns a query builder for Player.
+func (c *PlayerClient) Query() *PlayerQuery {
+	return &PlayerQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlayer},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Player entity by its id.
+func (c *PlayerClient) Get(ctx context.Context, id int64) (*Player, error) {
+	return c.Query().Where(player.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlayerClient) GetX(ctx context.Context, id int64) *Player {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryOwner queries the owner edge of a Player.
+func (c *PlayerClient) QueryOwner(_m *Player) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(player.Table, player.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, player.OwnerTable, player.OwnerColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySkin queries the skin edge of a Player.
+func (c *PlayerClient) QuerySkin(_m *Player) *TextureQuery {
+	query := (&TextureClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(player.Table, player.FieldID, id),
+			sqlgraph.To(texture.Table, texture.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, player.SkinTable, player.SkinColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCape queries the cape edge of a Player.
+func (c *PlayerClient) QueryCape(_m *Player) *TextureQuery {
+	query := (&TextureClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(player.Table, player.FieldID, id),
+			sqlgraph.To(texture.Table, texture.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, player.CapeTable, player.CapeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PlayerClient) Hooks() []Hook {
+	return c.hooks.Player
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlayerClient) Interceptors() []Interceptor {
+	return c.inters.Player
+}
+
+func (c *PlayerClient) mutate(ctx context.Context, m *PlayerMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlayerCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlayerUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlayerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlayerDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Player mutation op: %q", m.Op())
+	}
+}
+
 // ScoreEntryClient is a client for the ScoreEntry schema.
 type ScoreEntryClient struct {
 	config
@@ -1738,6 +1927,38 @@ func (c *TextureClient) QueryClosetItems(_m *Texture) *ClosetItemQuery {
 	return query
 }
 
+// QuerySkinPlayers queries the skin_players edge of a Texture.
+func (c *TextureClient) QuerySkinPlayers(_m *Texture) *PlayerQuery {
+	query := (&PlayerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(texture.Table, texture.FieldID, id),
+			sqlgraph.To(player.Table, player.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, texture.SkinPlayersTable, texture.SkinPlayersColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCapePlayers queries the cape_players edge of a Texture.
+func (c *TextureClient) QueryCapePlayers(_m *Texture) *PlayerQuery {
+	query := (&PlayerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(texture.Table, texture.FieldID, id),
+			sqlgraph.To(player.Table, player.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, texture.CapePlayersTable, texture.CapePlayersColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *TextureClient) Hooks() []Hook {
 	return c.hooks.Texture
@@ -1951,6 +2172,22 @@ func (c *UserClient) QueryScoreEntries(_m *User) *ScoreEntryQuery {
 	return query
 }
 
+// QueryPlayers queries the players edge of a User.
+func (c *UserClient) QueryPlayers(_m *User) *PlayerQuery {
+	query := (&PlayerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(player.Table, player.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.PlayersTable, user.PlayersColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
@@ -1979,12 +2216,12 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		AuditLog, AuthToken, Blob, ClosetItem, Job, ScoreEntry, Session, Setting,
-		SystemState, Texture, User []ent.Hook
+		AuditLog, AuthToken, Blob, ClosetItem, Job, Player, ScoreEntry, Session,
+		Setting, SystemState, Texture, User []ent.Hook
 	}
 	inters struct {
-		AuditLog, AuthToken, Blob, ClosetItem, Job, ScoreEntry, Session, Setting,
-		SystemState, Texture, User []ent.Interceptor
+		AuditLog, AuthToken, Blob, ClosetItem, Job, Player, ScoreEntry, Session,
+		Setting, SystemState, Texture, User []ent.Interceptor
 	}
 )
 

@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/Entropy-Increase-Team/skinloom/ent/blob"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
+	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 )
@@ -154,6 +155,36 @@ func (_c *TextureCreate) AddClosetItems(v ...*ClosetItem) *TextureCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddClosetItemIDs(ids...)
+}
+
+// AddSkinPlayerIDs adds the "skin_players" edge to the Player entity by IDs.
+func (_c *TextureCreate) AddSkinPlayerIDs(ids ...int64) *TextureCreate {
+	_c.mutation.AddSkinPlayerIDs(ids...)
+	return _c
+}
+
+// AddSkinPlayers adds the "skin_players" edges to the Player entity.
+func (_c *TextureCreate) AddSkinPlayers(v ...*Player) *TextureCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddSkinPlayerIDs(ids...)
+}
+
+// AddCapePlayerIDs adds the "cape_players" edge to the Player entity by IDs.
+func (_c *TextureCreate) AddCapePlayerIDs(ids ...int64) *TextureCreate {
+	_c.mutation.AddCapePlayerIDs(ids...)
+	return _c
+}
+
+// AddCapePlayers adds the "cape_players" edges to the Player entity.
+func (_c *TextureCreate) AddCapePlayers(v ...*Player) *TextureCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCapePlayerIDs(ids...)
 }
 
 // Mutation returns the TextureMutation object of the builder.
@@ -362,6 +393,38 @@ func (_c *TextureCreate) createSpec() (*Texture, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(closetitem.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SkinPlayersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.SkinPlayersTable,
+			Columns: []string{texture.SkinPlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CapePlayersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.CapePlayersTable,
+			Columns: []string{texture.CapePlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

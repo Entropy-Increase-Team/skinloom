@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
+	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
@@ -139,6 +140,36 @@ func (_u *TextureUpdate) AddClosetItems(v ...*ClosetItem) *TextureUpdate {
 	return _u.AddClosetItemIDs(ids...)
 }
 
+// AddSkinPlayerIDs adds the "skin_players" edge to the Player entity by IDs.
+func (_u *TextureUpdate) AddSkinPlayerIDs(ids ...int64) *TextureUpdate {
+	_u.mutation.AddSkinPlayerIDs(ids...)
+	return _u
+}
+
+// AddSkinPlayers adds the "skin_players" edges to the Player entity.
+func (_u *TextureUpdate) AddSkinPlayers(v ...*Player) *TextureUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSkinPlayerIDs(ids...)
+}
+
+// AddCapePlayerIDs adds the "cape_players" edge to the Player entity by IDs.
+func (_u *TextureUpdate) AddCapePlayerIDs(ids ...int64) *TextureUpdate {
+	_u.mutation.AddCapePlayerIDs(ids...)
+	return _u
+}
+
+// AddCapePlayers adds the "cape_players" edges to the Player entity.
+func (_u *TextureUpdate) AddCapePlayers(v ...*Player) *TextureUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCapePlayerIDs(ids...)
+}
+
 // Mutation returns the TextureMutation object of the builder.
 func (_u *TextureUpdate) Mutation() *TextureMutation {
 	return _u.mutation
@@ -169,6 +200,48 @@ func (_u *TextureUpdate) RemoveClosetItems(v ...*ClosetItem) *TextureUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveClosetItemIDs(ids...)
+}
+
+// ClearSkinPlayers clears all "skin_players" edges to the Player entity.
+func (_u *TextureUpdate) ClearSkinPlayers() *TextureUpdate {
+	_u.mutation.ClearSkinPlayers()
+	return _u
+}
+
+// RemoveSkinPlayerIDs removes the "skin_players" edge to Player entities by IDs.
+func (_u *TextureUpdate) RemoveSkinPlayerIDs(ids ...int64) *TextureUpdate {
+	_u.mutation.RemoveSkinPlayerIDs(ids...)
+	return _u
+}
+
+// RemoveSkinPlayers removes "skin_players" edges to Player entities.
+func (_u *TextureUpdate) RemoveSkinPlayers(v ...*Player) *TextureUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSkinPlayerIDs(ids...)
+}
+
+// ClearCapePlayers clears all "cape_players" edges to the Player entity.
+func (_u *TextureUpdate) ClearCapePlayers() *TextureUpdate {
+	_u.mutation.ClearCapePlayers()
+	return _u
+}
+
+// RemoveCapePlayerIDs removes the "cape_players" edge to Player entities by IDs.
+func (_u *TextureUpdate) RemoveCapePlayerIDs(ids ...int64) *TextureUpdate {
+	_u.mutation.RemoveCapePlayerIDs(ids...)
+	return _u
+}
+
+// RemoveCapePlayers removes "cape_players" edges to Player entities.
+func (_u *TextureUpdate) RemoveCapePlayers(v ...*Player) *TextureUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCapePlayerIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -334,6 +407,96 @@ func (_u *TextureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.SkinPlayersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.SkinPlayersTable,
+			Columns: []string{texture.SkinPlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSkinPlayersIDs(); len(nodes) > 0 && !_u.mutation.SkinPlayersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.SkinPlayersTable,
+			Columns: []string{texture.SkinPlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SkinPlayersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.SkinPlayersTable,
+			Columns: []string{texture.SkinPlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CapePlayersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.CapePlayersTable,
+			Columns: []string{texture.CapePlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCapePlayersIDs(); len(nodes) > 0 && !_u.mutation.CapePlayersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.CapePlayersTable,
+			Columns: []string{texture.CapePlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CapePlayersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.CapePlayersTable,
+			Columns: []string{texture.CapePlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{texture.Label}
@@ -463,6 +626,36 @@ func (_u *TextureUpdateOne) AddClosetItems(v ...*ClosetItem) *TextureUpdateOne {
 	return _u.AddClosetItemIDs(ids...)
 }
 
+// AddSkinPlayerIDs adds the "skin_players" edge to the Player entity by IDs.
+func (_u *TextureUpdateOne) AddSkinPlayerIDs(ids ...int64) *TextureUpdateOne {
+	_u.mutation.AddSkinPlayerIDs(ids...)
+	return _u
+}
+
+// AddSkinPlayers adds the "skin_players" edges to the Player entity.
+func (_u *TextureUpdateOne) AddSkinPlayers(v ...*Player) *TextureUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSkinPlayerIDs(ids...)
+}
+
+// AddCapePlayerIDs adds the "cape_players" edge to the Player entity by IDs.
+func (_u *TextureUpdateOne) AddCapePlayerIDs(ids ...int64) *TextureUpdateOne {
+	_u.mutation.AddCapePlayerIDs(ids...)
+	return _u
+}
+
+// AddCapePlayers adds the "cape_players" edges to the Player entity.
+func (_u *TextureUpdateOne) AddCapePlayers(v ...*Player) *TextureUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCapePlayerIDs(ids...)
+}
+
 // Mutation returns the TextureMutation object of the builder.
 func (_u *TextureUpdateOne) Mutation() *TextureMutation {
 	return _u.mutation
@@ -493,6 +686,48 @@ func (_u *TextureUpdateOne) RemoveClosetItems(v ...*ClosetItem) *TextureUpdateOn
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveClosetItemIDs(ids...)
+}
+
+// ClearSkinPlayers clears all "skin_players" edges to the Player entity.
+func (_u *TextureUpdateOne) ClearSkinPlayers() *TextureUpdateOne {
+	_u.mutation.ClearSkinPlayers()
+	return _u
+}
+
+// RemoveSkinPlayerIDs removes the "skin_players" edge to Player entities by IDs.
+func (_u *TextureUpdateOne) RemoveSkinPlayerIDs(ids ...int64) *TextureUpdateOne {
+	_u.mutation.RemoveSkinPlayerIDs(ids...)
+	return _u
+}
+
+// RemoveSkinPlayers removes "skin_players" edges to Player entities.
+func (_u *TextureUpdateOne) RemoveSkinPlayers(v ...*Player) *TextureUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSkinPlayerIDs(ids...)
+}
+
+// ClearCapePlayers clears all "cape_players" edges to the Player entity.
+func (_u *TextureUpdateOne) ClearCapePlayers() *TextureUpdateOne {
+	_u.mutation.ClearCapePlayers()
+	return _u
+}
+
+// RemoveCapePlayerIDs removes the "cape_players" edge to Player entities by IDs.
+func (_u *TextureUpdateOne) RemoveCapePlayerIDs(ids ...int64) *TextureUpdateOne {
+	_u.mutation.RemoveCapePlayerIDs(ids...)
+	return _u
+}
+
+// RemoveCapePlayers removes "cape_players" edges to Player entities.
+func (_u *TextureUpdateOne) RemoveCapePlayers(v ...*Player) *TextureUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCapePlayerIDs(ids...)
 }
 
 // Where appends a list predicates to the TextureUpdate builder.
@@ -681,6 +916,96 @@ func (_u *TextureUpdateOne) sqlSave(ctx context.Context) (_node *Texture, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(closetitem.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SkinPlayersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.SkinPlayersTable,
+			Columns: []string{texture.SkinPlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSkinPlayersIDs(); len(nodes) > 0 && !_u.mutation.SkinPlayersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.SkinPlayersTable,
+			Columns: []string{texture.SkinPlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SkinPlayersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.SkinPlayersTable,
+			Columns: []string{texture.SkinPlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CapePlayersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.CapePlayersTable,
+			Columns: []string{texture.CapePlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCapePlayersIDs(); len(nodes) > 0 && !_u.mutation.CapePlayersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.CapePlayersTable,
+			Columns: []string{texture.CapePlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CapePlayersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.CapePlayersTable,
+			Columns: []string{texture.CapePlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

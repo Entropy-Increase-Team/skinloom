@@ -3,7 +3,9 @@ package score
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
@@ -12,9 +14,12 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/dbtest"
 )
 
+var users atomic.Int64
+
 func newUser(t *testing.T, c *ent.Client, score int64) *ent.User {
 	t.Helper()
-	return c.User.Create().SetEmail("u@example.com").SetEmailNormalized("u@example.com").
+	email := fmt.Sprintf("u%d@example.com", users.Add(1))
+	return c.User.Create().SetEmail(email).SetEmailNormalized(email).
 		SetNickname("U").SetPasswordHash("x").SetScore(score).SaveX(context.Background())
 }
 

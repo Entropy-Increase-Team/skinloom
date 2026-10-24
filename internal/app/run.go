@@ -58,11 +58,12 @@ func Run(ctx context.Context, o RunOptions) error {
 	go core.Settings.Watch(runCtx, 2*time.Second)
 	go core.Jobs.Run(runCtx, 5*time.Second)
 	go purgeDeletedAccounts(runCtx, core)
+	go sweepOrphanFiles(runCtx, core)
 
 	var gw *gateway.Gateway // created below; serves requests only after Serve starts
 	api, _ := httpapi.New(httpapi.Deps{
 		Log: log.With("component", "http"), DB: core.DB, Settings: core.Settings,
-		Themes: core.Themes, Broker: core.Broker, Accounts: core.Accounts, Captcha: core.Captcha, Mailer: core.Mailer, Textures: core.Textures,
+		Themes: core.Themes, Broker: core.Broker, Accounts: core.Accounts, Captcha: core.Captcha, Mailer: core.Mailer, Textures: core.Textures, Players: core.Players,
 		AdminToken: sec.AdminToken,
 		ClientInfo: func(r *http.Request) realip.Info { return gw.ClientInfo(r) },
 	})
@@ -283,6 +284,26 @@ func purgeDeletedAccounts(ctx context.Context, core *Core) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
+		}
+	}
+}
+
+// sweepOrphanFiles deletes stored texture files that no texture uses (uploads whose
+// transaction failed, lost sweep jobs), daily. Every node may run it; the checks
+// make deleting twice harmless.
+func sweepOrphanFiles(ctx context.Context, core *Core) {
+	t := time.NewTicker(24 * time.Hour)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+		if n, err := core.Textures.SweepOrphans(ctx, time.Now()); err != nil && ctx.Err() == nil {
+			core.Log.Warn("sweep orphan texture files", "err", err)
+		} else if n > 0 {
+			core.Log.Info("deleted orphan texture files", "count", n)
 		}
 	}
 }

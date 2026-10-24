@@ -1,7 +1,8 @@
 'use client'
 
-import { type ClosetItemView, type ClosetPage, listCloset } from '@skinloom/api-client'
+import { type ClosetItemView, type ClosetPage, listCloset, removeFromCloset, renameClosetItem, type Unfavorited } from '@skinloom/api-client'
 import { Button, Input } from '@skinloom/ui'
+import { Pencil, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
@@ -19,6 +20,8 @@ export function ClosetGrid() {
   const [next, setNext] = useState(0)
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [busy, setBusy] = useState(0) // the texture whose item is being changed
+  const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null)
   // Answers can arrive out of order when the tab or search changes quickly: only the
   // latest request may update the list.
   const latest = useRef(0)
@@ -45,6 +48,34 @@ export function ClosetGrid() {
     void load()
   }, [load])
 
+  async function change(item: ClosetItemView, action: () => Promise<ClosetItemView | null>) {
+    setBusy(item.texture.id)
+    setNotice(null)
+    try {
+      const updated = await action()
+      setItems((list) => list && (updated ? list.map((x) => (x.id === item.id ? updated : x)) : list.filter((x) => x.id !== item.id)))
+    } catch {
+      setNotice({ error: true, text: t('changeFailed') })
+    } finally {
+      setBusy(0)
+    }
+  }
+
+  function rename(item: ClosetItemView) {
+    const name = window.prompt(t('renamePrompt'), item.name)?.trim()
+    if (!name || name === item.name) return
+    void change(item, async () => (await renameClosetItem(item.texture.id, { name })).data as ClosetItemView)
+  }
+
+  function remove(item: ClosetItemView) {
+    if (!window.confirm(t('removeConfirm', { name: item.name }))) return
+    void change(item, async () => {
+      const { refunded } = (await removeFromCloset(item.texture.id)).data as Unfavorited
+      setNotice({ error: false, text: refunded > 0 ? t('removedRefund', { score: refunded }) : t('removed') })
+      return null
+    })
+  }
+
   function onSearch(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setQuery(String(new FormData(e.currentTarget).get('q') ?? '').trim())
@@ -68,6 +99,11 @@ export function ClosetGrid() {
         </form>
       </div>
       {failed && <p className="text-center text-sm text-destructive">{t('loadFailed')}</p>}
+      {notice && (
+        <p role="status" className={`text-center text-sm ${notice.error ? 'text-destructive' : 'text-muted-foreground'}`}>
+          {notice.text}
+        </p>
+      )}
       {items && items.length === 0 && !loading && (
         <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
           <p>{query ? t('noMatch') : t('empty')}</p>
@@ -84,7 +120,17 @@ export function ClosetGrid() {
       {items && items.length > 0 && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {items.map((it) => (
-            <TextureCard key={it.id} texture={it.texture} title={it.name} />
+            <div key={it.id} className="flex flex-col gap-1">
+              <TextureCard texture={it.texture} title={it.name} />
+              <div className="flex justify-end gap-1">
+                <Button variant="ghost" size="icon" title={t('rename')} aria-label={t('rename')} disabled={busy === it.texture.id} onClick={() => rename(it)}>
+                  <Pencil />
+                </Button>
+                <Button variant="ghost" size="icon" title={t('remove')} aria-label={t('remove')} disabled={busy === it.texture.id} onClick={() => remove(it)}>
+                  <Trash2 />
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
       )}

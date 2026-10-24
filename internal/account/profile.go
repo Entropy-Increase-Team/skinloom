@@ -11,6 +11,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
+	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
@@ -255,10 +256,38 @@ func (s *Service) DeleteAccount(ctx context.Context, v *Viewer, password string,
 	})
 }
 
-// PurgeDeleted removes accounts whose grace period is over. Sessions and tokens go
-// with them (foreign keys); audit records stay.
+// PurgeDeleted removes accounts whose grace period is over. The before-delete hook
+// runs for each first; sessions, tokens, players, closets and the score ledger go
+// with the account (foreign keys); public textures stay without an uploader; audit
+// records stay. Past the grace period nobody can restore the account any more.
 func (s *Service) PurgeDeleted(ctx context.Context) (int, error) {
-	return s.db.User.Delete().
-		Where(user.StatusEQ(user.StatusDeleted), user.DeletedAtLT(s.now().Add(-DeleteGrace))).
-		Exec(ctx)
+	expired := []predicate.User{user.StatusEQ(user.StatusDeleted), user.DeletedAtLT(s.now().Add(-DeleteGrace))}
+	ids, err := s.db.User.Query().Where(expired...).IDs(ctx)
+	if err != nil {
+		return 0, err
+	}
+	purged := 0
+	for _, id := range ids {
+		if err := s.beforeDelete(ctx, id); err != nil {
+			return purged, err
+		}
+		n, err := s.db.User.Delete().Where(append(expired, user.ID(id))...).Exec(ctx)
+		if err != nil {
+			return purged, err
+		}
+		purged += n
+	}
+	return purged, nil
+}
+
+// SetBeforeDelete sets a function that runs before an account is removed for good
+// (purge or an administrator's delete), e.g. to delete the user's private textures,
+// which nobody else could ever see.
+func (s *Service) SetBeforeDelete(f func(ctx context.Context, userID int64) error) { s.onDelete = f }
+
+func (s *Service) beforeDelete(ctx context.Context, userID int64) error {
+	if s.onDelete == nil {
+		return nil
+	}
+	return s.onDelete(ctx, userID)
 }

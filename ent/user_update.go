@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
+	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
@@ -220,6 +221,26 @@ func (_u *UserUpdate) ClearLastLoginAt() *UserUpdate {
 	return _u
 }
 
+// SetLastSignAt sets the "last_sign_at" field.
+func (_u *UserUpdate) SetLastSignAt(v time.Time) *UserUpdate {
+	_u.mutation.SetLastSignAt(v)
+	return _u
+}
+
+// SetNillableLastSignAt sets the "last_sign_at" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableLastSignAt(v *time.Time) *UserUpdate {
+	if v != nil {
+		_u.SetLastSignAt(*v)
+	}
+	return _u
+}
+
+// ClearLastSignAt clears the value of the "last_sign_at" field.
+func (_u *UserUpdate) ClearLastSignAt() *UserUpdate {
+	_u.mutation.ClearLastSignAt()
+	return _u
+}
+
 // SetDeletedAt sets the "deleted_at" field.
 func (_u *UserUpdate) SetDeletedAt(v time.Time) *UserUpdate {
 	_u.mutation.SetDeletedAt(v)
@@ -319,6 +340,21 @@ func (_u *UserUpdate) AddScoreEntries(v ...*ScoreEntry) *UserUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.AddScoreEntryIDs(ids...)
+}
+
+// AddPlayerIDs adds the "players" edge to the Player entity by IDs.
+func (_u *UserUpdate) AddPlayerIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddPlayerIDs(ids...)
+	return _u
+}
+
+// AddPlayers adds the "players" edges to the Player entity.
+func (_u *UserUpdate) AddPlayers(v ...*Player) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPlayerIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -429,6 +465,27 @@ func (_u *UserUpdate) RemoveScoreEntries(v ...*ScoreEntry) *UserUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveScoreEntryIDs(ids...)
+}
+
+// ClearPlayers clears all "players" edges to the Player entity.
+func (_u *UserUpdate) ClearPlayers() *UserUpdate {
+	_u.mutation.ClearPlayers()
+	return _u
+}
+
+// RemovePlayerIDs removes the "players" edge to Player entities by IDs.
+func (_u *UserUpdate) RemovePlayerIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemovePlayerIDs(ids...)
+	return _u
+}
+
+// RemovePlayers removes "players" edges to Player entities.
+func (_u *UserUpdate) RemovePlayers(v ...*Player) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePlayerIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -573,6 +630,12 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.LastLoginAtCleared() {
 		_spec.ClearField(user.FieldLastLoginAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.LastSignAt(); ok {
+		_spec.SetField(user.FieldLastSignAt, field.TypeTime, value)
+	}
+	if _u.mutation.LastSignAtCleared() {
+		_spec.ClearField(user.FieldLastSignAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(user.FieldDeletedAt, field.TypeTime, value)
@@ -801,6 +864,51 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(scoreentry.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PlayersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PlayersTable,
+			Columns: []string{user.PlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPlayersIDs(); len(nodes) > 0 && !_u.mutation.PlayersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PlayersTable,
+			Columns: []string{user.PlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PlayersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PlayersTable,
+			Columns: []string{user.PlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {
@@ -1015,6 +1123,26 @@ func (_u *UserUpdateOne) ClearLastLoginAt() *UserUpdateOne {
 	return _u
 }
 
+// SetLastSignAt sets the "last_sign_at" field.
+func (_u *UserUpdateOne) SetLastSignAt(v time.Time) *UserUpdateOne {
+	_u.mutation.SetLastSignAt(v)
+	return _u
+}
+
+// SetNillableLastSignAt sets the "last_sign_at" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableLastSignAt(v *time.Time) *UserUpdateOne {
+	if v != nil {
+		_u.SetLastSignAt(*v)
+	}
+	return _u
+}
+
+// ClearLastSignAt clears the value of the "last_sign_at" field.
+func (_u *UserUpdateOne) ClearLastSignAt() *UserUpdateOne {
+	_u.mutation.ClearLastSignAt()
+	return _u
+}
+
 // SetDeletedAt sets the "deleted_at" field.
 func (_u *UserUpdateOne) SetDeletedAt(v time.Time) *UserUpdateOne {
 	_u.mutation.SetDeletedAt(v)
@@ -1114,6 +1242,21 @@ func (_u *UserUpdateOne) AddScoreEntries(v ...*ScoreEntry) *UserUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.AddScoreEntryIDs(ids...)
+}
+
+// AddPlayerIDs adds the "players" edge to the Player entity by IDs.
+func (_u *UserUpdateOne) AddPlayerIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddPlayerIDs(ids...)
+	return _u
+}
+
+// AddPlayers adds the "players" edges to the Player entity.
+func (_u *UserUpdateOne) AddPlayers(v ...*Player) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPlayerIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -1224,6 +1367,27 @@ func (_u *UserUpdateOne) RemoveScoreEntries(v ...*ScoreEntry) *UserUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveScoreEntryIDs(ids...)
+}
+
+// ClearPlayers clears all "players" edges to the Player entity.
+func (_u *UserUpdateOne) ClearPlayers() *UserUpdateOne {
+	_u.mutation.ClearPlayers()
+	return _u
+}
+
+// RemovePlayerIDs removes the "players" edge to Player entities by IDs.
+func (_u *UserUpdateOne) RemovePlayerIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemovePlayerIDs(ids...)
+	return _u
+}
+
+// RemovePlayers removes "players" edges to Player entities.
+func (_u *UserUpdateOne) RemovePlayers(v ...*Player) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePlayerIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -1398,6 +1562,12 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if _u.mutation.LastLoginAtCleared() {
 		_spec.ClearField(user.FieldLastLoginAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.LastSignAt(); ok {
+		_spec.SetField(user.FieldLastSignAt, field.TypeTime, value)
+	}
+	if _u.mutation.LastSignAtCleared() {
+		_spec.ClearField(user.FieldLastSignAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(user.FieldDeletedAt, field.TypeTime, value)
@@ -1626,6 +1796,51 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(scoreentry.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PlayersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PlayersTable,
+			Columns: []string{user.PlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPlayersIDs(); len(nodes) > 0 && !_u.mutation.PlayersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PlayersTable,
+			Columns: []string{user.PlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PlayersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PlayersTable,
+			Columns: []string{user.PlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

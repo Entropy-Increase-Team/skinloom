@@ -9,6 +9,7 @@ import (
 	"errors"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
+	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 )
 
@@ -19,7 +20,15 @@ var ErrInsufficient = errors.New("not enough score")
 const (
 	ReasonRegister      = "register"
 	ReasonTextureUpload = "texture.upload"
-	ReasonAdmin         = "admin" // an administrator set the score
+	ReasonPlayerCreate  = "player.create"
+	ReasonPlayerDelete  = "player.delete" // the refund of player.create
+	ReasonAdmin         = "admin"         // an administrator set the score
+	ReasonClosetAdd     = "closet.add"
+	ReasonClosetRemove  = "closet.remove"      // the refund of closet.add
+	ReasonLikeAward     = "texture.like"       // the uploader's award for a closet add
+	ReasonLikeTakeBack  = "texture.unlike"     // taking that award back
+	ReasonVisibility    = "texture.visibility" // switching public and private
+	ReasonTextureDelete = "texture.delete"     // giving back what an upload cost
 )
 
 // Change is one score change.
@@ -31,6 +40,30 @@ type Change struct {
 	RefType string
 	RefID   string
 	Actor   *int64 // the administrator making it; nil for the user or the system
+}
+
+// Last returns the user's newest ledger entry with reason about ref (nil if none):
+// what a refund reverses, instead of recomputing a price from today's settings.
+func Last(ctx context.Context, tx *ent.Client, userID int64, reason, refType, refID string) (*ent.ScoreEntry, error) {
+	e, err := tx.ScoreEntry.Query().
+		Where(scoreentry.UserID(userID), scoreentry.Reason(reason), scoreentry.RefType(refType), scoreentry.RefID(refID)).
+		Order(ent.Desc(scoreentry.FieldID)).First(ctx)
+	if ent.IsNotFound(err) {
+		return nil, nil
+	}
+	return e, err
+}
+
+// Net sums the user's ledger deltas about ref with any of reasons.
+func Net(ctx context.Context, tx *ent.Client, userID int64, refType, refID string, reasons ...string) (int64, error) {
+	entries, err := tx.ScoreEntry.Query().
+		Where(scoreentry.UserID(userID), scoreentry.RefType(refType), scoreentry.RefID(refID), scoreentry.ReasonIn(reasons...)).
+		All(ctx)
+	var sum int64
+	for _, e := range entries {
+		sum += e.Delta
+	}
+	return sum, err
 }
 
 // Apply changes a score inside tx and returns the new balance. A negative delta the

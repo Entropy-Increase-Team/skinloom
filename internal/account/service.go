@@ -84,7 +84,8 @@ type Service struct {
 	passwordChecks     *Limiter // wrong current passwords per user (profile changes)
 	emailChanges       *Limiter // email change attempts per user
 	setupDone          atomic.Bool
-	notify             func() // see SetJobNotifier
+	notify             func()                             // see SetJobNotifier
+	onDelete           func(context.Context, int64) error // see SetBeforeDelete
 }
 
 // accountCaptchaAt is the number of failures on one account, from all clients

@@ -519,6 +519,52 @@ func HasClosetItemsWith(preds ...predicate.ClosetItem) predicate.Texture {
 	})
 }
 
+// HasSkinPlayers applies the HasEdge predicate on the "skin_players" edge.
+func HasSkinPlayers() predicate.Texture {
+	return predicate.Texture(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, SkinPlayersTable, SkinPlayersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSkinPlayersWith applies the HasEdge predicate on the "skin_players" edge with a given conditions (other predicates).
+func HasSkinPlayersWith(preds ...predicate.Player) predicate.Texture {
+	return predicate.Texture(func(s *sql.Selector) {
+		step := newSkinPlayersStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCapePlayers applies the HasEdge predicate on the "cape_players" edge.
+func HasCapePlayers() predicate.Texture {
+	return predicate.Texture(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CapePlayersTable, CapePlayersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCapePlayersWith applies the HasEdge predicate on the "cape_players" edge with a given conditions (other predicates).
+func HasCapePlayersWith(preds ...predicate.Player) predicate.Texture {
+	return predicate.Texture(func(s *sql.Selector) {
+		step := newCapePlayersStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Texture) predicate.Texture {
 	return predicate.Texture(sql.AndPredicates(predicates...))

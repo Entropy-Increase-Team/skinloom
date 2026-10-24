@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
+	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
@@ -163,6 +164,20 @@ func (_c *UserCreate) SetNillableLastLoginAt(v *time.Time) *UserCreate {
 	return _c
 }
 
+// SetLastSignAt sets the "last_sign_at" field.
+func (_c *UserCreate) SetLastSignAt(v time.Time) *UserCreate {
+	_c.mutation.SetLastSignAt(v)
+	return _c
+}
+
+// SetNillableLastSignAt sets the "last_sign_at" field if the given value is not nil.
+func (_c *UserCreate) SetNillableLastSignAt(v *time.Time) *UserCreate {
+	if v != nil {
+		_c.SetLastSignAt(*v)
+	}
+	return _c
+}
+
 // SetDeletedAt sets the "deleted_at" field.
 func (_c *UserCreate) SetDeletedAt(v time.Time) *UserCreate {
 	_c.mutation.SetDeletedAt(v)
@@ -284,6 +299,21 @@ func (_c *UserCreate) AddScoreEntries(v ...*ScoreEntry) *UserCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddScoreEntryIDs(ids...)
+}
+
+// AddPlayerIDs adds the "players" edge to the Player entity by IDs.
+func (_c *UserCreate) AddPlayerIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddPlayerIDs(ids...)
+	return _c
+}
+
+// AddPlayers adds the "players" edges to the Player entity.
+func (_c *UserCreate) AddPlayers(v ...*Player) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddPlayerIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -519,6 +549,10 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldLastLoginAt, field.TypeTime, value)
 		_node.LastLoginAt = &value
 	}
+	if value, ok := _c.mutation.LastSignAt(); ok {
+		_spec.SetField(user.FieldLastSignAt, field.TypeTime, value)
+		_node.LastSignAt = &value
+	}
 	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(user.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
@@ -604,6 +638,22 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(scoreentry.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.PlayersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PlayersTable,
+			Columns: []string{user.PlayersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {
@@ -822,6 +872,24 @@ func (u *UserUpsert) UpdateLastLoginAt() *UserUpsert {
 // ClearLastLoginAt clears the value of the "last_login_at" field.
 func (u *UserUpsert) ClearLastLoginAt() *UserUpsert {
 	u.SetNull(user.FieldLastLoginAt)
+	return u
+}
+
+// SetLastSignAt sets the "last_sign_at" field.
+func (u *UserUpsert) SetLastSignAt(v time.Time) *UserUpsert {
+	u.Set(user.FieldLastSignAt, v)
+	return u
+}
+
+// UpdateLastSignAt sets the "last_sign_at" field to the value that was provided on create.
+func (u *UserUpsert) UpdateLastSignAt() *UserUpsert {
+	u.SetExcluded(user.FieldLastSignAt)
+	return u
+}
+
+// ClearLastSignAt clears the value of the "last_sign_at" field.
+func (u *UserUpsert) ClearLastSignAt() *UserUpsert {
+	u.SetNull(user.FieldLastSignAt)
 	return u
 }
 
@@ -1092,6 +1160,27 @@ func (u *UserUpsertOne) UpdateLastLoginAt() *UserUpsertOne {
 func (u *UserUpsertOne) ClearLastLoginAt() *UserUpsertOne {
 	return u.Update(func(s *UserUpsert) {
 		s.ClearLastLoginAt()
+	})
+}
+
+// SetLastSignAt sets the "last_sign_at" field.
+func (u *UserUpsertOne) SetLastSignAt(v time.Time) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetLastSignAt(v)
+	})
+}
+
+// UpdateLastSignAt sets the "last_sign_at" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateLastSignAt() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateLastSignAt()
+	})
+}
+
+// ClearLastSignAt clears the value of the "last_sign_at" field.
+func (u *UserUpsertOne) ClearLastSignAt() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearLastSignAt()
 	})
 }
 
@@ -1533,6 +1622,27 @@ func (u *UserUpsertBulk) UpdateLastLoginAt() *UserUpsertBulk {
 func (u *UserUpsertBulk) ClearLastLoginAt() *UserUpsertBulk {
 	return u.Update(func(s *UserUpsert) {
 		s.ClearLastLoginAt()
+	})
+}
+
+// SetLastSignAt sets the "last_sign_at" field.
+func (u *UserUpsertBulk) SetLastSignAt(v time.Time) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetLastSignAt(v)
+	})
+}
+
+// UpdateLastSignAt sets the "last_sign_at" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateLastSignAt() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateLastSignAt()
+	})
+}
+
+// ClearLastSignAt clears the value of the "last_sign_at" field.
+func (u *UserUpsertBulk) ClearLastSignAt() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearLastSignAt()
 	})
 }
 

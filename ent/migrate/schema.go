@@ -150,6 +150,61 @@ var (
 			},
 		},
 	}
+	// PlayersColumns holds the columns for the "players" table.
+	PlayersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "name", Type: field.TypeString, Size: 32},
+		{Name: "name_lower", Type: field.TypeString, Unique: true, Size: 32},
+		{Name: "uuid", Type: field.TypeString, Unique: true, Size: 32},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "skin_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "cape_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "user_id", Type: field.TypeInt64},
+	}
+	// PlayersTable holds the schema information for the "players" table.
+	PlayersTable = &schema.Table{
+		Name:       "players",
+		Columns:    PlayersColumns,
+		PrimaryKey: []*schema.Column{PlayersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "players_textures_skin_players",
+				Columns:    []*schema.Column{PlayersColumns[6]},
+				RefColumns: []*schema.Column{TexturesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "players_textures_cape_players",
+				Columns:    []*schema.Column{PlayersColumns[7]},
+				RefColumns: []*schema.Column{TexturesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "players_users_players",
+				Columns:    []*schema.Column{PlayersColumns[8]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "player_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{PlayersColumns[8]},
+			},
+			{
+				Name:    "player_skin_id",
+				Unique:  false,
+				Columns: []*schema.Column{PlayersColumns[6]},
+			},
+			{
+				Name:    "player_cape_id",
+				Unique:  false,
+				Columns: []*schema.Column{PlayersColumns[7]},
+			},
+		},
+	}
 	// ScoreLedgerColumns holds the columns for the "score_ledger" table.
 	ScoreLedgerColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -320,6 +375,7 @@ var (
 		{Name: "email_verified_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
 		{Name: "register_ip", Type: field.TypeString, Size: 45, Default: ""},
 		{Name: "last_login_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "last_sign_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
 		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
 		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
@@ -333,7 +389,7 @@ var (
 			{
 				Name:    "user_register_ip_created_at",
 				Unique:  false,
-				Columns: []*schema.Column{UsersColumns[11], UsersColumns[14]},
+				Columns: []*schema.Column{UsersColumns[11], UsersColumns[15]},
 			},
 		},
 	}
@@ -344,6 +400,7 @@ var (
 		BlobsTable,
 		ClosetItemsTable,
 		JobsTable,
+		PlayersTable,
 		ScoreLedgerTable,
 		SessionsTable,
 		SettingsTable,
@@ -371,6 +428,12 @@ func init() {
 	}
 	JobsTable.Annotation = &entsql.Annotation{
 		Table: "jobs",
+	}
+	PlayersTable.ForeignKeys[0].RefTable = TexturesTable
+	PlayersTable.ForeignKeys[1].RefTable = TexturesTable
+	PlayersTable.ForeignKeys[2].RefTable = UsersTable
+	PlayersTable.Annotation = &entsql.Annotation{
+		Table: "players",
 	}
 	ScoreLedgerTable.ForeignKeys[0].RefTable = UsersTable
 	ScoreLedgerTable.Annotation = &entsql.Annotation{

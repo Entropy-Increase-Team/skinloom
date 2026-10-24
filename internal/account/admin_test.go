@@ -195,3 +195,26 @@ func testAdminChangesEmail(t *testing.T, s *Service) {
 		t.Fatalf("audit meta email = %s", got)
 	}
 }
+
+func TestBeforeDeleteHook(t *testing.T) { forEachDB(t, testBeforeDeleteHook) }
+
+// The hook (deleting private textures) runs only once deleting is allowed.
+func testBeforeDeleteHook(t *testing.T, s *Service) {
+	ctx := context.Background()
+	_, sess := setupAdmin(t, s)
+	super := signedIn(t, s, sess.Token)
+	var called []int64
+	s.SetBeforeDelete(func(_ context.Context, id int64) error { called = append(called, id); return nil })
+	if err := s.AdminDeleteUser(ctx, super, super.User.ID, meta); !errors.Is(err, ErrForbidden) || len(called) != 0 {
+		t.Fatalf("a refused delete must not run the hook: %v, %v", err, called)
+	}
+	v, _ := newUser(t, s, "gone@example.com")
+	if err := s.AdminDeleteUser(ctx, super, v.User.ID, meta); err != nil || len(called) != 1 || called[0] != v.User.ID {
+		t.Fatalf("admin delete: %v, %v", err, called)
+	}
+	w, _ := newUser(t, s, "expired@example.com")
+	s.db.User.UpdateOneID(w.User.ID).SetStatus(user.StatusDeleted).SetDeletedAt(time.Now().Add(-DeleteGrace - time.Hour)).ExecX(ctx)
+	if n, err := s.PurgeDeleted(ctx); err != nil || n != 1 || len(called) != 2 || called[1] != w.User.ID {
+		t.Fatalf("purge: %d, %v, %v", n, err, called)
+	}
+}

@@ -22,6 +22,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
+	"github.com/Entropy-Increase-Team/skinloom/internal/player"
 	"github.com/Entropy-Increase-Team/skinloom/internal/pubsub"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
@@ -70,6 +71,7 @@ type Core struct {
 	// Jobs runs background work; Run starts its worker (CLI commands do not).
 	Jobs     *jobs.Queue
 	Textures *texture.Service
+	Players  *player.Service
 	// FreshConfig is true when this start wrote the default config file.
 	FreshConfig bool
 }
@@ -119,7 +121,7 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 	}
 	reg := settings.NewRegistry()
 	defs := slices.Concat(account.SettingDefs(), captcha.SettingDefs(), mail.SettingDefs(),
-		score.SettingDefs(), texture.SettingDefs())
+		score.SettingDefs(), texture.SettingDefs(), player.SettingDefs())
 	if err := reg.Register(defs...); err != nil {
 		database.Close()
 		return nil, err
@@ -138,9 +140,13 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 		Mailer:   mail.New(log.With("component", "mail")),
 		Jobs:     jobs.New(database.Ent, log.With("component", "jobs")),
 		Textures: texture.NewService(database.Ent, store, log.With("component", "texture")),
+		Players:  player.NewService(database.Ent, log.With("component", "player")),
 	}
 	c.Jobs.Register(account.MailJobKind, c.sendMail)
 	c.Accounts.SetJobNotifier(c.Jobs.Kick)
+	c.Jobs.Register(texture.SweepJobKind, c.Textures.HandleSweepJob)
+	c.Textures.SetJobNotifier(c.Jobs.Kick)
+	c.Accounts.SetBeforeDelete(c.Textures.DeletePrivateOf)
 	return c, nil
 }
 

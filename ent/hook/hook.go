@@ -69,6 +69,18 @@ func (f JobFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.JobMutation", m)
 }
 
+// The PlayerFunc type is an adapter to allow the use of ordinary
+// function as Player mutator.
+type PlayerFunc func(context.Context, *ent.PlayerMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlayerFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlayerMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlayerMutation", m)
+}
+
 // The ScoreEntryFunc type is an adapter to allow the use of ordinary
 // function as ScoreEntry mutator.
 type ScoreEntryFunc func(context.Context, *ent.ScoreEntryMutation) (ent.Value, error)

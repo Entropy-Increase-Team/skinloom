@@ -39,6 +39,9 @@ func (User) Fields() []ent.Field {
 		field.Time("email_verified_at").SchemaType(datetimeType).Optional().Nillable(),
 		field.String("register_ip").MaxLen(45).Default(""),
 		field.Time("last_login_at").SchemaType(datetimeType).Optional().Nillable(),
+		// last_sign_at is the last daily check-in; checking in is one conditional update
+		// on it, so two requests at once cannot both earn (Blessing Skin C03).
+		field.Time("last_sign_at").SchemaType(datetimeType).Optional().Nillable(),
 		field.Time("deleted_at").SchemaType(datetimeType).Optional().Nillable(),
 		field.Time("created_at").SchemaType(datetimeType).Default(time.Now).Immutable(),
 		field.Time("updated_at").SchemaType(datetimeType).Default(time.Now).UpdateDefault(time.Now),
@@ -53,6 +56,7 @@ func (User) Edges() []ent.Edge {
 		edge.To("textures", Texture.Type).Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("closet_items", ClosetItem.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("score_entries", ScoreEntry.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("players", Player.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

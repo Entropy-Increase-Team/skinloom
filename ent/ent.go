@@ -17,6 +17,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/blob"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/job"
+	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/setting"
@@ -88,6 +89,7 @@ func checkColumn(t, c string) error {
 			blob.Table:        blob.ValidColumn,
 			closetitem.Table:  closetitem.ValidColumn,
 			job.Table:         job.ValidColumn,
+			player.Table:      player.ValidColumn,
 			scoreentry.Table:  scoreentry.ValidColumn,
 			session.Table:     session.ValidColumn,
 			setting.Table:     setting.ValidColumn,

@@ -301,6 +301,9 @@ func (s *Service) AdminDeleteUser(ctx context.Context, a Actor, id int64, meta R
 	if target.Role == user.RoleSuperadmin {
 		return fmt.Errorf("%w: demote the super administrator before deleting the account", ErrForbidden)
 	}
+	if err := s.beforeDelete(ctx, id); err != nil {
+		return err
+	}
 	meta = meta.clipped()
 	return s.withTx(ctx, func(tx *ent.Client) error {
 		if err := tx.User.DeleteOneID(id).Exec(ctx); err != nil {

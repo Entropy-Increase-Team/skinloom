@@ -21,3 +21,5 @@
 | [0015](0015-jobs-and-mail.md) | 后台任务队列与邮件 | 已接受 |
 | [0016](0016-profile-and-user-management.md) | 个人资料、设备管理、注销与后台用户管理 | 已接受 |
 | [0017](0017-textures-storage-and-score.md) | 材质、文件存储与积分流水 | 已接受 |
+| [0018](0018-players-and-game-apis.md) | 角色、UUID 与游戏皮肤接口 | 已接受 |
+| [0019](0019-closet-texture-edit-and-sign-in.md) | 收藏、材质编辑与删除、签到与用户中心 | 已接受 |

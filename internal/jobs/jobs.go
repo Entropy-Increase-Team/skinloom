@@ -38,11 +38,20 @@ const (
 
 // Enqueue adds a job. Pass a transaction's client to make it part of that transaction.
 func Enqueue(ctx context.Context, c *ent.Client, kind string, payload any) error {
+	return EnqueueAt(ctx, c, kind, payload, time.Time{})
+}
+
+// EnqueueAt adds a job that runs no earlier than at (zero: now).
+func EnqueueAt(ctx context.Context, c *ent.Client, kind string, payload any, at time.Time) error {
 	b, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
-	return c.Job.Create().SetKind(kind).SetPayload(string(b)).Exec(ctx)
+	create := c.Job.Create().SetKind(kind).SetPayload(string(b))
+	if !at.IsZero() {
+		create.SetRunAt(at)
+	}
+	return create.Exec(ctx)
 }
 
 // Queue dispatches due jobs to registered handlers.

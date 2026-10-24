@@ -105,6 +105,11 @@ func LastLoginAt(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldLastLoginAt, v))
 }
 
+// LastSignAt applies equality check predicate on the "last_sign_at" field. It's identical to LastSignAtEQ.
+func LastSignAt(v time.Time) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldLastSignAt, v))
+}
+
 // DeletedAt applies equality check predicate on the "deleted_at" field. It's identical to DeletedAtEQ.
 func DeletedAt(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldDeletedAt, v))
@@ -755,6 +760,56 @@ func LastLoginAtNotNil() predicate.User {
 	return predicate.User(sql.FieldNotNull(FieldLastLoginAt))
 }
 
+// LastSignAtEQ applies the EQ predicate on the "last_sign_at" field.
+func LastSignAtEQ(v time.Time) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldLastSignAt, v))
+}
+
+// LastSignAtNEQ applies the NEQ predicate on the "last_sign_at" field.
+func LastSignAtNEQ(v time.Time) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldLastSignAt, v))
+}
+
+// LastSignAtIn applies the In predicate on the "last_sign_at" field.
+func LastSignAtIn(vs ...time.Time) predicate.User {
+	return predicate.User(sql.FieldIn(FieldLastSignAt, vs...))
+}
+
+// LastSignAtNotIn applies the NotIn predicate on the "last_sign_at" field.
+func LastSignAtNotIn(vs ...time.Time) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldLastSignAt, vs...))
+}
+
+// LastSignAtGT applies the GT predicate on the "last_sign_at" field.
+func LastSignAtGT(v time.Time) predicate.User {
+	return predicate.User(sql.FieldGT(FieldLastSignAt, v))
+}
+
+// LastSignAtGTE applies the GTE predicate on the "last_sign_at" field.
+func LastSignAtGTE(v time.Time) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldLastSignAt, v))
+}
+
+// LastSignAtLT applies the LT predicate on the "last_sign_at" field.
+func LastSignAtLT(v time.Time) predicate.User {
+	return predicate.User(sql.FieldLT(FieldLastSignAt, v))
+}
+
+// LastSignAtLTE applies the LTE predicate on the "last_sign_at" field.
+func LastSignAtLTE(v time.Time) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldLastSignAt, v))
+}
+
+// LastSignAtIsNil applies the IsNil predicate on the "last_sign_at" field.
+func LastSignAtIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldLastSignAt))
+}
+
+// LastSignAtNotNil applies the NotNil predicate on the "last_sign_at" field.
+func LastSignAtNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldLastSignAt))
+}
+
 // DeletedAtEQ applies the EQ predicate on the "deleted_at" field.
 func DeletedAtEQ(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldDeletedAt, v))
@@ -992,6 +1047,29 @@ func HasScoreEntries() predicate.User {
 func HasScoreEntriesWith(preds ...predicate.ScoreEntry) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		step := newScoreEntriesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPlayers applies the HasEdge predicate on the "players" edge.
+func HasPlayers() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, PlayersTable, PlayersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPlayersWith applies the HasEdge predicate on the "players" edge with a given conditions (other predicates).
+func HasPlayersWith(preds ...predicate.Player) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newPlayersStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

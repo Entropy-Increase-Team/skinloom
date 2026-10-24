@@ -45,6 +45,9 @@ func (Texture) Edges() []ent.Edge {
 		edge.From("blob", Blob.Type).Ref("textures").Field("hash").Unique().Required().Immutable(),
 		edge.From("uploader", User.Type).Ref("textures").Field("uploader_id").Unique(),
 		edge.To("closet_items", ClosetItem.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
+		// Players wearing a deleted texture go back to wearing nothing.
+		edge.To("skin_players", Player.Type).Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.To("cape_players", Player.Type).Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 

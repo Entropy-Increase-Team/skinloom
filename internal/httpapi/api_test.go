@@ -19,6 +19,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
+	"github.com/Entropy-Increase-Team/skinloom/internal/player"
 	"github.com/Entropy-Increase-Team/skinloom/internal/pubsub"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
@@ -52,7 +53,7 @@ func newTestDeps(t *testing.T) Deps {
 	}
 	reg := settings.NewRegistry()
 	if err := reg.Register(slices.Concat(account.SettingDefs(), captcha.SettingDefs(), mail.SettingDefs(),
-		score.SettingDefs(), texture.SettingDefs())...); err != nil {
+		score.SettingDefs(), texture.SettingDefs(), player.SettingDefs())...); err != nil {
 		t.Fatal(err)
 	}
 	reg.SetValidator("theme.active", themeReg.ValidateActive)
@@ -66,7 +67,7 @@ func newTestDeps(t *testing.T) Deps {
 	}
 	return Deps{Log: log, DB: database, Settings: svc, Themes: themeReg, Broker: broker, AdminToken: testToken,
 		Accounts: account.NewService(database.Ent, log), Captcha: captcha.NewService(captcha.Options{}), Mailer: mail.New(log),
-		Textures: texture.NewService(database.Ent, store, log)}
+		Textures: texture.NewService(database.Ent, store, log), Players: player.NewService(database.Ent, log)}
 }
 
 func do(t *testing.T, h http.Handler, method, path, auth, body string) *httptest.ResponseRecorder {

@@ -24,6 +24,8 @@ type Tx struct {
 	ClosetItem *ClosetItemClient
 	// Job is the client for interacting with the Job builders.
 	Job *JobClient
+	// Player is the client for interacting with the Player builders.
+	Player *PlayerClient
 	// ScoreEntry is the client for interacting with the ScoreEntry builders.
 	ScoreEntry *ScoreEntryClient
 	// Session is the client for interacting with the Session builders.
@@ -172,6 +174,7 @@ func (tx *Tx) init() {
 	tx.Blob = NewBlobClient(tx.config)
 	tx.ClosetItem = NewClosetItemClient(tx.config)
 	tx.Job = NewJobClient(tx.config)
+	tx.Player = NewPlayerClient(tx.config)
 	tx.ScoreEntry = NewScoreEntryClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)
 	tx.Setting = NewSettingClient(tx.config)

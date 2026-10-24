@@ -10,6 +10,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/blob"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/job"
+	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/schema"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
@@ -179,6 +180,72 @@ func init() {
 	jobDescCreatedAt := jobFields[8].Descriptor()
 	// job.DefaultCreatedAt holds the default value on creation for the created_at field.
 	job.DefaultCreatedAt = jobDescCreatedAt.Default.(func() time.Time)
+	playerFields := schema.Player{}.Fields()
+	_ = playerFields
+	// playerDescName is the schema descriptor for name field.
+	playerDescName := playerFields[2].Descriptor()
+	// player.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	player.NameValidator = func() func(string) error {
+		validators := playerDescName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name string) error {
+			for _, fn := range fns {
+				if err := fn(name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// playerDescNameLower is the schema descriptor for name_lower field.
+	playerDescNameLower := playerFields[3].Descriptor()
+	// player.NameLowerValidator is a validator for the "name_lower" field. It is called by the builders before save.
+	player.NameLowerValidator = func() func(string) error {
+		validators := playerDescNameLower.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name_lower string) error {
+			for _, fn := range fns {
+				if err := fn(name_lower); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// playerDescUUID is the schema descriptor for uuid field.
+	playerDescUUID := playerFields[4].Descriptor()
+	// player.UUIDValidator is a validator for the "uuid" field. It is called by the builders before save.
+	player.UUIDValidator = func() func(string) error {
+		validators := playerDescUUID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(uuid string) error {
+			for _, fn := range fns {
+				if err := fn(uuid); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// playerDescCreatedAt is the schema descriptor for created_at field.
+	playerDescCreatedAt := playerFields[7].Descriptor()
+	// player.DefaultCreatedAt holds the default value on creation for the created_at field.
+	player.DefaultCreatedAt = playerDescCreatedAt.Default.(func() time.Time)
+	// playerDescUpdatedAt is the schema descriptor for updated_at field.
+	playerDescUpdatedAt := playerFields[8].Descriptor()
+	// player.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	player.DefaultUpdatedAt = playerDescUpdatedAt.Default.(func() time.Time)
+	// player.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	player.UpdateDefaultUpdatedAt = playerDescUpdatedAt.UpdateDefault.(func() time.Time)
 	scoreentryFields := schema.ScoreEntry{}.Fields()
 	_ = scoreentryFields
 	// scoreentryDescReason is the schema descriptor for reason field.
@@ -446,11 +513,11 @@ func init() {
 	// user.RegisterIPValidator is a validator for the "register_ip" field. It is called by the builders before save.
 	user.RegisterIPValidator = userDescRegisterIP.Validators[0].(func(string) error)
 	// userDescCreatedAt is the schema descriptor for created_at field.
-	userDescCreatedAt := userFields[14].Descriptor()
+	userDescCreatedAt := userFields[15].Descriptor()
 	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
 	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
 	// userDescUpdatedAt is the schema descriptor for updated_at field.
-	userDescUpdatedAt := userFields[15].Descriptor()
+	userDescUpdatedAt := userFields[16].Descriptor()
 	// user.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
 	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

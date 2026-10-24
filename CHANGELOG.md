@@ -4,6 +4,34 @@
 
 ## [Unreleased]
 
+### 新增（M2 材质与角色 · 第三部分：收藏、材质编辑、签到与用户中心）
+- **收藏**：材质页的"收藏"把材质加入衣柜（消耗 `score.per_closet_item`，上传者得 `score.award_per_like`），"取消收藏"移出并退还。我的衣柜里可以给材质改一个自己的名字，或移出衣柜（显示退还的积分）。接口 `POST /api/v1/me/closet`、`PATCH/DELETE /api/v1/me/closet/{textureId}`。
+- **管理材质**（上传者与管理员，在材质页）：改名、改类型、设为公开 / 私有（提前显示要付或退还的积分）、删除。接口 `PATCH/DELETE /api/v1/textures/{id}`；管理员的修改与删除记入审计日志。
+- **用户中心** `/user`：积分、角色数、衣柜数、上传数与占用空间、公告，以及常用入口；页头增加"用户中心"入口。接口 `GET /api/v1/me/dashboard`。
+- **签到**：在用户中心签到，随机获得 `score.sign_min`–`score.sign_max` 积分（默认 10–100）；每 `score.sign_gap_hours` 小时一次（默认 24），或开启 `score.sign_daily` 后每天零点刷新（按新设置 `site.timezone`，默认 `Asia/Shanghai`）。接口 `POST /api/v1/me/sign`。
+- 新设置 `score.award_per_like`、`score.sign_min`、`score.sign_max`、`score.sign_gap_hours`、`score.sign_daily`、`site.timezone`；`score.return_on_delete` 现在也控制移出衣柜和删除材质时的退还。数据库新增 `users.last_sign_at`（迁移 `20261024081729_sign_in`）。ADR 0019。
+
+### 安全与正确性（M2 第三部分）
+- 签到是一条带条件的原子更新，同时点多次只算一次（修 Blessing Skin C03）；收藏数原子增减（C04）。
+- 取消收藏、删除材质时的退还与收回奖励都按积分流水原样冲正，不按现在的价格重算；收藏自己的材质不再在取消时被扣分，上传者已注销也不会出错（修 C05）。
+- 公开 ↔ 私有切换对称计费：设为私有付差额，设为公开退还同样的差额，来回切换不再持续丢分（修 C12）。
+- 改类型会按图片尺寸重新校验，皮肤与披风之间切换时，正在穿它的角色会自动脱下（修 C08）。设为私有时，它会从别人的衣柜和角色上移除，并退还他们的积分。
+- 材质文件只在没有任何材质引用、且 1 小时宽限期内没有被重新写入时才删除，与重新上传同一张图并发也不会误删；每天清理一次没有记录的孤儿文件。访问页面从不删除数据（修 C06、C10）。
+- 用户被永久删除前，先删除他的私有材质（其他人本就看不到）；公开材质保留，上传者显示为"已注销用户"（修 C09）。
+
+### 新增（M2 材质与角色 · 第二部分：角色与游戏接口）
+- **角色** `/user/player`：创建（消耗 `score.per_player`，默认 100 积分）、改名、删除（`score.return_on_delete` 开启时退还当时支付的积分）、从衣柜里挑选皮肤和披风、脱下、复制 UUID。材质页可以把衣柜里的材质直接穿到角色上；页头增加"角色"入口。接口 `GET/POST /api/v1/me/players`、`PATCH/DELETE /api/v1/me/players/{id}`、`PUT /api/v1/me/players/{id}/textures`、`GET /api/v1/players/rules`。
+- **游戏皮肤接口**：CustomSkinLoader `/{角色名}.json` 与 `/csl/{角色名}.json`、UniSkinMod `/usm/{角色名}.json`、Legacy `/skin/{角色名}.png` 与 `/cape/{角色名}.png`，格式与 Blessing Skin 及其插件一致。
+- **UUID**：每个角色创建时就分配 UUID（`yggdrasil.uuid_algorithm`：`v3` 与离线服一致，默认；`v4` 随机），供 M3 的外置登录使用。
+- 新设置 `player.name_rule`、`player.name_regexp`、`player.name_length_min`、`player.name_length_max`、`yggdrasil.uuid_algorithm`、`delivery.profile_cache_seconds`、`delivery.missing_player_status`、`score.per_player`、`score.return_on_delete`；数据库新增 `players` 表（迁移 `20261024075025_players`）。文档站新增"角色与游戏客户端"页面（含 CustomSkinLoader 配置示例）；ADR 0018。
+
+### 安全与正确性（M2 第二部分）
+- 角色名由唯一索引判重，不区分大小写：同时抢注同一个名字只有一个人成功，也不会再出现只是大小写不同的两个角色（修 Blessing Skin C01）；按名字查找走索引（P01）。
+- 皮肤只能穿皮肤、披风只能穿披风（修 C07）；只能穿自己衣柜里的材质。
+- 删除角色退还的是当时实际支付的积分（从积分流水冲正），不按现在的价格重算。
+- 名字不能包含空格和 `/ \ ? # %`，任何规则下都能拼出可用的皮肤地址。
+- 游戏接口按名字查找不区分大小写并返回库内写法（修 BS #232）；角色主人被封禁返回 403，已注销视为不存在；默认缓存 60 秒而不是一年。
+
 ### 安全（依赖）
 - 前端工作区强制 undici ≥ 7.30.1（`overrides` 与 `pnpm.overrides`）：API 客户端生成工具 orval 经 `@scalar/json-magic@0.15.x` 锁定了受 GHSA-xjj6-f33q-929c（拒绝服务）影响的 undici 7.29.1，0.15 系列没有修复版本。只影响开发时生成客户端，运行中的站点不受影响；等 orval 升级依赖后可以移除这条覆盖。
 

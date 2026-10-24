@@ -3,6 +3,8 @@ package settings
 import (
 	"fmt"
 	"net/url"
+	"time"
+	_ "time/tzdata" // time zone names resolve without a system database (Windows, minimal images)
 )
 
 // coreDefs are the settings available from M0. Later modules add their own
@@ -24,8 +26,18 @@ func coreDefs() []Def {
 		},
 		{
 			Key: "site.url", Type: TypeString, Public: true, Default: "",
-			Doc:      "Canonical public URL, e.g. https://skin.example.com. Empty = derive from the request.",
+			Doc:      "Canonical public URL, e.g. https://skin.example.com. Mail links are built only from it (verification and password reset are off without it).",
 			Validate: validURLOrEmpty,
+		},
+		{
+			Key: "site.timezone", Type: TypeString, Default: "Asia/Shanghai",
+			Doc: "IANA time zone of the site, e.g. Asia/Shanghai or UTC: where \"a new day\" starts for daily check-ins.",
+			Validate: func(v any) error {
+				if _, err := time.LoadLocation(v.(string)); err != nil || v.(string) == "" {
+					return fmt.Errorf("not a time zone name such as Asia/Shanghai or UTC")
+				}
+				return nil
+			},
 		},
 		{
 			Key: "site.announcement", Type: TypeLocalized, Public: true, Default: map[string]string{},

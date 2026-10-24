@@ -265,6 +265,8 @@ export interface UploaderView {
 }
 
 export interface TextureView {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
   createdAt: string;
   /** SHA-256 of the file; the image is at /textures/{hash} */
   hash: string;
@@ -282,6 +284,8 @@ export interface TextureView {
 }
 
 export interface ClosetItemView {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
   addedAt: string;
   id: number;
   name: string;
@@ -294,6 +298,29 @@ export interface ClosetPage {
   items: ClosetItemView[];
   /** Pass as before= for the next page; 0 = last page */
   next: number;
+}
+
+export interface SignInfo {
+  /** Once per calendar day instead of every gapHours */
+  daily: boolean;
+  gapHours: number;
+  max: number;
+  min: number;
+  /** When the next check-in is possible; absent = now */
+  nextAt?: string;
+}
+
+export interface Dashboard {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** Markdown, in the request's language */
+  announcement?: string;
+  closetItems: number;
+  players: number;
+  score: number;
+  sign: SignInfo;
+  storageBytes: number;
+  uploads: number;
 }
 
 export interface DeleteMeInputBody {
@@ -329,6 +356,25 @@ export interface ErrorModel {
   type?: string;
 }
 
+export interface FavoriteInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /**
+     * Name in your closet; default: the texture's name
+     * @maxLength 128
+     */
+  name?: string;
+  /** @minimum 1 */
+  textureId: number;
+}
+
+export interface Favorited {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  item: ClosetItemView;
+  score: number;
+}
+
 export interface ForgotInputBody {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
@@ -361,6 +407,78 @@ export interface MailTestInputBody {
   to?: string;
 }
 
+export type WornTextureType = typeof WornTextureType[keyof typeof WornTextureType];
+
+
+export const WornTextureType = {
+  steve: 'steve',
+  alex: 'alex',
+  cape: 'cape',
+} as const;
+
+export interface WornTexture {
+  hash: string;
+  id: number;
+  name: string;
+  type: WornTextureType;
+}
+
+export interface PlayerView {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  cape?: WornTexture;
+  id: number;
+  name: string;
+  skin?: WornTexture;
+  updatedAt: string;
+  /** 32 hex digits, no dashes */
+  uuid: string;
+}
+
+export interface PlayerCreated {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  player: PlayerView;
+  score: number;
+}
+
+export interface PlayerDeleted {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  refunded: number;
+}
+
+export interface PlayerNameInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** @maxLength 64 */
+  name: string;
+}
+
+export type PlayerRulesNameRule = typeof PlayerRulesNameRule[keyof typeof PlayerRulesNameRule];
+
+
+export const PlayerRulesNameRule = {
+  official: 'official',
+  cjk: 'cjk',
+  utf8: 'utf8',
+  custom: 'custom',
+} as const;
+
+export interface PlayerRules {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** Score to create a player */
+  cost: number;
+  maxLength: number;
+  minLength: number;
+  /** For nameRule custom */
+  nameRegexp?: string;
+  nameRule: PlayerRulesNameRule;
+  /** Deleting a player gives back what it cost */
+  refund: boolean;
+}
+
 export interface RegisterInputBody {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
@@ -372,6 +490,20 @@ export interface RegisterInputBody {
   nickname: string;
   /** @maxLength 1024 */
   password: string;
+}
+
+export interface RenameClosetItemInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** @maxLength 128 */
+  name: string;
+}
+
+export interface RenamePlayerInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** @maxLength 64 */
+  name: string;
 }
 
 export interface ResetInputBody {
@@ -450,6 +582,15 @@ export interface SetupStatusOutputBody {
   needsSetup: boolean;
 }
 
+export interface SignResult {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  gained: number;
+  /** When the next check-in is possible */
+  nextAt: string;
+  score: number;
+}
+
 /**
  * steve and alex are skins (classic and slim arms)
  */
@@ -519,6 +660,12 @@ export interface ThemeView {
   version: string;
 }
 
+export interface Unfavorited {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  refunded: number;
+}
+
 export interface UpdateMeInputBody {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
@@ -529,6 +676,29 @@ export interface UpdateMeInputBody {
   locale?: string;
   /** @maxLength 128 */
   nickname?: string;
+}
+
+/**
+ * Must fit the image; players wearing it in a slot it no longer fits take it off
+ */
+export type UpdateTextureInputBodyType = typeof UpdateTextureInputBodyType[keyof typeof UpdateTextureInputBodyType];
+
+
+export const UpdateTextureInputBodyType = {
+  steve: 'steve',
+  alex: 'alex',
+  cape: 'cape',
+} as const;
+
+export interface UpdateTextureInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** @maxLength 128 */
+  name?: string;
+  /** Going private costs the uploader the price difference (and the upload award); going public gives it back */
+  public?: boolean;
+  /** Must fit the image; players wearing it in a slot it no longer fits take it off */
+  type?: UpdateTextureInputBodyType;
 }
 
 /**
@@ -626,6 +796,21 @@ export interface VerifyInputBody {
   readonly $schema?: string;
   /** @maxLength 64 */
   token: string;
+}
+
+export interface WearInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /**
+     * Texture id of a cape in your closet; 0 takes the cape off; absent leaves it
+     * @minimum 0
+     */
+  cape?: number;
+  /**
+     * Texture id of a skin in your closet; 0 takes the skin off; absent leaves it
+     * @minimum 0
+     */
+  skin?: number;
 }
 
 export type ListAuditParams = {
@@ -1811,6 +1996,207 @@ export const listCloset = async (params?: ListClosetParams, options?: Parameters
 
 
 
+export type addToClosetResponse200 = {
+  data: Favorited
+  status: 200
+}
+
+export type addToClosetResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type addToClosetResponseSuccess = (addToClosetResponse200) & {
+  headers: Headers;
+};
+export type addToClosetResponseError = (addToClosetResponseDefault) & {
+  headers: Headers;
+};
+
+export type addToClosetResponse = (addToClosetResponseSuccess | addToClosetResponseError)
+
+export const getAddToClosetUrl = () => {
+
+
+
+
+  return `/api/v1/me/closet`
+}
+
+/**
+ * @summary Add a texture to your closet
+ */
+export const addToCloset = async (favoriteInputBody: NonReadonly<FavoriteInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<addToClosetResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<addToClosetResponse>(getAddToClosetUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(favoriteInputBody)
+  }
+);}
+
+
+
+export type removeFromClosetResponse200 = {
+  data: Unfavorited
+  status: 200
+}
+
+export type removeFromClosetResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type removeFromClosetResponseSuccess = (removeFromClosetResponse200) & {
+  headers: Headers;
+};
+export type removeFromClosetResponseError = (removeFromClosetResponseDefault) & {
+  headers: Headers;
+};
+
+export type removeFromClosetResponse = (removeFromClosetResponseSuccess | removeFromClosetResponseError)
+
+export const getRemoveFromClosetUrl = (textureId: number,) => {
+
+
+
+
+  return `/api/v1/me/closet/${textureId}`
+}
+
+/**
+ * @summary Remove a texture from your closet
+ */
+export const removeFromCloset = async (textureId: number, options?: Parameters<typeof apiFetch>[1]): Promise<removeFromClosetResponse> => {
+
+  return apiFetch<removeFromClosetResponse>(getRemoveFromClosetUrl(textureId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type renameClosetItemResponse200 = {
+  data: ClosetItemView
+  status: 200
+}
+
+export type renameClosetItemResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type renameClosetItemResponseSuccess = (renameClosetItemResponse200) & {
+  headers: Headers;
+};
+export type renameClosetItemResponseError = (renameClosetItemResponseDefault) & {
+  headers: Headers;
+};
+
+export type renameClosetItemResponse = (renameClosetItemResponseSuccess | renameClosetItemResponseError)
+
+export const getRenameClosetItemUrl = (textureId: number,) => {
+
+
+
+
+  return `/api/v1/me/closet/${textureId}`
+}
+
+/**
+ * @summary Rename a texture in your closet
+ */
+export const renameClosetItem = async (textureId: number,
+    renameClosetItemInputBody: NonReadonly<RenameClosetItemInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<renameClosetItemResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<renameClosetItemResponse>(getRenameClosetItemUrl(textureId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(renameClosetItemInputBody)
+  }
+);}
+
+
+
+export type getDashboardResponse200 = {
+  data: Dashboard
+  status: 200
+}
+
+export type getDashboardResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getDashboardResponseSuccess = (getDashboardResponse200) & {
+  headers: Headers;
+};
+export type getDashboardResponseError = (getDashboardResponseDefault) & {
+  headers: Headers;
+};
+
+export type getDashboardResponse = (getDashboardResponseSuccess | getDashboardResponseError)
+
+export const getGetDashboardUrl = () => {
+
+
+
+
+  return `/api/v1/me/dashboard`
+}
+
+/**
+ * @summary Your overview
+ */
+export const getDashboard = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getDashboardResponse> => {
+
+  return apiFetch<getDashboardResponse>(getGetDashboardUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type deleteMeResponse200 = {
   data: void
   status: 200
@@ -1982,6 +2368,265 @@ return apiFetch<changePasswordResponse>(getChangePasswordUrl(),
 
 
 
+export type listPlayersResponse200 = {
+  data: PlayerView[]
+  status: 200
+}
+
+export type listPlayersResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listPlayersResponseSuccess = (listPlayersResponse200) & {
+  headers: Headers;
+};
+export type listPlayersResponseError = (listPlayersResponseDefault) & {
+  headers: Headers;
+};
+
+export type listPlayersResponse = (listPlayersResponseSuccess | listPlayersResponseError)
+
+export const getListPlayersUrl = () => {
+
+
+
+
+  return `/api/v1/me/players`
+}
+
+/**
+ * @summary Your players
+ */
+export const listPlayers = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listPlayersResponse> => {
+
+  return apiFetch<listPlayersResponse>(getListPlayersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type createPlayerResponse200 = {
+  data: PlayerCreated
+  status: 200
+}
+
+export type createPlayerResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type createPlayerResponseSuccess = (createPlayerResponse200) & {
+  headers: Headers;
+};
+export type createPlayerResponseError = (createPlayerResponseDefault) & {
+  headers: Headers;
+};
+
+export type createPlayerResponse = (createPlayerResponseSuccess | createPlayerResponseError)
+
+export const getCreatePlayerUrl = () => {
+
+
+
+
+  return `/api/v1/me/players`
+}
+
+/**
+ * @summary Create a player
+ */
+export const createPlayer = async (playerNameInputBody: NonReadonly<PlayerNameInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<createPlayerResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createPlayerResponse>(getCreatePlayerUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(playerNameInputBody)
+  }
+);}
+
+
+
+export type deletePlayerResponse200 = {
+  data: PlayerDeleted
+  status: 200
+}
+
+export type deletePlayerResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type deletePlayerResponseSuccess = (deletePlayerResponse200) & {
+  headers: Headers;
+};
+export type deletePlayerResponseError = (deletePlayerResponseDefault) & {
+  headers: Headers;
+};
+
+export type deletePlayerResponse = (deletePlayerResponseSuccess | deletePlayerResponseError)
+
+export const getDeletePlayerUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/me/players/${id}`
+}
+
+/**
+ * @summary Delete a player
+ */
+export const deletePlayer = async (id: number, options?: Parameters<typeof apiFetch>[1]): Promise<deletePlayerResponse> => {
+
+  return apiFetch<deletePlayerResponse>(getDeletePlayerUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type renamePlayerResponse200 = {
+  data: PlayerView
+  status: 200
+}
+
+export type renamePlayerResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type renamePlayerResponseSuccess = (renamePlayerResponse200) & {
+  headers: Headers;
+};
+export type renamePlayerResponseError = (renamePlayerResponseDefault) & {
+  headers: Headers;
+};
+
+export type renamePlayerResponse = (renamePlayerResponseSuccess | renamePlayerResponseError)
+
+export const getRenamePlayerUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/me/players/${id}`
+}
+
+/**
+ * @summary Rename a player
+ */
+export const renamePlayer = async (id: number,
+    renamePlayerInputBody: NonReadonly<RenamePlayerInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<renamePlayerResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<renamePlayerResponse>(getRenamePlayerUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(renamePlayerInputBody)
+  }
+);}
+
+
+
+export type wearTexturesResponse200 = {
+  data: PlayerView
+  status: 200
+}
+
+export type wearTexturesResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type wearTexturesResponseSuccess = (wearTexturesResponse200) & {
+  headers: Headers;
+};
+export type wearTexturesResponseError = (wearTexturesResponseDefault) & {
+  headers: Headers;
+};
+
+export type wearTexturesResponse = (wearTexturesResponseSuccess | wearTexturesResponseError)
+
+export const getWearTexturesUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/me/players/${id}/textures`
+}
+
+/**
+ * @summary Choose what a player wears
+ */
+export const wearTextures = async (id: number,
+    wearInputBody: NonReadonly<WearInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<wearTexturesResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<wearTexturesResponse>(getWearTexturesUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(wearInputBody)
+  }
+);}
+
+
+
 export type listSessionsResponse200 = {
   data: SessionView[]
   status: 200
@@ -2104,6 +2749,92 @@ export const revokeSession = async (id: string, options?: Parameters<typeof apiF
   {
     ...options,
     method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type signInResponse200 = {
+  data: SignResult
+  status: 200
+}
+
+export type signInResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type signInResponseSuccess = (signInResponse200) & {
+  headers: Headers;
+};
+export type signInResponseError = (signInResponseDefault) & {
+  headers: Headers;
+};
+
+export type signInResponse = (signInResponseSuccess | signInResponseError)
+
+export const getSignInUrl = () => {
+
+
+
+
+  return `/api/v1/me/sign`
+}
+
+/**
+ * @summary Daily check-in
+ */
+export const signIn = async ( options?: Parameters<typeof apiFetch>[1]): Promise<signInResponse> => {
+
+  return apiFetch<signInResponse>(getSignInUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type getPlayerRulesResponse200 = {
+  data: PlayerRules
+  status: 200
+}
+
+export type getPlayerRulesResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getPlayerRulesResponseSuccess = (getPlayerRulesResponse200) & {
+  headers: Headers;
+};
+export type getPlayerRulesResponseError = (getPlayerRulesResponseDefault) & {
+  headers: Headers;
+};
+
+export type getPlayerRulesResponse = (getPlayerRulesResponseSuccess | getPlayerRulesResponseError)
+
+export const getGetPlayerRulesUrl = () => {
+
+
+
+
+  return `/api/v1/players/rules`
+}
+
+/**
+ * @summary Player name rules and costs
+ */
+export const getPlayerRules = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getPlayerRulesResponse> => {
+
+  return apiFetch<getPlayerRulesResponse>(getGetPlayerRulesUrl(),
+  {
+    ...options,
+    method: 'GET'
 
 
   }
@@ -2414,6 +3145,49 @@ export const getTextureRules = async ( options?: Parameters<typeof apiFetch>[1])
 
 
 
+export type deleteTextureResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteTextureResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 204>
+}
+
+export type deleteTextureResponseSuccess = (deleteTextureResponse204) & {
+  headers: Headers;
+};
+export type deleteTextureResponseError = (deleteTextureResponseDefault) & {
+  headers: Headers;
+};
+
+export type deleteTextureResponse = (deleteTextureResponseSuccess | deleteTextureResponseError)
+
+export const getDeleteTextureUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/textures/${id}`
+}
+
+/**
+ * @summary Delete a texture (its uploader or an administrator)
+ */
+export const deleteTexture = async (id: number, options?: Parameters<typeof apiFetch>[1]): Promise<deleteTextureResponse> => {
+
+  return apiFetch<deleteTextureResponse>(getDeleteTextureUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
 export type getTextureResponse200 = {
   data: TextureDetail
   status: 200
@@ -2453,5 +3227,63 @@ export const getTexture = async (id: number, options?: Parameters<typeof apiFetc
     method: 'GET'
 
 
+  }
+);}
+
+
+
+export type updateTextureResponse200 = {
+  data: TextureView
+  status: 200
+}
+
+export type updateTextureResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type updateTextureResponseSuccess = (updateTextureResponse200) & {
+  headers: Headers;
+};
+export type updateTextureResponseError = (updateTextureResponseDefault) & {
+  headers: Headers;
+};
+
+export type updateTextureResponse = (updateTextureResponseSuccess | updateTextureResponseError)
+
+export const getUpdateTextureUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/textures/${id}`
+}
+
+/**
+ * @summary Change a texture (its uploader or an administrator)
+ */
+export const updateTexture = async (id: number,
+    updateTextureInputBody: NonReadonly<UpdateTextureInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<updateTextureResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateTextureResponse>(getUpdateTextureUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateTextureInputBody)
   }
 );}

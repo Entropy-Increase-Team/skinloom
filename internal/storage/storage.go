@@ -29,9 +29,15 @@ type File interface {
 
 // Store keeps files by key.
 type Store interface {
-	// Put stores data under key. Storing an existing key is a no-op.
+	// Put stores data under key. Storing an existing key only marks it as just
+	// written (its ModTime becomes now), which keeps a file that a new upload is about
+	// to reference away from the orphan sweep.
 	Put(ctx context.Context, key string, data []byte) error
 	Open(ctx context.Context, key string) (File, error)
+	// Stat returns when key was last written (ErrNotFound if it is not stored).
+	Stat(ctx context.Context, key string) (time.Time, error)
+	// Walk calls fn for every stored key.
+	Walk(ctx context.Context, fn func(key string, modTime time.Time) error) error
 	Delete(ctx context.Context, key string) error
 }
 
@@ -68,7 +74,8 @@ func (l *Local) Put(_ context.Context, key string, data []byte) error {
 		return err
 	}
 	if _, err := os.Stat(p); err == nil {
-		return nil
+		now := time.Now()
+		return os.Chtimes(p, now, now)
 	}
 	tmp, err := os.CreateTemp(l.dir, ".put-*")
 	if err != nil {
@@ -123,6 +130,48 @@ func (l *Local) Open(_ context.Context, key string) (File, error) {
 		return nil, err
 	}
 	return localFile{File: f, info: info}, nil
+}
+
+func (l *Local) Stat(_ context.Context, key string) (time.Time, error) {
+	p, err := l.path(key)
+	if err != nil {
+		return time.Time{}, ErrNotFound
+	}
+	info, err := os.Stat(p)
+	if errors.Is(err, fs.ErrNotExist) {
+		return time.Time{}, ErrNotFound
+	}
+	if err != nil {
+		return time.Time{}, err
+	}
+	return info.ModTime(), nil
+}
+
+// Walk lists the directory; temporary files of interrupted writes are skipped.
+func (l *Local) Walk(ctx context.Context, fn func(key string, modTime time.Time) error) error {
+	entries, err := os.ReadDir(l.dir)
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if e.IsDir() || !ValidKey(e.Name()) {
+			continue
+		}
+		info, err := e.Info()
+		if errors.Is(err, fs.ErrNotExist) {
+			continue // deleted meanwhile
+		}
+		if err != nil {
+			return err
+		}
+		if err := fn(e.Name(), info.ModTime()); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (l *Local) Delete(_ context.Context, key string) error {

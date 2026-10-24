@@ -39,6 +39,7 @@ type Service struct {
 	store    storage.Store
 	log      *slog.Logger
 	decoding chan struct{}
+	notify   func() // see SetJobNotifier
 }
 
 // NewService creates the service.

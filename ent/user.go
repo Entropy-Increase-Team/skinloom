@@ -41,6 +41,8 @@ type User struct {
 	RegisterIP string `json:"register_ip,omitempty"`
 	// LastLoginAt holds the value of the "last_login_at" field.
 	LastLoginAt *time.Time `json:"last_login_at,omitempty"`
+	// LastSignAt holds the value of the "last_sign_at" field.
+	LastSignAt *time.Time `json:"last_sign_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -65,9 +67,11 @@ type UserEdges struct {
 	ClosetItems []*ClosetItem `json:"closet_items,omitempty"`
 	// ScoreEntries holds the value of the score_entries edge.
 	ScoreEntries []*ScoreEntry `json:"score_entries,omitempty"`
+	// Players holds the value of the players edge.
+	Players []*Player `json:"players,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // SessionsOrErr returns the Sessions value or an error if the edge
@@ -115,6 +119,15 @@ func (e UserEdges) ScoreEntriesOrErr() ([]*ScoreEntry, error) {
 	return nil, &NotLoadedError{edge: "score_entries"}
 }
 
+// PlayersOrErr returns the Players value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) PlayersOrErr() ([]*Player, error) {
+	if e.loadedTypes[5] {
+		return e.Players, nil
+	}
+	return nil, &NotLoadedError{edge: "players"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*User) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -124,7 +137,7 @@ func (*User) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case user.FieldEmail, user.FieldEmailNormalized, user.FieldNickname, user.FieldPasswordHash, user.FieldPasswordAlgo, user.FieldRole, user.FieldStatus, user.FieldLocale, user.FieldRegisterIP:
 			values[i] = new(sql.NullString)
-		case user.FieldEmailVerifiedAt, user.FieldLastLoginAt, user.FieldDeletedAt, user.FieldCreatedAt, user.FieldUpdatedAt:
+		case user.FieldEmailVerifiedAt, user.FieldLastLoginAt, user.FieldLastSignAt, user.FieldDeletedAt, user.FieldCreatedAt, user.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -221,6 +234,13 @@ func (_m *User) assignValues(columns []string, values []any) error {
 				_m.LastLoginAt = new(time.Time)
 				*_m.LastLoginAt = value.Time
 			}
+		case user.FieldLastSignAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field last_sign_at", values[i])
+			} else if value.Valid {
+				_m.LastSignAt = new(time.Time)
+				*_m.LastSignAt = value.Time
+			}
 		case user.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
@@ -276,6 +296,11 @@ func (_m *User) QueryClosetItems() *ClosetItemQuery {
 // QueryScoreEntries queries the "score_entries" edge of the User entity.
 func (_m *User) QueryScoreEntries() *ScoreEntryQuery {
 	return NewUserClient(_m.config).QueryScoreEntries(_m)
+}
+
+// QueryPlayers queries the "players" edge of the User entity.
+func (_m *User) QueryPlayers() *PlayerQuery {
+	return NewUserClient(_m.config).QueryPlayers(_m)
 }
 
 // Update returns a builder for updating this User.
@@ -337,6 +362,11 @@ func (_m *User) String() string {
 	builder.WriteString(", ")
 	if v := _m.LastLoginAt; v != nil {
 		builder.WriteString("last_login_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.LastSignAt; v != nil {
+		builder.WriteString("last_sign_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")

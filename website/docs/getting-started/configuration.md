@@ -93,6 +93,7 @@ skinloom settings set site.name null                    # 恢复默认
 |---|---|---|
 | `site.name` / `site.description` / `site.announcement` | — | 站点名称、简介、公告（多语言对象） |
 | `site.url` | 空 | 站点公开地址，如 `https://skins.example.com`。邮件里的链接（验证邮箱、重置密码）只用它生成，没有设置时这两项功能不可用 |
+| `site.timezone` | `Asia/Shanghai` | 站点时区（IANA 名称，如 `Europe/Berlin`），决定每日签到在哪个零点刷新 |
 | `theme.active` / `theme.overrides` / `home.blocks` | `default` | 当前主题、主题 token 覆盖、首页区块 |
 | `auth.registration` | `open` | `open` 开放注册；`closed` 关闭注册 |
 | `auth.registrations_per_ip` | `3` | 同一地址（IPv6 按 /64）24 小时内最多注册几个账号，`0` 不限 |
@@ -101,12 +102,24 @@ skinloom settings set site.name null                    # 恢复默认
 | `score.per_storage` / `score.private_per_storage` | `1` / `10` | 上传公开 / 私有材质每 KB 消耗的积分 |
 | `score.per_closet_item` | `0` | 每个衣柜条目消耗的积分（上传的材质也会进衣柜） |
 | `score.award_per_texture` | `0` | 上传公开材质奖励的积分 |
+| `score.award_per_like` | `0` | 材质被别人收藏时上传者获得的积分（取消收藏时收回） |
+| `score.sign_min` / `score.sign_max` | `10` / `100` | 签到随机获得的积分范围 |
+| `score.sign_gap_hours` | `24` | 两次签到至少间隔几小时（1–8760） |
+| `score.sign_daily` | `false` | 开启后改为每天签到一次，按 `site.timezone` 的零点刷新（忽略间隔） |
 | `texture.max_size_kb` | `1024` | 上传文件的最大大小（KB，上限 8192） |
 | `texture.max_width` | `2048` | 材质的最大宽度（像素，上限 2048） |
 | `texture.name_regexp` | 空 | 材质名称必须匹配的正则表达式（Go RE2 语法），空表示不限 |
 | `texture.allow_download` | `true` | 是否允许通过 `/raw/{tid}` 下载原图 |
 | `texture.private_status` | `403` | 别人访问私有材质时返回的状态码：`403`，或 `404`（不透露材质存在） |
 | `texture.content_policy` | — | 上传页显示的内容政策（多语言，Markdown） |
+| `score.per_player` | `100` | 创建一个角色消耗的积分 |
+| `score.return_on_delete` | `true` | 删除角色、移出衣柜、删除材质时退还当时支付的积分 |
+| `player.name_rule` | `official` | 角色名规则：`official`（英文字母、数字、下划线）/ `cjk`（再加汉字）/ `utf8`（不含空格的任意字符）/ `custom` |
+| `player.name_regexp` | 空 | `custom` 规则使用的正则表达式（Go RE2 语法） |
+| `player.name_length_min` / `player.name_length_max` | `3` / `16` | 角色名长度（字符，上限 32） |
+| `yggdrasil.uuid_algorithm` | `v3` | 新角色的 UUID：`v3` 与离线服相同（由名字计算，改名会变）；`v4` 随机（改名不变） |
+| `delivery.profile_cache_seconds` | `60` | 游戏客户端与 CDN 可以缓存角色数据（`/{角色名}.json` 等）多少秒 |
+| `delivery.missing_player_status` | `404` | 不存在的角色在 CustomSkinLoader 接口返回的状态码：`404` 或 `204` |
 | `captcha.provider` | `image` | `none` / `image`（内置图形验证码）/ `turnstile` / `recaptcha` / `hcaptcha` |
 | `captcha.<turnstile\|recaptcha\|hcaptcha>.site_key` / `.secret_key` | 空 | 第三方验证码的站点密钥（公开）与服务端密钥（不会发给浏览器） |
 | `mail.driver` | `none` | `none` 不发邮件（无法验证邮箱、找回密码）/ `smtp` / `log`（写进服务端日志，开发用） |

@@ -21,6 +21,9 @@ type ClosetItem func(*sql.Selector)
 // Job is the predicate function for job builders.
 type Job func(*sql.Selector)
 
+// Player is the predicate function for player builders.
+type Player func(*sql.Selector)
+
 // ScoreEntry is the predicate function for scoreentry builders.
 type ScoreEntry func(*sql.Selector)
 

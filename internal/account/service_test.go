@@ -52,7 +52,7 @@ func newService(t *testing.T, driver, dsn string) *Service {
 	}
 	if driver != "sqlite" { // shared server database: start from empty account tables
 		for _, q := range []string{
-			"DELETE FROM closet_items", "DELETE FROM textures", "DELETE FROM blobs", "DELETE FROM score_ledger",
+			"DELETE FROM players", "DELETE FROM closet_items", "DELETE FROM textures", "DELETE FROM blobs", "DELETE FROM score_ledger",
 			"DELETE FROM jobs", "DELETE FROM sessions", "DELETE FROM auth_tokens", "DELETE FROM users",
 			"DELETE FROM audit_logs", "DELETE FROM system_state WHERE " + quoteKey(driver) + " = 'setup.completed'",
 		} {

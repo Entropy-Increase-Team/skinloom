@@ -388,6 +388,15 @@
       "ClosetItemView": {
         "additionalProperties": false,
         "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ClosetItemView.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
           "addedAt": {
             "format": "date-time",
             "type": "string"
@@ -438,6 +447,56 @@
         "required": [
           "items",
           "next"
+        ],
+        "type": "object"
+      },
+      "Dashboard": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/Dashboard.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "announcement": {
+            "description": "Markdown, in the request's language",
+            "type": "string"
+          },
+          "closetItems": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "players": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "score": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sign": {
+            "$ref": "#/components/schemas/SignInfo"
+          },
+          "storageBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "uploads": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "score",
+          "players",
+          "closetItems",
+          "uploads",
+          "storageBytes",
+          "sign"
         ],
         "type": "object"
       },
@@ -539,6 +598,60 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "FavoriteInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/FavoriteInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Name in your closet; default: the texture's name",
+            "maxLength": 128,
+            "type": "string"
+          },
+          "textureId": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "textureId"
+        ],
+        "type": "object"
+      },
+      "Favorited": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/Favorited.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "item": {
+            "$ref": "#/components/schemas/ClosetItemView"
+          },
+          "score": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "item",
+          "score"
+        ],
         "type": "object"
       },
       "ForgotInputBody": {
@@ -673,6 +786,170 @@
         ],
         "type": "object"
       },
+      "PlayerCreated": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/PlayerCreated.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "player": {
+            "$ref": "#/components/schemas/PlayerView"
+          },
+          "score": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "player",
+          "score"
+        ],
+        "type": "object"
+      },
+      "PlayerDeleted": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/PlayerDeleted.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "refunded": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "refunded"
+        ],
+        "type": "object"
+      },
+      "PlayerNameInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/PlayerNameInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PlayerRules": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/PlayerRules.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "cost": {
+            "description": "Score to create a player",
+            "format": "int64",
+            "type": "integer"
+          },
+          "maxLength": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "minLength": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nameRegexp": {
+            "description": "For nameRule custom",
+            "type": "string"
+          },
+          "nameRule": {
+            "enum": [
+              "official",
+              "cjk",
+              "utf8",
+              "custom"
+            ],
+            "type": "string"
+          },
+          "refund": {
+            "description": "Deleting a player gives back what it cost",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "nameRule",
+          "minLength",
+          "maxLength",
+          "cost",
+          "refund"
+        ],
+        "type": "object"
+      },
+      "PlayerView": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/PlayerView.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "cape": {
+            "$ref": "#/components/schemas/WornTexture"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "skin": {
+            "$ref": "#/components/schemas/WornTexture"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "uuid": {
+            "description": "32 hex digits, no dashes",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "uuid",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "PluginFrontend": {
         "additionalProperties": false,
         "properties": {
@@ -729,6 +1006,50 @@
           "email",
           "nickname",
           "password"
+        ],
+        "type": "object"
+      },
+      "RenameClosetItemInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/RenameClosetItemInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 128,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "RenamePlayerInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/RenamePlayerInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
         ],
         "type": "object"
       },
@@ -1016,6 +1337,72 @@
         ],
         "type": "object"
       },
+      "SignInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "daily": {
+            "description": "Once per calendar day instead of every gapHours",
+            "type": "boolean"
+          },
+          "gapHours": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "max": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "min": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nextAt": {
+            "description": "When the next check-in is possible; absent = now",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "min",
+          "max",
+          "daily",
+          "gapHours"
+        ],
+        "type": "object"
+      },
+      "SignResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/SignResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "gained": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nextAt": {
+            "description": "When the next check-in is possible",
+            "format": "date-time",
+            "type": "string"
+          },
+          "score": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "gained",
+          "score",
+          "nextAt"
+        ],
+        "type": "object"
+      },
       "SiteInfo": {
         "additionalProperties": false,
         "properties": {
@@ -1193,6 +1580,15 @@
       "TextureView": {
         "additionalProperties": false,
         "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/TextureView.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -1318,6 +1714,28 @@
         ],
         "type": "object"
       },
+      "Unfavorited": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/Unfavorited.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "refunded": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "refunded"
+        ],
+        "type": "object"
+      },
       "UpdateMeInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -1337,6 +1755,38 @@
           },
           "nickname": {
             "maxLength": 128,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateTextureInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/UpdateTextureInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "public": {
+            "description": "Going private costs the uploader the price difference (and the upload award); going public gives it back",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "Must fit the image; players wearing it in a slot it no longer fits take it off",
+            "enum": [
+              "steve",
+              "alex",
+              "cape"
+            ],
             "type": "string"
           }
         },
@@ -1558,6 +2008,63 @@
         },
         "required": [
           "token"
+        ],
+        "type": "object"
+      },
+      "WearInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/WearInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "cape": {
+            "description": "Texture id of a cape in your closet; 0 takes the cape off; absent leaves it",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "skin": {
+            "description": "Texture id of a skin in your closet; 0 takes the skin off; absent leaves it",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "WornTexture": {
+        "additionalProperties": false,
+        "properties": {
+          "hash": {
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "steve",
+              "alex",
+              "cape"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "hash"
         ],
         "type": "object"
       }
@@ -2690,6 +3197,188 @@
         "tags": [
           "me"
         ]
+      },
+      "post": {
+        "operationId": "addToCloset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FavoriteInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Favorited"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add a texture to your closet",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/api/v1/me/closet/{textureId}": {
+      "delete": {
+        "operationId": "removeFromCloset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textureId",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unfavorited"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove a texture from your closet",
+        "tags": [
+          "me"
+        ]
+      },
+      "patch": {
+        "operationId": "renameClosetItem",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textureId",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameClosetItemInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosetItemView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Rename a texture in your closet",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/api/v1/me/dashboard": {
+      "get": {
+        "operationId": "getDashboard",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Dashboard"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Your overview",
+        "tags": [
+          "me"
+        ]
       }
     },
     "/api/v1/me/delete": {
@@ -2823,6 +3512,248 @@
         ]
       }
     },
+    "/api/v1/me/players": {
+      "get": {
+        "operationId": "listPlayers",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PlayerView"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Your players",
+        "tags": [
+          "players"
+        ]
+      },
+      "post": {
+        "operationId": "createPlayer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerNameInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerCreated"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Create a player",
+        "tags": [
+          "players"
+        ]
+      }
+    },
+    "/api/v1/me/players/{id}": {
+      "delete": {
+        "operationId": "deletePlayer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerDeleted"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Delete a player",
+        "tags": [
+          "players"
+        ]
+      },
+      "patch": {
+        "operationId": "renamePlayer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenamePlayerInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Rename a player",
+        "tags": [
+          "players"
+        ]
+      }
+    },
+    "/api/v1/me/players/{id}/textures": {
+      "put": {
+        "operationId": "wearTextures",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WearInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Choose what a player wears",
+        "tags": [
+          "players"
+        ]
+      }
+    },
     "/api/v1/me/sessions": {
       "get": {
         "operationId": "listSessions",
@@ -2928,6 +3859,73 @@
         "summary": "Sign one of your devices out",
         "tags": [
           "me"
+        ]
+      }
+    },
+    "/api/v1/me/sign": {
+      "post": {
+        "operationId": "signIn",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Daily check-in",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/api/v1/players/rules": {
+      "get": {
+        "operationId": "getPlayerRules",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerRules"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Player name rules and costs",
+        "tags": [
+          "players"
         ]
       }
     },
@@ -3320,6 +4318,44 @@
       }
     },
     "/api/v1/textures/{id}": {
+      "delete": {
+        "operationId": "deleteTexture",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Delete a texture (its uploader or an administrator)",
+        "tags": [
+          "textures"
+        ]
+      },
       "get": {
         "description": "Private textures only for their uploader and administrators; others get texture.private_status (403 or 404).",
         "operationId": "getTexture",
@@ -3357,6 +4393,61 @@
           }
         },
         "summary": "A texture",
+        "tags": [
+          "textures"
+        ]
+      },
+      "patch": {
+        "operationId": "updateTexture",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTextureInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextureView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change a texture (its uploader or an administrator)",
         "tags": [
           "textures"
         ]

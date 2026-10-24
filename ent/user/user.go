@@ -39,6 +39,8 @@ const (
 	FieldRegisterIP = "register_ip"
 	// FieldLastLoginAt holds the string denoting the last_login_at field in the database.
 	FieldLastLoginAt = "last_login_at"
+	// FieldLastSignAt holds the string denoting the last_sign_at field in the database.
+	FieldLastSignAt = "last_sign_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -55,6 +57,8 @@ const (
 	EdgeClosetItems = "closet_items"
 	// EdgeScoreEntries holds the string denoting the score_entries edge name in mutations.
 	EdgeScoreEntries = "score_entries"
+	// EdgePlayers holds the string denoting the players edge name in mutations.
+	EdgePlayers = "players"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// SessionsTable is the table that holds the sessions relation/edge.
@@ -92,6 +96,13 @@ const (
 	ScoreEntriesInverseTable = "score_ledger"
 	// ScoreEntriesColumn is the table column denoting the score_entries relation/edge.
 	ScoreEntriesColumn = "user_id"
+	// PlayersTable is the table that holds the players relation/edge.
+	PlayersTable = "players"
+	// PlayersInverseTable is the table name for the Player entity.
+	// It exists in this package in order to avoid circular dependency with the "player" package.
+	PlayersInverseTable = "players"
+	// PlayersColumn is the table column denoting the players relation/edge.
+	PlayersColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -109,6 +120,7 @@ var Columns = []string{
 	FieldEmailVerifiedAt,
 	FieldRegisterIP,
 	FieldLastLoginAt,
+	FieldLastSignAt,
 	FieldDeletedAt,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -277,6 +289,11 @@ func ByLastLoginAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastLoginAt, opts...).ToFunc()
 }
 
+// ByLastSignAt orders the results by the last_sign_at field.
+func ByLastSignAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastSignAt, opts...).ToFunc()
+}
+
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
@@ -361,6 +378,20 @@ func ByScoreEntries(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newScoreEntriesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByPlayersCount orders the results by players count.
+func ByPlayersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newPlayersStep(), opts...)
+	}
+}
+
+// ByPlayers orders the results by players terms.
+func ByPlayers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPlayersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newSessionsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -394,5 +425,12 @@ func newScoreEntriesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ScoreEntriesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ScoreEntriesTable, ScoreEntriesColumn),
+	)
+}
+func newPlayersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PlayersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PlayersTable, PlayersColumn),
 	)
 }

@@ -32,12 +32,36 @@ func SettingDefs() []settings.Def {
 		def("score.private_per_storage", 10, "Score per KB of a private upload. (BS private_score_per_storage)"),
 		def("score.per_closet_item", 0, "Score to add a texture to the closet, uploads included. (BS score_per_closet_item)"),
 		def("score.award_per_texture", 0, "Score awarded for uploading a public texture. (BS score_award_per_texture)"),
+		def("score.per_player", 100, "Score to create a player. (BS score_per_player)"),
+		def("score.award_per_like", 0, "Score the uploader earns when someone else adds their texture to a closet. (BS score_award_per_like)"),
+		def("score.sign_min", 10, "Smallest score a daily check-in gives. (BS sign_score)"),
+		def("score.sign_max", 100, "Largest score a daily check-in gives. (BS sign_score)"),
+		{
+			Key: "score.sign_gap_hours", Type: settings.TypeInt, Public: true, Default: 24,
+			Doc: "Hours between check-ins, when score.sign_daily is off. (BS sign_gap_time)",
+			Validate: func(v any) error {
+				if n, ok := v.(float64); ok && (n < 1 || n > 8760) {
+					return fmt.Errorf("must be 1 to 8760")
+				}
+				return nil
+			},
+		},
+		{
+			Key: "score.sign_daily", Type: settings.TypeBool, Public: true, Default: false,
+			Doc: "Once per calendar day (from midnight in site.timezone) instead of every score.sign_gap_hours. (BS sign_after_zero)",
+		},
+		{
+			Key: "score.return_on_delete", Type: settings.TypeBool, Public: true, Default: true,
+			Doc: "Deleting a player gives back what creating it cost (the amount actually paid). (BS return_score)",
+		},
 	}
 }
 
 // Rates are the score settings in effect.
 type Rates struct {
 	PerStorage, PrivatePerStorage, PerClosetItem, AwardPerTexture int64
+	PerPlayer, AwardPerLike                                       int64
+	ReturnOnDelete                                                bool
 }
 
 // RatesFrom reads the rates from a settings snapshot.
@@ -47,6 +71,9 @@ func RatesFrom(s *settings.Snapshot) Rates {
 		PrivatePerStorage: settings.Decode[int64](s, "score.private_per_storage"),
 		PerClosetItem:     settings.Decode[int64](s, "score.per_closet_item"),
 		AwardPerTexture:   settings.Decode[int64](s, "score.award_per_texture"),
+		PerPlayer:         settings.Decode[int64](s, "score.per_player"),
+		AwardPerLike:      settings.Decode[int64](s, "score.award_per_like"),
+		ReturnOnDelete:    settings.Decode[bool](s, "score.return_on_delete"),
 	}
 }
 

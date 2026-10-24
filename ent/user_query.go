@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
+	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
@@ -33,6 +34,7 @@ type UserQuery struct {
 	withTextures     *TextureQuery
 	withClosetItems  *ClosetItemQuery
 	withScoreEntries *ScoreEntryQuery
+	withPlayers      *PlayerQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -172,6 +174,28 @@ func (_q *UserQuery) QueryScoreEntries() *ScoreEntryQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(scoreentry.Table, scoreentry.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.ScoreEntriesTable, user.ScoreEntriesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPlayers chains the current query on the "players" edge.
+func (_q *UserQuery) QueryPlayers() *PlayerQuery {
+	query := (&PlayerClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(player.Table, player.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.PlayersTable, user.PlayersColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -376,6 +400,7 @@ func (_q *UserQuery) Clone() *UserQuery {
 		withTextures:     _q.withTextures.Clone(),
 		withClosetItems:  _q.withClosetItems.Clone(),
 		withScoreEntries: _q.withScoreEntries.Clone(),
+		withPlayers:      _q.withPlayers.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -434,6 +459,17 @@ func (_q *UserQuery) WithScoreEntries(opts ...func(*ScoreEntryQuery)) *UserQuery
 		opt(query)
 	}
 	_q.withScoreEntries = query
+	return _q
+}
+
+// WithPlayers tells the query-builder to eager-load the nodes that are connected to
+// the "players" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithPlayers(opts ...func(*PlayerQuery)) *UserQuery {
+	query := (&PlayerClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withPlayers = query
 	return _q
 }
 
@@ -515,12 +551,13 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = _q.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [6]bool{
 			_q.withSessions != nil,
 			_q.withAuthTokens != nil,
 			_q.withTextures != nil,
 			_q.withClosetItems != nil,
 			_q.withScoreEntries != nil,
+			_q.withPlayers != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -573,6 +610,13 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := _q.loadScoreEntries(ctx, query, nodes,
 			func(n *User) { n.Edges.ScoreEntries = []*ScoreEntry{} },
 			func(n *User, e *ScoreEntry) { n.Edges.ScoreEntries = append(n.Edges.ScoreEntries, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withPlayers; query != nil {
+		if err := _q.loadPlayers(ctx, query, nodes,
+			func(n *User) { n.Edges.Players = []*Player{} },
+			func(n *User, e *Player) { n.Edges.Players = append(n.Edges.Players, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -720,6 +764,36 @@ func (_q *UserQuery) loadScoreEntries(ctx context.Context, query *ScoreEntryQuer
 	}
 	query.Where(predicate.ScoreEntry(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(user.ScoreEntriesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadPlayers(ctx context.Context, query *PlayerQuery, nodes []*User, init func(*User), assign func(*User, *Player)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(player.FieldUserID)
+	}
+	query.Where(predicate.Player(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.PlayersColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

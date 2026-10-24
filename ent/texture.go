@@ -51,9 +51,13 @@ type TextureEdges struct {
 	Uploader *User `json:"uploader,omitempty"`
 	// ClosetItems holds the value of the closet_items edge.
 	ClosetItems []*ClosetItem `json:"closet_items,omitempty"`
+	// SkinPlayers holds the value of the skin_players edge.
+	SkinPlayers []*Player `json:"skin_players,omitempty"`
+	// CapePlayers holds the value of the cape_players edge.
+	CapePlayers []*Player `json:"cape_players,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [5]bool
 }
 
 // BlobOrErr returns the Blob value or an error if the edge
@@ -85,6 +89,24 @@ func (e TextureEdges) ClosetItemsOrErr() ([]*ClosetItem, error) {
 		return e.ClosetItems, nil
 	}
 	return nil, &NotLoadedError{edge: "closet_items"}
+}
+
+// SkinPlayersOrErr returns the SkinPlayers value or an error if the edge
+// was not loaded in eager-loading.
+func (e TextureEdges) SkinPlayersOrErr() ([]*Player, error) {
+	if e.loadedTypes[3] {
+		return e.SkinPlayers, nil
+	}
+	return nil, &NotLoadedError{edge: "skin_players"}
+}
+
+// CapePlayersOrErr returns the CapePlayers value or an error if the edge
+// was not loaded in eager-loading.
+func (e TextureEdges) CapePlayersOrErr() ([]*Player, error) {
+	if e.loadedTypes[4] {
+		return e.CapePlayers, nil
+	}
+	return nil, &NotLoadedError{edge: "cape_players"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -200,6 +222,16 @@ func (_m *Texture) QueryUploader() *UserQuery {
 // QueryClosetItems queries the "closet_items" edge of the Texture entity.
 func (_m *Texture) QueryClosetItems() *ClosetItemQuery {
 	return NewTextureClient(_m.config).QueryClosetItems(_m)
+}
+
+// QuerySkinPlayers queries the "skin_players" edge of the Texture entity.
+func (_m *Texture) QuerySkinPlayers() *PlayerQuery {
+	return NewTextureClient(_m.config).QuerySkinPlayers(_m)
+}
+
+// QueryCapePlayers queries the "cape_players" edge of the Texture entity.
+func (_m *Texture) QueryCapePlayers() *PlayerQuery {
+	return NewTextureClient(_m.config).QueryCapePlayers(_m)
 }
 
 // Update returns a builder for updating this Texture.

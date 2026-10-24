@@ -113,7 +113,9 @@
     "register": "注册",
     "forgot": "忘记密码？",
     "admin": "进入管理后台",
-    "closet": "衣柜"
+    "closet": "衣柜",
+    "players": "角色",
+    "dashboard": "用户中心"
   },
   "setup": {
     "title": "初始化站点",
@@ -339,7 +341,27 @@
     "size": "大小",
     "uploaded": "上传于",
     "hash": "哈希",
-    "download": "下载原图"
+    "download": "下载原图",
+    "favorite": "收藏",
+    "unfavorite": "取消收藏",
+    "favoriteCost": "收藏需要 {cost} 积分，取消收藏时退还。",
+    "manage": "管理材质",
+    "rename": "重命名",
+    "changeType": "材质类型",
+    "makePrivate": "设为私有",
+    "makePublic": "设为公开",
+    "privateConfirm": "设为私有后，这个材质会从其他用户的衣柜和角色上移除（退还他们的积分），确定吗？",
+    "switchCost": "切换需要 {cost} 积分。",
+    "switchRefund": "切换会退还 {cost} 积分。",
+    "delete": "删除材质",
+    "deleteConfirm": "确定删除「{name}」吗？此操作无法撤销，它也会从所有用户的衣柜和角色上移除。",
+    "errors": {
+      "score": "积分不足。",
+      "duplicate": "皮肤库里已经有相同的公开材质了。",
+      "shape": "这张图片的尺寸不能作为该类型使用。",
+      "name": "名称不符合站点的命名规则。",
+      "failed": "操作失败，请稍后重试。"
+    }
   },
   "upload": {
     "title": "上传材质",
@@ -378,6 +400,89 @@
     "empty": "衣柜还是空的。",
     "browse": "逛逛皮肤库",
     "upload": "上传材质",
-    "more": "加载更多"
+    "more": "加载更多",
+    "rename": "重命名",
+    "renamePrompt": "衣柜里的新名称",
+    "remove": "移出衣柜",
+    "removeConfirm": "确定把「{name}」移出衣柜吗？穿着它的角色会换下它。",
+    "removed": "已移出衣柜。",
+    "removedRefund": "已移出衣柜，退还 {score} 积分。",
+    "changeFailed": "操作失败，请稍后重试。"
+  },
+  "player": {
+    "title": "角色",
+    "intro": "角色是你在游戏里的名字。给角色穿上衣柜里的皮肤和披风，游戏客户端就能显示它们。",
+    "loadFailed": "加载失败，请稍后重试。",
+    "none": "还没有角色，先创建一个吧。",
+    "newName": "新角色名",
+    "create": "创建角色",
+    "cost": "创建一个角色需要 {cost} 积分（你有 {score}）。",
+    "refundHint": "删除角色时会退还当时支付的积分。",
+    "rules": {
+      "official": "角色名只能包含英文字母、数字和下划线，长度 {min}–{max} 个字符。",
+      "cjk": "角色名可以包含中文、英文字母、数字和下划线，长度 {min}–{max} 个字符。",
+      "utf8": "角色名不能包含空格和 /  ? # % 等符号，长度 {min}–{max} 个字符。",
+      "custom": "角色名需要符合站点的命名规则，长度 {min}–{max} 个字符。"
+    },
+    "rename": "改名",
+    "save": "保存",
+    "copyUUID": "复制 UUID",
+    "copied": "已复制",
+    "skin": "皮肤",
+    "cape": "披风",
+    "noSkin": "没有皮肤",
+    "chooseSkin": "选择皮肤",
+    "chooseCape": "选择披风",
+    "removeSkin": "脱下皮肤",
+    "removeCape": "脱下披风",
+    "delete": "删除角色",
+    "deleteConfirm": "确定要删除角色 {name} 吗？",
+    "closetEmpty": "衣柜里还没有这类材质。",
+    "profileLink": "查看角色数据（CustomSkinLoader）",
+    "createFirst": "先创建一个角色，才能把材质穿上。",
+    "choosePlayer": "选择角色",
+    "wearSkin": "穿上这个皮肤",
+    "wearCape": "披上这件披风",
+    "worn": "已穿上。",
+    "errors": {
+      "score": "积分不足。",
+      "taken": "这个角色名已经被使用了。",
+      "name": "角色名不符合要求。",
+      "failed": "操作失败，请稍后重试。"
+    }
+  },
+  "dashboard": {
+    "title": "用户中心",
+    "welcome": "欢迎回来，{name}。",
+    "loadFailed": "加载失败，请稍后重试。",
+    "score": "积分",
+    "players": "角色",
+    "closetItems": "衣柜",
+    "uploads": "上传",
+    "storage": "占用空间",
+    "kb": "{kb} KB",
+    "sign": {
+      "title": "签到",
+      "button": "签到",
+      "signing": "签到中…",
+      "done": "已签到",
+      "range": "每次签到随机获得 {min}–{max} 积分，",
+      "fixed": "每次签到获得 {score} 积分，",
+      "daily": "每天可以签到一次。",
+      "gap": "每 {hours} 小时可以签到一次。",
+      "next": "下次签到：{time}",
+      "gained": "签到成功，获得 {score} 积分！",
+      "tooEarly": "还没到签到时间。",
+      "failed": "签到失败，请稍后重试。"
+    },
+    "announcement": "公告",
+    "links": {
+      "title": "快捷入口",
+      "players": "管理角色",
+      "closet": "我的衣柜",
+      "upload": "上传材质",
+      "skinlib": "逛逛皮肤库",
+      "profile": "个人资料"
+    }
   }
 }

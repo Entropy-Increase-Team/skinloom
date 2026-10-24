@@ -23,6 +23,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/httpx"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/realip"
+	"github.com/Entropy-Increase-Team/skinloom/internal/player"
 	"github.com/Entropy-Increase-Team/skinloom/internal/pubsub"
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
@@ -40,6 +41,7 @@ type Deps struct {
 	Captcha  *captcha.Service
 	Mailer   *mail.Mailer
 	Textures *texture.Service
+	Players  *player.Service
 	// ClientInfo resolves the client address and public host behind trusted proxies
 	// (the gateway's live resolver). Nil = trust no proxy.
 	ClientInfo func(*http.Request) realip.Info
@@ -91,7 +93,10 @@ func New(d Deps) (http.Handler, huma.API) {
 	registerAdminUsers(api, d)
 	registerAdmin(api, d)
 	registerTextures(api, d)
+	registerPlayers(api, d)
+	registerManage(api, d)
 	mountFiles(r, d)
+	mountGame(r, d)
 
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok")) })
 	r.Get("/readyz", func(w http.ResponseWriter, req *http.Request) {

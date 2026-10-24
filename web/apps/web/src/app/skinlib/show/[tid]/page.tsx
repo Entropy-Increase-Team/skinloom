@@ -7,8 +7,11 @@ import { notFound } from 'next/navigation'
 import { getFormatter, getTranslations } from 'next-intl/server'
 import { cache } from 'react'
 
+import { WearOnPlayer } from '@/components/player/wear-on-player'
 import { SkinViewer3D } from '@/components/texture/skin-viewer'
+import { FavoriteButton, OwnerControls } from '@/components/texture/texture-actions'
 import { kb } from '@/lib/skin'
+import { getViewer } from '@/lib/viewer'
 import { asVisitor } from '@/lib/visitor'
 
 type Loaded = { texture: TextureDetail } | { status: number }
@@ -55,10 +58,12 @@ export default async function TexturePage({ params }: { params: Promise<{ tid: s
     )
   }
   const x = loaded.texture
-  const [format, rules] = await Promise.all([
+  const [format, rules, viewer] = await Promise.all([
     getFormatter(),
     getTextureRules().then((r) => r.data as TextureRules, () => null),
+    getViewer(),
   ])
+  const canManage = x.mine || (viewer !== null && viewer.role !== 'user')
 
   return (
     <div className="mx-auto grid max-w-5xl gap-6 px-4 py-8 md:grid-cols-[1fr_20rem]">
@@ -92,6 +97,8 @@ export default async function TexturePage({ params }: { params: Promise<{ tid: s
               {x.hash}
             </dd>
           </dl>
+          {viewer && rules && <FavoriteButton texture={x} rates={rules.rates} />}
+          {x.inCloset && <WearOnPlayer textureId={x.id} kind={x.type === 'cape' ? 'cape' : 'skin'} />}
           {rules?.allowDownload && (
             <Button asChild variant="outline">
               <a href={`/raw/${x.id}.png`} download={`${x.name}.png`}>
@@ -100,6 +107,7 @@ export default async function TexturePage({ params }: { params: Promise<{ tid: s
               </a>
             </Button>
           )}
+          {canManage && rules && <OwnerControls texture={x} rates={rules.rates} charged={x.mine} />}
         </CardContent>
       </Card>
     </div>

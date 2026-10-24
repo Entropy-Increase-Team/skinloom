@@ -39,6 +39,10 @@ const (
 	EdgeUploader = "uploader"
 	// EdgeClosetItems holds the string denoting the closet_items edge name in mutations.
 	EdgeClosetItems = "closet_items"
+	// EdgeSkinPlayers holds the string denoting the skin_players edge name in mutations.
+	EdgeSkinPlayers = "skin_players"
+	// EdgeCapePlayers holds the string denoting the cape_players edge name in mutations.
+	EdgeCapePlayers = "cape_players"
 	// BlobFieldID holds the string denoting the ID field of the Blob.
 	BlobFieldID = "hash"
 	// Table holds the table name of the texture in the database.
@@ -64,6 +68,20 @@ const (
 	ClosetItemsInverseTable = "closet_items"
 	// ClosetItemsColumn is the table column denoting the closet_items relation/edge.
 	ClosetItemsColumn = "texture_id"
+	// SkinPlayersTable is the table that holds the skin_players relation/edge.
+	SkinPlayersTable = "players"
+	// SkinPlayersInverseTable is the table name for the Player entity.
+	// It exists in this package in order to avoid circular dependency with the "player" package.
+	SkinPlayersInverseTable = "players"
+	// SkinPlayersColumn is the table column denoting the skin_players relation/edge.
+	SkinPlayersColumn = "skin_id"
+	// CapePlayersTable is the table that holds the cape_players relation/edge.
+	CapePlayersTable = "players"
+	// CapePlayersInverseTable is the table name for the Player entity.
+	// It exists in this package in order to avoid circular dependency with the "player" package.
+	CapePlayersInverseTable = "players"
+	// CapePlayersColumn is the table column denoting the cape_players relation/edge.
+	CapePlayersColumn = "cape_id"
 )
 
 // Columns holds all SQL columns for texture fields.
@@ -235,6 +253,34 @@ func ByClosetItems(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newClosetItemsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// BySkinPlayersCount orders the results by skin_players count.
+func BySkinPlayersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSkinPlayersStep(), opts...)
+	}
+}
+
+// BySkinPlayers orders the results by skin_players terms.
+func BySkinPlayers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSkinPlayersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByCapePlayersCount orders the results by cape_players count.
+func ByCapePlayersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCapePlayersStep(), opts...)
+	}
+}
+
+// ByCapePlayers orders the results by cape_players terms.
+func ByCapePlayers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCapePlayersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newBlobStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -254,5 +300,19 @@ func newClosetItemsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ClosetItemsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ClosetItemsTable, ClosetItemsColumn),
+	)
+}
+func newSkinPlayersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SkinPlayersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SkinPlayersTable, SkinPlayersColumn),
+	)
+}
+func newCapePlayersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CapePlayersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CapePlayersTable, CapePlayersColumn),
 	)
 }

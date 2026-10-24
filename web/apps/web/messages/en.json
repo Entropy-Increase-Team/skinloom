@@ -113,7 +113,9 @@
     "register": "Register",
     "forgot": "Forgot your password?",
     "admin": "Open the admin panel",
-    "closet": "Closet"
+    "closet": "Closet",
+    "players": "Players",
+    "dashboard": "Dashboard"
   },
   "setup": {
     "title": "Set up your site",
@@ -339,7 +341,27 @@
     "size": "Size",
     "uploaded": "Uploaded",
     "hash": "Hash",
-    "download": "Download original"
+    "download": "Download original",
+    "favorite": "Add to closet",
+    "unfavorite": "Remove from closet",
+    "favoriteCost": "Costs {cost} score, refunded when you remove it.",
+    "manage": "Manage texture",
+    "rename": "Rename",
+    "changeType": "Texture type",
+    "makePrivate": "Make private",
+    "makePublic": "Make public",
+    "privateConfirm": "Making it private removes it from other users’ closets and players (their score is refunded). Continue?",
+    "switchCost": "Switching costs {cost} score.",
+    "switchRefund": "Switching refunds {cost} score.",
+    "delete": "Delete texture",
+    "deleteConfirm": "Delete “{name}”? This cannot be undone; it is also removed from every closet and player.",
+    "errors": {
+      "score": "Not enough score.",
+      "duplicate": "The same image is already public in the skin library.",
+      "shape": "An image of this size cannot be used as that type.",
+      "name": "The name does not follow the site’s naming rule.",
+      "failed": "Something went wrong. Please try again."
+    }
   },
   "upload": {
     "title": "Upload a texture",
@@ -378,6 +400,89 @@
     "empty": "Your closet is empty.",
     "browse": "Browse the library",
     "upload": "Upload",
-    "more": "Load more"
+    "more": "Load more",
+    "rename": "Rename",
+    "renamePrompt": "New name in your closet",
+    "remove": "Remove from closet",
+    "removeConfirm": "Remove “{name}” from your closet? Players wearing it take it off.",
+    "removed": "Removed from your closet.",
+    "removedRefund": "Removed from your closet; {score} score refunded.",
+    "changeFailed": "Something went wrong. Please try again."
+  },
+  "player": {
+    "title": "Players",
+    "intro": "A player is your name in the game. Dress your players in skins and capes from your closet and game clients show them.",
+    "loadFailed": "Could not load; please try again later.",
+    "none": "No players yet. Create one first.",
+    "newName": "New player name",
+    "create": "Create player",
+    "cost": "A player costs {cost} points (you have {score}).",
+    "refundHint": "Deleting a player gives back what it cost.",
+    "rules": {
+      "official": "Letters, digits and underscores only, {min} to {max} characters.",
+      "cjk": "Chinese characters, letters, digits and underscores, {min} to {max} characters.",
+      "utf8": "No spaces and none of /  ? # %, {min} to {max} characters.",
+      "custom": "Must follow the site's naming rule, {min} to {max} characters."
+    },
+    "rename": "Rename",
+    "save": "Save",
+    "copyUUID": "Copy UUID",
+    "copied": "Copied",
+    "skin": "Skin",
+    "cape": "Cape",
+    "noSkin": "No skin",
+    "chooseSkin": "Choose skin",
+    "chooseCape": "Choose cape",
+    "removeSkin": "Take off skin",
+    "removeCape": "Take off cape",
+    "delete": "Delete player",
+    "deleteConfirm": "Delete the player {name}?",
+    "closetEmpty": "Nothing of this kind in your closet yet.",
+    "profileLink": "Player data (CustomSkinLoader)",
+    "createFirst": "Create a player first to wear textures.",
+    "choosePlayer": "Choose a player",
+    "wearSkin": "Wear this skin",
+    "wearCape": "Wear this cape",
+    "worn": "Done.",
+    "errors": {
+      "score": "Not enough points.",
+      "taken": "This name is taken.",
+      "name": "This name is not allowed.",
+      "failed": "Something went wrong; please try again later."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back, {name}.",
+    "loadFailed": "Could not load. Please try again later.",
+    "score": "Score",
+    "players": "Players",
+    "closetItems": "Closet",
+    "uploads": "Uploads",
+    "storage": "Storage",
+    "kb": "{kb} KB",
+    "sign": {
+      "title": "Check in",
+      "button": "Check in",
+      "signing": "Checking in…",
+      "done": "Checked in",
+      "range": "Each check-in gives {min}–{max} score at random; ",
+      "fixed": "Each check-in gives {score} score; ",
+      "daily": "you can check in once a day.",
+      "gap": "you can check in every {hours} hours.",
+      "next": "Next check-in: {time}",
+      "gained": "Checked in: +{score} score!",
+      "tooEarly": "It is not time to check in yet.",
+      "failed": "Check-in failed. Please try again."
+    },
+    "announcement": "Announcement",
+    "links": {
+      "title": "Shortcuts",
+      "players": "Manage players",
+      "closet": "My closet",
+      "upload": "Upload a texture",
+      "skinlib": "Browse the skin library",
+      "profile": "Profile"
+    }
   }
 }
