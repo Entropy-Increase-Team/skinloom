@@ -10,6 +10,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
 )
@@ -70,13 +71,14 @@ type SignInfo struct {
 
 // Dashboard is the signed-in user's overview (/user).
 type Dashboard struct {
-	Score        int64    `json:"score"`
-	Players      int      `json:"players"`
-	ClosetItems  int      `json:"closetItems"`
-	Uploads      int      `json:"uploads"`
-	StorageBytes int64    `json:"storageBytes"`
-	Sign         SignInfo `json:"sign"`
-	Announcement string   `json:"announcement,omitempty" doc:"Markdown, in the request's language"`
+	Score            int64    `json:"score"`
+	Players          int      `json:"players"`
+	ClosetItems      int      `json:"closetItems"`
+	Uploads          int      `json:"uploads"`
+	StorageBytes     int64    `json:"storageBytes"`
+	Sign             SignInfo `json:"sign"`
+	Announcement     string   `json:"announcement,omitempty" doc:"Markdown, in the request's language"`
+	AnnouncementHTML string   `json:"announcementHtml,omitempty" doc:"The announcement rendered: no raw HTML, no script links"`
 }
 
 // manageError maps the errors of closet and texture changes.
@@ -224,7 +226,8 @@ func registerManage(api huma.API, d Deps) {
 				sign.NextAt = &next
 			}
 			return &struct{ Body Dashboard }{Dashboard{Score: v.User.Score, Players: len(players), ClosetItems: closet, Uploads: uploads,
-				StorageBytes: bytes, Sign: sign, Announcement: snap.Localized("site.announcement", requestInfo(ctx).locale)}}, nil
+				StorageBytes: bytes, Sign: sign, Announcement: snap.Localized("site.announcement", requestInfo(ctx).locale),
+				AnnouncementHTML: notify.Markdown(snap.Localized("site.announcement", requestInfo(ctx).locale))}}, nil
 		})
 }
 

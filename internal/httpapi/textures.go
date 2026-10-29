@@ -86,6 +86,10 @@ type ScoreRates struct {
 	PrivatePerStorage int64 `json:"privatePerStorage" doc:"Per KB of a private upload"`
 	PerClosetItem     int64 `json:"perClosetItem"`
 	AwardPerTexture   int64 `json:"awardPerTexture" doc:"Earned for a public upload"`
+	// Reports (score.reporter_*): what submitting one changes, and the reward when
+	// it is upheld.
+	ReporterModification int64 `json:"reporterModification" doc:"Negative: a report costs this much; positive: earns it"`
+	ReporterReward       int64 `json:"reporterReward"`
 }
 
 // TextureRules are the upload rules of the site.
@@ -173,7 +177,8 @@ func registerTextures(api huma.API, d Deps) {
 		snap := d.Settings.Current()
 		p, r := texture.PolicyFrom(snap), score.RatesFrom(snap)
 		out := TextureRules{MaxSizeKB: p.MaxBytes / 1024, MaxWidth: p.MaxWidth, AllowDownload: p.AllowDownload,
-			Rates:         ScoreRates{PerStorage: r.PerStorage, PrivatePerStorage: r.PrivatePerStorage, PerClosetItem: r.PerClosetItem, AwardPerTexture: r.AwardPerTexture},
+			Rates: ScoreRates{PerStorage: r.PerStorage, PrivatePerStorage: r.PrivatePerStorage, PerClosetItem: r.PerClosetItem,
+				AwardPerTexture: r.AwardPerTexture, ReporterModification: r.ReporterModification, ReporterReward: r.ReporterReward},
 			ContentPolicy: snap.Localized("texture.content_policy", requestInfo(ctx).locale)}
 		if p.NameRule != nil {
 			out.NameRule = p.NameRule.String()

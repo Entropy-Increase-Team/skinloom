@@ -5,12 +5,15 @@ package ent
 import (
 	"time"
 
+	"github.com/Entropy-Increase-Team/skinloom/ent/announcement"
 	"github.com/Entropy-Increase-Team/skinloom/ent/auditlog"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/blob"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/job"
+	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
+	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/schema"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
@@ -24,6 +27,30 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	announcementFields := schema.Announcement{}.Fields()
+	_ = announcementFields
+	// announcementDescTitle is the schema descriptor for title field.
+	announcementDescTitle := announcementFields[1].Descriptor()
+	// announcement.TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	announcement.TitleValidator = func() func(string) error {
+		validators := announcementDescTitle.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(title string) error {
+			for _, fn := range fns {
+				if err := fn(title); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// announcementDescCreatedAt is the schema descriptor for created_at field.
+	announcementDescCreatedAt := announcementFields[5].Descriptor()
+	// announcement.DefaultCreatedAt holds the default value on creation for the created_at field.
+	announcement.DefaultCreatedAt = announcementDescCreatedAt.Default.(func() time.Time)
 	auditlogFields := schema.AuditLog{}.Fields()
 	_ = auditlogFields
 	// auditlogDescAction is the schema descriptor for action field.
@@ -180,6 +207,30 @@ func init() {
 	jobDescCreatedAt := jobFields[8].Descriptor()
 	// job.DefaultCreatedAt holds the default value on creation for the created_at field.
 	job.DefaultCreatedAt = jobDescCreatedAt.Default.(func() time.Time)
+	notificationFields := schema.Notification{}.Fields()
+	_ = notificationFields
+	// notificationDescTitle is the schema descriptor for title field.
+	notificationDescTitle := notificationFields[2].Descriptor()
+	// notification.TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	notification.TitleValidator = func() func(string) error {
+		validators := notificationDescTitle.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(title string) error {
+			for _, fn := range fns {
+				if err := fn(title); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// notificationDescCreatedAt is the schema descriptor for created_at field.
+	notificationDescCreatedAt := notificationFields[6].Descriptor()
+	// notification.DefaultCreatedAt holds the default value on creation for the created_at field.
+	notification.DefaultCreatedAt = notificationDescCreatedAt.Default.(func() time.Time)
 	playerFields := schema.Player{}.Fields()
 	_ = playerFields
 	// playerDescName is the schema descriptor for name field.
@@ -246,6 +297,30 @@ func init() {
 	player.DefaultUpdatedAt = playerDescUpdatedAt.Default.(func() time.Time)
 	// player.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	player.UpdateDefaultUpdatedAt = playerDescUpdatedAt.UpdateDefault.(func() time.Time)
+	reportFields := schema.Report{}.Fields()
+	_ = reportFields
+	// reportDescReason is the schema descriptor for reason field.
+	reportDescReason := reportFields[4].Descriptor()
+	// report.ReasonValidator is a validator for the "reason" field. It is called by the builders before save.
+	report.ReasonValidator = func() func(string) error {
+		validators := reportDescReason.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(reason string) error {
+			for _, fn := range fns {
+				if err := fn(reason); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// reportDescCreatedAt is the schema descriptor for created_at field.
+	reportDescCreatedAt := reportFields[9].Descriptor()
+	// report.DefaultCreatedAt holds the default value on creation for the created_at field.
+	report.DefaultCreatedAt = reportDescCreatedAt.Default.(func() time.Time)
 	scoreentryFields := schema.ScoreEntry{}.Fields()
 	_ = scoreentryFields
 	// scoreentryDescReason is the schema descriptor for reason field.
@@ -512,12 +587,16 @@ func init() {
 	user.DefaultRegisterIP = userDescRegisterIP.Default.(string)
 	// user.RegisterIPValidator is a validator for the "register_ip" field. It is called by the builders before save.
 	user.RegisterIPValidator = userDescRegisterIP.Validators[0].(func(string) error)
+	// userDescAnnouncementsSeen is the schema descriptor for announcements_seen field.
+	userDescAnnouncementsSeen := userFields[15].Descriptor()
+	// user.DefaultAnnouncementsSeen holds the default value on creation for the announcements_seen field.
+	user.DefaultAnnouncementsSeen = userDescAnnouncementsSeen.Default.(int64)
 	// userDescCreatedAt is the schema descriptor for created_at field.
-	userDescCreatedAt := userFields[15].Descriptor()
+	userDescCreatedAt := userFields[17].Descriptor()
 	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
 	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
 	// userDescUpdatedAt is the schema descriptor for updated_at field.
-	userDescUpdatedAt := userFields[16].Descriptor()
+	userDescUpdatedAt := userFields[18].Descriptor()
 	// user.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
 	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

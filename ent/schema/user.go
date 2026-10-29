@@ -42,6 +42,12 @@ func (User) Fields() []ent.Field {
 		// last_sign_at is the last daily check-in; checking in is one conditional update
 		// on it, so two requests at once cannot both earn (Blessing Skin C03).
 		field.Time("last_sign_at").SchemaType(datetimeType).Optional().Nillable(),
+		// The skin whose head is the user's avatar (/avatar/user/{id}). Deleting the
+		// texture clears it. No foreign key: adding one would make SQLite rebuild the
+		// users table, which cascades into every child table (see migrations tests).
+		field.Int64("avatar_texture_id").Optional().Nillable(),
+		// The newest announcement already copied into the user's notifications.
+		field.Int64("announcements_seen").Default(0),
 		field.Time("deleted_at").SchemaType(datetimeType).Optional().Nillable(),
 		field.Time("created_at").SchemaType(datetimeType).Default(time.Now).Immutable(),
 		field.Time("updated_at").SchemaType(datetimeType).Default(time.Now).UpdateDefault(time.Now),
@@ -57,6 +63,12 @@ func (User) Edges() []ent.Edge {
 		edge.To("closet_items", ClosetItem.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("score_entries", ScoreEntry.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("players", Player.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
+		// Reports keep their history when the people in them are deleted.
+		edge.To("reports_filed", Report.Type).Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.To("reports_against", Report.Type).Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.To("reports_handled", Report.Type).Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.To("notifications", Notification.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("announcements_sent", Announcement.Type).Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 
@@ -64,5 +76,8 @@ func (User) Indexes() []ent.Index {
 	return []ent.Index{
 		// registrations per IP (auth.max_registrations_per_ip)
 		index.Fields("register_ip", "created_at"),
+		// Registrations per day on the admin overview.
+		index.Fields("created_at"),
+		index.Fields("avatar_texture_id"),
 	}
 }

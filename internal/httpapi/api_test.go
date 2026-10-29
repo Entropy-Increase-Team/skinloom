@@ -17,10 +17,13 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
+	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/player"
 	"github.com/Entropy-Increase-Team/skinloom/internal/pubsub"
+	"github.com/Entropy-Increase-Team/skinloom/internal/render"
+	"github.com/Entropy-Increase-Team/skinloom/internal/report"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
@@ -65,9 +68,11 @@ func newTestDeps(t *testing.T) Deps {
 	if err != nil {
 		t.Fatal(err)
 	}
+	textures := texture.NewService(database.Ent, store, log)
 	return Deps{Log: log, DB: database, Settings: svc, Themes: themeReg, Broker: broker, AdminToken: testToken,
 		Accounts: account.NewService(database.Ent, log), Captcha: captcha.NewService(captcha.Options{}), Mailer: mail.New(log),
-		Textures: texture.NewService(database.Ent, store, log), Players: player.NewService(database.Ent, log)}
+		Textures: textures, Players: player.NewService(database.Ent, log), Reports: report.NewService(database.Ent, textures, log),
+		Renders: render.NewService(2, 1<<20), Notify: notify.NewService(database.Ent, log)}
 }
 
 func do(t *testing.T, h http.Handler, method, path, auth, body string) *httptest.ResponseRecorder {

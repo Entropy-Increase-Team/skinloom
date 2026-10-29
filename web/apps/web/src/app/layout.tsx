@@ -13,10 +13,17 @@ import './globals.css'
 
 export async function generateMetadata(): Promise<Metadata> {
   const boot = await getBootstrap()
+  let metadataBase: URL | undefined
+  try {
+    metadataBase = boot.site.url ? new URL(boot.site.url) : undefined // makes og:image URLs absolute
+  } catch {
+    metadataBase = undefined
+  }
   return {
     title: { default: boot.site.name, template: `%s · ${boot.site.name}` },
     description: boot.site.description,
     generator: 'SkinLoom',
+    metadataBase,
   }
 }
 

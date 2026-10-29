@@ -2,13 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 
-import {
-  DeleteSection,
-  EmailSection,
-  PasswordSection,
-  ProfileSection,
-  SessionsSection,
-} from '@/components/user/account-settings'
+import { AvatarSection, DeleteSection, EmailSection, PasswordSection, ProfileSection, SessionsSection } from '@/components/user/account-settings'
 import { getBootstrap } from '@/lib/bootstrap'
 import { getViewer } from '@/lib/viewer'
 
@@ -30,6 +24,7 @@ export default async function ProfilePage() {
         <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
         <p className="text-sm text-muted-foreground">{t('score', { score: viewer.score })}</p>
       </div>
+      <AvatarSection viewer={viewer} />
       <ProfileSection viewer={viewer} locales={boot.locales} />
       <PasswordSection />
       <EmailSection viewer={viewer} mail={boot.auth.mail} />

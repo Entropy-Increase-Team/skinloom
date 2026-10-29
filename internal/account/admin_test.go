@@ -218,3 +218,40 @@ func testBeforeDeleteHook(t *testing.T, s *Service) {
 		t.Fatalf("purge: %d, %v, %v", n, err, called)
 	}
 }
+
+func TestMayManageOwned(t *testing.T) { forEachDB(t, testMayManageOwned) }
+
+// Players and closets: your own, or those of a user you may manage.
+func testMayManageOwned(t *testing.T, s *Service) {
+	ctx := context.Background()
+	_, sess := setupAdmin(t, s)
+	super := signedIn(t, s, sess.Token)
+	mod := withRole(t, s, "mod@example.com", user.RoleAdmin)
+	other := withRole(t, s, "other@example.com", user.RoleAdmin)
+	player, _ := newUser(t, s, "player@example.com")
+
+	for _, c := range []struct {
+		name  string
+		a     Actor
+		owner int64
+		ok    bool
+	}{
+		{"an administrator, an ordinary user's", mod, player.User.ID, true},
+		{"an administrator, their own", mod, mod.User.ID, true},
+		{"an administrator, another administrator's", mod, other.User.ID, false},
+		{"a super administrator, an administrator's", super, mod.User.ID, true},
+		{"the admin token, anyone's", nil, super.User.ID, true},
+		{"a user, someone else's", player, mod.User.ID, false},
+	} {
+		owner, err := s.MayManageOwned(ctx, c.a, c.owner)
+		if c.ok != (err == nil) || (c.ok && owner.ID != c.owner) {
+			t.Errorf("%s: %v", c.name, err)
+		}
+		if !c.ok && !errors.Is(err, ErrForbidden) {
+			t.Errorf("%s: want ErrForbidden, got %v", c.name, err)
+		}
+	}
+	if _, err := s.MayManageOwned(ctx, super, 999999); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("no such user: %v", err)
+	}
+}

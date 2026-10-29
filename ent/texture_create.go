@@ -14,6 +14,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/blob"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
+	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 )
@@ -185,6 +186,21 @@ func (_c *TextureCreate) AddCapePlayers(v ...*Player) *TextureCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddCapePlayerIDs(ids...)
+}
+
+// AddReportIDs adds the "reports" edge to the Report entity by IDs.
+func (_c *TextureCreate) AddReportIDs(ids ...int64) *TextureCreate {
+	_c.mutation.AddReportIDs(ids...)
+	return _c
+}
+
+// AddReports adds the "reports" edges to the Report entity.
+func (_c *TextureCreate) AddReports(v ...*Report) *TextureCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddReportIDs(ids...)
 }
 
 // Mutation returns the TextureMutation object of the builder.
@@ -425,6 +441,22 @@ func (_c *TextureCreate) createSpec() (*Texture, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ReportsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.ReportsTable,
+			Columns: []string{texture.ReportsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

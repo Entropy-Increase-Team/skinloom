@@ -1,11 +1,12 @@
 import { type Dashboard, getDashboard } from '@skinloom/api-client'
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@skinloom/ui'
-import { Coins, HardDrive, Images, Megaphone, Shirt, Upload, UserCog, Users } from 'lucide-react'
+import { Coins, Flag, HardDrive, Images, Megaphone, Shirt, Upload, UserCog, Users } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getFormatter, getTranslations } from 'next-intl/server'
 
+import { Markdown } from '@/components/markdown'
 import { SignInCard } from '@/components/user/sign-in-card'
 import { kb } from '@/lib/skin'
 import { getViewer } from '@/lib/viewer'
@@ -39,6 +40,7 @@ export default async function DashboardPage() {
     { href: '/skinlib/upload', icon: Upload, label: t('links.upload') },
     { href: '/skinlib', icon: Images, label: t('links.skinlib') },
     { href: '/user/profile', icon: UserCog, label: t('links.profile') },
+    { href: '/user/reports', icon: Flag, label: t('links.reports') },
   ]
 
   return (
@@ -86,7 +88,9 @@ export default async function DashboardPage() {
               {t('announcement')}
             </CardTitle>
           </CardHeader>
-          <CardContent className="whitespace-pre-line text-sm leading-relaxed">{dash.announcement}</CardContent>
+          <CardContent>
+            <Markdown html={dash.announcementHtml ?? ''} />
+          </CardContent>
         </Card>
       )}
     </div>

@@ -15,6 +15,7 @@ import (
 	entplayer "github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	tex "github.com/Entropy-Increase-Team/skinloom/ent/texture"
+	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/internal/jobs"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
@@ -46,8 +47,10 @@ const SweepJobKind = "texture.sweep"
 // image must not be deleted under it.
 const SweepGrace = time.Hour
 
-// likeRef names one closet entry in the ledger: texture and user.
-func likeRef(textureID, userID int64) string { return fmt.Sprintf("%d/%d", textureID, userID) }
+// closetRef names one closet item in the ledger. Each add makes a new item, so the
+// fee and award of this item are never confused with those of an earlier add of the
+// same texture (which may have been refunded already, or cost something else).
+func closetRef(itemID int64) string { return strconv.FormatInt(itemID, 10) }
 
 // Favorite adds a texture the viewer may see to their closet (Blessing Skin calls it
 // a "like"): it costs r.PerClosetItem, and the uploader, if it is someone else, earns
@@ -63,7 +66,6 @@ func (s *Service) Favorite(ctx context.Context, v Viewer, id int64, name string,
 	if err := ValidateName(name, nil); err != nil {
 		return nil, 0, err
 	}
-	ref := likeRef(id, v.UserID)
 	var (
 		item    *ent.ClosetItem
 		balance int64
@@ -80,6 +82,7 @@ func (s *Service) Favorite(ctx context.Context, v Viewer, id int64, name string,
 		if err := tx.Texture.UpdateOneID(id).AddLikes(1).Exec(ctx); err != nil {
 			return err
 		}
+		ref := closetRef(item.ID)
 		if balance, err = score.Apply(ctx, tx, score.Change{UserID: v.UserID, Delta: -r.PerClosetItem,
 			Reason: score.ReasonClosetAdd, RefType: "closet", RefID: ref}); err != nil {
 			return err
@@ -106,29 +109,35 @@ func (s *Service) Unfavorite(ctx context.Context, userID, id int64, refund bool)
 		if err != nil {
 			return err
 		}
-		n, err := tx.ClosetItem.Delete().Where(closetitem.UserID(userID), closetitem.TextureID(id)).Exec(ctx)
+		item, err := tx.ClosetItem.Query().Where(closetitem.UserID(userID), closetitem.TextureID(id)).Only(ctx)
+		if ent.IsNotFound(err) {
+			return ErrNotInCloset
+		}
 		if err != nil {
 			return err
 		}
-		if n == 0 {
-			return ErrNotInCloset
+		if n, err := tx.ClosetItem.Delete().Where(closetitem.ID(item.ID)).Exec(ctx); err != nil {
+			return err
+		} else if n == 0 {
+			return ErrNotInCloset // removed by a concurrent request
 		}
-		returned, err = s.release(ctx, tx, t, userID, refund)
+		returned, err = s.release(ctx, tx, t, item, refund)
 		return err
 	})
 	return returned, err
 }
 
-// release undoes one closet entry of t for userID (the item itself is gone already):
-// the like count, the user's players wearing it, the fee and the uploader's award.
-func (s *Service) release(ctx context.Context, tx *ent.Client, t *ent.Texture, userID int64, refund bool) (int64, error) {
+// release undoes one closet item of t (the row itself is deleted already): the like
+// count, the owner's players wearing it, the fee and the uploader's award.
+func (s *Service) release(ctx context.Context, tx *ent.Client, t *ent.Texture, item *ent.ClosetItem, refund bool) (int64, error) {
+	userID := item.UserID
 	if err := tx.Texture.Update().Where(tex.ID(t.ID), tex.LikesGT(0)).AddLikes(-1).Exec(ctx); err != nil {
 		return 0, err
 	}
 	if err := takeOff(ctx, tx, t, entplayer.UserID(userID)); err != nil {
 		return 0, err
 	}
-	ref := likeRef(t.ID, userID)
+	ref := closetRef(item.ID)
 	var returned int64
 	if refund {
 		paid, err := score.Last(ctx, tx, userID, score.ReasonClosetAdd, "closet", ref)
@@ -165,6 +174,35 @@ func takeOff(ctx context.Context, tx *ent.Client, t *ent.Texture, who ...predica
 		return tx.Player.Update().Where(append(who, entplayer.CapeID(t.ID))...).ClearCapeID().Exec(ctx)
 	}
 	return tx.Player.Update().Where(append(who, entplayer.SkinID(t.ID))...).ClearSkinID().Exec(ctx)
+}
+
+// GiveToCloset adds a texture to a user's closet as an administrator does (Blessing
+// Skin's closet management API): free, and nothing for the uploader. Taking it out
+// again is Unfavorite, which refunds only what this item cost: nothing. A private
+// texture goes only into its uploader's closet, as everywhere else (dropOthers).
+func (s *Service) GiveToCloset(ctx context.Context, userID, id int64) (*ent.ClosetItem, error) {
+	var item *ent.ClosetItem
+	err := withTx(ctx, s.db, func(tx *ent.Client) error {
+		t, err := tx.Texture.Get(ctx, id)
+		if ent.IsNotFound(err) {
+			return ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if t.Visibility != tex.VisibilityPublic && (t.UploaderID == nil || *t.UploaderID != userID) {
+			return &validate.FieldError{Field: "textureId", Message: "private to its uploader"}
+		}
+		item, err = tx.ClosetItem.Create().SetUserID(userID).SetTextureID(id).SetName(t.Name).Save(ctx)
+		if ent.IsConstraintError(err) {
+			return ErrInCloset
+		}
+		if err != nil {
+			return err
+		}
+		return tx.Texture.UpdateOneID(id).AddLikes(1).Exec(ctx)
+	})
+	return item, err
 }
 
 // RenameClosetItem renames a texture in the user's closet.
@@ -315,7 +353,7 @@ func (s *Service) dropOthers(ctx context.Context, tx *ent.Client, t *ent.Texture
 		if err := tx.ClosetItem.DeleteOne(it).Exec(ctx); err != nil {
 			return err
 		}
-		if _, err := s.release(ctx, tx, t, it.UserID, refund); err != nil {
+		if _, err := s.release(ctx, tx, t, it, refund); err != nil {
 			return err
 		}
 	}
@@ -332,33 +370,58 @@ func (s *Service) Delete(ctx context.Context, v Viewer, id int64, refund bool) e
 	if err != nil {
 		return err
 	}
-	err = withTx(ctx, s.db, func(tx *ent.Client) error {
-		if err := s.dropOthers(ctx, tx, t, refund); err != nil {
-			return err
-		}
-		if up := t.UploaderID; up != nil && refund {
-			ref := strconv.FormatInt(t.ID, 10)
-			net, err := score.Net(ctx, tx, *up, "texture", ref, score.ReasonTextureUpload, score.ReasonVisibility)
-			if err != nil {
-				return err
-			}
-			if net != 0 {
-				_, err := score.Apply(ctx, tx, score.Change{UserID: *up, Delta: -net,
-					Reason: score.ReasonTextureDelete, RefType: "texture", RefID: ref})
-				if err != nil && !errors.Is(err, score.ErrInsufficient) {
-					return err
-				}
-			}
-		}
-		if err := tx.Texture.DeleteOneID(t.ID).Exec(ctx); err != nil { // closet items cascade, players set null
-			return err
-		}
-		return s.unref(ctx, tx, t.Hash)
-	})
+	err = withTx(ctx, s.db, func(tx *ent.Client) error { return s.deleteIn(ctx, tx, t, refund) })
 	if err == nil {
 		s.kick()
 	}
 	return err
+}
+
+// DeleteIn deletes a texture as Delete does, inside the caller's transaction (a report
+// review deletes the texture and settles the report at once). The caller checks who
+// may delete it, and calls Kick once the transaction has committed.
+func (s *Service) DeleteIn(ctx context.Context, tx *ent.Client, id int64, refund bool) error {
+	t, err := tx.Texture.Get(ctx, id)
+	if ent.IsNotFound(err) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	return s.deleteIn(ctx, tx, t, refund)
+}
+
+func (s *Service) deleteIn(ctx context.Context, tx *ent.Client, t *ent.Texture, refund bool) error {
+	if err := s.dropOthers(ctx, tx, t, refund); err != nil {
+		return err
+	}
+	if up := t.UploaderID; up != nil && refund {
+		ref := strconv.FormatInt(t.ID, 10)
+		net, err := score.Net(ctx, tx, *up, "texture", ref, score.ReasonTextureUpload, score.ReasonVisibility)
+		if err != nil {
+			return err
+		}
+		if net != 0 {
+			_, err := score.Apply(ctx, tx, score.Change{UserID: *up, Delta: -net,
+				Reason: score.ReasonTextureDelete, RefType: "texture", RefID: ref})
+			if err != nil && !errors.Is(err, score.ErrInsufficient) {
+				return err
+			}
+		}
+	}
+	if err := tx.Texture.DeleteOneID(t.ID).Exec(ctx); err != nil { // closet items cascade, players set null
+		return err
+	}
+	if err := clearAvatars(ctx, tx, t.ID); err != nil {
+		return err
+	}
+	return s.unref(ctx, tx, t.Hash)
+}
+
+// clearAvatars unsets a deleted texture as anyone's avatar: users.avatar_texture_id
+// has no foreign key (see ent/schema/user.go), so every deletion does it.
+func clearAvatars(ctx context.Context, tx *ent.Client, textureID int64) error {
+	return tx.User.Update().Where(user.AvatarTextureID(textureID)).ClearAvatarTextureID().Exec(ctx)
 }
 
 // DeletePrivateOf deletes a user's private textures, just before the account goes for
@@ -372,6 +435,9 @@ func (s *Service) DeletePrivateOf(ctx context.Context, userID int64) error {
 	for _, t := range list {
 		err := withTx(ctx, s.db, func(tx *ent.Client) error {
 			if err := tx.Texture.DeleteOneID(t.ID).Exec(ctx); err != nil {
+				return err
+			}
+			if err := clearAvatars(ctx, tx, t.ID); err != nil {
 				return err
 			}
 			return s.unref(ctx, tx, t.Hash)
@@ -475,6 +541,9 @@ func (s *Service) HandleSweepJob(ctx context.Context, payload json.RawMessage) e
 // SetJobNotifier sets a function called after a transaction that queued a job
 // commits, so the worker picks it up without waiting for its next poll.
 func (s *Service) SetJobNotifier(f func()) { s.notify = f }
+
+// Kick wakes the job worker after a transaction that called DeleteIn has committed.
+func (s *Service) Kick() { s.kick() }
 
 func (s *Service) kick() {
 	if s.notify != nil {

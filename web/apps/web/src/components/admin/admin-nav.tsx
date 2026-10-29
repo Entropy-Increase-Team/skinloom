@@ -3,13 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-export function AdminNav({ title, items }: { title: string; items: { href: string; label: string }[] }) {
+export function AdminNav({ title, items }: { title: string; items: { href: string; label: string; exact?: boolean }[] }) {
   const pathname = usePathname()
   return (
-    <nav className="flex gap-4 border-b pb-3 text-sm">
+    <nav className="flex flex-wrap gap-x-4 gap-y-2 border-b pb-3 text-sm">
       <span className="font-semibold">{title}</span>
       {items.map((n) => {
-        const active = pathname === n.href || pathname.startsWith(`${n.href}/`)
+        const active = pathname === n.href || (!n.exact && pathname.startsWith(`${n.href}/`))
         return (
           <Link
             key={n.href}

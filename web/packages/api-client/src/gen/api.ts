@@ -33,6 +33,184 @@ type NonReadonly<T> = [T] extends [UnionToIntersection<T>] ? {
     : T[P];
 } : DistributeReadOnlyOverUnions<T>;
 
+export interface AdminGiveInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** @minimum 1 */
+  textureId: number;
+}
+
+export interface OverviewDay {
+  /** YYYY-MM-DD */
+  date: string;
+  registrations: number;
+  uploads: number;
+}
+
+export interface AdminOverview {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  closetItems: number;
+  /** The last 31 days, today last */
+  days: OverviewDay[];
+  /** Stored files; equal images share one */
+  files: number;
+  pendingReports: number;
+  players: number;
+  publicTextures: number;
+  storageBytes: number;
+  textures: number;
+  users: number;
+}
+
+export type WornTextureType = typeof WornTextureType[keyof typeof WornTextureType];
+
+
+export const WornTextureType = {
+  steve: 'steve',
+  alex: 'alex',
+  cape: 'cape',
+} as const;
+
+export interface WornTexture {
+  hash: string;
+  id: number;
+  name: string;
+  type: WornTextureType;
+}
+
+export type AdminUserRefStatus = typeof AdminUserRefStatus[keyof typeof AdminUserRefStatus];
+
+
+export const AdminUserRefStatus = {
+  active: 'active',
+  banned: 'banned',
+  deleted: 'deleted',
+} as const;
+
+export interface AdminUserRef {
+  email: string;
+  id: number;
+  nickname: string;
+  status: AdminUserRefStatus;
+}
+
+export interface AdminPlayerView {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  cape?: WornTexture;
+  createdAt: string;
+  id: number;
+  name: string;
+  owner?: AdminUserRef;
+  skin?: WornTexture;
+  updatedAt: string;
+  /** 32 hex digits, no dashes */
+  uuid: string;
+}
+
+export interface AdminPlayerPage {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** Pass as before= for the next page; 0 = last page */
+  next: number;
+  players: AdminPlayerView[];
+}
+
+export type AdminReportViewAction = typeof AdminReportViewAction[keyof typeof AdminReportViewAction];
+
+
+export const AdminReportViewAction = {
+  delete: 'delete',
+  ban: 'ban',
+  reject: 'reject',
+  '': '',
+} as const;
+
+export type AdminReportViewStatus = typeof AdminReportViewStatus[keyof typeof AdminReportViewStatus];
+
+
+export const AdminReportViewStatus = {
+  pending: 'pending',
+  resolved: 'resolved',
+  rejected: 'rejected',
+} as const;
+
+/**
+ * steve and alex are skins (classic and slim arms)
+ */
+export type TextureViewType = typeof TextureViewType[keyof typeof TextureViewType];
+
+
+export const TextureViewType = {
+  steve: 'steve',
+  alex: 'alex',
+  cape: 'cape',
+} as const;
+
+export interface UploaderView {
+  id: number;
+  nickname: string;
+}
+
+export interface TextureView {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  createdAt: string;
+  /** SHA-256 of the file; the image is at /textures/{hash} */
+  hash: string;
+  id: number;
+  /** Closets holding it */
+  likes: number;
+  name: string;
+  public: boolean;
+  /** Bytes */
+  size: number;
+  /** steve and alex are skins (classic and slim arms) */
+  type: TextureViewType;
+  /** Absent when the uploader's account is gone */
+  uploader?: UploaderView;
+}
+
+export interface AdminReportView {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  action?: AdminReportViewAction;
+  createdAt: string;
+  handledAt?: string;
+  /** Absent for the admin token */
+  handler?: AdminUserRef;
+  id: number;
+  reason: string;
+  /** Absent once the account is gone */
+  reporter?: AdminUserRef;
+  status: AdminReportViewStatus;
+  /** Absent once the texture is deleted */
+  texture?: TextureView;
+  /** The texture's uploader when it was reported */
+  uploader?: AdminUserRef;
+}
+
+export interface AdminReportPage {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** Pass as before= for the next page; 0 = last page */
+  next: number;
+  reports: AdminReportView[];
+}
+
+export interface AdminUpdatePlayerInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** @maxLength 64 */
+  name?: string;
+  /**
+     * Give the player to this user; what their closet lacks comes off
+     * @minimum 1
+     */
+  userId?: number;
+}
+
 export type AdminUserViewRole = typeof AdminUserViewRole[keyof typeof AdminUserViewRole];
 
 
@@ -67,6 +245,21 @@ export interface AdminUserView {
   role: AdminUserViewRole;
   score: number;
   status: AdminUserViewStatus;
+}
+
+export interface AdminWearInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /**
+     * Texture id from the owner's closet; 0 takes it off
+     * @minimum 0
+     */
+  cape?: number;
+  /**
+     * Texture id from the owner's closet; 0 takes it off
+     * @minimum 0
+     */
+  skin?: number;
 }
 
 export interface Answer {
@@ -172,6 +365,7 @@ export interface ServerInfo {
 export interface SiteInfo {
   /** Markdown */
   announcement: string;
+  announcementHtml: string;
   description: string;
   name: string;
   /** Canonical public URL; empty when not configured */
@@ -247,42 +441,6 @@ export interface ChangePasswordInputBody {
   newPassword: string;
 }
 
-/**
- * steve and alex are skins (classic and slim arms)
- */
-export type TextureViewType = typeof TextureViewType[keyof typeof TextureViewType];
-
-
-export const TextureViewType = {
-  steve: 'steve',
-  alex: 'alex',
-  cape: 'cape',
-} as const;
-
-export interface UploaderView {
-  id: number;
-  nickname: string;
-}
-
-export interface TextureView {
-  /** A URL to the JSON Schema for this object. */
-  readonly $schema?: string;
-  createdAt: string;
-  /** SHA-256 of the file; the image is at /textures/{hash} */
-  hash: string;
-  id: number;
-  /** Closets holding it */
-  likes: number;
-  name: string;
-  public: boolean;
-  /** Bytes */
-  size: number;
-  /** steve and alex are skins (classic and slim arms) */
-  type: TextureViewType;
-  /** Absent when the uploader's account is gone */
-  uploader?: UploaderView;
-}
-
 export interface ClosetItemView {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
@@ -315,6 +473,8 @@ export interface Dashboard {
   readonly $schema?: string;
   /** Markdown, in the request's language */
   announcement?: string;
+  /** The announcement rendered: no raw HTML, no script links */
+  announcementHtml?: string;
   closetItems: number;
   players: number;
   score: number;
@@ -407,20 +567,31 @@ export interface MailTestInputBody {
   to?: string;
 }
 
-export type WornTextureType = typeof WornTextureType[keyof typeof WornTextureType];
+export interface MarkedRead {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** How many were unread */
+  count: number;
+}
 
-
-export const WornTextureType = {
-  steve: 'steve',
-  alex: 'alex',
-  cape: 'cape',
-} as const;
-
-export interface WornTexture {
-  hash: string;
+export interface NotificationView {
+  /** A copy of a message sent to many users */
+  announcement: boolean;
+  /** Rendered from Markdown: no raw HTML, no script links */
+  contentHtml: string;
+  createdAt: string;
   id: number;
-  name: string;
-  type: WornTextureType;
+  read: boolean;
+  title: string;
+}
+
+export interface NotificationPage {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** Pass as before= for the next page; 0 = last page */
+  next: number;
+  notifications: NotificationView[];
+  unread: number;
 }
 
 export interface PlayerView {
@@ -506,6 +677,66 @@ export interface RenamePlayerInputBody {
   name: string;
 }
 
+/**
+ * What the reviewer did
+ */
+export type ReportViewAction = typeof ReportViewAction[keyof typeof ReportViewAction];
+
+
+export const ReportViewAction = {
+  delete: 'delete',
+  ban: 'ban',
+  reject: 'reject',
+  '': '',
+} as const;
+
+export type ReportViewStatus = typeof ReportViewStatus[keyof typeof ReportViewStatus];
+
+
+export const ReportViewStatus = {
+  pending: 'pending',
+  resolved: 'resolved',
+  rejected: 'rejected',
+} as const;
+
+export interface ReportView {
+  /** What the reviewer did */
+  action?: ReportViewAction;
+  createdAt: string;
+  handledAt?: string;
+  id: number;
+  reason: string;
+  status: ReportViewStatus;
+  /** Absent once the texture is deleted or no longer public */
+  texture?: TextureView;
+}
+
+export interface ReportPage {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** Pass as before= for the next page; 0 = last page */
+  next: number;
+  reports: ReportView[];
+}
+
+export interface ReportTextureInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /**
+     * Up to 500 characters
+     * @maxLength 2000
+     */
+  reason: string;
+}
+
+export interface Reported {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  report: ReportView;
+  /** Your score after score.reporter_modification */
+  score: number;
+}
+
 export interface ResetInputBody {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
@@ -513,6 +744,25 @@ export interface ResetInputBody {
   password: string;
   /** @maxLength 64 */
   token: string;
+}
+
+/**
+ * delete the texture, ban its uploader, or reject the report
+ */
+export type ReviewReportInputBodyAction = typeof ReviewReportInputBodyAction[keyof typeof ReviewReportInputBodyAction];
+
+
+export const ReviewReportInputBodyAction = {
+  delete: 'delete',
+  ban: 'ban',
+  reject: 'reject',
+} as const;
+
+export interface ReviewReportInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** delete the texture, ban its uploader, or reject the report */
+  action: ReviewReportInputBodyAction;
 }
 
 export interface ScoreRates {
@@ -523,6 +773,67 @@ export interface ScoreRates {
   perStorage: number;
   /** Per KB of a private upload */
   privatePerStorage: number;
+  /** Negative: a report costs this much; positive: earns it */
+  reporterModification: number;
+  reporterReward: number;
+}
+
+/**
+ * all users, ordinary users (not administrators), or one user
+ */
+export type SendNotificationInputBodyTo = typeof SendNotificationInputBodyTo[keyof typeof SendNotificationInputBodyTo];
+
+
+export const SendNotificationInputBodyTo = {
+  all: 'all',
+  users: 'users',
+  user: 'user',
+} as const;
+
+export interface SendNotificationInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /**
+     * Markdown, up to 10000 characters
+     * @maxLength 40000
+     */
+  content: string;
+  /**
+     * For to=user: the user's address
+     * @maxLength 255
+     */
+  email?: string;
+  /**
+     * Up to 64 characters
+     * @maxLength 256
+     */
+  title: string;
+  /** all users, ordinary users (not administrators), or one user */
+  to: SendNotificationInputBodyTo;
+  /**
+     * For to=user: the user's id, or give email
+     * @minimum 0
+     */
+  userId?: number;
+}
+
+/**
+ * announcement: delivered to each user as they next open their inbox
+ */
+export type SentNotificationKind = typeof SentNotificationKind[keyof typeof SentNotificationKind];
+
+
+export const SentNotificationKind = {
+  announcement: 'announcement',
+  notification: 'notification',
+} as const;
+
+export interface SentNotification {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  id: number;
+  /** announcement: delivered to each user as they next open their inbox */
+  kind: SentNotificationKind;
 }
 
 export interface SessionView {
@@ -533,6 +844,16 @@ export interface SessionView {
   ip: string;
   lastSeenAt: string;
   userAgent: string;
+}
+
+export interface SetAvatarInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /**
+     * A skin you can see; 0 removes the avatar
+     * @minimum 0
+     */
+  textureId: number;
 }
 
 export interface SettingView {
@@ -666,6 +987,12 @@ export interface Unfavorited {
   refunded: number;
 }
 
+export interface UnreadCount {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  unread: number;
+}
+
 export interface UpdateMeInputBody {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
@@ -780,6 +1107,8 @@ export const UserViewRole = {
 export interface UserView {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
+  /** The skin whose head is the avatar, /avatar/user/{id} */
+  avatarTextureId?: number;
   createdAt: string;
   email: string;
   emailVerified: boolean;
@@ -834,6 +1163,51 @@ before?: number;
 limit?: number;
 };
 
+export type AdminListPlayersParams = {
+/**
+ * Player id, UUID, or the start of a name
+ * @maxLength 64
+ */
+q?: string;
+/**
+ * One owner's players
+ * @minimum 0
+ */
+user?: number;
+/**
+ * @minimum 0
+ */
+before?: number;
+/**
+ * @minimum 0
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type ListReportsParams = {
+status?: ListReportsStatus;
+/**
+ * @minimum 0
+ */
+before?: number;
+/**
+ * @minimum 0
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type ListReportsStatus = typeof ListReportsStatus[keyof typeof ListReportsStatus];
+
+
+export const ListReportsStatus = {
+  pending: 'pending',
+  resolved: 'resolved',
+  rejected: 'rejected',
+  '': '',
+} as const;
+
 /**
  * Keys to change. A null value resets the key to its default.
  */
@@ -878,6 +1252,32 @@ export const ListUsersStatus = {
   '': '',
 } as const;
 
+export type AdminListClosetParams = {
+category?: AdminListClosetCategory;
+/**
+ * @maxLength 50
+ */
+q?: string;
+/**
+ * @minimum 0
+ */
+before?: number;
+/**
+ * @minimum 0
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type AdminListClosetCategory = typeof AdminListClosetCategory[keyof typeof AdminListClosetCategory];
+
+
+export const AdminListClosetCategory = {
+  skin: 'skin',
+  cape: 'cape',
+  '': '',
+} as const;
+
 export type ListClosetParams = {
 category?: ListClosetCategory;
 /**
@@ -904,6 +1304,34 @@ export const ListClosetCategory = {
   cape: 'cape',
   '': '',
 } as const;
+
+export type ListNotificationsParams = {
+/**
+ * Only unread ones
+ */
+unread?: boolean;
+/**
+ * @minimum 0
+ */
+before?: number;
+/**
+ * @minimum 0
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type ListMyReportsParams = {
+/**
+ * @minimum 0
+ */
+before?: number;
+/**
+ * @minimum 0
+ * @maximum 100
+ */
+limit?: number;
+};
 
 export type GetBootstrapParams = {
 /**
@@ -1082,6 +1510,425 @@ return apiFetch<sendTestMailResponse>(getSendTestMailUrl(),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(mailTestInputBody)
+  }
+);}
+
+
+
+export type sendNotificationResponse200 = {
+  data: SentNotification
+  status: 200
+}
+
+export type sendNotificationResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type sendNotificationResponseSuccess = (sendNotificationResponse200) & {
+  headers: Headers;
+};
+export type sendNotificationResponseError = (sendNotificationResponseDefault) & {
+  headers: Headers;
+};
+
+export type sendNotificationResponse = (sendNotificationResponseSuccess | sendNotificationResponseError)
+
+export const getSendNotificationUrl = () => {
+
+
+
+
+  return `/api/v1/admin/notifications`
+}
+
+/**
+ * to=all or users writes one announcement, which each user receives when they next open their inbox (users who register later do not get it); to=user sends to one user, by userId or email.
+ * @summary Send a notification
+ */
+export const sendNotification = async (sendNotificationInputBody: NonReadonly<SendNotificationInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<sendNotificationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<sendNotificationResponse>(getSendNotificationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(sendNotificationInputBody)
+  }
+);}
+
+
+
+export type getOverviewResponse200 = {
+  data: AdminOverview
+  status: 200
+}
+
+export type getOverviewResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getOverviewResponseSuccess = (getOverviewResponse200) & {
+  headers: Headers;
+};
+export type getOverviewResponseError = (getOverviewResponseDefault) & {
+  headers: Headers;
+};
+
+export type getOverviewResponse = (getOverviewResponseSuccess | getOverviewResponseError)
+
+export const getGetOverviewUrl = () => {
+
+
+
+
+  return `/api/v1/admin/overview`
+}
+
+/**
+ * @summary Site totals and the last 31 days
+ */
+export const getOverview = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getOverviewResponse> => {
+
+  return apiFetch<getOverviewResponse>(getGetOverviewUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type adminListPlayersResponse200 = {
+  data: AdminPlayerPage
+  status: 200
+}
+
+export type adminListPlayersResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type adminListPlayersResponseSuccess = (adminListPlayersResponse200) & {
+  headers: Headers;
+};
+export type adminListPlayersResponseError = (adminListPlayersResponseDefault) & {
+  headers: Headers;
+};
+
+export type adminListPlayersResponse = (adminListPlayersResponseSuccess | adminListPlayersResponseError)
+
+export const getAdminListPlayersUrl = (params?: AdminListPlayersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/admin/players?${stringifiedParams}` : `/api/v1/admin/players`
+}
+
+/**
+ * @summary List players
+ */
+export const adminListPlayers = async (params?: AdminListPlayersParams, options?: Parameters<typeof apiFetch>[1]): Promise<adminListPlayersResponse> => {
+
+  return apiFetch<adminListPlayersResponse>(getAdminListPlayersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type adminDeletePlayerResponse204 = {
+  data: void
+  status: 204
+}
+
+export type adminDeletePlayerResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 204>
+}
+
+export type adminDeletePlayerResponseSuccess = (adminDeletePlayerResponse204) & {
+  headers: Headers;
+};
+export type adminDeletePlayerResponseError = (adminDeletePlayerResponseDefault) & {
+  headers: Headers;
+};
+
+export type adminDeletePlayerResponse = (adminDeletePlayerResponseSuccess | adminDeletePlayerResponseError)
+
+export const getAdminDeletePlayerUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/admin/players/${id}`
+}
+
+/**
+ * @summary Delete a player
+ */
+export const adminDeletePlayer = async (id: number, options?: Parameters<typeof apiFetch>[1]): Promise<adminDeletePlayerResponse> => {
+
+  return apiFetch<adminDeletePlayerResponse>(getAdminDeletePlayerUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type adminUpdatePlayerResponse200 = {
+  data: AdminPlayerView
+  status: 200
+}
+
+export type adminUpdatePlayerResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type adminUpdatePlayerResponseSuccess = (adminUpdatePlayerResponse200) & {
+  headers: Headers;
+};
+export type adminUpdatePlayerResponseError = (adminUpdatePlayerResponseDefault) & {
+  headers: Headers;
+};
+
+export type adminUpdatePlayerResponse = (adminUpdatePlayerResponseSuccess | adminUpdatePlayerResponseError)
+
+export const getAdminUpdatePlayerUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/admin/players/${id}`
+}
+
+/**
+ * @summary Rename a player or give it to another user
+ */
+export const adminUpdatePlayer = async (id: number,
+    adminUpdatePlayerInputBody: NonReadonly<AdminUpdatePlayerInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<adminUpdatePlayerResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<adminUpdatePlayerResponse>(getAdminUpdatePlayerUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(adminUpdatePlayerInputBody)
+  }
+);}
+
+
+
+export type adminWearPlayerResponse200 = {
+  data: AdminPlayerView
+  status: 200
+}
+
+export type adminWearPlayerResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type adminWearPlayerResponseSuccess = (adminWearPlayerResponse200) & {
+  headers: Headers;
+};
+export type adminWearPlayerResponseError = (adminWearPlayerResponseDefault) & {
+  headers: Headers;
+};
+
+export type adminWearPlayerResponse = (adminWearPlayerResponseSuccess | adminWearPlayerResponseError)
+
+export const getAdminWearPlayerUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/admin/players/${id}/textures`
+}
+
+/**
+ * @summary Set what a player wears
+ */
+export const adminWearPlayer = async (id: number,
+    adminWearInputBody: NonReadonly<AdminWearInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<adminWearPlayerResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<adminWearPlayerResponse>(getAdminWearPlayerUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(adminWearInputBody)
+  }
+);}
+
+
+
+export type listReportsResponse200 = {
+  data: AdminReportPage
+  status: 200
+}
+
+export type listReportsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listReportsResponseSuccess = (listReportsResponse200) & {
+  headers: Headers;
+};
+export type listReportsResponseError = (listReportsResponseDefault) & {
+  headers: Headers;
+};
+
+export type listReportsResponse = (listReportsResponseSuccess | listReportsResponseError)
+
+export const getListReportsUrl = (params?: ListReportsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/admin/reports?${stringifiedParams}` : `/api/v1/admin/reports`
+}
+
+/**
+ * @summary The review queue, newest first
+ */
+export const listReports = async (params?: ListReportsParams, options?: Parameters<typeof apiFetch>[1]): Promise<listReportsResponse> => {
+
+  return apiFetch<listReportsResponse>(getListReportsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type reviewReportResponse200 = {
+  data: AdminReportView
+  status: 200
+}
+
+export type reviewReportResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type reviewReportResponseSuccess = (reviewReportResponse200) & {
+  headers: Headers;
+};
+export type reviewReportResponseError = (reviewReportResponseDefault) & {
+  headers: Headers;
+};
+
+export type reviewReportResponse = (reviewReportResponseSuccess | reviewReportResponseError)
+
+export const getReviewReportUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/admin/reports/${id}/review`
+}
+
+/**
+ * delete deletes the texture (closets refunded as score.return_on_delete says); ban bans the uploader, if you may manage them. Both give the reporter back a charge and score.reporter_reward; reject takes a submit reward back.
+ * @summary Uphold or reject a report
+ */
+export const reviewReport = async (id: number,
+    reviewReportInputBody: NonReadonly<ReviewReportInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<reviewReportResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<reviewReportResponse>(getReviewReportUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(reviewReportInputBody)
   }
 );}
 
@@ -1421,6 +2268,161 @@ return apiFetch<updateUserResponse>(getUpdateUserUrl(id),
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateUserInputBody)
+  }
+);}
+
+
+
+export type adminListClosetResponse200 = {
+  data: ClosetPage
+  status: 200
+}
+
+export type adminListClosetResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type adminListClosetResponseSuccess = (adminListClosetResponse200) & {
+  headers: Headers;
+};
+export type adminListClosetResponseError = (adminListClosetResponseDefault) & {
+  headers: Headers;
+};
+
+export type adminListClosetResponse = (adminListClosetResponseSuccess | adminListClosetResponseError)
+
+export const getAdminListClosetUrl = (id: number,
+    params?: AdminListClosetParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/admin/users/${id}/closet?${stringifiedParams}` : `/api/v1/admin/users/${id}/closet`
+}
+
+/**
+ * @summary A user's closet
+ */
+export const adminListCloset = async (id: number,
+    params?: AdminListClosetParams, options?: Parameters<typeof apiFetch>[1]): Promise<adminListClosetResponse> => {
+
+  return apiFetch<adminListClosetResponse>(getAdminListClosetUrl(id,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type adminAddToClosetResponse200 = {
+  data: ClosetItemView
+  status: 200
+}
+
+export type adminAddToClosetResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type adminAddToClosetResponseSuccess = (adminAddToClosetResponse200) & {
+  headers: Headers;
+};
+export type adminAddToClosetResponseError = (adminAddToClosetResponseDefault) & {
+  headers: Headers;
+};
+
+export type adminAddToClosetResponse = (adminAddToClosetResponseSuccess | adminAddToClosetResponseError)
+
+export const getAdminAddToClosetUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/admin/users/${id}/closet`
+}
+
+/**
+ * @summary Put a texture in a user's closet, free
+ */
+export const adminAddToCloset = async (id: number,
+    adminGiveInputBody: NonReadonly<AdminGiveInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<adminAddToClosetResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<adminAddToClosetResponse>(getAdminAddToClosetUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(adminGiveInputBody)
+  }
+);}
+
+
+
+export type adminRemoveFromClosetResponse200 = {
+  data: Unfavorited
+  status: 200
+}
+
+export type adminRemoveFromClosetResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type adminRemoveFromClosetResponseSuccess = (adminRemoveFromClosetResponse200) & {
+  headers: Headers;
+};
+export type adminRemoveFromClosetResponseError = (adminRemoveFromClosetResponseDefault) & {
+  headers: Headers;
+};
+
+export type adminRemoveFromClosetResponse = (adminRemoveFromClosetResponseSuccess | adminRemoveFromClosetResponseError)
+
+export const getAdminRemoveFromClosetUrl = (id: number,
+    textureId: number,) => {
+
+
+
+
+  return `/api/v1/admin/users/${id}/closet/${textureId}`
+}
+
+/**
+ * @summary Take a texture out of a user's closet
+ */
+export const adminRemoveFromCloset = async (id: number,
+    textureId: number, options?: Parameters<typeof apiFetch>[1]): Promise<adminRemoveFromClosetResponse> => {
+
+  return apiFetch<adminRemoveFromClosetResponse>(getAdminRemoveFromClosetUrl(id,textureId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
   }
 );}
 
@@ -1946,6 +2948,63 @@ return apiFetch<updateMeResponse>(getUpdateMeUrl(),
 
 
 
+export type setAvatarResponse204 = {
+  data: void
+  status: 204
+}
+
+export type setAvatarResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 204>
+}
+
+export type setAvatarResponseSuccess = (setAvatarResponse204) & {
+  headers: Headers;
+};
+export type setAvatarResponseError = (setAvatarResponseDefault) & {
+  headers: Headers;
+};
+
+export type setAvatarResponse = (setAvatarResponseSuccess | setAvatarResponseError)
+
+export const getSetAvatarUrl = () => {
+
+
+
+
+  return `/api/v1/me/avatar`
+}
+
+/**
+ * @summary Choose a skin whose head is your avatar
+ */
+export const setAvatar = async (setAvatarInputBody: NonReadonly<SetAvatarInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<setAvatarResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<setAvatarResponse>(getSetAvatarUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(setAvatarInputBody)
+  }
+);}
+
+
+
 export type listClosetResponse200 = {
   data: ClosetPage
   status: 200
@@ -2311,6 +3370,185 @@ return apiFetch<changeEmailResponse>(getChangeEmailUrl(),
 
 
 
+export type listNotificationsResponse200 = {
+  data: NotificationPage
+  status: 200
+}
+
+export type listNotificationsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listNotificationsResponseSuccess = (listNotificationsResponse200) & {
+  headers: Headers;
+};
+export type listNotificationsResponseError = (listNotificationsResponseDefault) & {
+  headers: Headers;
+};
+
+export type listNotificationsResponse = (listNotificationsResponseSuccess | listNotificationsResponseError)
+
+export const getListNotificationsUrl = (params?: ListNotificationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/me/notifications?${stringifiedParams}` : `/api/v1/me/notifications`
+}
+
+/**
+ * @summary Your notifications, newest first
+ */
+export const listNotifications = async (params?: ListNotificationsParams, options?: Parameters<typeof apiFetch>[1]): Promise<listNotificationsResponse> => {
+
+  return apiFetch<listNotificationsResponse>(getListNotificationsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type readAllNotificationsResponse200 = {
+  data: MarkedRead
+  status: 200
+}
+
+export type readAllNotificationsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type readAllNotificationsResponseSuccess = (readAllNotificationsResponse200) & {
+  headers: Headers;
+};
+export type readAllNotificationsResponseError = (readAllNotificationsResponseDefault) & {
+  headers: Headers;
+};
+
+export type readAllNotificationsResponse = (readAllNotificationsResponseSuccess | readAllNotificationsResponseError)
+
+export const getReadAllNotificationsUrl = () => {
+
+
+
+
+  return `/api/v1/me/notifications/read-all`
+}
+
+/**
+ * @summary Mark every notification read
+ */
+export const readAllNotifications = async ( options?: Parameters<typeof apiFetch>[1]): Promise<readAllNotificationsResponse> => {
+
+  return apiFetch<readAllNotificationsResponse>(getReadAllNotificationsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type countUnreadNotificationsResponse200 = {
+  data: UnreadCount
+  status: 200
+}
+
+export type countUnreadNotificationsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type countUnreadNotificationsResponseSuccess = (countUnreadNotificationsResponse200) & {
+  headers: Headers;
+};
+export type countUnreadNotificationsResponseError = (countUnreadNotificationsResponseDefault) & {
+  headers: Headers;
+};
+
+export type countUnreadNotificationsResponse = (countUnreadNotificationsResponseSuccess | countUnreadNotificationsResponseError)
+
+export const getCountUnreadNotificationsUrl = () => {
+
+
+
+
+  return `/api/v1/me/notifications/unread`
+}
+
+/**
+ * @summary How many notifications are unread
+ */
+export const countUnreadNotifications = async ( options?: Parameters<typeof apiFetch>[1]): Promise<countUnreadNotificationsResponse> => {
+
+  return apiFetch<countUnreadNotificationsResponse>(getCountUnreadNotificationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type readNotificationResponse204 = {
+  data: void
+  status: 204
+}
+
+export type readNotificationResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 204>
+}
+
+export type readNotificationResponseSuccess = (readNotificationResponse204) & {
+  headers: Headers;
+};
+export type readNotificationResponseError = (readNotificationResponseDefault) & {
+  headers: Headers;
+};
+
+export type readNotificationResponse = (readNotificationResponseSuccess | readNotificationResponseError)
+
+export const getReadNotificationUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/me/notifications/${id}/read`
+}
+
+/**
+ * @summary Mark a notification read
+ */
+export const readNotification = async (id: number, options?: Parameters<typeof apiFetch>[1]): Promise<readNotificationResponse> => {
+
+  return apiFetch<readNotificationResponse>(getReadNotificationUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
 export type changePasswordResponse204 = {
   data: void
   status: 204
@@ -2622,6 +3860,56 @@ return apiFetch<wearTexturesResponse>(getWearTexturesUrl(id),
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(wearInputBody)
+  }
+);}
+
+
+
+export type listMyReportsResponse200 = {
+  data: ReportPage
+  status: 200
+}
+
+export type listMyReportsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listMyReportsResponseSuccess = (listMyReportsResponse200) & {
+  headers: Headers;
+};
+export type listMyReportsResponseError = (listMyReportsResponseDefault) & {
+  headers: Headers;
+};
+
+export type listMyReportsResponse = (listMyReportsResponseSuccess | listMyReportsResponseError)
+
+export const getListMyReportsUrl = (params?: ListMyReportsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/me/reports?${stringifiedParams}` : `/api/v1/me/reports`
+}
+
+/**
+ * @summary Your reports, newest first
+ */
+export const listMyReports = async (params?: ListMyReportsParams, options?: Parameters<typeof apiFetch>[1]): Promise<listMyReportsResponse> => {
+
+  return apiFetch<listMyReportsResponse>(getListMyReportsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
   }
 );}
 
@@ -3285,5 +4573,63 @@ return apiFetch<updateTextureResponse>(getUpdateTextureUrl(id),
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateTextureInputBody)
+  }
+);}
+
+
+
+export type reportTextureResponse200 = {
+  data: Reported
+  status: 200
+}
+
+export type reportTextureResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type reportTextureResponseSuccess = (reportTextureResponse200) & {
+  headers: Headers;
+};
+export type reportTextureResponseError = (reportTextureResponseDefault) & {
+  headers: Headers;
+};
+
+export type reportTextureResponse = (reportTextureResponseSuccess | reportTextureResponseError)
+
+export const getReportTextureUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/textures/${id}/reports`
+}
+
+/**
+ * @summary Report a texture
+ */
+export const reportTexture = async (id: number,
+    reportTextureInputBody: NonReadonly<ReportTextureInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<reportTextureResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<reportTextureResponse>(getReportTextureUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(reportTextureInputBody)
   }
 );}

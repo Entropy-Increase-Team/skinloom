@@ -113,3 +113,27 @@ func TestListFromEnvironment(t *testing.T) {
 		t.Fatalf("trusted_proxies = %q, want %q", c.Server.TrustedProxies, want)
 	}
 }
+
+func TestValidateS3Storage(t *testing.T) {
+	ok := Storage{Driver: "s3", Endpoint: "oss-cn-hangzhou.aliyuncs.com", Bucket: "skins", AccessKey: "k", SecretKey: "s",
+		PublicURL: "https://cdn.example.com"}
+	c := Defaults()
+	c.Storage = ok
+	if err := c.Validate(); err != nil {
+		t.Fatalf("a complete s3 store: %v", err)
+	}
+	for name, change := range map[string]func(*Storage){
+		"no bucket":      func(s *Storage) { s.Bucket = "" },
+		"no secret":      func(s *Storage) { s.SecretKey = "" },
+		"scheme in host": func(s *Storage) { s.Endpoint = "https://oss-cn-hangzhou.aliyuncs.com" },
+		"relative cdn":   func(s *Storage) { s.PublicURL = "cdn.example.com" },
+		"unknown driver": func(s *Storage) { s.Driver = "ftp" },
+	} {
+		c := Defaults()
+		c.Storage = ok
+		change(&c.Storage)
+		if err := c.Validate(); err == nil {
+			t.Errorf("%s: want error", name)
+		}
+	}
+}

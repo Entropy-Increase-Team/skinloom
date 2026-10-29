@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Announcement is the predicate function for announcement builders.
+type Announcement func(*sql.Selector)
+
 // AuditLog is the predicate function for auditlog builders.
 type AuditLog func(*sql.Selector)
 
@@ -21,8 +24,14 @@ type ClosetItem func(*sql.Selector)
 // Job is the predicate function for job builders.
 type Job func(*sql.Selector)
 
+// Notification is the predicate function for notification builders.
+type Notification func(*sql.Selector)
+
 // Player is the predicate function for player builders.
 type Player func(*sql.Selector)
+
+// Report is the predicate function for report builders.
+type Report func(*sql.Selector)
 
 // ScoreEntry is the predicate function for scoreentry builders.
 type ScoreEntry func(*sql.Selector)

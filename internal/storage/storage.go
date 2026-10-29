@@ -1,8 +1,8 @@
 // Package storage keeps texture files. Files are content addressed (the key is the
 // SHA-256 of the bytes), so a key is written once and never changes: writes are
 // idempotent and readers can cache forever. The local driver keeps one flat
-// directory like Blessing Skin's storage/textures/{hash}; S3-compatible stores
-// arrive later in M2.
+// directory like Blessing Skin's storage/textures/{hash}; S3 keeps the same keys in a
+// bucket (s3.go).
 package storage
 
 import (

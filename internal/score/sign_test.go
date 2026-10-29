@@ -83,3 +83,29 @@ func TestSignInConcurrent(t *testing.T) {
 		}
 	})
 }
+
+// The site's time zone need not be the server's. SQLite keeps times as text with the
+// offset they were written in (the server's, time.Now) and compares that text, so a
+// cutoff in another zone ordered wrongly: on a UTC server with a site in Shanghai, a
+// check-in at 05:00 (21:00 UTC the day before) looked like yesterday's, and a second
+// one at 07:00 earned again.
+func TestSignInDailyInAnotherZone(t *testing.T) {
+	dbtest.ForEach(t, func(t *testing.T, d *db.DB) {
+		ctx := context.Background()
+		_, off := time.Now().Zone()
+		east := time.FixedZone("server+10h", off+10*3600) // the site, ten hours ahead of the server
+		daily := SignPolicy{Min: 5, Max: 5, Daily: true, Location: east}
+		u := newUser(t, d.Ent, 0)
+		morning := time.Date(2026, 10, 24, 5, 0, 0, 0, east).In(time.Local) // what time.Now gives
+		if _, _, _, err := SignIn(ctx, d.Ent, u.ID, daily, morning); err != nil {
+			t.Fatal(err)
+		}
+		var early *TooEarlyError
+		if _, _, _, err := SignIn(ctx, d.Ent, u.ID, daily, morning.Add(2*time.Hour)); !errors.As(err, &early) {
+			t.Fatalf("the same day in the site's zone earns once: %v", err)
+		}
+		if _, _, _, err := SignIn(ctx, d.Ent, u.ID, daily, morning.Add(19*time.Hour)); err != nil {
+			t.Fatalf("the next day: %v", err)
+		}
+	})
+}

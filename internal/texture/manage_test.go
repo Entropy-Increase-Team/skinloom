@@ -106,6 +106,40 @@ func TestFavorites(t *testing.T) {
 	})
 }
 
+// Each closet item settles its own fee and award: once the site makes closets free,
+// adding and removing a texture again must not refund (or take back) the fee or award
+// of an earlier add, which was settled already. Keyed by texture and user, the old
+// entries were found again and every free add and remove paid out once more.
+func TestFavoriteRefundsOnlyItsOwnFee(t *testing.T) {
+	dbtest.ForEach(t, func(t *testing.T, d *db.DB) {
+		ctx := context.Background()
+		f := newFixture(t, d)
+		alice := f.user(t, "alice@example.com", 1000)
+		bob := f.user(t, "bob@example.com", 1000)
+		skin := f.upload(t, alice, "steve", 64, 64, true, 1)
+		if _, _, err := f.s.Favorite(ctx, Viewer{UserID: bob}, skin.ID, "", paid); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := f.s.Unfavorite(ctx, bob, skin.ID, true); err != nil {
+			t.Fatal(err)
+		}
+		bobBefore, aliceBefore := f.score(t, bob), f.score(t, alice)
+		free := paid
+		free.PerClosetItem, free.AwardPerLike = 0, 0
+		for range 3 {
+			if _, _, err := f.s.Favorite(ctx, Viewer{UserID: bob}, skin.ID, "", free); err != nil {
+				t.Fatal(err)
+			}
+			if got, err := f.s.Unfavorite(ctx, bob, skin.ID, true); err != nil || got != 0 {
+				t.Fatalf("a free item refunds nothing: %d, %v", got, err)
+			}
+		}
+		if f.score(t, bob) != bobBefore || f.score(t, alice) != aliceBefore {
+			t.Fatalf("scores moved: bob %d → %d, alice %d → %d", bobBefore, f.score(t, bob), aliceBefore, f.score(t, alice))
+		}
+	})
+}
+
 func TestUpdateTexture(t *testing.T) {
 	dbtest.ForEach(t, func(t *testing.T, d *db.DB) {
 		ctx := context.Background()
@@ -290,6 +324,41 @@ func TestDeletePrivateOf(t *testing.T) {
 		}
 		if f.db.Blob.Query().CountX(ctx) != 1 || f.db.Job.Query().Where(job.Kind(SweepJobKind)).CountX(ctx) != 1 {
 			t.Fatalf("the private texture's file is released: blobs %d", f.db.Blob.Query().CountX(ctx))
+		}
+	})
+}
+
+// An administrator's gift follows the closet rule that a private texture is only in
+// its uploader's closet (going private drops it from every other one): otherwise the
+// receiver could see it in their closet and put it on a player, whose profile shows
+// it to everyone.
+func TestGiveToClosetKeepsPrivateTexturesPrivate(t *testing.T) {
+	dbtest.ForEach(t, func(t *testing.T, d *db.DB) {
+		ctx := context.Background()
+		f := newFixture(t, d)
+		alice := f.user(t, "alice@example.com", 1000)
+		bob := f.user(t, "bob@example.com", 1000)
+		skin := f.upload(t, alice, "steve", 64, 64, true, 1)
+		secret := f.upload(t, alice, "steve", 64, 64, false, 2)
+		aliceBefore := f.score(t, alice)
+
+		if _, err := f.s.GiveToCloset(ctx, bob, secret.ID); len(validate.FieldErrors(err)) == 0 {
+			t.Fatalf("someone else's private texture: %v", err)
+		}
+		if in, _ := f.s.InCloset(ctx, bob, secret.ID); in {
+			t.Fatal("the private texture is in bob's closet")
+		}
+		if _, err := f.s.GiveToCloset(ctx, bob, skin.ID); err != nil {
+			t.Fatalf("a public texture: %v", err)
+		}
+		if f.score(t, bob) != 1000 || f.score(t, alice) != aliceBefore {
+			t.Fatal("a gift costs nothing and earns nothing")
+		}
+		if _, err := f.s.GiveToCloset(ctx, bob, skin.ID); !errors.Is(err, ErrInCloset) {
+			t.Fatalf("twice: %v", err)
+		}
+		if _, err := f.s.GiveToCloset(ctx, bob, 999999); !errors.Is(err, ErrNotFound) {
+			t.Fatalf("no such texture: %v", err)
 		}
 	})
 }

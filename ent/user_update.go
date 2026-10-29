@@ -11,10 +11,13 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/Entropy-Increase-Team/skinloom/ent/announcement"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
+	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
+	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
@@ -241,6 +244,54 @@ func (_u *UserUpdate) ClearLastSignAt() *UserUpdate {
 	return _u
 }
 
+// SetAvatarTextureID sets the "avatar_texture_id" field.
+func (_u *UserUpdate) SetAvatarTextureID(v int64) *UserUpdate {
+	_u.mutation.ResetAvatarTextureID()
+	_u.mutation.SetAvatarTextureID(v)
+	return _u
+}
+
+// SetNillableAvatarTextureID sets the "avatar_texture_id" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableAvatarTextureID(v *int64) *UserUpdate {
+	if v != nil {
+		_u.SetAvatarTextureID(*v)
+	}
+	return _u
+}
+
+// AddAvatarTextureID adds value to the "avatar_texture_id" field.
+func (_u *UserUpdate) AddAvatarTextureID(v int64) *UserUpdate {
+	_u.mutation.AddAvatarTextureID(v)
+	return _u
+}
+
+// ClearAvatarTextureID clears the value of the "avatar_texture_id" field.
+func (_u *UserUpdate) ClearAvatarTextureID() *UserUpdate {
+	_u.mutation.ClearAvatarTextureID()
+	return _u
+}
+
+// SetAnnouncementsSeen sets the "announcements_seen" field.
+func (_u *UserUpdate) SetAnnouncementsSeen(v int64) *UserUpdate {
+	_u.mutation.ResetAnnouncementsSeen()
+	_u.mutation.SetAnnouncementsSeen(v)
+	return _u
+}
+
+// SetNillableAnnouncementsSeen sets the "announcements_seen" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableAnnouncementsSeen(v *int64) *UserUpdate {
+	if v != nil {
+		_u.SetAnnouncementsSeen(*v)
+	}
+	return _u
+}
+
+// AddAnnouncementsSeen adds value to the "announcements_seen" field.
+func (_u *UserUpdate) AddAnnouncementsSeen(v int64) *UserUpdate {
+	_u.mutation.AddAnnouncementsSeen(v)
+	return _u
+}
+
 // SetDeletedAt sets the "deleted_at" field.
 func (_u *UserUpdate) SetDeletedAt(v time.Time) *UserUpdate {
 	_u.mutation.SetDeletedAt(v)
@@ -355,6 +406,81 @@ func (_u *UserUpdate) AddPlayers(v ...*Player) *UserUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.AddPlayerIDs(ids...)
+}
+
+// AddReportsFiledIDs adds the "reports_filed" edge to the Report entity by IDs.
+func (_u *UserUpdate) AddReportsFiledIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddReportsFiledIDs(ids...)
+	return _u
+}
+
+// AddReportsFiled adds the "reports_filed" edges to the Report entity.
+func (_u *UserUpdate) AddReportsFiled(v ...*Report) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddReportsFiledIDs(ids...)
+}
+
+// AddReportsAgainstIDs adds the "reports_against" edge to the Report entity by IDs.
+func (_u *UserUpdate) AddReportsAgainstIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddReportsAgainstIDs(ids...)
+	return _u
+}
+
+// AddReportsAgainst adds the "reports_against" edges to the Report entity.
+func (_u *UserUpdate) AddReportsAgainst(v ...*Report) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddReportsAgainstIDs(ids...)
+}
+
+// AddReportsHandledIDs adds the "reports_handled" edge to the Report entity by IDs.
+func (_u *UserUpdate) AddReportsHandledIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddReportsHandledIDs(ids...)
+	return _u
+}
+
+// AddReportsHandled adds the "reports_handled" edges to the Report entity.
+func (_u *UserUpdate) AddReportsHandled(v ...*Report) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddReportsHandledIDs(ids...)
+}
+
+// AddNotificationIDs adds the "notifications" edge to the Notification entity by IDs.
+func (_u *UserUpdate) AddNotificationIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddNotificationIDs(ids...)
+	return _u
+}
+
+// AddNotifications adds the "notifications" edges to the Notification entity.
+func (_u *UserUpdate) AddNotifications(v ...*Notification) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddNotificationIDs(ids...)
+}
+
+// AddAnnouncementsSentIDs adds the "announcements_sent" edge to the Announcement entity by IDs.
+func (_u *UserUpdate) AddAnnouncementsSentIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddAnnouncementsSentIDs(ids...)
+	return _u
+}
+
+// AddAnnouncementsSent adds the "announcements_sent" edges to the Announcement entity.
+func (_u *UserUpdate) AddAnnouncementsSent(v ...*Announcement) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddAnnouncementsSentIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -486,6 +612,111 @@ func (_u *UserUpdate) RemovePlayers(v ...*Player) *UserUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemovePlayerIDs(ids...)
+}
+
+// ClearReportsFiled clears all "reports_filed" edges to the Report entity.
+func (_u *UserUpdate) ClearReportsFiled() *UserUpdate {
+	_u.mutation.ClearReportsFiled()
+	return _u
+}
+
+// RemoveReportsFiledIDs removes the "reports_filed" edge to Report entities by IDs.
+func (_u *UserUpdate) RemoveReportsFiledIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemoveReportsFiledIDs(ids...)
+	return _u
+}
+
+// RemoveReportsFiled removes "reports_filed" edges to Report entities.
+func (_u *UserUpdate) RemoveReportsFiled(v ...*Report) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveReportsFiledIDs(ids...)
+}
+
+// ClearReportsAgainst clears all "reports_against" edges to the Report entity.
+func (_u *UserUpdate) ClearReportsAgainst() *UserUpdate {
+	_u.mutation.ClearReportsAgainst()
+	return _u
+}
+
+// RemoveReportsAgainstIDs removes the "reports_against" edge to Report entities by IDs.
+func (_u *UserUpdate) RemoveReportsAgainstIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemoveReportsAgainstIDs(ids...)
+	return _u
+}
+
+// RemoveReportsAgainst removes "reports_against" edges to Report entities.
+func (_u *UserUpdate) RemoveReportsAgainst(v ...*Report) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveReportsAgainstIDs(ids...)
+}
+
+// ClearReportsHandled clears all "reports_handled" edges to the Report entity.
+func (_u *UserUpdate) ClearReportsHandled() *UserUpdate {
+	_u.mutation.ClearReportsHandled()
+	return _u
+}
+
+// RemoveReportsHandledIDs removes the "reports_handled" edge to Report entities by IDs.
+func (_u *UserUpdate) RemoveReportsHandledIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemoveReportsHandledIDs(ids...)
+	return _u
+}
+
+// RemoveReportsHandled removes "reports_handled" edges to Report entities.
+func (_u *UserUpdate) RemoveReportsHandled(v ...*Report) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveReportsHandledIDs(ids...)
+}
+
+// ClearNotifications clears all "notifications" edges to the Notification entity.
+func (_u *UserUpdate) ClearNotifications() *UserUpdate {
+	_u.mutation.ClearNotifications()
+	return _u
+}
+
+// RemoveNotificationIDs removes the "notifications" edge to Notification entities by IDs.
+func (_u *UserUpdate) RemoveNotificationIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemoveNotificationIDs(ids...)
+	return _u
+}
+
+// RemoveNotifications removes "notifications" edges to Notification entities.
+func (_u *UserUpdate) RemoveNotifications(v ...*Notification) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveNotificationIDs(ids...)
+}
+
+// ClearAnnouncementsSent clears all "announcements_sent" edges to the Announcement entity.
+func (_u *UserUpdate) ClearAnnouncementsSent() *UserUpdate {
+	_u.mutation.ClearAnnouncementsSent()
+	return _u
+}
+
+// RemoveAnnouncementsSentIDs removes the "announcements_sent" edge to Announcement entities by IDs.
+func (_u *UserUpdate) RemoveAnnouncementsSentIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemoveAnnouncementsSentIDs(ids...)
+	return _u
+}
+
+// RemoveAnnouncementsSent removes "announcements_sent" edges to Announcement entities.
+func (_u *UserUpdate) RemoveAnnouncementsSent(v ...*Announcement) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveAnnouncementsSentIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -636,6 +867,21 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.LastSignAtCleared() {
 		_spec.ClearField(user.FieldLastSignAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.AvatarTextureID(); ok {
+		_spec.SetField(user.FieldAvatarTextureID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedAvatarTextureID(); ok {
+		_spec.AddField(user.FieldAvatarTextureID, field.TypeInt64, value)
+	}
+	if _u.mutation.AvatarTextureIDCleared() {
+		_spec.ClearField(user.FieldAvatarTextureID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.AnnouncementsSeen(); ok {
+		_spec.SetField(user.FieldAnnouncementsSeen, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedAnnouncementsSeen(); ok {
+		_spec.AddField(user.FieldAnnouncementsSeen, field.TypeInt64, value)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(user.FieldDeletedAt, field.TypeTime, value)
@@ -909,6 +1155,231 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ReportsFiledCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsFiledTable,
+			Columns: []string{user.ReportsFiledColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedReportsFiledIDs(); len(nodes) > 0 && !_u.mutation.ReportsFiledCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsFiledTable,
+			Columns: []string{user.ReportsFiledColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ReportsFiledIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsFiledTable,
+			Columns: []string{user.ReportsFiledColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ReportsAgainstCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsAgainstTable,
+			Columns: []string{user.ReportsAgainstColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedReportsAgainstIDs(); len(nodes) > 0 && !_u.mutation.ReportsAgainstCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsAgainstTable,
+			Columns: []string{user.ReportsAgainstColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ReportsAgainstIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsAgainstTable,
+			Columns: []string{user.ReportsAgainstColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ReportsHandledCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsHandledTable,
+			Columns: []string{user.ReportsHandledColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedReportsHandledIDs(); len(nodes) > 0 && !_u.mutation.ReportsHandledCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsHandledTable,
+			Columns: []string{user.ReportsHandledColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ReportsHandledIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsHandledTable,
+			Columns: []string{user.ReportsHandledColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.NotificationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.NotificationsTable,
+			Columns: []string{user.NotificationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notification.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedNotificationsIDs(); len(nodes) > 0 && !_u.mutation.NotificationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.NotificationsTable,
+			Columns: []string{user.NotificationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notification.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.NotificationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.NotificationsTable,
+			Columns: []string{user.NotificationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notification.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.AnnouncementsSentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AnnouncementsSentTable,
+			Columns: []string{user.AnnouncementsSentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(announcement.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedAnnouncementsSentIDs(); len(nodes) > 0 && !_u.mutation.AnnouncementsSentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AnnouncementsSentTable,
+			Columns: []string{user.AnnouncementsSentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(announcement.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AnnouncementsSentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AnnouncementsSentTable,
+			Columns: []string{user.AnnouncementsSentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(announcement.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {
@@ -1143,6 +1614,54 @@ func (_u *UserUpdateOne) ClearLastSignAt() *UserUpdateOne {
 	return _u
 }
 
+// SetAvatarTextureID sets the "avatar_texture_id" field.
+func (_u *UserUpdateOne) SetAvatarTextureID(v int64) *UserUpdateOne {
+	_u.mutation.ResetAvatarTextureID()
+	_u.mutation.SetAvatarTextureID(v)
+	return _u
+}
+
+// SetNillableAvatarTextureID sets the "avatar_texture_id" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableAvatarTextureID(v *int64) *UserUpdateOne {
+	if v != nil {
+		_u.SetAvatarTextureID(*v)
+	}
+	return _u
+}
+
+// AddAvatarTextureID adds value to the "avatar_texture_id" field.
+func (_u *UserUpdateOne) AddAvatarTextureID(v int64) *UserUpdateOne {
+	_u.mutation.AddAvatarTextureID(v)
+	return _u
+}
+
+// ClearAvatarTextureID clears the value of the "avatar_texture_id" field.
+func (_u *UserUpdateOne) ClearAvatarTextureID() *UserUpdateOne {
+	_u.mutation.ClearAvatarTextureID()
+	return _u
+}
+
+// SetAnnouncementsSeen sets the "announcements_seen" field.
+func (_u *UserUpdateOne) SetAnnouncementsSeen(v int64) *UserUpdateOne {
+	_u.mutation.ResetAnnouncementsSeen()
+	_u.mutation.SetAnnouncementsSeen(v)
+	return _u
+}
+
+// SetNillableAnnouncementsSeen sets the "announcements_seen" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableAnnouncementsSeen(v *int64) *UserUpdateOne {
+	if v != nil {
+		_u.SetAnnouncementsSeen(*v)
+	}
+	return _u
+}
+
+// AddAnnouncementsSeen adds value to the "announcements_seen" field.
+func (_u *UserUpdateOne) AddAnnouncementsSeen(v int64) *UserUpdateOne {
+	_u.mutation.AddAnnouncementsSeen(v)
+	return _u
+}
+
 // SetDeletedAt sets the "deleted_at" field.
 func (_u *UserUpdateOne) SetDeletedAt(v time.Time) *UserUpdateOne {
 	_u.mutation.SetDeletedAt(v)
@@ -1257,6 +1776,81 @@ func (_u *UserUpdateOne) AddPlayers(v ...*Player) *UserUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.AddPlayerIDs(ids...)
+}
+
+// AddReportsFiledIDs adds the "reports_filed" edge to the Report entity by IDs.
+func (_u *UserUpdateOne) AddReportsFiledIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddReportsFiledIDs(ids...)
+	return _u
+}
+
+// AddReportsFiled adds the "reports_filed" edges to the Report entity.
+func (_u *UserUpdateOne) AddReportsFiled(v ...*Report) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddReportsFiledIDs(ids...)
+}
+
+// AddReportsAgainstIDs adds the "reports_against" edge to the Report entity by IDs.
+func (_u *UserUpdateOne) AddReportsAgainstIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddReportsAgainstIDs(ids...)
+	return _u
+}
+
+// AddReportsAgainst adds the "reports_against" edges to the Report entity.
+func (_u *UserUpdateOne) AddReportsAgainst(v ...*Report) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddReportsAgainstIDs(ids...)
+}
+
+// AddReportsHandledIDs adds the "reports_handled" edge to the Report entity by IDs.
+func (_u *UserUpdateOne) AddReportsHandledIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddReportsHandledIDs(ids...)
+	return _u
+}
+
+// AddReportsHandled adds the "reports_handled" edges to the Report entity.
+func (_u *UserUpdateOne) AddReportsHandled(v ...*Report) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddReportsHandledIDs(ids...)
+}
+
+// AddNotificationIDs adds the "notifications" edge to the Notification entity by IDs.
+func (_u *UserUpdateOne) AddNotificationIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddNotificationIDs(ids...)
+	return _u
+}
+
+// AddNotifications adds the "notifications" edges to the Notification entity.
+func (_u *UserUpdateOne) AddNotifications(v ...*Notification) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddNotificationIDs(ids...)
+}
+
+// AddAnnouncementsSentIDs adds the "announcements_sent" edge to the Announcement entity by IDs.
+func (_u *UserUpdateOne) AddAnnouncementsSentIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddAnnouncementsSentIDs(ids...)
+	return _u
+}
+
+// AddAnnouncementsSent adds the "announcements_sent" edges to the Announcement entity.
+func (_u *UserUpdateOne) AddAnnouncementsSent(v ...*Announcement) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddAnnouncementsSentIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -1388,6 +1982,111 @@ func (_u *UserUpdateOne) RemovePlayers(v ...*Player) *UserUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemovePlayerIDs(ids...)
+}
+
+// ClearReportsFiled clears all "reports_filed" edges to the Report entity.
+func (_u *UserUpdateOne) ClearReportsFiled() *UserUpdateOne {
+	_u.mutation.ClearReportsFiled()
+	return _u
+}
+
+// RemoveReportsFiledIDs removes the "reports_filed" edge to Report entities by IDs.
+func (_u *UserUpdateOne) RemoveReportsFiledIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemoveReportsFiledIDs(ids...)
+	return _u
+}
+
+// RemoveReportsFiled removes "reports_filed" edges to Report entities.
+func (_u *UserUpdateOne) RemoveReportsFiled(v ...*Report) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveReportsFiledIDs(ids...)
+}
+
+// ClearReportsAgainst clears all "reports_against" edges to the Report entity.
+func (_u *UserUpdateOne) ClearReportsAgainst() *UserUpdateOne {
+	_u.mutation.ClearReportsAgainst()
+	return _u
+}
+
+// RemoveReportsAgainstIDs removes the "reports_against" edge to Report entities by IDs.
+func (_u *UserUpdateOne) RemoveReportsAgainstIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemoveReportsAgainstIDs(ids...)
+	return _u
+}
+
+// RemoveReportsAgainst removes "reports_against" edges to Report entities.
+func (_u *UserUpdateOne) RemoveReportsAgainst(v ...*Report) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveReportsAgainstIDs(ids...)
+}
+
+// ClearReportsHandled clears all "reports_handled" edges to the Report entity.
+func (_u *UserUpdateOne) ClearReportsHandled() *UserUpdateOne {
+	_u.mutation.ClearReportsHandled()
+	return _u
+}
+
+// RemoveReportsHandledIDs removes the "reports_handled" edge to Report entities by IDs.
+func (_u *UserUpdateOne) RemoveReportsHandledIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemoveReportsHandledIDs(ids...)
+	return _u
+}
+
+// RemoveReportsHandled removes "reports_handled" edges to Report entities.
+func (_u *UserUpdateOne) RemoveReportsHandled(v ...*Report) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveReportsHandledIDs(ids...)
+}
+
+// ClearNotifications clears all "notifications" edges to the Notification entity.
+func (_u *UserUpdateOne) ClearNotifications() *UserUpdateOne {
+	_u.mutation.ClearNotifications()
+	return _u
+}
+
+// RemoveNotificationIDs removes the "notifications" edge to Notification entities by IDs.
+func (_u *UserUpdateOne) RemoveNotificationIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemoveNotificationIDs(ids...)
+	return _u
+}
+
+// RemoveNotifications removes "notifications" edges to Notification entities.
+func (_u *UserUpdateOne) RemoveNotifications(v ...*Notification) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveNotificationIDs(ids...)
+}
+
+// ClearAnnouncementsSent clears all "announcements_sent" edges to the Announcement entity.
+func (_u *UserUpdateOne) ClearAnnouncementsSent() *UserUpdateOne {
+	_u.mutation.ClearAnnouncementsSent()
+	return _u
+}
+
+// RemoveAnnouncementsSentIDs removes the "announcements_sent" edge to Announcement entities by IDs.
+func (_u *UserUpdateOne) RemoveAnnouncementsSentIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemoveAnnouncementsSentIDs(ids...)
+	return _u
+}
+
+// RemoveAnnouncementsSent removes "announcements_sent" edges to Announcement entities.
+func (_u *UserUpdateOne) RemoveAnnouncementsSent(v ...*Announcement) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveAnnouncementsSentIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -1568,6 +2267,21 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if _u.mutation.LastSignAtCleared() {
 		_spec.ClearField(user.FieldLastSignAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.AvatarTextureID(); ok {
+		_spec.SetField(user.FieldAvatarTextureID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedAvatarTextureID(); ok {
+		_spec.AddField(user.FieldAvatarTextureID, field.TypeInt64, value)
+	}
+	if _u.mutation.AvatarTextureIDCleared() {
+		_spec.ClearField(user.FieldAvatarTextureID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.AnnouncementsSeen(); ok {
+		_spec.SetField(user.FieldAnnouncementsSeen, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedAnnouncementsSeen(); ok {
+		_spec.AddField(user.FieldAnnouncementsSeen, field.TypeInt64, value)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(user.FieldDeletedAt, field.TypeTime, value)
@@ -1841,6 +2555,231 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ReportsFiledCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsFiledTable,
+			Columns: []string{user.ReportsFiledColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedReportsFiledIDs(); len(nodes) > 0 && !_u.mutation.ReportsFiledCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsFiledTable,
+			Columns: []string{user.ReportsFiledColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ReportsFiledIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsFiledTable,
+			Columns: []string{user.ReportsFiledColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ReportsAgainstCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsAgainstTable,
+			Columns: []string{user.ReportsAgainstColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedReportsAgainstIDs(); len(nodes) > 0 && !_u.mutation.ReportsAgainstCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsAgainstTable,
+			Columns: []string{user.ReportsAgainstColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ReportsAgainstIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsAgainstTable,
+			Columns: []string{user.ReportsAgainstColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ReportsHandledCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsHandledTable,
+			Columns: []string{user.ReportsHandledColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedReportsHandledIDs(); len(nodes) > 0 && !_u.mutation.ReportsHandledCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsHandledTable,
+			Columns: []string{user.ReportsHandledColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ReportsHandledIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsHandledTable,
+			Columns: []string{user.ReportsHandledColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.NotificationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.NotificationsTable,
+			Columns: []string{user.NotificationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notification.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedNotificationsIDs(); len(nodes) > 0 && !_u.mutation.NotificationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.NotificationsTable,
+			Columns: []string{user.NotificationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notification.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.NotificationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.NotificationsTable,
+			Columns: []string{user.NotificationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notification.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.AnnouncementsSentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AnnouncementsSentTable,
+			Columns: []string{user.AnnouncementsSentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(announcement.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedAnnouncementsSentIDs(); len(nodes) > 0 && !_u.mutation.AnnouncementsSentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AnnouncementsSentTable,
+			Columns: []string{user.AnnouncementsSentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(announcement.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AnnouncementsSentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AnnouncementsSentTable,
+			Columns: []string{user.AnnouncementsSentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(announcement.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

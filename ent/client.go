@@ -15,12 +15,15 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/Entropy-Increase-Team/skinloom/ent/announcement"
 	"github.com/Entropy-Increase-Team/skinloom/ent/auditlog"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/blob"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/job"
+	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
+	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/setting"
@@ -36,6 +39,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Announcement is the client for interacting with the Announcement builders.
+	Announcement *AnnouncementClient
 	// AuditLog is the client for interacting with the AuditLog builders.
 	AuditLog *AuditLogClient
 	// AuthToken is the client for interacting with the AuthToken builders.
@@ -46,8 +51,12 @@ type Client struct {
 	ClosetItem *ClosetItemClient
 	// Job is the client for interacting with the Job builders.
 	Job *JobClient
+	// Notification is the client for interacting with the Notification builders.
+	Notification *NotificationClient
 	// Player is the client for interacting with the Player builders.
 	Player *PlayerClient
+	// Report is the client for interacting with the Report builders.
+	Report *ReportClient
 	// ScoreEntry is the client for interacting with the ScoreEntry builders.
 	ScoreEntry *ScoreEntryClient
 	// Session is the client for interacting with the Session builders.
@@ -71,12 +80,15 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Announcement = NewAnnouncementClient(c.config)
 	c.AuditLog = NewAuditLogClient(c.config)
 	c.AuthToken = NewAuthTokenClient(c.config)
 	c.Blob = NewBlobClient(c.config)
 	c.ClosetItem = NewClosetItemClient(c.config)
 	c.Job = NewJobClient(c.config)
+	c.Notification = NewNotificationClient(c.config)
 	c.Player = NewPlayerClient(c.config)
+	c.Report = NewReportClient(c.config)
 	c.ScoreEntry = NewScoreEntryClient(c.config)
 	c.Session = NewSessionClient(c.config)
 	c.Setting = NewSettingClient(c.config)
@@ -173,20 +185,23 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:         ctx,
-		config:      cfg,
-		AuditLog:    NewAuditLogClient(cfg),
-		AuthToken:   NewAuthTokenClient(cfg),
-		Blob:        NewBlobClient(cfg),
-		ClosetItem:  NewClosetItemClient(cfg),
-		Job:         NewJobClient(cfg),
-		Player:      NewPlayerClient(cfg),
-		ScoreEntry:  NewScoreEntryClient(cfg),
-		Session:     NewSessionClient(cfg),
-		Setting:     NewSettingClient(cfg),
-		SystemState: NewSystemStateClient(cfg),
-		Texture:     NewTextureClient(cfg),
-		User:        NewUserClient(cfg),
+		ctx:          ctx,
+		config:       cfg,
+		Announcement: NewAnnouncementClient(cfg),
+		AuditLog:     NewAuditLogClient(cfg),
+		AuthToken:    NewAuthTokenClient(cfg),
+		Blob:         NewBlobClient(cfg),
+		ClosetItem:   NewClosetItemClient(cfg),
+		Job:          NewJobClient(cfg),
+		Notification: NewNotificationClient(cfg),
+		Player:       NewPlayerClient(cfg),
+		Report:       NewReportClient(cfg),
+		ScoreEntry:   NewScoreEntryClient(cfg),
+		Session:      NewSessionClient(cfg),
+		Setting:      NewSettingClient(cfg),
+		SystemState:  NewSystemStateClient(cfg),
+		Texture:      NewTextureClient(cfg),
+		User:         NewUserClient(cfg),
 	}, nil
 }
 
@@ -204,27 +219,30 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:         ctx,
-		config:      cfg,
-		AuditLog:    NewAuditLogClient(cfg),
-		AuthToken:   NewAuthTokenClient(cfg),
-		Blob:        NewBlobClient(cfg),
-		ClosetItem:  NewClosetItemClient(cfg),
-		Job:         NewJobClient(cfg),
-		Player:      NewPlayerClient(cfg),
-		ScoreEntry:  NewScoreEntryClient(cfg),
-		Session:     NewSessionClient(cfg),
-		Setting:     NewSettingClient(cfg),
-		SystemState: NewSystemStateClient(cfg),
-		Texture:     NewTextureClient(cfg),
-		User:        NewUserClient(cfg),
+		ctx:          ctx,
+		config:       cfg,
+		Announcement: NewAnnouncementClient(cfg),
+		AuditLog:     NewAuditLogClient(cfg),
+		AuthToken:    NewAuthTokenClient(cfg),
+		Blob:         NewBlobClient(cfg),
+		ClosetItem:   NewClosetItemClient(cfg),
+		Job:          NewJobClient(cfg),
+		Notification: NewNotificationClient(cfg),
+		Player:       NewPlayerClient(cfg),
+		Report:       NewReportClient(cfg),
+		ScoreEntry:   NewScoreEntryClient(cfg),
+		Session:      NewSessionClient(cfg),
+		Setting:      NewSettingClient(cfg),
+		SystemState:  NewSystemStateClient(cfg),
+		Texture:      NewTextureClient(cfg),
+		User:         NewUserClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		AuditLog.
+//		Announcement.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -247,8 +265,9 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.AuditLog, c.AuthToken, c.Blob, c.ClosetItem, c.Job, c.Player, c.ScoreEntry,
-		c.Session, c.Setting, c.SystemState, c.Texture, c.User,
+		c.Announcement, c.AuditLog, c.AuthToken, c.Blob, c.ClosetItem, c.Job,
+		c.Notification, c.Player, c.Report, c.ScoreEntry, c.Session, c.Setting,
+		c.SystemState, c.Texture, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -258,8 +277,9 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.AuditLog, c.AuthToken, c.Blob, c.ClosetItem, c.Job, c.Player, c.ScoreEntry,
-		c.Session, c.Setting, c.SystemState, c.Texture, c.User,
+		c.Announcement, c.AuditLog, c.AuthToken, c.Blob, c.ClosetItem, c.Job,
+		c.Notification, c.Player, c.Report, c.ScoreEntry, c.Session, c.Setting,
+		c.SystemState, c.Texture, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -268,6 +288,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *AnnouncementMutation:
+		return c.Announcement.mutate(ctx, m)
 	case *AuditLogMutation:
 		return c.AuditLog.mutate(ctx, m)
 	case *AuthTokenMutation:
@@ -278,8 +300,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ClosetItem.mutate(ctx, m)
 	case *JobMutation:
 		return c.Job.mutate(ctx, m)
+	case *NotificationMutation:
+		return c.Notification.mutate(ctx, m)
 	case *PlayerMutation:
 		return c.Player.mutate(ctx, m)
+	case *ReportMutation:
+		return c.Report.mutate(ctx, m)
 	case *ScoreEntryMutation:
 		return c.ScoreEntry.mutate(ctx, m)
 	case *SessionMutation:
@@ -294,6 +320,171 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.User.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// AnnouncementClient is a client for the Announcement schema.
+type AnnouncementClient struct {
+	config
+}
+
+// NewAnnouncementClient returns a client for the Announcement from the given config.
+func NewAnnouncementClient(c config) *AnnouncementClient {
+	return &AnnouncementClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `announcement.Hooks(f(g(h())))`.
+func (c *AnnouncementClient) Use(hooks ...Hook) {
+	c.hooks.Announcement = append(c.hooks.Announcement, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `announcement.Intercept(f(g(h())))`.
+func (c *AnnouncementClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Announcement = append(c.inters.Announcement, interceptors...)
+}
+
+// Create returns a builder for creating a Announcement entity.
+func (c *AnnouncementClient) Create() *AnnouncementCreate {
+	mutation := newAnnouncementMutation(c.config, OpCreate)
+	return &AnnouncementCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Announcement entities.
+func (c *AnnouncementClient) CreateBulk(builders ...*AnnouncementCreate) *AnnouncementCreateBulk {
+	return &AnnouncementCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AnnouncementClient) MapCreateBulk(slice any, setFunc func(*AnnouncementCreate, int)) *AnnouncementCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AnnouncementCreateBulk{err: fmt.Errorf("calling to AnnouncementClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AnnouncementCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AnnouncementCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Announcement.
+func (c *AnnouncementClient) Update() *AnnouncementUpdate {
+	mutation := newAnnouncementMutation(c.config, OpUpdate)
+	return &AnnouncementUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AnnouncementClient) UpdateOne(_m *Announcement) *AnnouncementUpdateOne {
+	mutation := newAnnouncementMutation(c.config, OpUpdateOne, withAnnouncement(_m))
+	return &AnnouncementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AnnouncementClient) UpdateOneID(id int64) *AnnouncementUpdateOne {
+	mutation := newAnnouncementMutation(c.config, OpUpdateOne, withAnnouncementID(id))
+	return &AnnouncementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Announcement.
+func (c *AnnouncementClient) Delete() *AnnouncementDelete {
+	mutation := newAnnouncementMutation(c.config, OpDelete)
+	return &AnnouncementDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AnnouncementClient) DeleteOne(_m *Announcement) *AnnouncementDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AnnouncementClient) DeleteOneID(id int64) *AnnouncementDeleteOne {
+	builder := c.Delete().Where(announcement.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AnnouncementDeleteOne{builder}
+}
+
+// Query returns a query builder for Announcement.
+func (c *AnnouncementClient) Query() *AnnouncementQuery {
+	return &AnnouncementQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAnnouncement},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Announcement entity by its id.
+func (c *AnnouncementClient) Get(ctx context.Context, id int64) (*Announcement, error) {
+	return c.Query().Where(announcement.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AnnouncementClient) GetX(ctx context.Context, id int64) *Announcement {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySender queries the sender edge of a Announcement.
+func (c *AnnouncementClient) QuerySender(_m *Announcement) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(announcement.Table, announcement.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, announcement.SenderTable, announcement.SenderColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryNotifications queries the notifications edge of a Announcement.
+func (c *AnnouncementClient) QueryNotifications(_m *Announcement) *NotificationQuery {
+	query := (&NotificationClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(announcement.Table, announcement.FieldID, id),
+			sqlgraph.To(notification.Table, notification.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, announcement.NotificationsTable, announcement.NotificationsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *AnnouncementClient) Hooks() []Hook {
+	return c.hooks.Announcement
+}
+
+// Interceptors returns the client interceptors.
+func (c *AnnouncementClient) Interceptors() []Interceptor {
+	return c.inters.Announcement
+}
+
+func (c *AnnouncementClient) mutate(ctx context.Context, m *AnnouncementMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AnnouncementCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AnnouncementUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AnnouncementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AnnouncementDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Announcement mutation op: %q", m.Op())
 	}
 }
 
@@ -1026,6 +1217,171 @@ func (c *JobClient) mutate(ctx context.Context, m *JobMutation) (Value, error) {
 	}
 }
 
+// NotificationClient is a client for the Notification schema.
+type NotificationClient struct {
+	config
+}
+
+// NewNotificationClient returns a client for the Notification from the given config.
+func NewNotificationClient(c config) *NotificationClient {
+	return &NotificationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `notification.Hooks(f(g(h())))`.
+func (c *NotificationClient) Use(hooks ...Hook) {
+	c.hooks.Notification = append(c.hooks.Notification, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `notification.Intercept(f(g(h())))`.
+func (c *NotificationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Notification = append(c.inters.Notification, interceptors...)
+}
+
+// Create returns a builder for creating a Notification entity.
+func (c *NotificationClient) Create() *NotificationCreate {
+	mutation := newNotificationMutation(c.config, OpCreate)
+	return &NotificationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Notification entities.
+func (c *NotificationClient) CreateBulk(builders ...*NotificationCreate) *NotificationCreateBulk {
+	return &NotificationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *NotificationClient) MapCreateBulk(slice any, setFunc func(*NotificationCreate, int)) *NotificationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &NotificationCreateBulk{err: fmt.Errorf("calling to NotificationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*NotificationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &NotificationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Notification.
+func (c *NotificationClient) Update() *NotificationUpdate {
+	mutation := newNotificationMutation(c.config, OpUpdate)
+	return &NotificationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *NotificationClient) UpdateOne(_m *Notification) *NotificationUpdateOne {
+	mutation := newNotificationMutation(c.config, OpUpdateOne, withNotification(_m))
+	return &NotificationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *NotificationClient) UpdateOneID(id int64) *NotificationUpdateOne {
+	mutation := newNotificationMutation(c.config, OpUpdateOne, withNotificationID(id))
+	return &NotificationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Notification.
+func (c *NotificationClient) Delete() *NotificationDelete {
+	mutation := newNotificationMutation(c.config, OpDelete)
+	return &NotificationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *NotificationClient) DeleteOne(_m *Notification) *NotificationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *NotificationClient) DeleteOneID(id int64) *NotificationDeleteOne {
+	builder := c.Delete().Where(notification.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &NotificationDeleteOne{builder}
+}
+
+// Query returns a query builder for Notification.
+func (c *NotificationClient) Query() *NotificationQuery {
+	return &NotificationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeNotification},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Notification entity by its id.
+func (c *NotificationClient) Get(ctx context.Context, id int64) (*Notification, error) {
+	return c.Query().Where(notification.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *NotificationClient) GetX(ctx context.Context, id int64) *Notification {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a Notification.
+func (c *NotificationClient) QueryUser(_m *Notification) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(notification.Table, notification.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, notification.UserTable, notification.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAnnouncement queries the announcement edge of a Notification.
+func (c *NotificationClient) QueryAnnouncement(_m *Notification) *AnnouncementQuery {
+	query := (&AnnouncementClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(notification.Table, notification.FieldID, id),
+			sqlgraph.To(announcement.Table, announcement.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, notification.AnnouncementTable, notification.AnnouncementColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *NotificationClient) Hooks() []Hook {
+	return c.hooks.Notification
+}
+
+// Interceptors returns the client interceptors.
+func (c *NotificationClient) Interceptors() []Interceptor {
+	return c.inters.Notification
+}
+
+func (c *NotificationClient) mutate(ctx context.Context, m *NotificationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&NotificationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&NotificationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&NotificationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&NotificationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Notification mutation op: %q", m.Op())
+	}
+}
+
 // PlayerClient is a client for the Player schema.
 type PlayerClient struct {
 	config
@@ -1204,6 +1560,203 @@ func (c *PlayerClient) mutate(ctx context.Context, m *PlayerMutation) (Value, er
 		return (&PlayerDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Player mutation op: %q", m.Op())
+	}
+}
+
+// ReportClient is a client for the Report schema.
+type ReportClient struct {
+	config
+}
+
+// NewReportClient returns a client for the Report from the given config.
+func NewReportClient(c config) *ReportClient {
+	return &ReportClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `report.Hooks(f(g(h())))`.
+func (c *ReportClient) Use(hooks ...Hook) {
+	c.hooks.Report = append(c.hooks.Report, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `report.Intercept(f(g(h())))`.
+func (c *ReportClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Report = append(c.inters.Report, interceptors...)
+}
+
+// Create returns a builder for creating a Report entity.
+func (c *ReportClient) Create() *ReportCreate {
+	mutation := newReportMutation(c.config, OpCreate)
+	return &ReportCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Report entities.
+func (c *ReportClient) CreateBulk(builders ...*ReportCreate) *ReportCreateBulk {
+	return &ReportCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ReportClient) MapCreateBulk(slice any, setFunc func(*ReportCreate, int)) *ReportCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ReportCreateBulk{err: fmt.Errorf("calling to ReportClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ReportCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ReportCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Report.
+func (c *ReportClient) Update() *ReportUpdate {
+	mutation := newReportMutation(c.config, OpUpdate)
+	return &ReportUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ReportClient) UpdateOne(_m *Report) *ReportUpdateOne {
+	mutation := newReportMutation(c.config, OpUpdateOne, withReport(_m))
+	return &ReportUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ReportClient) UpdateOneID(id int64) *ReportUpdateOne {
+	mutation := newReportMutation(c.config, OpUpdateOne, withReportID(id))
+	return &ReportUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Report.
+func (c *ReportClient) Delete() *ReportDelete {
+	mutation := newReportMutation(c.config, OpDelete)
+	return &ReportDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ReportClient) DeleteOne(_m *Report) *ReportDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ReportClient) DeleteOneID(id int64) *ReportDeleteOne {
+	builder := c.Delete().Where(report.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ReportDeleteOne{builder}
+}
+
+// Query returns a query builder for Report.
+func (c *ReportClient) Query() *ReportQuery {
+	return &ReportQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeReport},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Report entity by its id.
+func (c *ReportClient) Get(ctx context.Context, id int64) (*Report, error) {
+	return c.Query().Where(report.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ReportClient) GetX(ctx context.Context, id int64) *Report {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTexture queries the texture edge of a Report.
+func (c *ReportClient) QueryTexture(_m *Report) *TextureQuery {
+	query := (&TextureClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(report.Table, report.FieldID, id),
+			sqlgraph.To(texture.Table, texture.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, report.TextureTable, report.TextureColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUploader queries the uploader edge of a Report.
+func (c *ReportClient) QueryUploader(_m *Report) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(report.Table, report.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, report.UploaderTable, report.UploaderColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryReporter queries the reporter edge of a Report.
+func (c *ReportClient) QueryReporter(_m *Report) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(report.Table, report.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, report.ReporterTable, report.ReporterColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryHandler queries the handler edge of a Report.
+func (c *ReportClient) QueryHandler(_m *Report) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(report.Table, report.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, report.HandlerTable, report.HandlerColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ReportClient) Hooks() []Hook {
+	return c.hooks.Report
+}
+
+// Interceptors returns the client interceptors.
+func (c *ReportClient) Interceptors() []Interceptor {
+	return c.inters.Report
+}
+
+func (c *ReportClient) mutate(ctx context.Context, m *ReportMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ReportCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ReportUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ReportUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ReportDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Report mutation op: %q", m.Op())
 	}
 }
 
@@ -1959,6 +2512,22 @@ func (c *TextureClient) QueryCapePlayers(_m *Texture) *PlayerQuery {
 	return query
 }
 
+// QueryReports queries the reports edge of a Texture.
+func (c *TextureClient) QueryReports(_m *Texture) *ReportQuery {
+	query := (&ReportClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(texture.Table, texture.FieldID, id),
+			sqlgraph.To(report.Table, report.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, texture.ReportsTable, texture.ReportsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *TextureClient) Hooks() []Hook {
 	return c.hooks.Texture
@@ -2188,6 +2757,86 @@ func (c *UserClient) QueryPlayers(_m *User) *PlayerQuery {
 	return query
 }
 
+// QueryReportsFiled queries the reports_filed edge of a User.
+func (c *UserClient) QueryReportsFiled(_m *User) *ReportQuery {
+	query := (&ReportClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(report.Table, report.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ReportsFiledTable, user.ReportsFiledColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryReportsAgainst queries the reports_against edge of a User.
+func (c *UserClient) QueryReportsAgainst(_m *User) *ReportQuery {
+	query := (&ReportClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(report.Table, report.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ReportsAgainstTable, user.ReportsAgainstColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryReportsHandled queries the reports_handled edge of a User.
+func (c *UserClient) QueryReportsHandled(_m *User) *ReportQuery {
+	query := (&ReportClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(report.Table, report.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ReportsHandledTable, user.ReportsHandledColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryNotifications queries the notifications edge of a User.
+func (c *UserClient) QueryNotifications(_m *User) *NotificationQuery {
+	query := (&NotificationClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(notification.Table, notification.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.NotificationsTable, user.NotificationsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAnnouncementsSent queries the announcements_sent edge of a User.
+func (c *UserClient) QueryAnnouncementsSent(_m *User) *AnnouncementQuery {
+	query := (&AnnouncementClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(announcement.Table, announcement.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.AnnouncementsSentTable, user.AnnouncementsSentColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
@@ -2216,12 +2865,13 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		AuditLog, AuthToken, Blob, ClosetItem, Job, Player, ScoreEntry, Session,
-		Setting, SystemState, Texture, User []ent.Hook
+		Announcement, AuditLog, AuthToken, Blob, ClosetItem, Job, Notification, Player,
+		Report, ScoreEntry, Session, Setting, SystemState, Texture, User []ent.Hook
 	}
 	inters struct {
-		AuditLog, AuthToken, Blob, ClosetItem, Job, Player, ScoreEntry, Session,
-		Setting, SystemState, Texture, User []ent.Interceptor
+		Announcement, AuditLog, AuthToken, Blob, ClosetItem, Job, Notification, Player,
+		Report, ScoreEntry, Session, Setting, SystemState, Texture,
+		User []ent.Interceptor
 	}
 )
 

@@ -9,6 +9,7 @@ import { cache } from 'react'
 
 import { WearOnPlayer } from '@/components/player/wear-on-player'
 import { SkinViewer3D } from '@/components/texture/skin-viewer'
+import { ReportButton } from '@/components/texture/report-button'
 import { FavoriteButton, OwnerControls } from '@/components/texture/texture-actions'
 import { kb } from '@/lib/skin'
 import { getViewer } from '@/lib/viewer'
@@ -34,10 +35,14 @@ export async function generateMetadata({ params }: { params: Promise<{ tid: stri
   if (!('texture' in loaded)) return { title: t('notAvailable'), robots: { index: false } }
   const x = loaded.texture
   const description = `${t(`types.${x.type}`)} · ${x.uploader?.nickname ?? t('deletedUser')}`
+  // Link previews show the texture: front and back of a skin, or the cape (public
+  // textures only; the image of a private one is not for everyone).
+  const images = x.public ? [{ url: `/preview/${x.id}?height=256&png`, alt: x.name }] : undefined
   return {
     title: x.name,
     description,
-    openGraph: { title: x.name, description },
+    openGraph: { title: x.name, description, images },
+    twitter: { card: images ? 'summary_large_image' : 'summary', title: x.name, description, images },
     robots: x.public ? undefined : { index: false },
   }
 }
@@ -108,6 +113,7 @@ export default async function TexturePage({ params }: { params: Promise<{ tid: s
             </Button>
           )}
           {canManage && rules && <OwnerControls texture={x} rates={rules.rates} charged={x.mine} />}
+          {viewer && !x.mine && rules && <ReportButton textureId={x.id} rates={rules.rates} />}
         </CardContent>
       </Card>
     </div>

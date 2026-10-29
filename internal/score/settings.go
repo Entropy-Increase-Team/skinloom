@@ -52,8 +52,13 @@ func SettingDefs() []settings.Def {
 		},
 		{
 			Key: "score.return_on_delete", Type: settings.TypeBool, Public: true, Default: true,
-			Doc: "Deleting a player gives back what creating it cost (the amount actually paid). (BS return_score)",
+			Doc: "Deleting a player, taking a texture out of a closet or deleting a texture gives back what it cost (the amount actually paid). (BS return_score)",
 		},
+		{
+			Key: "score.reporter_modification", Type: settings.TypeInt, Public: true, Default: 0,
+			Doc: "Score change for submitting a report: negative charges it (given back when the report is upheld), positive rewards it (taken back when it is rejected). (BS reporter_score_modification)",
+		},
+		def("score.reporter_reward", 0, "Score awarded when a report is upheld (the texture deleted or its uploader banned). (BS reporter_reward_score)"),
 	}
 }
 
@@ -61,19 +66,22 @@ func SettingDefs() []settings.Def {
 type Rates struct {
 	PerStorage, PrivatePerStorage, PerClosetItem, AwardPerTexture int64
 	PerPlayer, AwardPerLike                                       int64
+	ReporterModification, ReporterReward                          int64
 	ReturnOnDelete                                                bool
 }
 
 // RatesFrom reads the rates from a settings snapshot.
 func RatesFrom(s *settings.Snapshot) Rates {
 	return Rates{
-		PerStorage:        settings.Decode[int64](s, "score.per_storage"),
-		PrivatePerStorage: settings.Decode[int64](s, "score.private_per_storage"),
-		PerClosetItem:     settings.Decode[int64](s, "score.per_closet_item"),
-		AwardPerTexture:   settings.Decode[int64](s, "score.award_per_texture"),
-		PerPlayer:         settings.Decode[int64](s, "score.per_player"),
-		AwardPerLike:      settings.Decode[int64](s, "score.award_per_like"),
-		ReturnOnDelete:    settings.Decode[bool](s, "score.return_on_delete"),
+		PerStorage:           settings.Decode[int64](s, "score.per_storage"),
+		PrivatePerStorage:    settings.Decode[int64](s, "score.private_per_storage"),
+		PerClosetItem:        settings.Decode[int64](s, "score.per_closet_item"),
+		AwardPerTexture:      settings.Decode[int64](s, "score.award_per_texture"),
+		PerPlayer:            settings.Decode[int64](s, "score.per_player"),
+		AwardPerLike:         settings.Decode[int64](s, "score.award_per_like"),
+		ReporterModification: settings.Decode[int64](s, "score.reporter_modification"),
+		ReporterReward:       settings.Decode[int64](s, "score.reporter_reward"),
+		ReturnOnDelete:       settings.Decode[bool](s, "score.return_on_delete"),
 	}
 }
 

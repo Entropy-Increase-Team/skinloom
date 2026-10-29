@@ -9,6 +9,18 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 )
 
+// The AnnouncementFunc type is an adapter to allow the use of ordinary
+// function as Announcement mutator.
+type AnnouncementFunc func(context.Context, *ent.AnnouncementMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AnnouncementFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AnnouncementMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AnnouncementMutation", m)
+}
+
 // The AuditLogFunc type is an adapter to allow the use of ordinary
 // function as AuditLog mutator.
 type AuditLogFunc func(context.Context, *ent.AuditLogMutation) (ent.Value, error)
@@ -69,6 +81,18 @@ func (f JobFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.JobMutation", m)
 }
 
+// The NotificationFunc type is an adapter to allow the use of ordinary
+// function as Notification mutator.
+type NotificationFunc func(context.Context, *ent.NotificationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f NotificationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.NotificationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.NotificationMutation", m)
+}
+
 // The PlayerFunc type is an adapter to allow the use of ordinary
 // function as Player mutator.
 type PlayerFunc func(context.Context, *ent.PlayerMutation) (ent.Value, error)
@@ -79,6 +103,18 @@ func (f PlayerFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlayerMutation", m)
+}
+
+// The ReportFunc type is an adapter to allow the use of ordinary
+// function as Report mutator.
+type ReportFunc func(context.Context, *ent.ReportMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ReportFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ReportMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ReportMutation", m)
 }
 
 // The ScoreEntryFunc type is an adapter to allow the use of ordinary

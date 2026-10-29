@@ -9,14 +9,17 @@ import {
   revokeOtherSessions,
   revokeSession,
   type SessionView,
+  setAvatar,
   updateMe,
 } from '@skinloom/api-client'
 import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Label } from '@skinloom/ui'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from 'react'
 
 import { Field, FormError } from '@/components/auth/field'
+import { Avatar } from '@/components/user/avatar'
 import { problemOf } from '@/lib/problem'
 import { describeUA } from '@/lib/ua'
 import type { Viewer } from '@/lib/viewer'
@@ -84,6 +87,40 @@ function useSubmit() {
     }
   }
   return { pending, done, error, fields, setFields, run }
+}
+
+/** The avatar: the head of a skin chosen in the closet, flat and as a cube. */
+export function AvatarSection({ viewer }: { viewer: Viewer }) {
+  const t = useTranslations('profile')
+  const router = useRouter()
+  const s = useSubmit()
+  return (
+    <Section title={t('avatar')} description={t('avatarHint')}>
+      <div className="flex flex-wrap items-center gap-4">
+        <Avatar userId={viewer.id} size={64} version={viewer.avatarTextureId} className="size-16 rounded-md bg-muted" />
+        <Avatar userId={viewer.id} size={64} version={viewer.avatarTextureId} cube className="size-16" />
+        <div className="flex flex-col gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/user/closet">{t('chooseAvatar')}</Link>
+          </Button>
+          {viewer.avatarTextureId && (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={s.pending}
+              onClick={async () => {
+                if (await s.run(() => setAvatar({ textureId: 0 }), t('avatarRemoved'))) router.refresh()
+              }}
+            >
+              {t('removeAvatar')}
+            </Button>
+          )}
+        </div>
+      </div>
+      <FormError message={s.error} />
+      <Done message={s.done} />
+    </Section>
+  )
 }
 
 export function ProfileSection({ viewer, locales }: { viewer: Viewer; locales: LocaleInfo[] }) {

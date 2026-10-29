@@ -26,10 +26,16 @@ func mountFiles(r chi.Router, d Deps) {
 	r.Head("/raw/{tid}", raw)
 }
 
-// serveByHash: a hash names one immutable file, so it can be cached forever.
+// serveByHash: a hash names one immutable file, so it can be cached forever. With an
+// S3 store that has a public URL (a CDN), clients are sent there instead.
 func serveByHash(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hash := chi.URLParam(r, "hash")
+		if url := d.Textures.FileURL(hash); url != "" {
+			w.Header().Set("Cache-Control", "public, max-age=86400")
+			http.Redirect(w, r, url, http.StatusFound)
+			return
+		}
 		f, err := d.Textures.OpenHash(r.Context(), hash)
 		if errors.Is(err, storage.ErrNotFound) {
 			http.NotFound(w, r)
@@ -49,6 +55,17 @@ func serveByHash(d Deps) http.HandlerFunc {
 	}
 }
 
+// cookieViewer is who sends a request outside /api (where withRequestInfo does not
+// run): only private textures need to know.
+func cookieViewer(r *http.Request, d Deps) texture.Viewer {
+	if c, err := r.Cookie(SessionCookie); err == nil && d.Accounts != nil {
+		if v, _ := d.Accounts.Authenticate(r.Context(), c.Value); v != nil {
+			return texture.Viewer{UserID: v.User.ID, Admin: v.IsAdmin()}
+		}
+	}
+	return texture.Viewer{}
+}
+
 func serveRaw(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, err := strconv.ParseInt(strings.TrimSuffix(chi.URLParam(r, "tid"), ".png"), 10, 64)
@@ -61,14 +78,7 @@ func serveRaw(d Deps) http.HandlerFunc {
 			http.Error(w, "downloading textures is disabled on this site", http.StatusForbidden)
 			return
 		}
-		// Outside /api, so the session is resolved here; only private textures need it.
-		var viewer texture.Viewer
-		if c, err := r.Cookie(SessionCookie); err == nil && d.Accounts != nil {
-			if v, _ := d.Accounts.Authenticate(r.Context(), c.Value); v != nil {
-				viewer = texture.Viewer{UserID: v.User.ID, Admin: v.IsAdmin()}
-			}
-		}
-		t, f, err := d.Textures.Open(r.Context(), id, viewer)
+		t, f, err := d.Textures.Open(r.Context(), id, cookieViewer(r, d))
 		switch {
 		case errors.Is(err, texture.ErrNotFound):
 			http.NotFound(w, r)

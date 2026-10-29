@@ -565,6 +565,29 @@ func HasCapePlayersWith(preds ...predicate.Player) predicate.Texture {
 	})
 }
 
+// HasReports applies the HasEdge predicate on the "reports" edge.
+func HasReports() predicate.Texture {
+	return predicate.Texture(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ReportsTable, ReportsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasReportsWith applies the HasEdge predicate on the "reports" edge with a given conditions (other predicates).
+func HasReportsWith(preds ...predicate.Report) predicate.Texture {
+	return predicate.Texture(func(s *sql.Selector) {
+		step := newReportsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Texture) predicate.Texture {
 	return predicate.Texture(sql.AndPredicates(predicates...))

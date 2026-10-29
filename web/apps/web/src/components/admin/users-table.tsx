@@ -10,6 +10,7 @@ import {
   updateUser,
 } from '@skinloom/api-client'
 import { Badge, Button, Input, Label } from '@skinloom/ui'
+import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { type FormEvent, useCallback, useEffect, useState } from 'react'
 
@@ -174,7 +175,10 @@ function UserRow({
           <div className="text-muted-foreground">{u.registerIp}</div>
         </td>
         <td className="px-3 py-2 text-xs">{date(u.lastLoginAt)}</td>
-        <td className="px-3 py-2 text-right">
+        <td className="whitespace-nowrap px-3 py-2 text-right">
+          <Button asChild variant="ghost" size="sm">
+            <Link href={`/admin/players?user=${u.id}`}>{t('playersOf')}</Link>
+          </Button>
           {manageable && (
             <Button variant="ghost" size="sm" onClick={onEdit}>
               {editing ? t('close') : t('edit')}

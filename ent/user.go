@@ -43,6 +43,10 @@ type User struct {
 	LastLoginAt *time.Time `json:"last_login_at,omitempty"`
 	// LastSignAt holds the value of the "last_sign_at" field.
 	LastSignAt *time.Time `json:"last_sign_at,omitempty"`
+	// AvatarTextureID holds the value of the "avatar_texture_id" field.
+	AvatarTextureID *int64 `json:"avatar_texture_id,omitempty"`
+	// AnnouncementsSeen holds the value of the "announcements_seen" field.
+	AnnouncementsSeen int64 `json:"announcements_seen,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -69,9 +73,19 @@ type UserEdges struct {
 	ScoreEntries []*ScoreEntry `json:"score_entries,omitempty"`
 	// Players holds the value of the players edge.
 	Players []*Player `json:"players,omitempty"`
+	// ReportsFiled holds the value of the reports_filed edge.
+	ReportsFiled []*Report `json:"reports_filed,omitempty"`
+	// ReportsAgainst holds the value of the reports_against edge.
+	ReportsAgainst []*Report `json:"reports_against,omitempty"`
+	// ReportsHandled holds the value of the reports_handled edge.
+	ReportsHandled []*Report `json:"reports_handled,omitempty"`
+	// Notifications holds the value of the notifications edge.
+	Notifications []*Notification `json:"notifications,omitempty"`
+	// AnnouncementsSent holds the value of the announcements_sent edge.
+	AnnouncementsSent []*Announcement `json:"announcements_sent,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
+	loadedTypes [11]bool
 }
 
 // SessionsOrErr returns the Sessions value or an error if the edge
@@ -128,12 +142,57 @@ func (e UserEdges) PlayersOrErr() ([]*Player, error) {
 	return nil, &NotLoadedError{edge: "players"}
 }
 
+// ReportsFiledOrErr returns the ReportsFiled value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) ReportsFiledOrErr() ([]*Report, error) {
+	if e.loadedTypes[6] {
+		return e.ReportsFiled, nil
+	}
+	return nil, &NotLoadedError{edge: "reports_filed"}
+}
+
+// ReportsAgainstOrErr returns the ReportsAgainst value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) ReportsAgainstOrErr() ([]*Report, error) {
+	if e.loadedTypes[7] {
+		return e.ReportsAgainst, nil
+	}
+	return nil, &NotLoadedError{edge: "reports_against"}
+}
+
+// ReportsHandledOrErr returns the ReportsHandled value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) ReportsHandledOrErr() ([]*Report, error) {
+	if e.loadedTypes[8] {
+		return e.ReportsHandled, nil
+	}
+	return nil, &NotLoadedError{edge: "reports_handled"}
+}
+
+// NotificationsOrErr returns the Notifications value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) NotificationsOrErr() ([]*Notification, error) {
+	if e.loadedTypes[9] {
+		return e.Notifications, nil
+	}
+	return nil, &NotLoadedError{edge: "notifications"}
+}
+
+// AnnouncementsSentOrErr returns the AnnouncementsSent value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) AnnouncementsSentOrErr() ([]*Announcement, error) {
+	if e.loadedTypes[10] {
+		return e.AnnouncementsSent, nil
+	}
+	return nil, &NotLoadedError{edge: "announcements_sent"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*User) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case user.FieldID, user.FieldScore:
+		case user.FieldID, user.FieldScore, user.FieldAvatarTextureID, user.FieldAnnouncementsSeen:
 			values[i] = new(sql.NullInt64)
 		case user.FieldEmail, user.FieldEmailNormalized, user.FieldNickname, user.FieldPasswordHash, user.FieldPasswordAlgo, user.FieldRole, user.FieldStatus, user.FieldLocale, user.FieldRegisterIP:
 			values[i] = new(sql.NullString)
@@ -241,6 +300,19 @@ func (_m *User) assignValues(columns []string, values []any) error {
 				_m.LastSignAt = new(time.Time)
 				*_m.LastSignAt = value.Time
 			}
+		case user.FieldAvatarTextureID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field avatar_texture_id", values[i])
+			} else if value.Valid {
+				_m.AvatarTextureID = new(int64)
+				*_m.AvatarTextureID = value.Int64
+			}
+		case user.FieldAnnouncementsSeen:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field announcements_seen", values[i])
+			} else if value.Valid {
+				_m.AnnouncementsSeen = value.Int64
+			}
 		case user.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
@@ -301,6 +373,31 @@ func (_m *User) QueryScoreEntries() *ScoreEntryQuery {
 // QueryPlayers queries the "players" edge of the User entity.
 func (_m *User) QueryPlayers() *PlayerQuery {
 	return NewUserClient(_m.config).QueryPlayers(_m)
+}
+
+// QueryReportsFiled queries the "reports_filed" edge of the User entity.
+func (_m *User) QueryReportsFiled() *ReportQuery {
+	return NewUserClient(_m.config).QueryReportsFiled(_m)
+}
+
+// QueryReportsAgainst queries the "reports_against" edge of the User entity.
+func (_m *User) QueryReportsAgainst() *ReportQuery {
+	return NewUserClient(_m.config).QueryReportsAgainst(_m)
+}
+
+// QueryReportsHandled queries the "reports_handled" edge of the User entity.
+func (_m *User) QueryReportsHandled() *ReportQuery {
+	return NewUserClient(_m.config).QueryReportsHandled(_m)
+}
+
+// QueryNotifications queries the "notifications" edge of the User entity.
+func (_m *User) QueryNotifications() *NotificationQuery {
+	return NewUserClient(_m.config).QueryNotifications(_m)
+}
+
+// QueryAnnouncementsSent queries the "announcements_sent" edge of the User entity.
+func (_m *User) QueryAnnouncementsSent() *AnnouncementQuery {
+	return NewUserClient(_m.config).QueryAnnouncementsSent(_m)
 }
 
 // Update returns a builder for updating this User.
@@ -369,6 +466,14 @@ func (_m *User) String() string {
 		builder.WriteString("last_sign_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	if v := _m.AvatarTextureID; v != nil {
+		builder.WriteString("avatar_texture_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("announcements_seen=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AnnouncementsSeen))
 	builder.WriteString(", ")
 	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")

@@ -55,9 +55,11 @@ type TextureEdges struct {
 	SkinPlayers []*Player `json:"skin_players,omitempty"`
 	// CapePlayers holds the value of the cape_players edge.
 	CapePlayers []*Player `json:"cape_players,omitempty"`
+	// Reports holds the value of the reports edge.
+	Reports []*Report `json:"reports,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // BlobOrErr returns the Blob value or an error if the edge
@@ -107,6 +109,15 @@ func (e TextureEdges) CapePlayersOrErr() ([]*Player, error) {
 		return e.CapePlayers, nil
 	}
 	return nil, &NotLoadedError{edge: "cape_players"}
+}
+
+// ReportsOrErr returns the Reports value or an error if the edge
+// was not loaded in eager-loading.
+func (e TextureEdges) ReportsOrErr() ([]*Report, error) {
+	if e.loadedTypes[5] {
+		return e.Reports, nil
+	}
+	return nil, &NotLoadedError{edge: "reports"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -232,6 +243,11 @@ func (_m *Texture) QuerySkinPlayers() *PlayerQuery {
 // QueryCapePlayers queries the "cape_players" edge of the Texture entity.
 func (_m *Texture) QueryCapePlayers() *PlayerQuery {
 	return NewTextureClient(_m.config).QueryCapePlayers(_m)
+}
+
+// QueryReports queries the "reports" edge of the Texture entity.
+func (_m *Texture) QueryReports() *ReportQuery {
+	return NewTextureClient(_m.config).QueryReports(_m)
 }
 
 // Update returns a builder for updating this Texture.

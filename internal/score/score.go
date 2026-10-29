@@ -29,6 +29,10 @@ const (
 	ReasonLikeTakeBack  = "texture.unlike"     // taking that award back
 	ReasonVisibility    = "texture.visibility" // switching public and private
 	ReasonTextureDelete = "texture.delete"     // giving back what an upload cost
+	ReasonReportSubmit  = "report.submit"      // the reporter_modification for a report
+	ReasonReportRefund  = "report.refund"      // giving a report.submit charge back
+	ReasonReportReject  = "report.reject"      // taking a report.submit reward back
+	ReasonReportReward  = "report.reward"      // the reward for an upheld report
 )
 
 // Change is one score change.

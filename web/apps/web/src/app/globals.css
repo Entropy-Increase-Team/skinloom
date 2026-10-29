@@ -29,6 +29,8 @@
   --border: oklch(0.91 0.012 252);
   --input: oklch(0.91 0.012 252);
   --ring: oklch(0.58 0.16 252);
+  /* Chart marks; checked for lightness and contrast on --card in each mode. */
+  --chart-1: oklch(0.58 0.16 252);
   --radius: 0.75rem;
   --brand-gradient: linear-gradient(135deg, oklch(0.62 0.15 240), oklch(0.66 0.14 200));
   --sl-font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -53,6 +55,7 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 14%);
   --ring: oklch(0.7 0.14 245);
+  --chart-1: #4497e2;
   --brand-gradient: linear-gradient(135deg, oklch(0.45 0.12 245), oklch(0.4 0.1 205));
 }
 
@@ -88,5 +91,42 @@
   }
   body {
     @apply bg-background font-sans text-foreground;
+  }
+}
+
+/* Markdown rendered on the server (announcements, notifications). */
+@layer components {
+  .sl-markdown {
+    @apply text-sm leading-relaxed;
+  }
+  .sl-markdown > * + * {
+    @apply mt-2;
+  }
+  .sl-markdown a {
+    @apply text-primary underline underline-offset-2;
+  }
+  .sl-markdown ul {
+    @apply list-disc pl-5;
+  }
+  .sl-markdown ol {
+    @apply list-decimal pl-5;
+  }
+  .sl-markdown h1,
+  .sl-markdown h2,
+  .sl-markdown h3 {
+    @apply font-semibold;
+  }
+  .sl-markdown code {
+    @apply rounded bg-muted px-1 py-0.5 font-mono text-xs;
+  }
+  .sl-markdown blockquote {
+    @apply border-l-2 pl-3 text-muted-foreground;
+  }
+  .sl-markdown table {
+    @apply border-collapse text-xs;
+  }
+  .sl-markdown th,
+  .sl-markdown td {
+    @apply border px-2 py-1;
   }
 }

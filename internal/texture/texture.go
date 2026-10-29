@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"regexp"
 	"strconv"
@@ -376,6 +377,25 @@ func (s *Service) OpenHash(ctx context.Context, hash string) (storage.File, erro
 		return nil, storage.ErrNotFound
 	}
 	return s.store.Open(ctx, hash)
+}
+
+// FileURL is where a stored file can be fetched without passing through this server
+// (an S3 store with a public URL, usually a CDN), or "".
+func (s *Service) FileURL(hash string) string {
+	if l, ok := s.store.(storage.Linker); ok {
+		return l.URL(hash)
+	}
+	return ""
+}
+
+// ReadFile reads a whole stored file (for rendering; textures are small).
+func (s *Service) ReadFile(ctx context.Context, hash string) ([]byte, error) {
+	f, err := s.OpenHash(ctx, hash)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return io.ReadAll(io.LimitReader(f, 64<<20))
 }
 
 // pageSize is the page size for list endpoints: 20 when not given (Blessing Skin's

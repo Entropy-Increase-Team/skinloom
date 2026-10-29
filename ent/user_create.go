@@ -11,9 +11,12 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/Entropy-Increase-Team/skinloom/ent/announcement"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
+	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
+	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
@@ -178,6 +181,34 @@ func (_c *UserCreate) SetNillableLastSignAt(v *time.Time) *UserCreate {
 	return _c
 }
 
+// SetAvatarTextureID sets the "avatar_texture_id" field.
+func (_c *UserCreate) SetAvatarTextureID(v int64) *UserCreate {
+	_c.mutation.SetAvatarTextureID(v)
+	return _c
+}
+
+// SetNillableAvatarTextureID sets the "avatar_texture_id" field if the given value is not nil.
+func (_c *UserCreate) SetNillableAvatarTextureID(v *int64) *UserCreate {
+	if v != nil {
+		_c.SetAvatarTextureID(*v)
+	}
+	return _c
+}
+
+// SetAnnouncementsSeen sets the "announcements_seen" field.
+func (_c *UserCreate) SetAnnouncementsSeen(v int64) *UserCreate {
+	_c.mutation.SetAnnouncementsSeen(v)
+	return _c
+}
+
+// SetNillableAnnouncementsSeen sets the "announcements_seen" field if the given value is not nil.
+func (_c *UserCreate) SetNillableAnnouncementsSeen(v *int64) *UserCreate {
+	if v != nil {
+		_c.SetAnnouncementsSeen(*v)
+	}
+	return _c
+}
+
 // SetDeletedAt sets the "deleted_at" field.
 func (_c *UserCreate) SetDeletedAt(v time.Time) *UserCreate {
 	_c.mutation.SetDeletedAt(v)
@@ -316,6 +347,81 @@ func (_c *UserCreate) AddPlayers(v ...*Player) *UserCreate {
 	return _c.AddPlayerIDs(ids...)
 }
 
+// AddReportsFiledIDs adds the "reports_filed" edge to the Report entity by IDs.
+func (_c *UserCreate) AddReportsFiledIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddReportsFiledIDs(ids...)
+	return _c
+}
+
+// AddReportsFiled adds the "reports_filed" edges to the Report entity.
+func (_c *UserCreate) AddReportsFiled(v ...*Report) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddReportsFiledIDs(ids...)
+}
+
+// AddReportsAgainstIDs adds the "reports_against" edge to the Report entity by IDs.
+func (_c *UserCreate) AddReportsAgainstIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddReportsAgainstIDs(ids...)
+	return _c
+}
+
+// AddReportsAgainst adds the "reports_against" edges to the Report entity.
+func (_c *UserCreate) AddReportsAgainst(v ...*Report) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddReportsAgainstIDs(ids...)
+}
+
+// AddReportsHandledIDs adds the "reports_handled" edge to the Report entity by IDs.
+func (_c *UserCreate) AddReportsHandledIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddReportsHandledIDs(ids...)
+	return _c
+}
+
+// AddReportsHandled adds the "reports_handled" edges to the Report entity.
+func (_c *UserCreate) AddReportsHandled(v ...*Report) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddReportsHandledIDs(ids...)
+}
+
+// AddNotificationIDs adds the "notifications" edge to the Notification entity by IDs.
+func (_c *UserCreate) AddNotificationIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddNotificationIDs(ids...)
+	return _c
+}
+
+// AddNotifications adds the "notifications" edges to the Notification entity.
+func (_c *UserCreate) AddNotifications(v ...*Notification) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddNotificationIDs(ids...)
+}
+
+// AddAnnouncementsSentIDs adds the "announcements_sent" edge to the Announcement entity by IDs.
+func (_c *UserCreate) AddAnnouncementsSentIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddAnnouncementsSentIDs(ids...)
+	return _c
+}
+
+// AddAnnouncementsSent adds the "announcements_sent" edges to the Announcement entity.
+func (_c *UserCreate) AddAnnouncementsSent(v ...*Announcement) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddAnnouncementsSentIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_c *UserCreate) Mutation() *UserMutation {
 	return _c.mutation
@@ -374,6 +480,10 @@ func (_c *UserCreate) defaults() {
 	if _, ok := _c.mutation.RegisterIP(); !ok {
 		v := user.DefaultRegisterIP
 		_c.mutation.SetRegisterIP(v)
+	}
+	if _, ok := _c.mutation.AnnouncementsSeen(); !ok {
+		v := user.DefaultAnnouncementsSeen
+		_c.mutation.SetAnnouncementsSeen(v)
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := user.DefaultCreatedAt()
@@ -461,6 +571,9 @@ func (_c *UserCreate) check() error {
 		if err := user.RegisterIPValidator(v); err != nil {
 			return &ValidationError{Name: "register_ip", err: fmt.Errorf(`ent: validator failed for field "User.register_ip": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.AnnouncementsSeen(); !ok {
+		return &ValidationError{Name: "announcements_seen", err: errors.New(`ent: missing required field "User.announcements_seen"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "User.created_at"`)}
@@ -552,6 +665,14 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.LastSignAt(); ok {
 		_spec.SetField(user.FieldLastSignAt, field.TypeTime, value)
 		_node.LastSignAt = &value
+	}
+	if value, ok := _c.mutation.AvatarTextureID(); ok {
+		_spec.SetField(user.FieldAvatarTextureID, field.TypeInt64, value)
+		_node.AvatarTextureID = &value
+	}
+	if value, ok := _c.mutation.AnnouncementsSeen(); ok {
+		_spec.SetField(user.FieldAnnouncementsSeen, field.TypeInt64, value)
+		_node.AnnouncementsSeen = value
 	}
 	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(user.FieldDeletedAt, field.TypeTime, value)
@@ -654,6 +775,86 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ReportsFiledIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsFiledTable,
+			Columns: []string{user.ReportsFiledColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ReportsAgainstIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsAgainstTable,
+			Columns: []string{user.ReportsAgainstColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ReportsHandledIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ReportsHandledTable,
+			Columns: []string{user.ReportsHandledColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.NotificationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.NotificationsTable,
+			Columns: []string{user.NotificationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notification.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.AnnouncementsSentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AnnouncementsSentTable,
+			Columns: []string{user.AnnouncementsSentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(announcement.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {
@@ -890,6 +1091,48 @@ func (u *UserUpsert) UpdateLastSignAt() *UserUpsert {
 // ClearLastSignAt clears the value of the "last_sign_at" field.
 func (u *UserUpsert) ClearLastSignAt() *UserUpsert {
 	u.SetNull(user.FieldLastSignAt)
+	return u
+}
+
+// SetAvatarTextureID sets the "avatar_texture_id" field.
+func (u *UserUpsert) SetAvatarTextureID(v int64) *UserUpsert {
+	u.Set(user.FieldAvatarTextureID, v)
+	return u
+}
+
+// UpdateAvatarTextureID sets the "avatar_texture_id" field to the value that was provided on create.
+func (u *UserUpsert) UpdateAvatarTextureID() *UserUpsert {
+	u.SetExcluded(user.FieldAvatarTextureID)
+	return u
+}
+
+// AddAvatarTextureID adds v to the "avatar_texture_id" field.
+func (u *UserUpsert) AddAvatarTextureID(v int64) *UserUpsert {
+	u.Add(user.FieldAvatarTextureID, v)
+	return u
+}
+
+// ClearAvatarTextureID clears the value of the "avatar_texture_id" field.
+func (u *UserUpsert) ClearAvatarTextureID() *UserUpsert {
+	u.SetNull(user.FieldAvatarTextureID)
+	return u
+}
+
+// SetAnnouncementsSeen sets the "announcements_seen" field.
+func (u *UserUpsert) SetAnnouncementsSeen(v int64) *UserUpsert {
+	u.Set(user.FieldAnnouncementsSeen, v)
+	return u
+}
+
+// UpdateAnnouncementsSeen sets the "announcements_seen" field to the value that was provided on create.
+func (u *UserUpsert) UpdateAnnouncementsSeen() *UserUpsert {
+	u.SetExcluded(user.FieldAnnouncementsSeen)
+	return u
+}
+
+// AddAnnouncementsSeen adds v to the "announcements_seen" field.
+func (u *UserUpsert) AddAnnouncementsSeen(v int64) *UserUpsert {
+	u.Add(user.FieldAnnouncementsSeen, v)
 	return u
 }
 
@@ -1181,6 +1424,55 @@ func (u *UserUpsertOne) UpdateLastSignAt() *UserUpsertOne {
 func (u *UserUpsertOne) ClearLastSignAt() *UserUpsertOne {
 	return u.Update(func(s *UserUpsert) {
 		s.ClearLastSignAt()
+	})
+}
+
+// SetAvatarTextureID sets the "avatar_texture_id" field.
+func (u *UserUpsertOne) SetAvatarTextureID(v int64) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetAvatarTextureID(v)
+	})
+}
+
+// AddAvatarTextureID adds v to the "avatar_texture_id" field.
+func (u *UserUpsertOne) AddAvatarTextureID(v int64) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.AddAvatarTextureID(v)
+	})
+}
+
+// UpdateAvatarTextureID sets the "avatar_texture_id" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateAvatarTextureID() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateAvatarTextureID()
+	})
+}
+
+// ClearAvatarTextureID clears the value of the "avatar_texture_id" field.
+func (u *UserUpsertOne) ClearAvatarTextureID() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearAvatarTextureID()
+	})
+}
+
+// SetAnnouncementsSeen sets the "announcements_seen" field.
+func (u *UserUpsertOne) SetAnnouncementsSeen(v int64) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetAnnouncementsSeen(v)
+	})
+}
+
+// AddAnnouncementsSeen adds v to the "announcements_seen" field.
+func (u *UserUpsertOne) AddAnnouncementsSeen(v int64) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.AddAnnouncementsSeen(v)
+	})
+}
+
+// UpdateAnnouncementsSeen sets the "announcements_seen" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateAnnouncementsSeen() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateAnnouncementsSeen()
 	})
 }
 
@@ -1643,6 +1935,55 @@ func (u *UserUpsertBulk) UpdateLastSignAt() *UserUpsertBulk {
 func (u *UserUpsertBulk) ClearLastSignAt() *UserUpsertBulk {
 	return u.Update(func(s *UserUpsert) {
 		s.ClearLastSignAt()
+	})
+}
+
+// SetAvatarTextureID sets the "avatar_texture_id" field.
+func (u *UserUpsertBulk) SetAvatarTextureID(v int64) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetAvatarTextureID(v)
+	})
+}
+
+// AddAvatarTextureID adds v to the "avatar_texture_id" field.
+func (u *UserUpsertBulk) AddAvatarTextureID(v int64) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.AddAvatarTextureID(v)
+	})
+}
+
+// UpdateAvatarTextureID sets the "avatar_texture_id" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateAvatarTextureID() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateAvatarTextureID()
+	})
+}
+
+// ClearAvatarTextureID clears the value of the "avatar_texture_id" field.
+func (u *UserUpsertBulk) ClearAvatarTextureID() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearAvatarTextureID()
+	})
+}
+
+// SetAnnouncementsSeen sets the "announcements_seen" field.
+func (u *UserUpsertBulk) SetAnnouncementsSeen(v int64) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetAnnouncementsSeen(v)
+	})
+}
+
+// AddAnnouncementsSeen adds v to the "announcements_seen" field.
+func (u *UserUpsertBulk) AddAnnouncementsSeen(v int64) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.AddAnnouncementsSeen(v)
+	})
+}
+
+// UpdateAnnouncementsSeen sets the "announcements_seen" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateAnnouncementsSeen() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateAnnouncementsSeen()
 	})
 }
 

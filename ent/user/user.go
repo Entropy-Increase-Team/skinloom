@@ -41,6 +41,10 @@ const (
 	FieldLastLoginAt = "last_login_at"
 	// FieldLastSignAt holds the string denoting the last_sign_at field in the database.
 	FieldLastSignAt = "last_sign_at"
+	// FieldAvatarTextureID holds the string denoting the avatar_texture_id field in the database.
+	FieldAvatarTextureID = "avatar_texture_id"
+	// FieldAnnouncementsSeen holds the string denoting the announcements_seen field in the database.
+	FieldAnnouncementsSeen = "announcements_seen"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -59,6 +63,16 @@ const (
 	EdgeScoreEntries = "score_entries"
 	// EdgePlayers holds the string denoting the players edge name in mutations.
 	EdgePlayers = "players"
+	// EdgeReportsFiled holds the string denoting the reports_filed edge name in mutations.
+	EdgeReportsFiled = "reports_filed"
+	// EdgeReportsAgainst holds the string denoting the reports_against edge name in mutations.
+	EdgeReportsAgainst = "reports_against"
+	// EdgeReportsHandled holds the string denoting the reports_handled edge name in mutations.
+	EdgeReportsHandled = "reports_handled"
+	// EdgeNotifications holds the string denoting the notifications edge name in mutations.
+	EdgeNotifications = "notifications"
+	// EdgeAnnouncementsSent holds the string denoting the announcements_sent edge name in mutations.
+	EdgeAnnouncementsSent = "announcements_sent"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// SessionsTable is the table that holds the sessions relation/edge.
@@ -103,6 +117,41 @@ const (
 	PlayersInverseTable = "players"
 	// PlayersColumn is the table column denoting the players relation/edge.
 	PlayersColumn = "user_id"
+	// ReportsFiledTable is the table that holds the reports_filed relation/edge.
+	ReportsFiledTable = "reports"
+	// ReportsFiledInverseTable is the table name for the Report entity.
+	// It exists in this package in order to avoid circular dependency with the "report" package.
+	ReportsFiledInverseTable = "reports"
+	// ReportsFiledColumn is the table column denoting the reports_filed relation/edge.
+	ReportsFiledColumn = "reporter_id"
+	// ReportsAgainstTable is the table that holds the reports_against relation/edge.
+	ReportsAgainstTable = "reports"
+	// ReportsAgainstInverseTable is the table name for the Report entity.
+	// It exists in this package in order to avoid circular dependency with the "report" package.
+	ReportsAgainstInverseTable = "reports"
+	// ReportsAgainstColumn is the table column denoting the reports_against relation/edge.
+	ReportsAgainstColumn = "uploader_id"
+	// ReportsHandledTable is the table that holds the reports_handled relation/edge.
+	ReportsHandledTable = "reports"
+	// ReportsHandledInverseTable is the table name for the Report entity.
+	// It exists in this package in order to avoid circular dependency with the "report" package.
+	ReportsHandledInverseTable = "reports"
+	// ReportsHandledColumn is the table column denoting the reports_handled relation/edge.
+	ReportsHandledColumn = "handler_id"
+	// NotificationsTable is the table that holds the notifications relation/edge.
+	NotificationsTable = "notifications"
+	// NotificationsInverseTable is the table name for the Notification entity.
+	// It exists in this package in order to avoid circular dependency with the "notification" package.
+	NotificationsInverseTable = "notifications"
+	// NotificationsColumn is the table column denoting the notifications relation/edge.
+	NotificationsColumn = "user_id"
+	// AnnouncementsSentTable is the table that holds the announcements_sent relation/edge.
+	AnnouncementsSentTable = "announcements"
+	// AnnouncementsSentInverseTable is the table name for the Announcement entity.
+	// It exists in this package in order to avoid circular dependency with the "announcement" package.
+	AnnouncementsSentInverseTable = "announcements"
+	// AnnouncementsSentColumn is the table column denoting the announcements_sent relation/edge.
+	AnnouncementsSentColumn = "sender_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -121,6 +170,8 @@ var Columns = []string{
 	FieldRegisterIP,
 	FieldLastLoginAt,
 	FieldLastSignAt,
+	FieldAvatarTextureID,
+	FieldAnnouncementsSeen,
 	FieldDeletedAt,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -159,6 +210,8 @@ var (
 	DefaultRegisterIP string
 	// RegisterIPValidator is a validator for the "register_ip" field. It is called by the builders before save.
 	RegisterIPValidator func(string) error
+	// DefaultAnnouncementsSeen holds the default value on creation for the "announcements_seen" field.
+	DefaultAnnouncementsSeen int64
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -294,6 +347,16 @@ func ByLastSignAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastSignAt, opts...).ToFunc()
 }
 
+// ByAvatarTextureID orders the results by the avatar_texture_id field.
+func ByAvatarTextureID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAvatarTextureID, opts...).ToFunc()
+}
+
+// ByAnnouncementsSeen orders the results by the announcements_seen field.
+func ByAnnouncementsSeen(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAnnouncementsSeen, opts...).ToFunc()
+}
+
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
@@ -392,6 +455,76 @@ func ByPlayers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newPlayersStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByReportsFiledCount orders the results by reports_filed count.
+func ByReportsFiledCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newReportsFiledStep(), opts...)
+	}
+}
+
+// ByReportsFiled orders the results by reports_filed terms.
+func ByReportsFiled(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newReportsFiledStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByReportsAgainstCount orders the results by reports_against count.
+func ByReportsAgainstCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newReportsAgainstStep(), opts...)
+	}
+}
+
+// ByReportsAgainst orders the results by reports_against terms.
+func ByReportsAgainst(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newReportsAgainstStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByReportsHandledCount orders the results by reports_handled count.
+func ByReportsHandledCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newReportsHandledStep(), opts...)
+	}
+}
+
+// ByReportsHandled orders the results by reports_handled terms.
+func ByReportsHandled(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newReportsHandledStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByNotificationsCount orders the results by notifications count.
+func ByNotificationsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newNotificationsStep(), opts...)
+	}
+}
+
+// ByNotifications orders the results by notifications terms.
+func ByNotifications(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newNotificationsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByAnnouncementsSentCount orders the results by announcements_sent count.
+func ByAnnouncementsSentCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newAnnouncementsSentStep(), opts...)
+	}
+}
+
+// ByAnnouncementsSent orders the results by announcements_sent terms.
+func ByAnnouncementsSent(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAnnouncementsSentStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newSessionsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -432,5 +565,40 @@ func newPlayersStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(PlayersInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, PlayersTable, PlayersColumn),
+	)
+}
+func newReportsFiledStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ReportsFiledInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ReportsFiledTable, ReportsFiledColumn),
+	)
+}
+func newReportsAgainstStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ReportsAgainstInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ReportsAgainstTable, ReportsAgainstColumn),
+	)
+}
+func newReportsHandledStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ReportsHandledInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ReportsHandledTable, ReportsHandledColumn),
+	)
+}
+func newNotificationsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(NotificationsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, NotificationsTable, NotificationsColumn),
+	)
+}
+func newAnnouncementsSentStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AnnouncementsSentInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, AnnouncementsSentTable, AnnouncementsSentColumn),
 	)
 }

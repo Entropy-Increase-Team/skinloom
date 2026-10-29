@@ -110,6 +110,16 @@ func LastSignAt(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldLastSignAt, v))
 }
 
+// AvatarTextureID applies equality check predicate on the "avatar_texture_id" field. It's identical to AvatarTextureIDEQ.
+func AvatarTextureID(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldAvatarTextureID, v))
+}
+
+// AnnouncementsSeen applies equality check predicate on the "announcements_seen" field. It's identical to AnnouncementsSeenEQ.
+func AnnouncementsSeen(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldAnnouncementsSeen, v))
+}
+
 // DeletedAt applies equality check predicate on the "deleted_at" field. It's identical to DeletedAtEQ.
 func DeletedAt(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldDeletedAt, v))
@@ -810,6 +820,96 @@ func LastSignAtNotNil() predicate.User {
 	return predicate.User(sql.FieldNotNull(FieldLastSignAt))
 }
 
+// AvatarTextureIDEQ applies the EQ predicate on the "avatar_texture_id" field.
+func AvatarTextureIDEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldAvatarTextureID, v))
+}
+
+// AvatarTextureIDNEQ applies the NEQ predicate on the "avatar_texture_id" field.
+func AvatarTextureIDNEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldAvatarTextureID, v))
+}
+
+// AvatarTextureIDIn applies the In predicate on the "avatar_texture_id" field.
+func AvatarTextureIDIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldIn(FieldAvatarTextureID, vs...))
+}
+
+// AvatarTextureIDNotIn applies the NotIn predicate on the "avatar_texture_id" field.
+func AvatarTextureIDNotIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldAvatarTextureID, vs...))
+}
+
+// AvatarTextureIDGT applies the GT predicate on the "avatar_texture_id" field.
+func AvatarTextureIDGT(v int64) predicate.User {
+	return predicate.User(sql.FieldGT(FieldAvatarTextureID, v))
+}
+
+// AvatarTextureIDGTE applies the GTE predicate on the "avatar_texture_id" field.
+func AvatarTextureIDGTE(v int64) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldAvatarTextureID, v))
+}
+
+// AvatarTextureIDLT applies the LT predicate on the "avatar_texture_id" field.
+func AvatarTextureIDLT(v int64) predicate.User {
+	return predicate.User(sql.FieldLT(FieldAvatarTextureID, v))
+}
+
+// AvatarTextureIDLTE applies the LTE predicate on the "avatar_texture_id" field.
+func AvatarTextureIDLTE(v int64) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldAvatarTextureID, v))
+}
+
+// AvatarTextureIDIsNil applies the IsNil predicate on the "avatar_texture_id" field.
+func AvatarTextureIDIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldAvatarTextureID))
+}
+
+// AvatarTextureIDNotNil applies the NotNil predicate on the "avatar_texture_id" field.
+func AvatarTextureIDNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldAvatarTextureID))
+}
+
+// AnnouncementsSeenEQ applies the EQ predicate on the "announcements_seen" field.
+func AnnouncementsSeenEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldAnnouncementsSeen, v))
+}
+
+// AnnouncementsSeenNEQ applies the NEQ predicate on the "announcements_seen" field.
+func AnnouncementsSeenNEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldAnnouncementsSeen, v))
+}
+
+// AnnouncementsSeenIn applies the In predicate on the "announcements_seen" field.
+func AnnouncementsSeenIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldIn(FieldAnnouncementsSeen, vs...))
+}
+
+// AnnouncementsSeenNotIn applies the NotIn predicate on the "announcements_seen" field.
+func AnnouncementsSeenNotIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldAnnouncementsSeen, vs...))
+}
+
+// AnnouncementsSeenGT applies the GT predicate on the "announcements_seen" field.
+func AnnouncementsSeenGT(v int64) predicate.User {
+	return predicate.User(sql.FieldGT(FieldAnnouncementsSeen, v))
+}
+
+// AnnouncementsSeenGTE applies the GTE predicate on the "announcements_seen" field.
+func AnnouncementsSeenGTE(v int64) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldAnnouncementsSeen, v))
+}
+
+// AnnouncementsSeenLT applies the LT predicate on the "announcements_seen" field.
+func AnnouncementsSeenLT(v int64) predicate.User {
+	return predicate.User(sql.FieldLT(FieldAnnouncementsSeen, v))
+}
+
+// AnnouncementsSeenLTE applies the LTE predicate on the "announcements_seen" field.
+func AnnouncementsSeenLTE(v int64) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldAnnouncementsSeen, v))
+}
+
 // DeletedAtEQ applies the EQ predicate on the "deleted_at" field.
 func DeletedAtEQ(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldDeletedAt, v))
@@ -1070,6 +1170,121 @@ func HasPlayers() predicate.User {
 func HasPlayersWith(preds ...predicate.Player) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		step := newPlayersStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasReportsFiled applies the HasEdge predicate on the "reports_filed" edge.
+func HasReportsFiled() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ReportsFiledTable, ReportsFiledColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasReportsFiledWith applies the HasEdge predicate on the "reports_filed" edge with a given conditions (other predicates).
+func HasReportsFiledWith(preds ...predicate.Report) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newReportsFiledStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasReportsAgainst applies the HasEdge predicate on the "reports_against" edge.
+func HasReportsAgainst() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ReportsAgainstTable, ReportsAgainstColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasReportsAgainstWith applies the HasEdge predicate on the "reports_against" edge with a given conditions (other predicates).
+func HasReportsAgainstWith(preds ...predicate.Report) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newReportsAgainstStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasReportsHandled applies the HasEdge predicate on the "reports_handled" edge.
+func HasReportsHandled() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ReportsHandledTable, ReportsHandledColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasReportsHandledWith applies the HasEdge predicate on the "reports_handled" edge with a given conditions (other predicates).
+func HasReportsHandledWith(preds ...predicate.Report) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newReportsHandledStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasNotifications applies the HasEdge predicate on the "notifications" edge.
+func HasNotifications() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, NotificationsTable, NotificationsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasNotificationsWith applies the HasEdge predicate on the "notifications" edge with a given conditions (other predicates).
+func HasNotificationsWith(preds ...predicate.Notification) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newNotificationsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasAnnouncementsSent applies the HasEdge predicate on the "announcements_sent" edge.
+func HasAnnouncementsSent() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, AnnouncementsSentTable, AnnouncementsSentColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAnnouncementsSentWith applies the HasEdge predicate on the "announcements_sent" edge with a given conditions (other predicates).
+func HasAnnouncementsSentWith(preds ...predicate.Announcement) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newAnnouncementsSentStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

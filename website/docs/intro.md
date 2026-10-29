@@ -14,7 +14,7 @@ sidebar_position: 1
 
 ## 当前状态
 
-项目已完成 **M1（账号）**，正在进行 **M2（材质与角色）**。一键启动、热加载、主题、设置、发行包等基础设施，安装向导、注册与登录、验证码、邮件、邮箱验证、找回密码、个人资料与登录设备、注销账号、后台用户管理与审计日志，以及材质上传、皮肤库、收藏与衣柜、材质管理、签到与用户中心、角色和 CustomSkinLoader / UniSkinMod / Legacy 游戏接口都已可用；外置登录等功能将陆续交付。进度见 [开发日志](/devlog) 与 [更新日志](https://github.com/Entropy-Increase-Team/skinloom/blob/main/CHANGELOG.md)。
+项目已完成 **M1（账号）** 与 **M2（材质与角色）**，下一步是 **M3（外置登录与开放平台）**。一键启动、热加载、主题、设置、发行包等基础设施，安装向导、注册与登录、验证码、邮件、邮箱验证、找回密码、个人资料与登录设备、注销账号、后台用户管理与审计日志，以及材质上传、皮肤库、收藏与衣柜、材质管理、签到与用户中心、举报、后台概览与角色管理、站内通知、头像与预览图、S3 兼容存储、角色和 CustomSkinLoader / UniSkinMod / Legacy 游戏接口都已可用；外置登录（Yggdrasil）等功能将陆续交付。进度见 [开发日志](/devlog) 与 [更新日志](https://github.com/Entropy-Increase-Team/skinloom/blob/main/CHANGELOG.md)。
 
 ## 从哪里开始
 

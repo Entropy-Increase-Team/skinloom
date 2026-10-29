@@ -14,6 +14,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
+	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 )
 
 // PlayerUpdate is the builder for updating Player entities.
@@ -26,6 +27,20 @@ type PlayerUpdate struct {
 // Where appends a list predicates to the PlayerUpdate builder.
 func (_u *PlayerUpdate) Where(ps ...predicate.Player) *PlayerUpdate {
 	_u.mutation.Where(ps...)
+	return _u
+}
+
+// SetUserID sets the "user_id" field.
+func (_u *PlayerUpdate) SetUserID(v int64) *PlayerUpdate {
+	_u.mutation.SetUserID(v)
+	return _u
+}
+
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *PlayerUpdate) SetNillableUserID(v *int64) *PlayerUpdate {
+	if v != nil {
+		_u.SetUserID(*v)
+	}
 	return _u
 }
 
@@ -117,6 +132,17 @@ func (_u *PlayerUpdate) SetUpdatedAt(v time.Time) *PlayerUpdate {
 	return _u
 }
 
+// SetOwnerID sets the "owner" edge to the User entity by ID.
+func (_u *PlayerUpdate) SetOwnerID(id int64) *PlayerUpdate {
+	_u.mutation.SetOwnerID(id)
+	return _u
+}
+
+// SetOwner sets the "owner" edge to the User entity.
+func (_u *PlayerUpdate) SetOwner(v *User) *PlayerUpdate {
+	return _u.SetOwnerID(v.ID)
+}
+
 // SetSkin sets the "skin" edge to the Texture entity.
 func (_u *PlayerUpdate) SetSkin(v *Texture) *PlayerUpdate {
 	return _u.SetSkinID(v.ID)
@@ -130,6 +156,12 @@ func (_u *PlayerUpdate) SetCape(v *Texture) *PlayerUpdate {
 // Mutation returns the PlayerMutation object of the builder.
 func (_u *PlayerUpdate) Mutation() *PlayerMutation {
 	return _u.mutation
+}
+
+// ClearOwner clears the "owner" edge to the User entity.
+func (_u *PlayerUpdate) ClearOwner() *PlayerUpdate {
+	_u.mutation.ClearOwner()
+	return _u
 }
 
 // ClearSkin clears the "skin" edge to the Texture entity.
@@ -227,6 +259,35 @@ func (_u *PlayerUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(player.FieldUpdatedAt, field.TypeTime, value)
 	}
+	if _u.mutation.OwnerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   player.OwnerTable,
+			Columns: []string{player.OwnerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OwnerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   player.OwnerTable,
+			Columns: []string{player.OwnerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.SkinCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -303,6 +364,20 @@ type PlayerUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *PlayerMutation
+}
+
+// SetUserID sets the "user_id" field.
+func (_u *PlayerUpdateOne) SetUserID(v int64) *PlayerUpdateOne {
+	_u.mutation.SetUserID(v)
+	return _u
+}
+
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *PlayerUpdateOne) SetNillableUserID(v *int64) *PlayerUpdateOne {
+	if v != nil {
+		_u.SetUserID(*v)
+	}
+	return _u
 }
 
 // SetName sets the "name" field.
@@ -393,6 +468,17 @@ func (_u *PlayerUpdateOne) SetUpdatedAt(v time.Time) *PlayerUpdateOne {
 	return _u
 }
 
+// SetOwnerID sets the "owner" edge to the User entity by ID.
+func (_u *PlayerUpdateOne) SetOwnerID(id int64) *PlayerUpdateOne {
+	_u.mutation.SetOwnerID(id)
+	return _u
+}
+
+// SetOwner sets the "owner" edge to the User entity.
+func (_u *PlayerUpdateOne) SetOwner(v *User) *PlayerUpdateOne {
+	return _u.SetOwnerID(v.ID)
+}
+
 // SetSkin sets the "skin" edge to the Texture entity.
 func (_u *PlayerUpdateOne) SetSkin(v *Texture) *PlayerUpdateOne {
 	return _u.SetSkinID(v.ID)
@@ -406,6 +492,12 @@ func (_u *PlayerUpdateOne) SetCape(v *Texture) *PlayerUpdateOne {
 // Mutation returns the PlayerMutation object of the builder.
 func (_u *PlayerUpdateOne) Mutation() *PlayerMutation {
 	return _u.mutation
+}
+
+// ClearOwner clears the "owner" edge to the User entity.
+func (_u *PlayerUpdateOne) ClearOwner() *PlayerUpdateOne {
+	_u.mutation.ClearOwner()
+	return _u
 }
 
 // ClearSkin clears the "skin" edge to the Texture entity.
@@ -532,6 +624,35 @@ func (_u *PlayerUpdateOne) sqlSave(ctx context.Context) (_node *Player, err erro
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(player.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.OwnerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   player.OwnerTable,
+			Columns: []string{player.OwnerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OwnerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   player.OwnerTable,
+			Columns: []string{player.OwnerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.SkinCleared() {
 		edge := &sqlgraph.EdgeSpec{

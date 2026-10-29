@@ -14,6 +14,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
+	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 )
@@ -170,6 +171,21 @@ func (_u *TextureUpdate) AddCapePlayers(v ...*Player) *TextureUpdate {
 	return _u.AddCapePlayerIDs(ids...)
 }
 
+// AddReportIDs adds the "reports" edge to the Report entity by IDs.
+func (_u *TextureUpdate) AddReportIDs(ids ...int64) *TextureUpdate {
+	_u.mutation.AddReportIDs(ids...)
+	return _u
+}
+
+// AddReports adds the "reports" edges to the Report entity.
+func (_u *TextureUpdate) AddReports(v ...*Report) *TextureUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddReportIDs(ids...)
+}
+
 // Mutation returns the TextureMutation object of the builder.
 func (_u *TextureUpdate) Mutation() *TextureMutation {
 	return _u.mutation
@@ -242,6 +258,27 @@ func (_u *TextureUpdate) RemoveCapePlayers(v ...*Player) *TextureUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveCapePlayerIDs(ids...)
+}
+
+// ClearReports clears all "reports" edges to the Report entity.
+func (_u *TextureUpdate) ClearReports() *TextureUpdate {
+	_u.mutation.ClearReports()
+	return _u
+}
+
+// RemoveReportIDs removes the "reports" edge to Report entities by IDs.
+func (_u *TextureUpdate) RemoveReportIDs(ids ...int64) *TextureUpdate {
+	_u.mutation.RemoveReportIDs(ids...)
+	return _u
+}
+
+// RemoveReports removes "reports" edges to Report entities.
+func (_u *TextureUpdate) RemoveReports(v ...*Report) *TextureUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveReportIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -497,6 +534,51 @@ func (_u *TextureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.ReportsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.ReportsTable,
+			Columns: []string{texture.ReportsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedReportsIDs(); len(nodes) > 0 && !_u.mutation.ReportsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.ReportsTable,
+			Columns: []string{texture.ReportsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ReportsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.ReportsTable,
+			Columns: []string{texture.ReportsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{texture.Label}
@@ -656,6 +738,21 @@ func (_u *TextureUpdateOne) AddCapePlayers(v ...*Player) *TextureUpdateOne {
 	return _u.AddCapePlayerIDs(ids...)
 }
 
+// AddReportIDs adds the "reports" edge to the Report entity by IDs.
+func (_u *TextureUpdateOne) AddReportIDs(ids ...int64) *TextureUpdateOne {
+	_u.mutation.AddReportIDs(ids...)
+	return _u
+}
+
+// AddReports adds the "reports" edges to the Report entity.
+func (_u *TextureUpdateOne) AddReports(v ...*Report) *TextureUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddReportIDs(ids...)
+}
+
 // Mutation returns the TextureMutation object of the builder.
 func (_u *TextureUpdateOne) Mutation() *TextureMutation {
 	return _u.mutation
@@ -728,6 +825,27 @@ func (_u *TextureUpdateOne) RemoveCapePlayers(v ...*Player) *TextureUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveCapePlayerIDs(ids...)
+}
+
+// ClearReports clears all "reports" edges to the Report entity.
+func (_u *TextureUpdateOne) ClearReports() *TextureUpdateOne {
+	_u.mutation.ClearReports()
+	return _u
+}
+
+// RemoveReportIDs removes the "reports" edge to Report entities by IDs.
+func (_u *TextureUpdateOne) RemoveReportIDs(ids ...int64) *TextureUpdateOne {
+	_u.mutation.RemoveReportIDs(ids...)
+	return _u
+}
+
+// RemoveReports removes "reports" edges to Report entities.
+func (_u *TextureUpdateOne) RemoveReports(v ...*Report) *TextureUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveReportIDs(ids...)
 }
 
 // Where appends a list predicates to the TextureUpdate builder.
@@ -1006,6 +1124,51 @@ func (_u *TextureUpdateOne) sqlSave(ctx context.Context) (_node *Texture, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(player.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ReportsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.ReportsTable,
+			Columns: []string{texture.ReportsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedReportsIDs(); len(nodes) > 0 && !_u.mutation.ReportsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.ReportsTable,
+			Columns: []string{texture.ReportsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ReportsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   texture.ReportsTable,
+			Columns: []string{texture.ReportsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(report.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

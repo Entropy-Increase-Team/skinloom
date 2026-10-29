@@ -10,6 +10,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/buildinfo"
 	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
+	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
 	"github.com/Entropy-Increase-Team/skinloom/internal/theme"
 )
 
@@ -25,6 +26,8 @@ type SiteInfo struct {
 	Description  string `json:"description"`
 	URL          string `json:"url" doc:"Canonical public URL; empty when not configured"`
 	Announcement string `json:"announcement" doc:"Markdown"`
+	// AnnouncementHTML is Announcement rendered: no raw HTML, no script links.
+	AnnouncementHTML string `json:"announcementHtml"`
 }
 
 // MenuItem is one navigation entry. Modules and plugins contribute these.
@@ -109,10 +112,11 @@ func registerSite(api huma.API, d Deps) {
 			Locale:  locale,
 			Locales: Locales,
 			Site: SiteInfo{
-				Name:         snap.Localized("site.name", locale),
-				Description:  snap.Localized("site.description", locale),
-				URL:          snap.String("site.url"),
-				Announcement: snap.Localized("site.announcement", locale),
+				Name:             snap.Localized("site.name", locale),
+				Description:      snap.Localized("site.description", locale),
+				URL:              snap.String("site.url"),
+				Announcement:     snap.Localized("site.announcement", locale),
+				AnnouncementHTML: notify.Markdown(snap.Localized("site.announcement", locale)),
 			},
 			Theme: d.Themes.Resolve(snap),
 			Menus: map[string][]MenuItem{

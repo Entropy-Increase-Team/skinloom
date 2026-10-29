@@ -23,3 +23,5 @@
 | [0017](0017-textures-storage-and-score.md) | 材质、文件存储与积分流水 | 已接受 |
 | [0018](0018-players-and-game-apis.md) | 角色、UUID 与游戏皮肤接口 | 已接受 |
 | [0019](0019-closet-texture-edit-and-sign-in.md) | 收藏、材质编辑与删除、签到与用户中心 | 已接受 |
+| [0020](0020-reports-and-admin-tools.md) | 举报、后台概览与后台角色、衣柜管理 | 已接受 |
+| [0021](0021-renderer-notifications-and-s3.md) | 渲染器、站内通知与 S3 兼容存储 | 已接受 |

@@ -63,7 +63,7 @@ func Run(ctx context.Context, o RunOptions) error {
 	var gw *gateway.Gateway // created below; serves requests only after Serve starts
 	api, _ := httpapi.New(httpapi.Deps{
 		Log: log.With("component", "http"), DB: core.DB, Settings: core.Settings,
-		Themes: core.Themes, Broker: core.Broker, Accounts: core.Accounts, Captcha: core.Captcha, Mailer: core.Mailer, Textures: core.Textures, Players: core.Players,
+		Themes: core.Themes, Broker: core.Broker, Accounts: core.Accounts, Captcha: core.Captcha, Mailer: core.Mailer, Textures: core.Textures, Players: core.Players, Reports: core.Reports, Renders: core.Renders, Notify: core.Notify,
 		AdminToken: sec.AdminToken,
 		ClientInfo: func(r *http.Request) realip.Info { return gw.ClientInfo(r) },
 	})

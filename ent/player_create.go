@@ -370,6 +370,18 @@ type (
 	}
 )
 
+// SetUserID sets the "user_id" field.
+func (u *PlayerUpsert) SetUserID(v int64) *PlayerUpsert {
+	u.Set(player.FieldUserID, v)
+	return u
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *PlayerUpsert) UpdateUserID() *PlayerUpsert {
+	u.SetExcluded(player.FieldUserID)
+	return u
+}
+
 // SetName sets the "name" field.
 func (u *PlayerUpsert) SetName(v string) *PlayerUpsert {
 	u.Set(player.FieldName, v)
@@ -471,9 +483,6 @@ func (u *PlayerUpsertOne) UpdateNewValues() *PlayerUpsertOne {
 		if _, exists := u.create.mutation.ID(); exists {
 			s.SetIgnore(player.FieldID)
 		}
-		if _, exists := u.create.mutation.UserID(); exists {
-			s.SetIgnore(player.FieldUserID)
-		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(player.FieldCreatedAt)
 		}
@@ -506,6 +515,20 @@ func (u *PlayerUpsertOne) Update(set func(*PlayerUpsert)) *PlayerUpsertOne {
 		set(&PlayerUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetUserID sets the "user_id" field.
+func (u *PlayerUpsertOne) SetUserID(v int64) *PlayerUpsertOne {
+	return u.Update(func(s *PlayerUpsert) {
+		s.SetUserID(v)
+	})
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *PlayerUpsertOne) UpdateUserID() *PlayerUpsertOne {
+	return u.Update(func(s *PlayerUpsert) {
+		s.UpdateUserID()
+	})
 }
 
 // SetName sets the "name" field.
@@ -788,9 +811,6 @@ func (u *PlayerUpsertBulk) UpdateNewValues() *PlayerUpsertBulk {
 			if _, exists := b.mutation.ID(); exists {
 				s.SetIgnore(player.FieldID)
 			}
-			if _, exists := b.mutation.UserID(); exists {
-				s.SetIgnore(player.FieldUserID)
-			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(player.FieldCreatedAt)
 			}
@@ -824,6 +844,20 @@ func (u *PlayerUpsertBulk) Update(set func(*PlayerUpsert)) *PlayerUpsertBulk {
 		set(&PlayerUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetUserID sets the "user_id" field.
+func (u *PlayerUpsertBulk) SetUserID(v int64) *PlayerUpsertBulk {
+	return u.Update(func(s *PlayerUpsert) {
+		s.SetUserID(v)
+	})
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *PlayerUpsertBulk) UpdateUserID() *PlayerUpsertBulk {
+	return u.Update(func(s *PlayerUpsert) {
+		s.UpdateUserID()
+	})
 }
 
 // SetName sets the "name" field.

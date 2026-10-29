@@ -38,7 +38,7 @@ function offlineBootstrap(acceptLanguage: string): SiteBootstrap {
       { code: 'zh-CN', name: '简体中文' },
       { code: 'en', name: 'English' },
     ],
-    site: { name: locale === 'en' ? 'SkinLoom' : '云织', description: '', url: '', announcement: '' },
+    site: { name: locale === 'en' ? 'SkinLoom' : '云织', description: '', url: '', announcement: '', announcementHtml: '' },
     theme: { id: 'none', version: '0', tokens: { light: {}, dark: {} }, css: [], layout: {}, home: [{ type: 'hero' }] },
     menus: { explore: [], user: [], admin: [] },
     plugins: [],

@@ -9,6 +9,36 @@ import (
 )
 
 var (
+	// AnnouncementsColumns holds the columns for the "announcements" table.
+	AnnouncementsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "title", Type: field.TypeString, Size: 64},
+		{Name: "content", Type: field.TypeString, Size: 2147483647},
+		{Name: "audience", Type: field.TypeEnum, Enums: []string{"all", "users"}, Default: "all"},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "sender_id", Type: field.TypeInt64, Nullable: true},
+	}
+	// AnnouncementsTable holds the schema information for the "announcements" table.
+	AnnouncementsTable = &schema.Table{
+		Name:       "announcements",
+		Columns:    AnnouncementsColumns,
+		PrimaryKey: []*schema.Column{AnnouncementsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "announcements_users_announcements_sent",
+				Columns:    []*schema.Column{AnnouncementsColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "announcement_sender_id",
+				Unique:  false,
+				Columns: []*schema.Column{AnnouncementsColumns[5]},
+			},
+		},
+	}
 	// AuditLogsColumns holds the columns for the "audit_logs" table.
 	AuditLogsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -150,6 +180,53 @@ var (
 			},
 		},
 	}
+	// NotificationsColumns holds the columns for the "notifications" table.
+	NotificationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "title", Type: field.TypeString, Size: 64},
+		{Name: "content", Type: field.TypeString, Size: 2147483647},
+		{Name: "read_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "announcement_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "user_id", Type: field.TypeInt64},
+	}
+	// NotificationsTable holds the schema information for the "notifications" table.
+	NotificationsTable = &schema.Table{
+		Name:       "notifications",
+		Columns:    NotificationsColumns,
+		PrimaryKey: []*schema.Column{NotificationsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "notifications_announcements_notifications",
+				Columns:    []*schema.Column{NotificationsColumns[5]},
+				RefColumns: []*schema.Column{AnnouncementsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "notifications_users_notifications",
+				Columns:    []*schema.Column{NotificationsColumns[6]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "notification_user_id_id",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationsColumns[6], NotificationsColumns[0]},
+			},
+			{
+				Name:    "notification_user_id_announcement_id",
+				Unique:  true,
+				Columns: []*schema.Column{NotificationsColumns[6], NotificationsColumns[5]},
+			},
+			{
+				Name:    "notification_announcement_id",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationsColumns[5]},
+			},
+		},
+	}
 	// PlayersColumns holds the columns for the "players" table.
 	PlayersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -202,6 +279,78 @@ var (
 				Name:    "player_cape_id",
 				Unique:  false,
 				Columns: []*schema.Column{PlayersColumns[7]},
+			},
+		},
+	}
+	// ReportsColumns holds the columns for the "reports" table.
+	ReportsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "reason", Type: field.TypeString, Size: 500},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "resolved", "rejected"}, Default: "pending"},
+		{Name: "action", Type: field.TypeEnum, Nullable: true, Enums: []string{"delete", "ban", "reject"}},
+		{Name: "handled_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "texture_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "reporter_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "uploader_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "handler_id", Type: field.TypeInt64, Nullable: true},
+	}
+	// ReportsTable holds the schema information for the "reports" table.
+	ReportsTable = &schema.Table{
+		Name:       "reports",
+		Columns:    ReportsColumns,
+		PrimaryKey: []*schema.Column{ReportsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "reports_textures_reports",
+				Columns:    []*schema.Column{ReportsColumns[6]},
+				RefColumns: []*schema.Column{TexturesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "reports_users_reports_filed",
+				Columns:    []*schema.Column{ReportsColumns[7]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "reports_users_reports_against",
+				Columns:    []*schema.Column{ReportsColumns[8]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "reports_users_reports_handled",
+				Columns:    []*schema.Column{ReportsColumns[9]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "report_reporter_id_texture_id",
+				Unique:  true,
+				Columns: []*schema.Column{ReportsColumns[7], ReportsColumns[6]},
+			},
+			{
+				Name:    "report_texture_id",
+				Unique:  false,
+				Columns: []*schema.Column{ReportsColumns[6]},
+			},
+			{
+				Name:    "report_uploader_id",
+				Unique:  false,
+				Columns: []*schema.Column{ReportsColumns[8]},
+			},
+			{
+				Name:    "report_handler_id",
+				Unique:  false,
+				Columns: []*schema.Column{ReportsColumns[9]},
+			},
+			{
+				Name:    "report_status_id",
+				Unique:  false,
+				Columns: []*schema.Column{ReportsColumns[2], ReportsColumns[0]},
 			},
 		},
 	}
@@ -358,6 +507,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{TexturesColumns[8]},
 			},
+			{
+				Name:    "texture_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{TexturesColumns[6]},
+			},
 		},
 	}
 	// UsersColumns holds the columns for the "users" table.
@@ -376,6 +530,8 @@ var (
 		{Name: "register_ip", Type: field.TypeString, Size: 45, Default: ""},
 		{Name: "last_login_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
 		{Name: "last_sign_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "avatar_texture_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "announcements_seen", Type: field.TypeInt64, Default: 0},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
 		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
 		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
@@ -389,18 +545,31 @@ var (
 			{
 				Name:    "user_register_ip_created_at",
 				Unique:  false,
-				Columns: []*schema.Column{UsersColumns[11], UsersColumns[15]},
+				Columns: []*schema.Column{UsersColumns[11], UsersColumns[17]},
+			},
+			{
+				Name:    "user_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{UsersColumns[17]},
+			},
+			{
+				Name:    "user_avatar_texture_id",
+				Unique:  false,
+				Columns: []*schema.Column{UsersColumns[14]},
 			},
 		},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AnnouncementsTable,
 		AuditLogsTable,
 		AuthTokensTable,
 		BlobsTable,
 		ClosetItemsTable,
 		JobsTable,
+		NotificationsTable,
 		PlayersTable,
+		ReportsTable,
 		ScoreLedgerTable,
 		SessionsTable,
 		SettingsTable,
@@ -411,6 +580,10 @@ var (
 )
 
 func init() {
+	AnnouncementsTable.ForeignKeys[0].RefTable = UsersTable
+	AnnouncementsTable.Annotation = &entsql.Annotation{
+		Table: "announcements",
+	}
 	AuditLogsTable.Annotation = &entsql.Annotation{
 		Table: "audit_logs",
 	}
@@ -429,11 +602,23 @@ func init() {
 	JobsTable.Annotation = &entsql.Annotation{
 		Table: "jobs",
 	}
+	NotificationsTable.ForeignKeys[0].RefTable = AnnouncementsTable
+	NotificationsTable.ForeignKeys[1].RefTable = UsersTable
+	NotificationsTable.Annotation = &entsql.Annotation{
+		Table: "notifications",
+	}
 	PlayersTable.ForeignKeys[0].RefTable = TexturesTable
 	PlayersTable.ForeignKeys[1].RefTable = TexturesTable
 	PlayersTable.ForeignKeys[2].RefTable = UsersTable
 	PlayersTable.Annotation = &entsql.Annotation{
 		Table: "players",
+	}
+	ReportsTable.ForeignKeys[0].RefTable = TexturesTable
+	ReportsTable.ForeignKeys[1].RefTable = UsersTable
+	ReportsTable.ForeignKeys[2].RefTable = UsersTable
+	ReportsTable.ForeignKeys[3].RefTable = UsersTable
+	ReportsTable.Annotation = &entsql.Annotation{
+		Table: "reports",
 	}
 	ScoreLedgerTable.ForeignKeys[0].RefTable = UsersTable
 	ScoreLedgerTable.Annotation = &entsql.Annotation{

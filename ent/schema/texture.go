@@ -48,6 +48,7 @@ func (Texture) Edges() []ent.Edge {
 		// Players wearing a deleted texture go back to wearing nothing.
 		edge.To("skin_players", Player.Type).Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("cape_players", Player.Type).Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.To("reports", Report.Type).Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 
@@ -65,5 +66,7 @@ func (Texture) Indexes() []ent.Index {
 		// index for "uploads of this user".
 		index.Fields("uploader_id", "hash").Unique(),
 		index.Fields("hash"),
+		// Uploads per day on the admin overview.
+		index.Fields("created_at"),
 	}
 }

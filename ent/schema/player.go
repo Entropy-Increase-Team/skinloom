@@ -24,7 +24,7 @@ func (Player) Annotations() []schema.Annotation {
 func (Player) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("id"),
-		field.Int64("user_id").Immutable(),
+		field.Int64("user_id"), // administrators can give a player to another user
 		field.String("name").MaxRuneLen(32).NotEmpty(),
 		// name_lower is the uniqueness and lookup key: names are unique ignoring case
 		// in every database (Blessing Skin had no unique index at all, C01).
@@ -43,7 +43,7 @@ func (Player) Fields() []ent.Field {
 
 func (Player) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("owner", User.Type).Ref("players").Field("user_id").Unique().Required().Immutable(),
+		edge.From("owner", User.Type).Ref("players").Field("user_id").Unique().Required(),
 		edge.From("skin", Texture.Type).Ref("skin_players").Field("skin_id").Unique(),
 		edge.From("cape", Texture.Type).Ref("cape_players").Field("cape_id").Unique(),
 	}

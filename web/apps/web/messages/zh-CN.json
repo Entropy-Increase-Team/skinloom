@@ -264,7 +264,12 @@
     "errors": {
       "tooMany": "密码错误次数太多，请稍后再试。",
       "failed": "操作失败，请检查网络后重试。"
-    }
+    },
+    "avatar": "头像",
+    "avatarHint": "头像是你衣柜里某个皮肤的头部。",
+    "chooseAvatar": "去衣柜选择",
+    "removeAvatar": "移除头像",
+    "avatarRemoved": "已移除头像。"
   },
   "admin": {
     "title": "管理后台",
@@ -320,7 +325,11 @@
     "errors": {
       "load": "加载失败，请刷新重试。",
       "save": "保存失败。"
-    }
+    },
+    "overview": "概览",
+    "players": "角色",
+    "reports": "举报",
+    "playersOf": "角色"
   },
   "texture": {
     "private": "私有",
@@ -361,6 +370,24 @@
       "shape": "这张图片的尺寸不能作为该类型使用。",
       "name": "名称不符合站点的命名规则。",
       "failed": "操作失败，请稍后重试。"
+    },
+    "report": {
+      "open": "举报",
+      "reason": "举报理由",
+      "placeholder": "例如：盗用他人作品、内容违规……",
+      "cost": "举报需要 {score} 积分，举报成立后退还。",
+      "earn": "举报可获得 {score} 积分（被驳回时收回）。",
+      "reward": "举报成立另奖励 {score} 积分。",
+      "submit": "提交举报",
+      "cancel": "取消",
+      "sent": "已提交，管理员会尽快处理。",
+      "mine": "查看我的举报",
+      "errors": {
+        "score": "积分不足。",
+        "own": "不能举报自己的材质。",
+        "tooMany": "举报太频繁，请稍后再试。",
+        "failed": "提交失败，请稍后重试。"
+      }
     }
   },
   "upload": {
@@ -407,7 +434,9 @@
     "removeConfirm": "确定把「{name}」移出衣柜吗？穿着它的角色会换下它。",
     "removed": "已移出衣柜。",
     "removedRefund": "已移出衣柜，退还 {score} 积分。",
-    "changeFailed": "操作失败，请稍后重试。"
+    "changeFailed": "操作失败，请稍后重试。",
+    "useAsAvatar": "设为头像",
+    "avatarSet": "已把「{name}」设为头像。"
   },
   "player": {
     "title": "角色",
@@ -482,7 +511,148 @@
       "closet": "我的衣柜",
       "upload": "上传材质",
       "skinlib": "逛逛皮肤库",
-      "profile": "个人资料"
+      "profile": "个人资料",
+      "reports": "我的举报"
+    }
+  },
+  "adminOverview": {
+    "loadFailed": "加载失败，请刷新重试。",
+    "users": "用户",
+    "players": "角色",
+    "textures": "材质",
+    "publicTextures": "其中公开 {count} 个",
+    "closetItems": "衣柜条目",
+    "storage": "存储",
+    "files": "{count} 个文件",
+    "pendingReports": "待处理举报",
+    "review": "去处理",
+    "registrations": "每日注册",
+    "uploads": "每日上传",
+    "total": "最近 31 天共 {count}",
+    "table": "查看表格"
+  },
+  "adminReports": {
+    "status": {
+      "pending": "待处理",
+      "resolved": "已处理",
+      "rejected": "已驳回",
+      "all": "全部"
+    },
+    "action": {
+      "delete": "删除了材质",
+      "ban": "封禁了上传者",
+      "reject": "驳回"
+    },
+    "do": {
+      "delete": "删除材质",
+      "ban": "封禁上传者",
+      "reject": "驳回",
+      "resolve": "标记已处理"
+    },
+    "confirm": {
+      "delete": "删除材质「{name}」吗？收藏它的用户会拿回积分，此操作无法撤销。",
+      "ban": "封禁上传者 {uploader} 吗？对方会在所有设备上退出登录。"
+    },
+    "errors": {
+      "load": "加载失败，请刷新重试。",
+      "forbidden": "你没有权限这样做（管理员只能处理普通用户）。",
+      "reviewed": "这条举报已经被处理过了。",
+      "failed": "操作失败，请稍后重试。"
+    },
+    "empty": "没有举报。",
+    "textureGone": "材质已删除",
+    "private": "私有",
+    "meta": "举报人 {reporter} · 上传者 {uploader} · {time}",
+    "handled": "{handler} 于 {time} 处理",
+    "deletedUser": "已注销用户",
+    "token": "管理令牌",
+    "more": "加载更多"
+  },
+  "adminPlayers": {
+    "search": "搜索",
+    "searchHint": "角色名开头、UUID 或 ID",
+    "ofUser": "用户 #{id} 的角色",
+    "name": "角色",
+    "owner": "所属用户",
+    "skin": "皮肤",
+    "cape": "披风",
+    "updated": "更新",
+    "empty": "没有角色。",
+    "more": "加载更多",
+    "edit": "编辑",
+    "close": "收起",
+    "save": "保存",
+    "delete": "删除角色",
+    "deleteConfirm": "确定删除角色 {name} 吗？此操作无法撤销。",
+    "editHint": "所属用户填用户 ID；皮肤、披风填材质 ID，留空表示不穿，且必须在所属用户的衣柜里。换了所属用户后，新主人衣柜里没有的材质会被脱下。",
+    "fields": {
+      "name": "角色名",
+      "owner": "所属用户 ID",
+      "skin": "皮肤材质 ID",
+      "cape": "披风材质 ID"
+    },
+    "errors": {
+      "load": "加载失败，请刷新重试。",
+      "forbidden": "你没有权限管理这个用户的角色。",
+      "taken": "这个角色名已被占用。",
+      "name": "角色名不符合站点规则。",
+      "owner": "没有这个用户。",
+      "texture": "材质不存在、类型不对，或不在所属用户的衣柜里。",
+      "save": "保存失败。"
+    }
+  },
+  "myReports": {
+    "title": "我的举报",
+    "intro": "你提交的举报和处理结果。",
+    "loadFailed": "加载失败，请稍后重试。",
+    "empty": "你还没有举报过材质。",
+    "textureGone": "材质已删除或不再公开",
+    "status": {
+      "pending": "待处理",
+      "resolved": "已处理",
+      "rejected": "已驳回"
+    },
+    "submitted": "提交于 {time}",
+    "outcome": {
+      "delete": "材质已删除",
+      "ban": "上传者已被封禁",
+      "reject": "举报被驳回"
+    },
+    "more": "加载更多"
+  },
+  "notifications": {
+    "title": "通知",
+    "bellUnread": "{count} 条未读通知",
+    "unread": "{count} 条未读",
+    "readAll": "全部标为已读",
+    "loadFailed": "加载失败，请稍后重试。",
+    "empty": "还没有通知。",
+    "announcement": "公告",
+    "read": "已读",
+    "new": "未读",
+    "noContent": "（没有正文）",
+    "more": "加载更多"
+  },
+  "adminNotify": {
+    "title": "发送通知",
+    "intro": "通知会出现在用户的通知列表里，正文支持 Markdown。发给多人时，之后注册的用户不会收到。",
+    "to": "发给",
+    "toAll": "所有用户",
+    "toUsers": "普通用户（不含管理员）",
+    "toUser": "指定用户",
+    "target": "用户 ID 或邮箱",
+    "targetHint": "例如 42 或 user@example.com",
+    "titleField": "标题",
+    "content": "正文",
+    "contentHint": "Markdown：**加粗**、[链接](https://…)、列表等；HTML 不会生效。",
+    "send": "发送",
+    "sentAll": "已发送，用户下次打开通知时就会看到。",
+    "sentOne": "已发送。",
+    "errors": {
+      "noUser": "没有这个用户。",
+      "title": "标题需要 1–64 个字。",
+      "content": "正文最多 10000 字。",
+      "failed": "发送失败，请稍后重试。"
     }
   }
 }

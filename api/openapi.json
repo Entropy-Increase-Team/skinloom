@@ -1,6 +1,329 @@
 {
   "components": {
     "schemas": {
+      "AdminGiveInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/AdminGiveInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "textureId": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "textureId"
+        ],
+        "type": "object"
+      },
+      "AdminOverview": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/AdminOverview.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "closetItems": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "days": {
+            "description": "The last 31 days, today last",
+            "items": {
+              "$ref": "#/components/schemas/OverviewDay"
+            },
+            "type": "array"
+          },
+          "files": {
+            "description": "Stored files; equal images share one",
+            "format": "int64",
+            "type": "integer"
+          },
+          "pendingReports": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "players": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "publicTextures": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "storageBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "textures": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "users": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "users",
+          "players",
+          "textures",
+          "publicTextures",
+          "closetItems",
+          "files",
+          "storageBytes",
+          "pendingReports",
+          "days"
+        ],
+        "type": "object"
+      },
+      "AdminPlayerPage": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/AdminPlayerPage.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "next": {
+            "description": "Pass as before= for the next page; 0 = last page",
+            "format": "int64",
+            "type": "integer"
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPlayerView"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "players",
+          "next"
+        ],
+        "type": "object"
+      },
+      "AdminPlayerView": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/AdminPlayerView.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "cape": {
+            "$ref": "#/components/schemas/WornTexture"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/AdminUserRef"
+          },
+          "skin": {
+            "$ref": "#/components/schemas/WornTexture"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "uuid": {
+            "description": "32 hex digits, no dashes",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "uuid",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "AdminReportPage": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/AdminReportPage.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "next": {
+            "description": "Pass as before= for the next page; 0 = last page",
+            "format": "int64",
+            "type": "integer"
+          },
+          "reports": {
+            "items": {
+              "$ref": "#/components/schemas/AdminReportView"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "reports",
+          "next"
+        ],
+        "type": "object"
+      },
+      "AdminReportView": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/AdminReportView.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "action": {
+            "enum": [
+              "delete",
+              "ban",
+              "reject",
+              ""
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "handledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "handler": {
+            "$ref": "#/components/schemas/AdminUserRef",
+            "description": "Absent for the admin token"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "reporter": {
+            "$ref": "#/components/schemas/AdminUserRef",
+            "description": "Absent once the account is gone"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "resolved",
+              "rejected"
+            ],
+            "type": "string"
+          },
+          "texture": {
+            "$ref": "#/components/schemas/TextureView",
+            "description": "Absent once the texture is deleted"
+          },
+          "uploader": {
+            "$ref": "#/components/schemas/AdminUserRef",
+            "description": "The texture's uploader when it was reported"
+          }
+        },
+        "required": [
+          "id",
+          "reason",
+          "status",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "AdminUpdatePlayerInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/AdminUpdatePlayerInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "userId": {
+            "description": "Give the player to this user; what their closet lacks comes off",
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "AdminUserRef": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "banned",
+              "deleted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nickname",
+          "email",
+          "status"
+        ],
+        "type": "object"
+      },
       "AdminUserView": {
         "additionalProperties": false,
         "properties": {
@@ -78,6 +401,33 @@
           "registerIp",
           "createdAt"
         ],
+        "type": "object"
+      },
+      "AdminWearInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/AdminWearInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "cape": {
+            "description": "Texture id from the owner's closet; 0 takes it off",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "skin": {
+            "description": "Texture id from the owner's closet; 0 takes it off",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
         "type": "object"
       },
       "Answer": {
@@ -466,6 +816,10 @@
             "description": "Markdown, in the request's language",
             "type": "string"
           },
+          "announcementHtml": {
+            "description": "The announcement rendered: no raw HTML, no script links",
+            "type": "string"
+          },
           "closetItems": {
             "format": "int64",
             "type": "integer"
@@ -757,6 +1111,29 @@
         },
         "type": "object"
       },
+      "MarkedRead": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/MarkedRead.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "count": {
+            "description": "How many were unread",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count"
+        ],
+        "type": "object"
+      },
       "MenuItem": {
         "additionalProperties": false,
         "properties": {
@@ -783,6 +1160,100 @@
           "title",
           "href",
           "order"
+        ],
+        "type": "object"
+      },
+      "NotificationPage": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/NotificationPage.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "next": {
+            "description": "Pass as before= for the next page; 0 = last page",
+            "format": "int64",
+            "type": "integer"
+          },
+          "notifications": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationView"
+            },
+            "type": "array"
+          },
+          "unread": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notifications",
+          "next",
+          "unread"
+        ],
+        "type": "object"
+      },
+      "NotificationView": {
+        "additionalProperties": false,
+        "properties": {
+          "announcement": {
+            "description": "A copy of a message sent to many users",
+            "type": "boolean"
+          },
+          "contentHtml": {
+            "description": "Rendered from Markdown: no raw HTML, no script links",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "read": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "contentHtml",
+          "read",
+          "announcement",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "OverviewDay": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "description": "YYYY-MM-DD",
+            "type": "string"
+          },
+          "registrations": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "uploads": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "registrations",
+          "uploads"
         ],
         "type": "object"
       },
@@ -1053,6 +1524,135 @@
         ],
         "type": "object"
       },
+      "ReportPage": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ReportPage.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "next": {
+            "description": "Pass as before= for the next page; 0 = last page",
+            "format": "int64",
+            "type": "integer"
+          },
+          "reports": {
+            "items": {
+              "$ref": "#/components/schemas/ReportView"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "reports",
+          "next"
+        ],
+        "type": "object"
+      },
+      "ReportTextureInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ReportTextureInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "reason": {
+            "description": "Up to 500 characters",
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "type": "object"
+      },
+      "ReportView": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "description": "What the reviewer did",
+            "enum": [
+              "delete",
+              "ban",
+              "reject",
+              ""
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "handledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "resolved",
+              "rejected"
+            ],
+            "type": "string"
+          },
+          "texture": {
+            "$ref": "#/components/schemas/TextureView",
+            "description": "Absent once the texture is deleted or no longer public"
+          }
+        },
+        "required": [
+          "id",
+          "reason",
+          "status",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "Reported": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/Reported.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "report": {
+            "$ref": "#/components/schemas/ReportView"
+          },
+          "score": {
+            "description": "Your score after score.reporter_modification",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "report",
+          "score"
+        ],
+        "type": "object"
+      },
       "ResetInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -1121,6 +1721,33 @@
         ],
         "type": "object"
       },
+      "ReviewReportInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ReviewReportInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "action": {
+            "description": "delete the texture, ban its uploader, or reject the report",
+            "enum": [
+              "delete",
+              "ban",
+              "reject"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      },
       "ScoreRates": {
         "additionalProperties": false,
         "properties": {
@@ -1142,13 +1769,105 @@
             "description": "Per KB of a private upload",
             "format": "int64",
             "type": "integer"
+          },
+          "reporterModification": {
+            "description": "Negative: a report costs this much; positive: earns it",
+            "format": "int64",
+            "type": "integer"
+          },
+          "reporterReward": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
           "perStorage",
           "privatePerStorage",
           "perClosetItem",
-          "awardPerTexture"
+          "awardPerTexture",
+          "reporterModification",
+          "reporterReward"
+        ],
+        "type": "object"
+      },
+      "SendNotificationInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/SendNotificationInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "content": {
+            "description": "Markdown, up to 10000 characters",
+            "maxLength": 40000,
+            "type": "string"
+          },
+          "email": {
+            "description": "For to=user: the user's address",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "title": {
+            "description": "Up to 64 characters",
+            "maxLength": 256,
+            "type": "string"
+          },
+          "to": {
+            "description": "all users, ordinary users (not administrators), or one user",
+            "enum": [
+              "all",
+              "users",
+              "user"
+            ],
+            "type": "string"
+          },
+          "userId": {
+            "description": "For to=user: the user's id, or give email",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "to",
+          "title",
+          "content"
+        ],
+        "type": "object"
+      },
+      "SentNotification": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/SentNotification.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "description": "announcement: delivered to each user as they next open their inbox",
+            "enum": [
+              "announcement",
+              "notification"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id"
         ],
         "type": "object"
       },
@@ -1203,6 +1922,30 @@
           "createdAt",
           "lastSeenAt",
           "current"
+        ],
+        "type": "object"
+      },
+      "SetAvatarInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/SetAvatarInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "textureId": {
+            "description": "A skin you can see; 0 removes the avatar",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "textureId"
         ],
         "type": "object"
       },
@@ -1410,6 +2153,9 @@
             "description": "Markdown",
             "type": "string"
           },
+          "announcementHtml": {
+            "type": "string"
+          },
           "description": {
             "type": "string"
           },
@@ -1425,7 +2171,8 @@
           "name",
           "description",
           "url",
-          "announcement"
+          "announcement",
+          "announcementHtml"
         ],
         "type": "object"
       },
@@ -1736,6 +2483,28 @@
         ],
         "type": "object"
       },
+      "UnreadCount": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/UnreadCount.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "unread": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "unread"
+        ],
+        "type": "object"
+      },
       "UpdateMeInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -1942,6 +2711,11 @@
             "format": "uri",
             "readOnly": true,
             "type": "string"
+          },
+          "avatarTextureId": {
+            "description": "The skin whose head is the avatar, /avatar/user/{id}",
+            "format": "int64",
+            "type": "integer"
           },
           "createdAt": {
             "format": "date-time",
@@ -2235,6 +3009,554 @@
           }
         ],
         "summary": "Send a test email with the current mail settings",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/notifications": {
+      "post": {
+        "description": "to=all or users writes one announcement, which each user receives when they next open their inbox (users who register later do not get it); to=user sends to one user, by userId or email.",
+        "operationId": "sendNotification",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendNotificationInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentNotification"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Send a notification",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/overview": {
+      "get": {
+        "operationId": "getOverview",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOverview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Site totals and the last 31 days",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/players": {
+      "get": {
+        "operationId": "adminListPlayers",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Player id, UUID, or the start of a name",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Player id, UUID, or the start of a name",
+              "maxLength": 64,
+              "type": "string"
+            }
+          },
+          {
+            "description": "One owner's players",
+            "explode": false,
+            "in": "query",
+            "name": "user",
+            "schema": {
+              "description": "One owner's players",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPlayerPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "List players",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/players/{id}": {
+      "delete": {
+        "operationId": "adminDeletePlayer",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Delete a player",
+        "tags": [
+          "admin"
+        ]
+      },
+      "patch": {
+        "operationId": "adminUpdatePlayer",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminUpdatePlayerInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPlayerView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Rename a player or give it to another user",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/players/{id}/textures": {
+      "put": {
+        "operationId": "adminWearPlayer",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminWearInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPlayerView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Set what a player wears",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/reports": {
+      "get": {
+        "operationId": "listReports",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "pending",
+                "resolved",
+                "rejected",
+                ""
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReportPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "The review queue, newest first",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/reports/{id}/review": {
+      "post": {
+        "description": "delete deletes the texture (closets refunded as score.return_on_delete says); ban bans the uploader, if you may manage them. Both give the reporter back a charge and score.reporter_reward; reject takes a submit reward back.",
+        "operationId": "reviewReport",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewReportInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReportView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Uphold or reject a report",
         "tags": [
           "admin"
         ]
@@ -2691,6 +4013,243 @@
         ]
       }
     },
+    "/api/v1/admin/users/{id}/closet": {
+      "get": {
+        "operationId": "adminListCloset",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "enum": [
+                "skin",
+                "cape",
+                ""
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "maxLength": 50,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosetPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "A user's closet",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "adminAddToCloset",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminGiveInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosetItemView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Put a texture in a user's closet, free",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{id}/closet/{textureId}": {
+      "delete": {
+        "operationId": "adminRemoveFromCloset",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "textureId",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unfavorited"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Take a texture out of a user's closet",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/auth/email/resend": {
       "post": {
         "operationId": "resendVerification",
@@ -3116,6 +4675,45 @@
         ]
       }
     },
+    "/api/v1/me/avatar": {
+      "put": {
+        "operationId": "setAvatar",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAvatarInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Choose a skin whose head is your avatar",
+        "tags": [
+          "me"
+        ]
+      }
+    },
     "/api/v1/me/closet": {
       "get": {
         "operationId": "listCloset",
@@ -3473,6 +5071,187 @@
         ]
       }
     },
+    "/api/v1/me/notifications": {
+      "get": {
+        "operationId": "listNotifications",
+        "parameters": [
+          {
+            "description": "Only unread ones",
+            "explode": false,
+            "in": "query",
+            "name": "unread",
+            "schema": {
+              "description": "Only unread ones",
+              "type": "boolean"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Your notifications, newest first",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/api/v1/me/notifications/read-all": {
+      "post": {
+        "operationId": "readAllNotifications",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkedRead"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Mark every notification read",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/api/v1/me/notifications/unread": {
+      "get": {
+        "operationId": "countUnreadNotifications",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCount"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "How many notifications are unread",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/api/v1/me/notifications/{id}/read": {
+      "post": {
+        "operationId": "readNotification",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Mark a notification read",
+        "tags": [
+          "me"
+        ]
+      }
+    },
     "/api/v1/me/password": {
       "post": {
         "operationId": "changePassword",
@@ -3751,6 +5530,65 @@
         "summary": "Choose what a player wears",
         "tags": [
           "players"
+        ]
+      }
+    },
+    "/api/v1/me/reports": {
+      "get": {
+        "operationId": "listMyReports",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Your reports, newest first",
+        "tags": [
+          "reports"
         ]
       }
     },
@@ -4450,6 +6288,63 @@
         "summary": "Change a texture (its uploader or an administrator)",
         "tags": [
           "textures"
+        ]
+      }
+    },
+    "/api/v1/textures/{id}/reports": {
+      "post": {
+        "operationId": "reportTexture",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportTextureInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reported"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Report a texture",
+        "tags": [
+          "reports"
         ]
       }
     }

@@ -20,11 +20,14 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/buildinfo"
 	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
 	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
+	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/httpx"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/realip"
 	"github.com/Entropy-Increase-Team/skinloom/internal/player"
 	"github.com/Entropy-Increase-Team/skinloom/internal/pubsub"
+	"github.com/Entropy-Increase-Team/skinloom/internal/render"
+	"github.com/Entropy-Increase-Team/skinloom/internal/report"
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
 	"github.com/Entropy-Increase-Team/skinloom/internal/theme"
@@ -42,6 +45,9 @@ type Deps struct {
 	Mailer   *mail.Mailer
 	Textures *texture.Service
 	Players  *player.Service
+	Reports  *report.Service
+	Renders  *render.Service
+	Notify   *notify.Service
 	// ClientInfo resolves the client address and public host behind trusted proxies
 	// (the gateway's live resolver). Nil = trust no proxy.
 	ClientInfo func(*http.Request) realip.Info
@@ -95,8 +101,12 @@ func New(d Deps) (http.Handler, huma.API) {
 	registerTextures(api, d)
 	registerPlayers(api, d)
 	registerManage(api, d)
+	registerReports(api, d)
+	registerAdminPlayers(api, d)
+	registerNotifications(api, d)
 	mountFiles(r, d)
 	mountGame(r, d)
+	mountRender(r, d)
 
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok")) })
 	r.Get("/readyz", func(w http.ResponseWriter, req *http.Request) {

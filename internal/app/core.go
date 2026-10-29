@@ -20,10 +20,13 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/jobs"
 	"github.com/Entropy-Increase-Team/skinloom/internal/logging"
 	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
+	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/player"
 	"github.com/Entropy-Increase-Team/skinloom/internal/pubsub"
+	"github.com/Entropy-Increase-Team/skinloom/internal/render"
+	"github.com/Entropy-Increase-Team/skinloom/internal/report"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
@@ -72,6 +75,9 @@ type Core struct {
 	Jobs     *jobs.Queue
 	Textures *texture.Service
 	Players  *player.Service
+	Reports  *report.Service
+	Renders  *render.Service
+	Notify   *notify.Service
 	// FreshConfig is true when this start wrote the default config file.
 	FreshConfig bool
 }
@@ -114,7 +120,7 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 		database.Close()
 		return nil, fmt.Errorf("load built-in themes: %w", err)
 	}
-	store, err := storage.NewLocal(cfg.Storage.Dir(p.DataDir))
+	store, err := openStore(ctx, cfg.Storage, p.DataDir)
 	if err != nil {
 		database.Close()
 		return nil, err
@@ -142,6 +148,9 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 		Textures: texture.NewService(database.Ent, store, log.With("component", "texture")),
 		Players:  player.NewService(database.Ent, log.With("component", "player")),
 	}
+	c.Reports = report.NewService(database.Ent, c.Textures, log.With("component", "report"))
+	c.Renders = render.NewService(4, 64<<20) // 4 renders at once, 64 MiB of results
+	c.Notify = notify.NewService(database.Ent, log.With("component", "notify"))
 	c.Jobs.Register(account.MailJobKind, c.sendMail)
 	c.Accounts.SetJobNotifier(c.Jobs.Kick)
 	c.Jobs.Register(texture.SweepJobKind, c.Textures.HandleSweepJob)
@@ -181,4 +190,14 @@ func (c *Core) SetupLink(ctx context.Context, base string) (string, error) {
 func (c *Core) Close(ctx context.Context) {
 	c.Bus.Close(ctx)
 	_ = c.DB.Close()
+}
+
+// openStore opens the texture store the config names.
+func openStore(ctx context.Context, c config.Storage, dataDir string) (storage.Store, error) {
+	if c.Driver == "s3" {
+		return storage.NewS3(ctx, storage.S3Options{Endpoint: c.Endpoint, Bucket: c.Bucket, Region: c.Region,
+			AccessKey: c.AccessKey, SecretKey: c.SecretKey, Prefix: c.Prefix, Insecure: c.Insecure,
+			PathStyle: c.PathStyle, PublicURL: c.PublicURL})
+	}
+	return storage.NewLocal(c.Dir(dataDir))
 }

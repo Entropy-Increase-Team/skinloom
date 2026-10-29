@@ -97,6 +97,15 @@ func (s *Service) GetUser(ctx context.Context, id int64) (*ent.User, error) {
 	return u, err
 }
 
+// GetUserByEmail returns the user with this address (compared as stored: normalized).
+func (s *Service) GetUserByEmail(ctx context.Context, email string) (*ent.User, error) {
+	u, err := s.db.User.Query().Where(user.EmailNormalized(NormalizeEmail(email))).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, ErrNotFound
+	}
+	return u, err
+}
+
 // AdminUpdate changes the fields that are set.
 type AdminUpdate struct {
 	Nickname      *string
@@ -125,6 +134,21 @@ func mayManage(a Actor, target *ent.User, up AdminUpdate) error {
 		return fmt.Errorf("%w: you cannot change your own role or status", ErrForbidden)
 	}
 	return nil
+}
+
+// MayManageOwned returns the user whose things (players, closet) a wants to change, if
+// a may: their own things, or those of a user a may manage (administrators manage
+// ordinary users, super administrators everyone, as Blessing Skin's player
+// management did).
+func (s *Service) MayManageOwned(ctx context.Context, a Actor, ownerID int64) (*ent.User, error) {
+	owner, err := s.GetUser(ctx, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	if a != nil && a.User.ID == owner.ID {
+		return owner, nil
+	}
+	return owner, mayManage(a, owner, AdminUpdate{})
 }
 
 // AdminUpdateUser applies an administrator's change. Banning a user or setting their

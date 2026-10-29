@@ -42,10 +42,21 @@ type Config struct {
 
 // Storage is where texture files live.
 type Storage struct {
-	// Driver: local (S3-compatible stores arrive later in M2). Cold.
+	// Driver: local | s3 (any S3-compatible service). Cold.
 	Driver string `koanf:"driver"`
 	// Path of the local store: absolute, or relative to the data dir. Cold.
 	Path string `koanf:"path"`
+	// The S3 store. Keep secret_key out of config.toml if you can: set
+	// SKINLOOM_STORAGE__SECRET_KEY instead. Cold.
+	Endpoint  string `koanf:"endpoint"` // host[:port], e.g. oss-cn-hangzhou.aliyuncs.com
+	Bucket    string `koanf:"bucket"`
+	Region    string `koanf:"region"`
+	AccessKey string `koanf:"access_key"`
+	SecretKey string `koanf:"secret_key"`
+	Prefix    string `koanf:"prefix"`     // inside the bucket, e.g. "textures/"
+	Insecure  bool   `koanf:"insecure"`   // plain HTTP, e.g. a MinIO on the same host
+	PathStyle bool   `koanf:"path_style"` // bucket in the path (MinIO and most self-hosted stores)
+	PublicURL string `koanf:"public_url"` // a CDN or public bucket URL: texture files redirect there
 }
 
 // Dir is the local store's directory for a data dir.
@@ -173,9 +184,18 @@ func (c Config) Validate() error {
 			return errors.New("storage.path is required for the local driver")
 		}
 	case "s3":
-		return errors.New(`storage.driver "s3" arrives later in M2; use local`)
+		s := c.Storage
+		if s.Endpoint == "" || s.Bucket == "" || s.AccessKey == "" || s.SecretKey == "" {
+			return errors.New("storage.endpoint, storage.bucket, storage.access_key and storage.secret_key are required for the s3 driver")
+		}
+		if strings.Contains(s.Endpoint, "://") {
+			return errors.New("storage.endpoint is a host name (and port), without http:// or https:// (set storage.insecure for plain HTTP)")
+		}
+		if s.PublicURL != "" && !strings.HasPrefix(s.PublicURL, "https://") && !strings.HasPrefix(s.PublicURL, "http://") {
+			return errors.New("storage.public_url must start with https:// or http://")
+		}
 	default:
-		return fmt.Errorf("storage.driver must be local, got %q", c.Storage.Driver)
+		return fmt.Errorf("storage.driver must be local or s3, got %q", c.Storage.Driver)
 	}
 	if c.Web.Port < 0 || c.Web.Port > 65535 {
 		return fmt.Errorf("web.port must be 0-65535, got %d", c.Web.Port)
@@ -271,8 +291,11 @@ dsn = "skinloom.db"       # [cold] sqlite: path relative to the data dir
                           #        postgres: postgres://user:pass@127.0.0.1:5432/skinloom
 
 [storage]
-driver = "local"          # [cold] local (S3-compatible stores arrive later)
-path = "textures"         # [cold] texture files: absolute, or relative to the data dir
+driver = "local"          # [cold] local | s3 (Amazon S3, Aliyun OSS, Tencent COS, Qiniu, R2, MinIO...)
+path = "textures"         # [cold] local: texture files, absolute or relative to the data dir
+# s3: endpoint = "oss-cn-hangzhou.aliyuncs.com", bucket, region, access_key, prefix = "textures/",
+#     path_style (MinIO), insecure (plain HTTP), public_url (a CDN: texture files redirect there).
+#     Keep the secret out of this file: SKINLOOM_STORAGE__SECRET_KEY=...
 
 [web]
 mode = "managed"          # [hot] managed | dev | external | off

@@ -41,11 +41,7 @@ func SignPolicyFrom(s *settings.Snapshot) SignPolicy {
 	if p.Max < p.Min {
 		p.Min, p.Max = p.Max, p.Min
 	}
-	loc, err := time.LoadLocation(s.String("site.timezone"))
-	if err != nil {
-		loc = time.UTC
-	}
-	p.Location = loc
+	p.Location = settings.Location(s)
 	return p
 }
 
@@ -70,7 +66,10 @@ func SignIn(ctx context.Context, db *ent.Client, userID int64, p SignPolicy, now
 	cutoff := now.Add(-p.Gap)
 	if p.Daily {
 		y, m, d := now.In(p.Location).Date()
-		cutoff = time.Date(y, m, d, 0, 0, 0, 0, p.Location).Add(-time.Nanosecond)
+		// In now's zone, the zone last_sign_at is written in: SQLite stores times as text
+		// with their offset and compares the text, which orders correctly only within
+		// one zone (the site's need not be the server's).
+		cutoff = time.Date(y, m, d, 0, 0, 0, 0, p.Location).Add(-time.Nanosecond).In(now.Location())
 	}
 	gained := p.Min
 	if p.Max > p.Min {

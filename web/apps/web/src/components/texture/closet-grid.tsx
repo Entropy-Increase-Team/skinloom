@@ -1,9 +1,10 @@
 'use client'
 
-import { type ClosetItemView, type ClosetPage, listCloset, removeFromCloset, renameClosetItem, type Unfavorited } from '@skinloom/api-client'
+import { type ClosetItemView, type ClosetPage, listCloset, removeFromCloset, renameClosetItem, setAvatar, type Unfavorited } from '@skinloom/api-client'
 import { Button, Input } from '@skinloom/ui'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, UserRound } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 
@@ -14,6 +15,7 @@ type Category = 'skin' | 'cape'
 /** The signed-in user's closet: skins or capes, searchable by item name. */
 export function ClosetGrid() {
   const t = useTranslations('closet')
+  const router = useRouter()
   const [category, setCategory] = useState<Category>('skin')
   const [query, setQuery] = useState('')
   const [items, setItems] = useState<ClosetItemView[] | null>(null)
@@ -76,6 +78,20 @@ export function ClosetGrid() {
     })
   }
 
+  async function chooseAvatar(item: ClosetItemView) {
+    setBusy(item.texture.id)
+    setNotice(null)
+    try {
+      await setAvatar({ textureId: item.texture.id })
+      setNotice({ error: false, text: t('avatarSet', { name: item.name }) })
+      router.refresh() // the header shows the new avatar
+    } catch {
+      setNotice({ error: true, text: t('changeFailed') })
+    } finally {
+      setBusy(0)
+    }
+  }
+
   function onSearch(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setQuery(String(new FormData(e.currentTarget).get('q') ?? '').trim())
@@ -123,6 +139,11 @@ export function ClosetGrid() {
             <div key={it.id} className="flex flex-col gap-1">
               <TextureCard texture={it.texture} title={it.name} />
               <div className="flex justify-end gap-1">
+                {it.texture.type !== 'cape' && (
+                  <Button variant="ghost" size="icon" title={t('useAsAvatar')} aria-label={t('useAsAvatar')} disabled={busy === it.texture.id} onClick={() => void chooseAvatar(it)}>
+                    <UserRound />
+                  </Button>
+                )}
                 <Button variant="ghost" size="icon" title={t('rename')} aria-label={t('rename')} disabled={busy === it.texture.id} onClick={() => rename(it)}>
                   <Pencil />
                 </Button>

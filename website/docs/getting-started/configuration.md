@@ -27,8 +27,8 @@ driver = "sqlite"         # [cold] sqlite | mysql | postgres
 dsn = "skinloom.db"       # [cold]
 
 [storage]
-driver = "local"          # [cold] local（S3 兼容存储将在 M2 后续部分支持）
-path = "textures"         # [cold] 材质文件目录，相对数据目录
+driver = "local"          # [cold] local | s3（S3 兼容的对象存储）
+path = "textures"         # [cold] local：材质文件目录，相对数据目录
 
 [web]
 mode = "managed"          # [hot]  managed | dev | external | off
@@ -46,6 +46,29 @@ format = "text"           # [hot]  text | json
 - 文件写错时，SkinLoom 会保留正在运行的配置并在日志里报错，不会把站点弄挂。
 - 改了冷键会在日志中提示"需要重启才能生效"。
 - 拼错的键（例如 `lisen`、`[databse]`）会在启动和热加载时告警，不会被悄悄忽略。
+
+### 对象存储（S3 兼容）
+
+材质文件可以放在任何 S3 兼容的对象存储里：Amazon S3、阿里云 OSS、腾讯云 COS、七牛 Kodo、Cloudflare R2、MinIO 等。
+
+```toml
+[storage]
+driver = "s3"
+endpoint = "oss-cn-hangzhou.aliyuncs.com"   # 主机名（和端口），不带 https://
+bucket = "my-skins"
+region = "cn-hangzhou"                       # 部分服务需要；不填由客户端自动探测
+access_key = "LTAI..."
+prefix = "textures/"                         # 桶内的目录，可以留空
+path_style = false                           # MinIO 和多数自建服务设为 true
+insecure = false                             # 同一台机器上的 MinIO 用纯 HTTP 时设为 true
+public_url = "https://cdn.example.com"       # 可选：桶的公开地址或 CDN，材质文件直接跳转过去
+```
+
+- 密钥不要写进 `config.toml`，用环境变量 `SKINLOOM_STORAGE__SECRET_KEY` 传入。
+- 启动时会检查存储桶是否存在，填错的地址或密钥在启动时就会报错，不会等到第一次上传。
+- 设置了 `public_url` 时，`/textures/<哈希>` 会跳转到 `public_url/前缀/哈希`，文件直接由 CDN 发给客户端，不经过 SkinLoom；没有设置时由 SkinLoom 转发（支持断点续传）。CDN 要能读到桶里的对象（公共读，或用回源鉴权）。
+- 从本地存储迁移到对象存储：把数据目录下 `textures/` 里的文件原样上传到桶的 `prefix` 下（文件名就是哈希），再改配置重启。
+- 头像和预览图在内存里缓存渲染结果，不写进存储。
 
 ### 数据库连接串
 
@@ -103,6 +126,8 @@ skinloom settings set site.name null                    # 恢复默认
 | `score.per_closet_item` | `0` | 每个衣柜条目消耗的积分（上传的材质也会进衣柜） |
 | `score.award_per_texture` | `0` | 上传公开材质奖励的积分 |
 | `score.award_per_like` | `0` | 材质被别人收藏时上传者获得的积分（取消收藏时收回） |
+| `score.reporter_modification` | `0` | 提交举报时的积分变化：负数为举报费（举报成立后退还），正数为奖励（被驳回时收回） |
+| `score.reporter_reward` | `0` | 举报成立（材质被删除或上传者被封禁）时举报者获得的积分 |
 | `score.sign_min` / `score.sign_max` | `10` / `100` | 签到随机获得的积分范围 |
 | `score.sign_gap_hours` | `24` | 两次签到至少间隔几小时（1–8760） |
 | `score.sign_daily` | `false` | 开启后改为每天签到一次，按 `site.timezone` 的零点刷新（忽略间隔） |

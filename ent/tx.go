@@ -14,6 +14,8 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// Announcement is the client for interacting with the Announcement builders.
+	Announcement *AnnouncementClient
 	// AuditLog is the client for interacting with the AuditLog builders.
 	AuditLog *AuditLogClient
 	// AuthToken is the client for interacting with the AuthToken builders.
@@ -24,8 +26,12 @@ type Tx struct {
 	ClosetItem *ClosetItemClient
 	// Job is the client for interacting with the Job builders.
 	Job *JobClient
+	// Notification is the client for interacting with the Notification builders.
+	Notification *NotificationClient
 	// Player is the client for interacting with the Player builders.
 	Player *PlayerClient
+	// Report is the client for interacting with the Report builders.
+	Report *ReportClient
 	// ScoreEntry is the client for interacting with the ScoreEntry builders.
 	ScoreEntry *ScoreEntryClient
 	// Session is the client for interacting with the Session builders.
@@ -169,12 +175,15 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.Announcement = NewAnnouncementClient(tx.config)
 	tx.AuditLog = NewAuditLogClient(tx.config)
 	tx.AuthToken = NewAuthTokenClient(tx.config)
 	tx.Blob = NewBlobClient(tx.config)
 	tx.ClosetItem = NewClosetItemClient(tx.config)
 	tx.Job = NewJobClient(tx.config)
+	tx.Notification = NewNotificationClient(tx.config)
 	tx.Player = NewPlayerClient(tx.config)
+	tx.Report = NewReportClient(tx.config)
 	tx.ScoreEntry = NewScoreEntryClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)
 	tx.Setting = NewSettingClient(tx.config)
@@ -190,7 +199,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: AuditLog.QueryXXX(), the query will be executed
+// applies a query, for example: Announcement.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

@@ -4,6 +4,39 @@
 
 ## [Unreleased]
 
+### 新增（M2 材质与角色 · 第五部分：渲染器、站内通知与 S3 存储；M2 完成）
+- **头像与预览图**：`/avatar/player/{角色名}`、`/avatar/user/{用户 ID}`、`/avatar/{材质编号}`、`/avatar/hash/{哈希}`、`/preview/{材质编号}`、`/preview/hash/{哈希}`，地址与 Blessing Skin 相同。头像支持 `size` 和立体的 `3d`，预览图是皮肤正背面并排或披风；默认无损 WebP，`?png` 或客户端不支持时输出 PNG。像素保持清晰（BS 会插值模糊），旧版 64×32 皮肤按 Minecraft 的方式补出左手左腿。
+- **头像**：衣柜里的皮肤可以"设为头像"，页头与个人资料页显示；个人资料页可以移除。接口 `PUT /api/v1/me/avatar`。
+- **站内通知**：页头铃铛显示未读数，`/user/notifications` 查看，点开即已读、可全部标为已读；正文支持 Markdown。管理员在后台概览发送给所有用户、普通用户或某一个用户（按 ID 或邮箱）。接口 `GET /api/v1/me/notifications`、`GET /api/v1/me/notifications/unread`、`POST /api/v1/me/notifications/{id}/read`、`POST /api/v1/me/notifications/read-all`、`POST /api/v1/admin/notifications`。
+- **公告按 Markdown 显示**：首页与用户中心的站点公告渲染为 HTML（站点信息与用户中心接口新增 `announcementHtml`）。
+- **S3 兼容存储**：`[storage] driver = "s3"`，支持 Amazon S3、阿里云 OSS、腾讯云 COS、七牛、Cloudflare R2、MinIO 等；可设置 `public_url`，让材质文件直接由 CDN 发出。
+- **链接预览**：公开材质页带 `og:image`（预览图），需要设置 `site.url`。
+- 数据库新增 `announcements`、`notifications` 表，`users` 新增 `avatar_texture_id`、`announcements_seen`（迁移 `20261024112658_notifications_avatars`）。ADR 0021。至此 M2（材质与角色）全部完成。
+
+### 安全与正确性（M2 第五部分）
+- 头像与预览图的尺寸取固定档位，缓存键包含所有参数（修 Blessing Skin C14：预览图缓存键漏了高度）；取决于访问者的响应（私有材质）标记为 `private`，不会被 CDN 缓存后发给别人。
+- 头像所用的皮肤之后变成别人的私有材质时，头像显示灰色占位图，不泄露材质。
+- Markdown 在服务端渲染：原始 HTML 不输出，`javascript:` 链接被丢弃。
+- 读不存在或别人的通知返回 404（修 C15：BS 直接 500）。群发只写一条公告，不再给每个用户各写一行。
+- 防止 SQLite 迁移误删数据：Atlas 为 SQLite 生成的"重建表"迁移在事务中执行时会级联删除子表数据，本次改为 `ADD COLUMN`，并新增测试阻止以后出现此类迁移。
+- 依赖：`golang.org/x/net` 升到 v0.62.0（GO-2026-6866、GO-2026-6860；代码未调用到受影响的部分）。
+
+### 新增（M2 材质与角色 · 第四部分：举报、后台概览与后台角色管理）
+- **举报**：材质页的"举报"填写理由后提交给管理员（`score.reporter_modification` 为负数时收取举报费、成立后退还，为正数时直接奖励）。在用户中心的"我的举报" `/user/reports` 查看处理结果。接口 `POST /api/v1/textures/{id}/reports`、`GET /api/v1/me/reports`。
+- **后台举报管理** `/admin/reports`：按状态查看，删除材质、封禁上传者或驳回；举报成立时举报者获得 `score.reporter_reward`。接口 `GET /api/v1/admin/reports`、`POST /api/v1/admin/reports/{id}/review`。
+- **后台概览** `/admin`：用户、角色、材质、衣柜条目、存储、待处理举报的总数，以及最近 31 天每天的注册与上传柱状图（可切换为表格）。接口 `GET /api/v1/admin/overview`。
+- **后台角色管理** `/admin/players`：按角色名开头、UUID 或 ID 搜索，查看某个用户的全部角色（用户管理里每行有入口）；改名、转移给其他用户、换皮肤与披风、删除。接口 `GET /api/v1/admin/players`、`PATCH/DELETE /api/v1/admin/players/{id}`、`PUT /api/v1/admin/players/{id}/textures`。
+- **后台衣柜管理接口**：`GET/POST /api/v1/admin/users/{id}/closet`、`DELETE /api/v1/admin/users/{id}/closet/{textureId}`，管理员放进去的材质免费。
+- 后台导航增加"概览""角色""举报"，页头的管理员徽章进入概览。新设置 `score.reporter_modification`、`score.reporter_reward`；数据库新增 `reports` 表与 `users`、`textures` 的 `created_at` 索引（迁移 `20261024100910_reports`）。ADR 0020。
+
+### 安全与正确性（M2 第四部分）
+- 修复：站点把衣柜条目改为免费后，同一用户反复收藏、取消同一个材质，每次都会再退还一次早已退过的旧收藏费（被收藏奖励同理会被重复收回）。现在每个衣柜条目只结算它自己的费用。
+- 举报只能针对自己看得见的材质，不能举报自己的；同一材质只能举报一次，同时提交多次也只算一次；每人每小时最多 20 次。
+- 举报处理"删除材质"走统一的删除流程，与结案在同一个事务里：收藏者退费，同一文件的其它材质不受影响（修 Blessing Skin C06）。同一材质的其它待处理举报一并结案，只有被处理的那一条获得奖励。
+- 两名管理员同时处理同一条举报，只有一个生效；封禁上传者遵守"管理员只能管理普通用户"的规则，没有权限时举报保持待处理。
+- 后台给角色换材质同样校验类型、只能用主人衣柜里的材质（修 C07）；转移角色后，新主人衣柜里没有的材质自动脱下。
+- 后台概览在数据库里计数，日界按站点时区计算，不再把一个月的记录读进内存。
+
 ### 新增（M2 材质与角色 · 第三部分：收藏、材质编辑、签到与用户中心）
 - **收藏**：材质页的"收藏"把材质加入衣柜（消耗 `score.per_closet_item`，上传者得 `score.award_per_like`），"取消收藏"移出并退还。我的衣柜里可以给材质改一个自己的名字，或移出衣柜（显示退还的积分）。接口 `POST /api/v1/me/closet`、`PATCH/DELETE /api/v1/me/closet/{textureId}`。
 - **管理材质**（上传者与管理员，在材质页）：改名、改类型、设为公开 / 私有（提前显示要付或退还的积分）、删除。接口 `PATCH/DELETE /api/v1/textures/{id}`；管理员的修改与删除记入审计日志。

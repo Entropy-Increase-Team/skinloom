@@ -43,6 +43,8 @@ const (
 	EdgeSkinPlayers = "skin_players"
 	// EdgeCapePlayers holds the string denoting the cape_players edge name in mutations.
 	EdgeCapePlayers = "cape_players"
+	// EdgeReports holds the string denoting the reports edge name in mutations.
+	EdgeReports = "reports"
 	// BlobFieldID holds the string denoting the ID field of the Blob.
 	BlobFieldID = "hash"
 	// Table holds the table name of the texture in the database.
@@ -82,6 +84,13 @@ const (
 	CapePlayersInverseTable = "players"
 	// CapePlayersColumn is the table column denoting the cape_players relation/edge.
 	CapePlayersColumn = "cape_id"
+	// ReportsTable is the table that holds the reports relation/edge.
+	ReportsTable = "reports"
+	// ReportsInverseTable is the table name for the Report entity.
+	// It exists in this package in order to avoid circular dependency with the "report" package.
+	ReportsInverseTable = "reports"
+	// ReportsColumn is the table column denoting the reports relation/edge.
+	ReportsColumn = "texture_id"
 )
 
 // Columns holds all SQL columns for texture fields.
@@ -281,6 +290,20 @@ func ByCapePlayers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newCapePlayersStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByReportsCount orders the results by reports count.
+func ByReportsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newReportsStep(), opts...)
+	}
+}
+
+// ByReports orders the results by reports terms.
+func ByReports(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newReportsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newBlobStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -314,5 +337,12 @@ func newCapePlayersStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CapePlayersInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, CapePlayersTable, CapePlayersColumn),
+	)
+}
+func newReportsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ReportsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ReportsTable, ReportsColumn),
 	)
 }

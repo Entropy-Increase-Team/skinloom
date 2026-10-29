@@ -264,7 +264,12 @@
     "errors": {
       "tooMany": "Too many wrong passwords. Try again later.",
       "failed": "Something went wrong. Check your connection and try again."
-    }
+    },
+    "avatar": "Avatar",
+    "avatarHint": "Your avatar is the head of a skin in your closet.",
+    "chooseAvatar": "Choose in the closet",
+    "removeAvatar": "Remove avatar",
+    "avatarRemoved": "Avatar removed."
   },
   "admin": {
     "title": "Admin",
@@ -320,7 +325,11 @@
     "errors": {
       "load": "Loading failed. Reload to try again.",
       "save": "Saving failed."
-    }
+    },
+    "overview": "Overview",
+    "players": "Players",
+    "reports": "Reports",
+    "playersOf": "Players"
   },
   "texture": {
     "private": "Private",
@@ -361,6 +370,24 @@
       "shape": "An image of this size cannot be used as that type.",
       "name": "The name does not follow the site’s naming rule.",
       "failed": "Something went wrong. Please try again."
+    },
+    "report": {
+      "open": "Report",
+      "reason": "Reason",
+      "placeholder": "For example: someone else’s work, inappropriate content…",
+      "cost": "Reporting costs {score} score, refunded if the report is upheld.",
+      "earn": "Reporting earns {score} score (taken back if it is rejected).",
+      "reward": "An upheld report earns {score} more.",
+      "submit": "Send report",
+      "cancel": "Cancel",
+      "sent": "Sent. An administrator will look at it soon.",
+      "mine": "My reports",
+      "errors": {
+        "score": "Not enough score.",
+        "own": "You cannot report your own texture.",
+        "tooMany": "Too many reports; try again later.",
+        "failed": "Could not send. Please try again."
+      }
     }
   },
   "upload": {
@@ -407,7 +434,9 @@
     "removeConfirm": "Remove “{name}” from your closet? Players wearing it take it off.",
     "removed": "Removed from your closet.",
     "removedRefund": "Removed from your closet; {score} score refunded.",
-    "changeFailed": "Something went wrong. Please try again."
+    "changeFailed": "Something went wrong. Please try again.",
+    "useAsAvatar": "Use as avatar",
+    "avatarSet": "“{name}” is now your avatar."
   },
   "player": {
     "title": "Players",
@@ -482,7 +511,148 @@
       "closet": "My closet",
       "upload": "Upload a texture",
       "skinlib": "Browse the skin library",
-      "profile": "Profile"
+      "profile": "Profile",
+      "reports": "My reports"
+    }
+  },
+  "adminOverview": {
+    "loadFailed": "Could not load. Please refresh.",
+    "users": "Users",
+    "players": "Players",
+    "textures": "Textures",
+    "publicTextures": "{count} public",
+    "closetItems": "Closet items",
+    "storage": "Storage",
+    "files": "{count} files",
+    "pendingReports": "Pending reports",
+    "review": "Review",
+    "registrations": "Registrations per day",
+    "uploads": "Uploads per day",
+    "total": "{count} in the last 31 days",
+    "table": "Show as a table"
+  },
+  "adminReports": {
+    "status": {
+      "pending": "Pending",
+      "resolved": "Resolved",
+      "rejected": "Rejected",
+      "all": "All"
+    },
+    "action": {
+      "delete": "texture deleted",
+      "ban": "uploader banned",
+      "reject": "rejected"
+    },
+    "do": {
+      "delete": "Delete texture",
+      "ban": "Ban uploader",
+      "reject": "Reject",
+      "resolve": "Mark resolved"
+    },
+    "confirm": {
+      "delete": "Delete the texture “{name}”? Users who added it get their score back. This cannot be undone.",
+      "ban": "Ban the uploader {uploader}? They are signed out everywhere."
+    },
+    "errors": {
+      "load": "Could not load. Please refresh.",
+      "forbidden": "You may not do this (administrators manage ordinary users only).",
+      "reviewed": "This report has been reviewed already.",
+      "failed": "Something went wrong. Please try again."
+    },
+    "empty": "No reports.",
+    "textureGone": "Texture deleted",
+    "private": "Private",
+    "meta": "Reported by {reporter} · uploaded by {uploader} · {time}",
+    "handled": "Handled by {handler} at {time}",
+    "deletedUser": "deleted user",
+    "token": "the admin token",
+    "more": "Load more"
+  },
+  "adminPlayers": {
+    "search": "Search",
+    "searchHint": "Start of a name, UUID or id",
+    "ofUser": "Players of user #{id}",
+    "name": "Player",
+    "owner": "Owner",
+    "skin": "Skin",
+    "cape": "Cape",
+    "updated": "Updated",
+    "empty": "No players.",
+    "more": "Load more",
+    "edit": "Edit",
+    "close": "Close",
+    "save": "Save",
+    "delete": "Delete player",
+    "deleteConfirm": "Delete the player {name}? This cannot be undone.",
+    "editHint": "Owner is a user id; skin and cape are texture ids (empty: none) from the owner’s closet. After a change of owner, what the new owner’s closet lacks comes off.",
+    "fields": {
+      "name": "Name",
+      "owner": "Owner user id",
+      "skin": "Skin texture id",
+      "cape": "Cape texture id"
+    },
+    "errors": {
+      "load": "Could not load. Please refresh.",
+      "forbidden": "You may not manage this user’s players.",
+      "taken": "That name is taken.",
+      "name": "The name does not follow the site’s rule.",
+      "owner": "There is no such user.",
+      "texture": "The texture does not exist, is of the wrong kind, or is not in the owner’s closet.",
+      "save": "Could not save."
+    }
+  },
+  "myReports": {
+    "title": "My reports",
+    "intro": "The reports you sent and what became of them.",
+    "loadFailed": "Could not load. Please try again later.",
+    "empty": "You have not reported any texture.",
+    "textureGone": "Texture deleted or no longer public",
+    "status": {
+      "pending": "Pending",
+      "resolved": "Resolved",
+      "rejected": "Rejected"
+    },
+    "submitted": "Sent {time}",
+    "outcome": {
+      "delete": "texture deleted",
+      "ban": "uploader banned",
+      "reject": "rejected"
+    },
+    "more": "Load more"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "bellUnread": "{count} unread notifications",
+    "unread": "{count} unread",
+    "readAll": "Mark all read",
+    "loadFailed": "Could not load. Please try again later.",
+    "empty": "No notifications yet.",
+    "announcement": "Announcement",
+    "read": "read",
+    "new": "unread",
+    "noContent": "(no text)",
+    "more": "Load more"
+  },
+  "adminNotify": {
+    "title": "Send a notification",
+    "intro": "Notifications appear in users’ inboxes; the text is Markdown. Sent to many, they do not reach users who register later.",
+    "to": "To",
+    "toAll": "All users",
+    "toUsers": "Ordinary users (no administrators)",
+    "toUser": "One user",
+    "target": "User id or email",
+    "targetHint": "e.g. 42 or user@example.com",
+    "titleField": "Title",
+    "content": "Text",
+    "contentHint": "Markdown: **bold**, [links](https://…), lists and so on; HTML is not applied.",
+    "send": "Send",
+    "sentAll": "Sent. Users see it when they next open their notifications.",
+    "sentOne": "Sent.",
+    "errors": {
+      "noUser": "There is no such user.",
+      "title": "The title needs 1–64 characters.",
+      "content": "The text can be at most 10000 characters.",
+      "failed": "Could not send. Please try again."
     }
   }
 }

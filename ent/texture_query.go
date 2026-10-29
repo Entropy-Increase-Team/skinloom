@@ -16,6 +16,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
+	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 )
@@ -32,6 +33,7 @@ type TextureQuery struct {
 	withClosetItems *ClosetItemQuery
 	withSkinPlayers *PlayerQuery
 	withCapePlayers *PlayerQuery
+	withReports     *ReportQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -171,6 +173,28 @@ func (_q *TextureQuery) QueryCapePlayers() *PlayerQuery {
 			sqlgraph.From(texture.Table, texture.FieldID, selector),
 			sqlgraph.To(player.Table, player.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, texture.CapePlayersTable, texture.CapePlayersColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryReports chains the current query on the "reports" edge.
+func (_q *TextureQuery) QueryReports() *ReportQuery {
+	query := (&ReportClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(texture.Table, texture.FieldID, selector),
+			sqlgraph.To(report.Table, report.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, texture.ReportsTable, texture.ReportsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -375,6 +399,7 @@ func (_q *TextureQuery) Clone() *TextureQuery {
 		withClosetItems: _q.withClosetItems.Clone(),
 		withSkinPlayers: _q.withSkinPlayers.Clone(),
 		withCapePlayers: _q.withCapePlayers.Clone(),
+		withReports:     _q.withReports.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -433,6 +458,17 @@ func (_q *TextureQuery) WithCapePlayers(opts ...func(*PlayerQuery)) *TextureQuer
 		opt(query)
 	}
 	_q.withCapePlayers = query
+	return _q
+}
+
+// WithReports tells the query-builder to eager-load the nodes that are connected to
+// the "reports" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TextureQuery) WithReports(opts ...func(*ReportQuery)) *TextureQuery {
+	query := (&ReportClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withReports = query
 	return _q
 }
 
@@ -514,12 +550,13 @@ func (_q *TextureQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Text
 	var (
 		nodes       = []*Texture{}
 		_spec       = _q.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [6]bool{
 			_q.withBlob != nil,
 			_q.withUploader != nil,
 			_q.withClosetItems != nil,
 			_q.withSkinPlayers != nil,
 			_q.withCapePlayers != nil,
+			_q.withReports != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -570,6 +607,13 @@ func (_q *TextureQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Text
 		if err := _q.loadCapePlayers(ctx, query, nodes,
 			func(n *Texture) { n.Edges.CapePlayers = []*Player{} },
 			func(n *Texture, e *Player) { n.Edges.CapePlayers = append(n.Edges.CapePlayers, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withReports; query != nil {
+		if err := _q.loadReports(ctx, query, nodes,
+			func(n *Texture) { n.Edges.Reports = []*Report{} },
+			func(n *Texture, e *Report) { n.Edges.Reports = append(n.Edges.Reports, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -728,6 +772,39 @@ func (_q *TextureQuery) loadCapePlayers(ctx context.Context, query *PlayerQuery,
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "cape_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *TextureQuery) loadReports(ctx context.Context, query *ReportQuery, nodes []*Texture, init func(*Texture), assign func(*Texture, *Report)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*Texture)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(report.FieldTextureID)
+	}
+	query.Where(predicate.Report(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(texture.ReportsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.TextureID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "texture_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "texture_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

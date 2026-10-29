@@ -153,12 +153,13 @@ type UserView struct {
 	EmailVerified bool      `json:"emailVerified"`
 	Locale        string    `json:"locale" doc:"Preferred UI language; empty = follow the browser"`
 	Score         int64     `json:"score"`
+	AvatarID      *int64    `json:"avatarTextureId,omitempty" doc:"The skin whose head is the avatar, /avatar/user/{id}"`
 	CreatedAt     time.Time `json:"createdAt"`
 }
 
 func userView(u *ent.User) UserView {
 	return UserView{ID: u.ID, Email: u.Email, Nickname: u.Nickname, Role: string(u.Role),
-		EmailVerified: u.EmailVerifiedAt != nil, Locale: u.Locale, Score: u.Score, CreatedAt: u.CreatedAt}
+		EmailVerified: u.EmailVerifiedAt != nil, Locale: u.Locale, Score: u.Score, AvatarID: u.AvatarTextureID, CreatedAt: u.CreatedAt}
 }
 
 type userOutput struct {

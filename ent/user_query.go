@@ -12,10 +12,13 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/Entropy-Increase-Team/skinloom/ent/announcement"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
+	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
+	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
@@ -25,16 +28,21 @@ import (
 // UserQuery is the builder for querying User entities.
 type UserQuery struct {
 	config
-	ctx              *QueryContext
-	order            []user.OrderOption
-	inters           []Interceptor
-	predicates       []predicate.User
-	withSessions     *SessionQuery
-	withAuthTokens   *AuthTokenQuery
-	withTextures     *TextureQuery
-	withClosetItems  *ClosetItemQuery
-	withScoreEntries *ScoreEntryQuery
-	withPlayers      *PlayerQuery
+	ctx                   *QueryContext
+	order                 []user.OrderOption
+	inters                []Interceptor
+	predicates            []predicate.User
+	withSessions          *SessionQuery
+	withAuthTokens        *AuthTokenQuery
+	withTextures          *TextureQuery
+	withClosetItems       *ClosetItemQuery
+	withScoreEntries      *ScoreEntryQuery
+	withPlayers           *PlayerQuery
+	withReportsFiled      *ReportQuery
+	withReportsAgainst    *ReportQuery
+	withReportsHandled    *ReportQuery
+	withNotifications     *NotificationQuery
+	withAnnouncementsSent *AnnouncementQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -196,6 +204,116 @@ func (_q *UserQuery) QueryPlayers() *PlayerQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(player.Table, player.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.PlayersTable, user.PlayersColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryReportsFiled chains the current query on the "reports_filed" edge.
+func (_q *UserQuery) QueryReportsFiled() *ReportQuery {
+	query := (&ReportClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(report.Table, report.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ReportsFiledTable, user.ReportsFiledColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryReportsAgainst chains the current query on the "reports_against" edge.
+func (_q *UserQuery) QueryReportsAgainst() *ReportQuery {
+	query := (&ReportClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(report.Table, report.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ReportsAgainstTable, user.ReportsAgainstColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryReportsHandled chains the current query on the "reports_handled" edge.
+func (_q *UserQuery) QueryReportsHandled() *ReportQuery {
+	query := (&ReportClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(report.Table, report.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ReportsHandledTable, user.ReportsHandledColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryNotifications chains the current query on the "notifications" edge.
+func (_q *UserQuery) QueryNotifications() *NotificationQuery {
+	query := (&NotificationClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(notification.Table, notification.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.NotificationsTable, user.NotificationsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAnnouncementsSent chains the current query on the "announcements_sent" edge.
+func (_q *UserQuery) QueryAnnouncementsSent() *AnnouncementQuery {
+	query := (&AnnouncementClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(announcement.Table, announcement.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.AnnouncementsSentTable, user.AnnouncementsSentColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -390,17 +508,22 @@ func (_q *UserQuery) Clone() *UserQuery {
 		return nil
 	}
 	return &UserQuery{
-		config:           _q.config,
-		ctx:              _q.ctx.Clone(),
-		order:            append([]user.OrderOption{}, _q.order...),
-		inters:           append([]Interceptor{}, _q.inters...),
-		predicates:       append([]predicate.User{}, _q.predicates...),
-		withSessions:     _q.withSessions.Clone(),
-		withAuthTokens:   _q.withAuthTokens.Clone(),
-		withTextures:     _q.withTextures.Clone(),
-		withClosetItems:  _q.withClosetItems.Clone(),
-		withScoreEntries: _q.withScoreEntries.Clone(),
-		withPlayers:      _q.withPlayers.Clone(),
+		config:                _q.config,
+		ctx:                   _q.ctx.Clone(),
+		order:                 append([]user.OrderOption{}, _q.order...),
+		inters:                append([]Interceptor{}, _q.inters...),
+		predicates:            append([]predicate.User{}, _q.predicates...),
+		withSessions:          _q.withSessions.Clone(),
+		withAuthTokens:        _q.withAuthTokens.Clone(),
+		withTextures:          _q.withTextures.Clone(),
+		withClosetItems:       _q.withClosetItems.Clone(),
+		withScoreEntries:      _q.withScoreEntries.Clone(),
+		withPlayers:           _q.withPlayers.Clone(),
+		withReportsFiled:      _q.withReportsFiled.Clone(),
+		withReportsAgainst:    _q.withReportsAgainst.Clone(),
+		withReportsHandled:    _q.withReportsHandled.Clone(),
+		withNotifications:     _q.withNotifications.Clone(),
+		withAnnouncementsSent: _q.withAnnouncementsSent.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -470,6 +593,61 @@ func (_q *UserQuery) WithPlayers(opts ...func(*PlayerQuery)) *UserQuery {
 		opt(query)
 	}
 	_q.withPlayers = query
+	return _q
+}
+
+// WithReportsFiled tells the query-builder to eager-load the nodes that are connected to
+// the "reports_filed" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithReportsFiled(opts ...func(*ReportQuery)) *UserQuery {
+	query := (&ReportClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withReportsFiled = query
+	return _q
+}
+
+// WithReportsAgainst tells the query-builder to eager-load the nodes that are connected to
+// the "reports_against" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithReportsAgainst(opts ...func(*ReportQuery)) *UserQuery {
+	query := (&ReportClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withReportsAgainst = query
+	return _q
+}
+
+// WithReportsHandled tells the query-builder to eager-load the nodes that are connected to
+// the "reports_handled" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithReportsHandled(opts ...func(*ReportQuery)) *UserQuery {
+	query := (&ReportClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withReportsHandled = query
+	return _q
+}
+
+// WithNotifications tells the query-builder to eager-load the nodes that are connected to
+// the "notifications" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithNotifications(opts ...func(*NotificationQuery)) *UserQuery {
+	query := (&NotificationClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withNotifications = query
+	return _q
+}
+
+// WithAnnouncementsSent tells the query-builder to eager-load the nodes that are connected to
+// the "announcements_sent" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithAnnouncementsSent(opts ...func(*AnnouncementQuery)) *UserQuery {
+	query := (&AnnouncementClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withAnnouncementsSent = query
 	return _q
 }
 
@@ -551,13 +729,18 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = _q.querySpec()
-		loadedTypes = [6]bool{
+		loadedTypes = [11]bool{
 			_q.withSessions != nil,
 			_q.withAuthTokens != nil,
 			_q.withTextures != nil,
 			_q.withClosetItems != nil,
 			_q.withScoreEntries != nil,
 			_q.withPlayers != nil,
+			_q.withReportsFiled != nil,
+			_q.withReportsAgainst != nil,
+			_q.withReportsHandled != nil,
+			_q.withNotifications != nil,
+			_q.withAnnouncementsSent != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -617,6 +800,41 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := _q.loadPlayers(ctx, query, nodes,
 			func(n *User) { n.Edges.Players = []*Player{} },
 			func(n *User, e *Player) { n.Edges.Players = append(n.Edges.Players, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withReportsFiled; query != nil {
+		if err := _q.loadReportsFiled(ctx, query, nodes,
+			func(n *User) { n.Edges.ReportsFiled = []*Report{} },
+			func(n *User, e *Report) { n.Edges.ReportsFiled = append(n.Edges.ReportsFiled, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withReportsAgainst; query != nil {
+		if err := _q.loadReportsAgainst(ctx, query, nodes,
+			func(n *User) { n.Edges.ReportsAgainst = []*Report{} },
+			func(n *User, e *Report) { n.Edges.ReportsAgainst = append(n.Edges.ReportsAgainst, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withReportsHandled; query != nil {
+		if err := _q.loadReportsHandled(ctx, query, nodes,
+			func(n *User) { n.Edges.ReportsHandled = []*Report{} },
+			func(n *User, e *Report) { n.Edges.ReportsHandled = append(n.Edges.ReportsHandled, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withNotifications; query != nil {
+		if err := _q.loadNotifications(ctx, query, nodes,
+			func(n *User) { n.Edges.Notifications = []*Notification{} },
+			func(n *User, e *Notification) { n.Edges.Notifications = append(n.Edges.Notifications, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withAnnouncementsSent; query != nil {
+		if err := _q.loadAnnouncementsSent(ctx, query, nodes,
+			func(n *User) { n.Edges.AnnouncementsSent = []*Announcement{} },
+			func(n *User, e *Announcement) { n.Edges.AnnouncementsSent = append(n.Edges.AnnouncementsSent, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -804,6 +1022,168 @@ func (_q *UserQuery) loadPlayers(ctx context.Context, query *PlayerQuery, nodes 
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadReportsFiled(ctx context.Context, query *ReportQuery, nodes []*User, init func(*User), assign func(*User, *Report)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(report.FieldReporterID)
+	}
+	query.Where(predicate.Report(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.ReportsFiledColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ReporterID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "reporter_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "reporter_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadReportsAgainst(ctx context.Context, query *ReportQuery, nodes []*User, init func(*User), assign func(*User, *Report)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(report.FieldUploaderID)
+	}
+	query.Where(predicate.Report(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.ReportsAgainstColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UploaderID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "uploader_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "uploader_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadReportsHandled(ctx context.Context, query *ReportQuery, nodes []*User, init func(*User), assign func(*User, *Report)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(report.FieldHandlerID)
+	}
+	query.Where(predicate.Report(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.ReportsHandledColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.HandlerID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "handler_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "handler_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadNotifications(ctx context.Context, query *NotificationQuery, nodes []*User, init func(*User), assign func(*User, *Notification)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(notification.FieldUserID)
+	}
+	query.Where(predicate.Notification(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.NotificationsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadAnnouncementsSent(ctx context.Context, query *AnnouncementQuery, nodes []*User, init func(*User), assign func(*User, *Announcement)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(announcement.FieldSenderID)
+	}
+	query.Where(predicate.Announcement(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.AnnouncementsSentColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.SenderID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "sender_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "sender_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

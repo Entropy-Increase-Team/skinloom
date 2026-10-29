@@ -94,3 +94,12 @@ func validURLOrEmpty(v any) error {
 	}
 	return nil
 }
+
+// Location is the site's time zone (site.timezone), or UTC if it cannot be loaded.
+func Location(s *Snapshot) *time.Location {
+	loc, err := time.LoadLocation(s.String("site.timezone"))
+	if err != nil {
+		return time.UTC
+	}
+	return loc
+}
