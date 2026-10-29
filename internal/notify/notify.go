@@ -107,18 +107,24 @@ func (s *Service) deliver(ctx context.Context, userID int64) error {
 		return err
 	}
 	return withTx(ctx, s.db, func(tx *ent.Client) error {
+		// Claim the delivery on the user's row first: concurrent deliveries for one user
+		// queue on that row lock, and the ones that find it delivered insert nothing.
+		// Inserting first let them all reach the same notification keys at once, which
+		// MySQL (whose DoNothing is ON DUPLICATE KEY UPDATE) resolves with a deadlock.
+		last := list[len(list)-1].ID
+		n, err := tx.User.Update().Where(user.ID(userID), user.AnnouncementsSeenLT(last)).SetAnnouncementsSeen(last).Save(ctx)
+		if err != nil || n == 0 {
+			return err
+		}
 		builders := make([]*ent.NotificationCreate, len(list))
 		for i, a := range list {
 			builders[i] = tx.Notification.Create().SetUserID(userID).SetTitle(a.Title).SetContent(a.Content).
 				SetAnnouncementID(a.ID).SetCreatedAt(a.CreatedAt)
 		}
-		err := tx.Notification.CreateBulk(builders...).
+		// A delivery that claimed less (it read the list earlier) may have copied some
+		// of these already.
+		return tx.Notification.CreateBulk(builders...).
 			OnConflictColumns(notification.FieldUserID, notification.FieldAnnouncementID).DoNothing().Exec(ctx)
-		if err != nil {
-			return err
-		}
-		last := list[len(list)-1].ID
-		return tx.User.Update().Where(user.ID(userID), user.AnnouncementsSeenLT(last)).SetAnnouncementsSeen(last).Exec(ctx)
 	})
 }
 
