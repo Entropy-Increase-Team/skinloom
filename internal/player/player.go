@@ -137,6 +137,9 @@ func (s *Service) Create(ctx context.Context, userID int64, name string, p Polic
 		balance int64
 	)
 	err := withTx(ctx, s.db, func(tx *ent.Client) error {
+		if err := score.Lock(ctx, tx, userID); err != nil { // before the insert: see Lock
+			return err
+		}
 		var err error
 		created, err = tx.Player.Create().
 			SetUserID(userID).SetName(name).SetNameLower(Key(name)).SetUUID(newUUID(name, p)).

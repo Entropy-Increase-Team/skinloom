@@ -3,6 +3,8 @@ package texture
 import (
 	"context"
 	"errors"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -359,6 +361,56 @@ func TestGiveToClosetKeepsPrivateTexturesPrivate(t *testing.T) {
 		}
 		if _, err := f.s.GiveToCloset(ctx, bob, 999999); !errors.Is(err, ErrNotFound) {
 			t.Fatalf("no such texture: %v", err)
+		}
+	})
+}
+
+// Uploads and closet additions that race on the same rows queue rather than fail
+// (MySQL deadlocked on the user and texture rows; see score.Lock). The ledger and
+// counters stay exact.
+func TestConcurrentUploadsAndFavorites(t *testing.T) {
+	dbtest.ForEach(t, func(t *testing.T, d *db.DB) {
+		ctx := context.Background()
+		f := newFixture(t, d)
+		alice := f.user(t, "alice@example.com", 1000)
+		var wg sync.WaitGroup
+		for i := range 4 {
+			wg.Go(func() {
+				in := UploadInput{Name: "mine", Type: "steve", Public: true, Data: pngOf(t, 64, 64, byte(100+i))}
+				if _, err := f.s.Upload(ctx, alice, in, policy, paid); err != nil {
+					t.Error("upload:", err)
+				}
+			})
+		}
+		wg.Wait()
+		if n := f.db.Texture.Query().CountX(ctx); n != 4 {
+			t.Fatalf("%d textures", n)
+		}
+		afterUploads := f.score(t, alice)
+
+		skin := f.db.Texture.Query().FirstX(ctx)
+		var fans []int64
+		for i := range 4 {
+			fans = append(fans, f.user(t, fmt.Sprintf("fan%d@example.com", i), 1000))
+		}
+		for _, fan := range fans {
+			wg.Go(func() {
+				if _, _, err := f.s.Favorite(ctx, Viewer{UserID: fan}, skin.ID, "", paid); err != nil {
+					t.Error("favorite:", err)
+				}
+			})
+		}
+		wg.Wait()
+		if got := f.db.Texture.GetX(ctx, skin.ID); got.Likes != 1+4 {
+			t.Fatalf("likes %d", got.Likes)
+		}
+		if got := f.score(t, alice); got != afterUploads+4*paid.AwardPerLike {
+			t.Fatalf("uploader's awards: %d, want %d", got, afterUploads+4*paid.AwardPerLike)
+		}
+		for _, fan := range fans {
+			if got := f.score(t, fan); got != 1000-paid.PerClosetItem {
+				t.Fatalf("fan paid %d", 1000-got)
+			}
 		}
 	})
 }

@@ -70,6 +70,17 @@ func Net(ctx context.Context, tx *ent.Client, userID int64, refType, refID strin
 	return sum, err
 }
 
+// Lock takes the user's row lock for the rest of tx. Call it first in a transaction
+// that inserts a row referencing the user and then changes their score. On MySQL the
+// insert's foreign-key check takes a shared lock on the user row (as does waiting on
+// a duplicate unique key), so two such transactions at once both hold it, both need
+// it exclusively for Apply, and one dies of a deadlock (Error 1213). Taking it first
+// makes them queue instead. PostgreSQL's key-share lock does not conflict with the
+// score update, and SQLite has one writer, so only MySQL needed this.
+func Lock(ctx context.Context, tx *ent.Client, userID int64) error {
+	return tx.User.Update().Where(user.ID(userID)).AddScore(0).Exec(ctx)
+}
+
 // Apply changes a score inside tx and returns the new balance. A negative delta the
 // balance does not cover fails with ErrInsufficient and changes nothing. A zero delta
 // (a free upload, say) writes no ledger entry.

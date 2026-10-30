@@ -71,15 +71,21 @@ func (s *Service) Favorite(ctx context.Context, v Viewer, id int64, name string,
 		balance int64
 	)
 	err = withTx(ctx, s.db, func(tx *ent.Client) error {
+		// The rows this changes, locked before the insert that references them (see
+		// score.Lock): the texture (likes) first, then the user. Two people adding the
+		// same texture at once queue on the texture instead of deadlocking on MySQL.
+		if err := tx.Texture.UpdateOneID(id).AddLikes(1).Exec(ctx); err != nil {
+			return err
+		}
+		if err := score.Lock(ctx, tx, v.UserID); err != nil {
+			return err
+		}
 		var err error
 		item, err = tx.ClosetItem.Create().SetUserID(v.UserID).SetTextureID(id).SetName(name).Save(ctx)
 		if ent.IsConstraintError(err) {
 			return ErrInCloset
 		}
 		if err != nil {
-			return err
-		}
-		if err := tx.Texture.UpdateOneID(id).AddLikes(1).Exec(ctx); err != nil {
 			return err
 		}
 		ref := closetRef(item.ID)

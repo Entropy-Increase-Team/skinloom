@@ -3,6 +3,7 @@ package player
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"regexp"
@@ -256,6 +257,28 @@ func TestWearAndProfile(t *testing.T) {
 		f.db.User.UpdateOneID(alice).SetStatus(user.StatusDeleted).ExecX(ctx)
 		if _, err := f.s.Profile(ctx, "Steve"); !errors.Is(err, ErrNotFound) {
 			t.Fatalf("deleted owner: %v", err)
+		}
+	})
+}
+
+// One user creating several players at once: each is created and charged once
+// (MySQL deadlocked on the user's row; see score.Lock).
+func TestCreateSeveralConcurrently(t *testing.T) {
+	dbtest.ForEach(t, func(t *testing.T, d *db.DB) {
+		ctx := context.Background()
+		f := fixture{s: NewService(d.Ent, quiet), db: d.Ent}
+		u := f.user(t, "a@example.com", 1000)
+		var wg sync.WaitGroup
+		for i := range 4 {
+			wg.Go(func() {
+				if _, _, err := f.s.Create(ctx, u, fmt.Sprintf("Player%d", i), official, rates); err != nil {
+					t.Error(err)
+				}
+			})
+		}
+		wg.Wait()
+		if n := f.db.Player.Query().CountX(ctx); n != 4 || f.db.User.GetX(ctx, u).Score != 1000-4*rates.PerPlayer {
+			t.Fatalf("%d players, score %d", n, f.db.User.GetX(ctx, u).Score)
 		}
 	})
 }

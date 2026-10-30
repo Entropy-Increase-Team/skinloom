@@ -82,6 +82,9 @@ func (s *Service) Submit(ctx context.Context, v texture.Viewer, textureID int64,
 		balance int64
 	)
 	err = withTx(ctx, s.db, func(tx *ent.Client) error {
+		if err := score.Lock(ctx, tx, v.UserID); err != nil { // before the insert: see Lock
+			return err
+		}
 		var err error
 		rep, err = tx.Report.Create().SetTextureID(t.ID).SetNillableUploaderID(t.UploaderID).
 			SetReporterID(v.UserID).SetReason(reason).Save(ctx)

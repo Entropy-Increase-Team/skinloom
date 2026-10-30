@@ -139,6 +139,9 @@ func (s *Service) Upload(ctx context.Context, uploader int64, in UploadInput, p 
 	name := strings.TrimSpace(in.Name)
 	res := &UploadResult{Cost: cost}
 	err = withTx(ctx, s.db, func(tx *ent.Client) error {
+		if err := score.Lock(ctx, tx, uploader); err != nil { // before the inserts: see score.Lock
+			return err
+		}
 		err := tx.Blob.Create().
 			SetID(img.hash).SetSize(int64(len(img.png))).SetWidth(img.width).SetHeight(img.height).SetRefCount(1).
 			OnConflictColumns(blob.FieldID).

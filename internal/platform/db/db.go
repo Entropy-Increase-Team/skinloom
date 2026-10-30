@@ -130,6 +130,14 @@ func mysqlDSN(dsn string) (string, error) {
 	}
 	cfg.ParseTime = true
 	cfg.Loc = time.UTC
+	// Send times truncated to the microseconds datetime(6) keeps. MySQL otherwise
+	// rounds the nanoseconds it gets (MariaDB truncates), so a stored deadline could
+	// end up later than the one computed and a token outlive its expiry by a fraction
+	// of a microsecond. PostgreSQL's driver truncates too: now every database stores
+	// the same instant.
+	if err := cfg.Apply(mysql.TimeTruncate(time.Microsecond)); err != nil {
+		return "", err
+	}
 	if cfg.Params == nil {
 		cfg.Params = map[string]string{}
 	}
