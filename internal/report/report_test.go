@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
@@ -16,6 +17,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	entreport "github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
+	enttexture "github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/dbtest"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
@@ -332,6 +334,53 @@ func TestReviewConcurrent(t *testing.T) {
 		}
 		if want := 100 - 5*5 + 15*rewards; f.score(bob) != int64(want) {
 			t.Fatalf("bob %d, want %d", f.score(bob), want)
+		}
+	})
+}
+
+// Administrators handling reports of one texture at the same time: one deletes it and
+// settles the rest, the others find their report reviewed. They used to claim each
+// other's report in opposite orders and deadlock (PostgreSQL included), and a
+// report rejected meanwhile made the deletion fail.
+func TestReviewsOfOneTextureConcurrently(t *testing.T) {
+	dbtest.ForEach(t, func(t *testing.T, d *db.DB) {
+		ctx := context.Background()
+		f := newFixture(t, d)
+		alice := f.user(t, "alice@example.com", 100)
+		for round := range 3 {
+			skin := f.upload(t, alice, true, byte(10+round))
+			var reps []*ent.Report
+			for i := range 4 {
+				reporter := f.user(t, fmt.Sprintf("r%d-%d@example.com", round, i), 100)
+				reps = append(reps, f.submit(t, reporter, skin.ID))
+			}
+			var wg sync.WaitGroup
+			var mu sync.Mutex
+			won := 0
+			for i, rep := range reps {
+				action := ActionDelete
+				if i == 3 {
+					action = ActionReject
+				}
+				wg.Go(func() {
+					_, err := f.s.Review(ctx, nil, rep.ID, action, charged, true, noBan)
+					mu.Lock()
+					defer mu.Unlock()
+					switch {
+					case err == nil:
+						won++
+					case !errors.Is(err, ErrReviewed):
+						t.Errorf("round %d, %s: %v", round, action, err)
+					}
+				})
+			}
+			wg.Wait()
+			if won == 0 || f.db.Report.Query().Where(entreport.StatusEQ(entreport.StatusPending)).CountX(ctx) != 0 {
+				t.Fatalf("round %d: %d reviews won, some reports still pending", round, won)
+			}
+			if f.db.Texture.Query().Where(enttexture.ID(skin.ID)).ExistX(ctx) {
+				t.Fatalf("round %d: the texture is still there", round)
+			}
 		}
 	})
 }

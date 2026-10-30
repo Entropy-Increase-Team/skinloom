@@ -29,3 +29,4 @@
 | [0023](0023-oauth-provider-and-resource-api.md) | OAuth 2.0 提供方、个人访问令牌与 Blessing Skin 兼容资源 API | 已接受 |
 | [0024](0024-bs-admin-resource-api.md) | 兼容 Blessing Skin 的管理类资源 API | 已接受 |
 | [0025](0025-social-login.md) | 社交登录（GitHub、Microsoft、OpenID Connect） | 已接受 |
+| [0026](0026-transaction-lock-order.md) | 事务的加锁顺序（防死锁） | 已接受 |

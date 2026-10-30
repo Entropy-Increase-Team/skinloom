@@ -7,6 +7,7 @@ package score
 import (
 	"context"
 	"errors"
+	"slices"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
@@ -70,15 +71,29 @@ func Net(ctx context.Context, tx *ent.Client, userID int64, refType, refID strin
 	return sum, err
 }
 
-// Lock takes the user's row lock for the rest of tx. Call it first in a transaction
-// that inserts a row referencing the user and then changes their score. On MySQL the
-// insert's foreign-key check takes a shared lock on the user row (as does waiting on
-// a duplicate unique key), so two such transactions at once both hold it, both need
-// it exclusively for Apply, and one dies of a deadlock (Error 1213). Taking it first
-// makes them queue instead. PostgreSQL's key-share lock does not conflict with the
-// score update, and SQLite has one writer, so only MySQL needed this.
-func Lock(ctx context.Context, tx *ent.Client, userID int64) error {
-	return tx.User.Update().Where(user.ID(userID)).AddScore(0).Exec(ctx)
+// Lock takes the row locks of the users a transaction will change, for the rest of
+// tx, in ascending id order. Transactions that change scores take their locks in one
+// order, before any other write: a texture first (texture.Lock), then these users.
+// Two transactions that each lock one row and then want the other's cannot then
+// exist, on any database. Without it:
+//   - on MySQL, inserting a row that references a user takes a shared lock on the
+//     user's row (the foreign-key check; so does waiting on a duplicate unique key),
+//     and two such transactions that then change the score both wait for the other's
+//     shared lock (Error 1213);
+//   - everywhere, two transactions that change two users' scores in opposite orders
+//     (two people adding each other's textures) wait for each other.
+func Lock(ctx context.Context, tx *ent.Client, userIDs ...int64) error {
+	ids := slices.Clone(userIDs)
+	slices.Sort(ids)
+	for _, id := range slices.Compact(ids) {
+		if id <= 0 {
+			continue
+		}
+		if err := tx.User.Update().Where(user.ID(id)).AddScore(0).Exec(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Apply changes a score inside tx and returns the new balance. A negative delta the

@@ -414,3 +414,33 @@ func TestConcurrentUploadsAndFavorites(t *testing.T) {
 		}
 	})
 }
+
+// Two people adding (and removing) each other's textures at the same time: each
+// change touches both scores (the fee and the uploader's award). Locked in opposite
+// orders they deadlocked, on PostgreSQL too; score.Lock takes them in id order.
+func TestMutualFavoritesConcurrently(t *testing.T) {
+	dbtest.ForEach(t, func(t *testing.T, d *db.DB) {
+		ctx := context.Background()
+		f := newFixture(t, d)
+		alice := f.user(t, "alice@example.com", 10000)
+		bob := f.user(t, "bob@example.com", 10000)
+		ofAlice := f.upload(t, alice, "steve", 64, 64, true, 31)
+		ofBob := f.upload(t, bob, "steve", 64, 64, true, 32)
+		var wg sync.WaitGroup
+		for _, side := range []struct{ who, tex int64 }{{alice, ofBob.ID}, {bob, ofAlice.ID}} {
+			wg.Go(func() {
+				for range 15 {
+					if _, _, err := f.s.Favorite(ctx, Viewer{UserID: side.who}, side.tex, "", paid); err != nil {
+						t.Error("favorite:", err)
+						return
+					}
+					if _, err := f.s.Unfavorite(ctx, side.who, side.tex, true); err != nil {
+						t.Error("unfavorite:", err)
+						return
+					}
+				}
+			})
+		}
+		wg.Wait()
+	})
+}

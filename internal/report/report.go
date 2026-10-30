@@ -82,7 +82,11 @@ func (s *Service) Submit(ctx context.Context, v texture.Viewer, textureID int64,
 		balance int64
 	)
 	err = withTx(ctx, s.db, func(tx *ent.Client) error {
-		if err := score.Lock(ctx, tx, v.UserID); err != nil { // before the insert: see Lock
+		// Locks first, in the one order (see score.Lock): the texture, then the reporter.
+		if err := texture.Lock(ctx, tx, t.ID); err != nil {
+			return err
+		}
+		if err := score.Lock(ctx, tx, v.UserID); err != nil {
 			return err
 		}
 		var err error
@@ -213,6 +217,41 @@ func (s *Service) Review(ctx context.Context, handler *int64, id int64, action s
 	deleted := false
 	err = withTx(ctx, s.db, func(tx *ent.Client) error {
 		now := time.Now()
+		// Locks first, in the one order (see score.Lock): the texture, then every user
+		// whose score this review (and a deletion) can change. Two reviews of reports
+		// of one texture used to claim each other's report in opposite orders.
+		var others []*ent.Report
+		lock := []int64{}
+		if rep.TextureID != nil {
+			switch err := texture.Lock(ctx, tx, *rep.TextureID); {
+			case errors.Is(err, texture.ErrNotFound): // deleted already
+			case err != nil:
+				return err
+			case action == ActionDelete:
+				var err error
+				others, err = tx.Report.Query().Where(entreport.TextureID(*rep.TextureID), entreport.IDNEQ(rep.ID),
+					entreport.StatusEQ(entreport.StatusPending)).All(ctx)
+				if err != nil {
+					return err
+				}
+				for _, o := range others {
+					if o.ReporterID != nil {
+						lock = append(lock, *o.ReporterID)
+					}
+				}
+				affected, err := s.textures.UsersOf(ctx, tx, *rep.TextureID)
+				if err != nil {
+					return err
+				}
+				lock = append(lock, affected...)
+			}
+		}
+		if rep.ReporterID != nil {
+			lock = append(lock, *rep.ReporterID)
+		}
+		if err := score.Lock(ctx, tx, lock...); err != nil {
+			return err
+		}
 		claim := func(id int64, status entreport.Status) error {
 			n, err := tx.Report.Update().Where(entreport.ID(id), entreport.StatusEQ(entreport.StatusPending)).
 				SetStatus(status).SetAction(entreport.Action(action)).SetHandledAt(now).
@@ -233,13 +272,11 @@ func (s *Service) Review(ctx context.Context, handler *int64, id int64, action s
 		}
 		reward := action == ActionBan
 		if action == ActionDelete && rep.TextureID != nil {
-			others, err := tx.Report.Query().Where(entreport.TextureID(*rep.TextureID), entreport.IDNEQ(rep.ID),
-				entreport.StatusEQ(entreport.StatusPending)).All(ctx)
-			if err != nil {
-				return err
-			}
 			for _, o := range others {
-				if err := claim(o.ID, entreport.StatusResolved); err != nil {
+				switch err := claim(o.ID, entreport.StatusResolved); {
+				case errors.Is(err, ErrReviewed):
+					continue // reviewed by someone else meanwhile
+				case err != nil:
 					return err
 				}
 				if err := s.settle(ctx, tx, o, false, r); err != nil {

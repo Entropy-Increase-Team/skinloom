@@ -71,13 +71,16 @@ func (s *Service) Favorite(ctx context.Context, v Viewer, id int64, name string,
 		balance int64
 	)
 	err = withTx(ctx, s.db, func(tx *ent.Client) error {
-		// The rows this changes, locked before the insert that references them (see
-		// score.Lock): the texture (likes) first, then the user. Two people adding the
-		// same texture at once queue on the texture instead of deadlocking on MySQL.
+		// Locks first, in the one order (see score.Lock): the texture, then the user
+		// and the uploader whose scores change.
 		if err := tx.Texture.UpdateOneID(id).AddLikes(1).Exec(ctx); err != nil {
 			return err
 		}
-		if err := score.Lock(ctx, tx, v.UserID); err != nil {
+		lock := []int64{v.UserID}
+		if t.UploaderID != nil {
+			lock = append(lock, *t.UploaderID)
+		}
+		if err := score.Lock(ctx, tx, lock...); err != nil {
 			return err
 		}
 		var err error
@@ -108,11 +111,20 @@ func (s *Service) Favorite(ctx context.Context, v Viewer, id int64, name string,
 func (s *Service) Unfavorite(ctx context.Context, userID, id int64, refund bool) (int64, error) {
 	var returned int64
 	err := withTx(ctx, s.db, func(tx *ent.Client) error {
-		t, err := tx.Texture.Get(ctx, id)
-		if ent.IsNotFound(err) {
+		if err := Lock(ctx, tx, id); errors.Is(err, ErrNotFound) {
 			return ErrNotInCloset
+		} else if err != nil {
+			return err
 		}
+		t, err := tx.Texture.Get(ctx, id)
 		if err != nil {
+			return err
+		}
+		lock := []int64{userID}
+		if t.UploaderID != nil {
+			lock = append(lock, *t.UploaderID)
+		}
+		if err := score.Lock(ctx, tx, lock...); err != nil {
 			return err
 		}
 		item, err := tx.ClosetItem.Query().Where(closetitem.UserID(userID), closetitem.TextureID(id)).Only(ctx)
@@ -199,14 +211,15 @@ func (s *Service) GiveToCloset(ctx context.Context, userID, id int64) (*ent.Clos
 		if t.Visibility != tex.VisibilityPublic && (t.UploaderID == nil || *t.UploaderID != userID) {
 			return &validate.FieldError{Field: "textureId", Message: "private to its uploader"}
 		}
+		// The texture first (see score.Lock), then the insert that references it.
+		if err := tx.Texture.UpdateOneID(id).AddLikes(1).Exec(ctx); err != nil {
+			return err
+		}
 		item, err = tx.ClosetItem.Create().SetUserID(userID).SetTextureID(id).SetName(t.Name).Save(ctx)
 		if ent.IsConstraintError(err) {
 			return ErrInCloset
 		}
-		if err != nil {
-			return err
-		}
-		return tx.Texture.UpdateOneID(id).AddLikes(1).Exec(ctx)
+		return err
 	})
 	return item, err
 }
@@ -299,6 +312,19 @@ func (s *Service) Update(ctx context.Context, v Viewer, id int64, e Edit, p Poli
 	}
 	charged := t.UploaderID != nil && *t.UploaderID == v.UserID // the uploader's own change
 	err = withTx(ctx, s.db, func(tx *ent.Client) error {
+		var lock []int64
+		if charged {
+			lock = append(lock, v.UserID)
+		}
+		if goingPrivate {
+			if err := lockWithClosets(ctx, tx, t, lock...); err != nil {
+				return err
+			}
+		} else if err := Lock(ctx, tx, t.ID); err != nil {
+			return err
+		} else if err := score.Lock(ctx, tx, lock...); err != nil {
+			return err
+		}
 		u := tx.Texture.UpdateOneID(t.ID)
 		if newName != "" {
 			u.SetName(newName)
@@ -342,6 +368,58 @@ func (s *Service) Update(ctx context.Context, v Viewer, id int64, e Edit, p Poli
 		return nil, err
 	}
 	return s.db.Texture.Query().Where(tex.ID(t.ID)).WithUploader(selectUploader).Only(ctx)
+}
+
+// Lock takes the row lock of texture id for the rest of tx, as the first lock of a
+// transaction that changes it or the scores tied to it (see score.Lock). It reports
+// ErrNotFound when the texture is gone (deleted by the transaction it waited for).
+func Lock(ctx context.Context, tx *ent.Client, id int64) error {
+	n, err := tx.Texture.Update().Where(tex.ID(id)).AddLikes(0).Save(ctx)
+	if err == nil && n == 0 {
+		return ErrNotFound
+	}
+	return err
+}
+
+// UsersOf lists everyone whose closet holds texture id, and its uploader: the users
+// a deletion can refund or charge, for a caller that locks them first (score.Lock).
+func (s *Service) UsersOf(ctx context.Context, tx *ent.Client, id int64) ([]int64, error) {
+	t, err := tx.Texture.Get(ctx, id)
+	if ent.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return usersOf(ctx, tx, t)
+}
+
+func usersOf(ctx context.Context, tx *ent.Client, t *ent.Texture) ([]int64, error) {
+	items, err := tx.ClosetItem.Query().Where(closetitem.TextureID(t.ID)).Select(closetitem.FieldUserID).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	users := make([]int64, 0, len(items)+1)
+	for _, it := range items {
+		users = append(users, it.UserID)
+	}
+	if t.UploaderID != nil {
+		users = append(users, *t.UploaderID)
+	}
+	return users, nil
+}
+
+// lockWithClosets locks t, then everyone whose closet holds it and its uploader:
+// all the users dropOthers and a deletion may refund or charge.
+func lockWithClosets(ctx context.Context, tx *ent.Client, t *ent.Texture, more ...int64) error {
+	if err := Lock(ctx, tx, t.ID); err != nil {
+		return err
+	}
+	users, err := usersOf(ctx, tx, t)
+	if err != nil {
+		return err
+	}
+	return score.Lock(ctx, tx, append(users, more...)...)
 }
 
 // dropOthers removes t from every closet but its uploader's, as when it goes
@@ -398,6 +476,9 @@ func (s *Service) DeleteIn(ctx context.Context, tx *ent.Client, id int64, refund
 }
 
 func (s *Service) deleteIn(ctx context.Context, tx *ent.Client, t *ent.Texture, refund bool) error {
+	if err := lockWithClosets(ctx, tx, t); err != nil {
+		return err
+	}
 	if err := s.dropOthers(ctx, tx, t, refund); err != nil {
 		return err
 	}
