@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -15,18 +16,22 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggsession"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggtoken"
 )
 
 // PlayerQuery is the builder for querying Player entities.
 type PlayerQuery struct {
 	config
-	ctx        *QueryContext
-	order      []player.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Player
-	withOwner  *UserQuery
-	withSkin   *TextureQuery
-	withCape   *TextureQuery
+	ctx             *QueryContext
+	order           []player.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.Player
+	withOwner       *UserQuery
+	withSkin        *TextureQuery
+	withCape        *TextureQuery
+	withYggTokens   *YggTokenQuery
+	withYggSessions *YggSessionQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -122,6 +127,50 @@ func (_q *PlayerQuery) QueryCape() *TextureQuery {
 			sqlgraph.From(player.Table, player.FieldID, selector),
 			sqlgraph.To(texture.Table, texture.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, player.CapeTable, player.CapeColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryYggTokens chains the current query on the "ygg_tokens" edge.
+func (_q *PlayerQuery) QueryYggTokens() *YggTokenQuery {
+	query := (&YggTokenClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(player.Table, player.FieldID, selector),
+			sqlgraph.To(yggtoken.Table, yggtoken.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, player.YggTokensTable, player.YggTokensColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryYggSessions chains the current query on the "ygg_sessions" edge.
+func (_q *PlayerQuery) QueryYggSessions() *YggSessionQuery {
+	query := (&YggSessionClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(player.Table, player.FieldID, selector),
+			sqlgraph.To(yggsession.Table, yggsession.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, player.YggSessionsTable, player.YggSessionsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -316,14 +365,16 @@ func (_q *PlayerQuery) Clone() *PlayerQuery {
 		return nil
 	}
 	return &PlayerQuery{
-		config:     _q.config,
-		ctx:        _q.ctx.Clone(),
-		order:      append([]player.OrderOption{}, _q.order...),
-		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.Player{}, _q.predicates...),
-		withOwner:  _q.withOwner.Clone(),
-		withSkin:   _q.withSkin.Clone(),
-		withCape:   _q.withCape.Clone(),
+		config:          _q.config,
+		ctx:             _q.ctx.Clone(),
+		order:           append([]player.OrderOption{}, _q.order...),
+		inters:          append([]Interceptor{}, _q.inters...),
+		predicates:      append([]predicate.Player{}, _q.predicates...),
+		withOwner:       _q.withOwner.Clone(),
+		withSkin:        _q.withSkin.Clone(),
+		withCape:        _q.withCape.Clone(),
+		withYggTokens:   _q.withYggTokens.Clone(),
+		withYggSessions: _q.withYggSessions.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -360,6 +411,28 @@ func (_q *PlayerQuery) WithCape(opts ...func(*TextureQuery)) *PlayerQuery {
 		opt(query)
 	}
 	_q.withCape = query
+	return _q
+}
+
+// WithYggTokens tells the query-builder to eager-load the nodes that are connected to
+// the "ygg_tokens" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *PlayerQuery) WithYggTokens(opts ...func(*YggTokenQuery)) *PlayerQuery {
+	query := (&YggTokenClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withYggTokens = query
+	return _q
+}
+
+// WithYggSessions tells the query-builder to eager-load the nodes that are connected to
+// the "ygg_sessions" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *PlayerQuery) WithYggSessions(opts ...func(*YggSessionQuery)) *PlayerQuery {
+	query := (&YggSessionClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withYggSessions = query
 	return _q
 }
 
@@ -441,10 +514,12 @@ func (_q *PlayerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Playe
 	var (
 		nodes       = []*Player{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [5]bool{
 			_q.withOwner != nil,
 			_q.withSkin != nil,
 			_q.withCape != nil,
+			_q.withYggTokens != nil,
+			_q.withYggSessions != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -480,6 +555,20 @@ func (_q *PlayerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Playe
 	if query := _q.withCape; query != nil {
 		if err := _q.loadCape(ctx, query, nodes, nil,
 			func(n *Player, e *Texture) { n.Edges.Cape = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withYggTokens; query != nil {
+		if err := _q.loadYggTokens(ctx, query, nodes,
+			func(n *Player) { n.Edges.YggTokens = []*YggToken{} },
+			func(n *Player, e *YggToken) { n.Edges.YggTokens = append(n.Edges.YggTokens, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withYggSessions; query != nil {
+		if err := _q.loadYggSessions(ctx, query, nodes,
+			func(n *Player) { n.Edges.YggSessions = []*YggSession{} },
+			func(n *Player, e *YggSession) { n.Edges.YggSessions = append(n.Edges.YggSessions, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -576,6 +665,69 @@ func (_q *PlayerQuery) loadCape(ctx context.Context, query *TextureQuery, nodes 
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
+	}
+	return nil
+}
+func (_q *PlayerQuery) loadYggTokens(ctx context.Context, query *YggTokenQuery, nodes []*Player, init func(*Player), assign func(*Player, *YggToken)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*Player)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(yggtoken.FieldPlayerID)
+	}
+	query.Where(predicate.YggToken(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(player.YggTokensColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.PlayerID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "player_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "player_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *PlayerQuery) loadYggSessions(ctx context.Context, query *YggSessionQuery, nodes []*Player, init func(*Player), assign func(*Player, *YggSession)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*Player)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(yggsession.FieldPlayerID)
+	}
+	query.Where(predicate.YggSession(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(player.YggSessionsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.PlayerID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "player_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

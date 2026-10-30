@@ -93,6 +93,54 @@ func (f NotificationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.NotificationMutation", m)
 }
 
+// The OAuthClientFunc type is an adapter to allow the use of ordinary
+// function as OAuthClient mutator.
+type OAuthClientFunc func(context.Context, *ent.OAuthClientMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OAuthClientFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OAuthClientMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OAuthClientMutation", m)
+}
+
+// The OAuthCodeFunc type is an adapter to allow the use of ordinary
+// function as OAuthCode mutator.
+type OAuthCodeFunc func(context.Context, *ent.OAuthCodeMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OAuthCodeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OAuthCodeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OAuthCodeMutation", m)
+}
+
+// The OAuthGrantFunc type is an adapter to allow the use of ordinary
+// function as OAuthGrant mutator.
+type OAuthGrantFunc func(context.Context, *ent.OAuthGrantMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OAuthGrantFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OAuthGrantMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OAuthGrantMutation", m)
+}
+
+// The OAuthTokenFunc type is an adapter to allow the use of ordinary
+// function as OAuthToken mutator.
+type OAuthTokenFunc func(context.Context, *ent.OAuthTokenMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OAuthTokenFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OAuthTokenMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OAuthTokenMutation", m)
+}
+
 // The PlayerFunc type is an adapter to allow the use of ordinary
 // function as Player mutator.
 type PlayerFunc func(context.Context, *ent.PlayerMutation) (ent.Value, error)
@@ -153,6 +201,42 @@ func (f SettingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SettingMutation", m)
 }
 
+// The SiteSecretFunc type is an adapter to allow the use of ordinary
+// function as SiteSecret mutator.
+type SiteSecretFunc func(context.Context, *ent.SiteSecretMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SiteSecretFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SiteSecretMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SiteSecretMutation", m)
+}
+
+// The SocialAccountFunc type is an adapter to allow the use of ordinary
+// function as SocialAccount mutator.
+type SocialAccountFunc func(context.Context, *ent.SocialAccountMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SocialAccountFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SocialAccountMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SocialAccountMutation", m)
+}
+
+// The SocialFlowFunc type is an adapter to allow the use of ordinary
+// function as SocialFlow mutator.
+type SocialFlowFunc func(context.Context, *ent.SocialFlowMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SocialFlowFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SocialFlowMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SocialFlowMutation", m)
+}
+
 // The SystemStateFunc type is an adapter to allow the use of ordinary
 // function as SystemState mutator.
 type SystemStateFunc func(context.Context, *ent.SystemStateMutation) (ent.Value, error)
@@ -187,6 +271,30 @@ func (f UserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMutation", m)
+}
+
+// The YggSessionFunc type is an adapter to allow the use of ordinary
+// function as YggSession mutator.
+type YggSessionFunc func(context.Context, *ent.YggSessionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f YggSessionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.YggSessionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.YggSessionMutation", m)
+}
+
+// The YggTokenFunc type is an adapter to allow the use of ordinary
+// function as YggToken mutator.
+type YggTokenFunc func(context.Context, *ent.YggTokenMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f YggTokenFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.YggTokenMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.YggTokenMutation", m)
 }
 
 // Condition is a hook condition function.

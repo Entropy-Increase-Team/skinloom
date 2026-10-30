@@ -21,6 +21,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
 	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
 	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
+	"github.com/Entropy-Increase-Team/skinloom/internal/oauth"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/httpx"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/realip"
@@ -29,25 +30,30 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/render"
 	"github.com/Entropy-Increase-Team/skinloom/internal/report"
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/social"
 	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
 	"github.com/Entropy-Increase-Team/skinloom/internal/theme"
+	"github.com/Entropy-Increase-Team/skinloom/internal/yggdrasil"
 )
 
 // Deps are the services the API needs.
 type Deps struct {
-	Log      *slog.Logger
-	DB       *db.DB // nil when only generating the OpenAPI document
-	Settings *settings.Service
-	Themes   *theme.Registry
-	Broker   *pubsub.Broker
-	Accounts *account.Service
-	Captcha  *captcha.Service
-	Mailer   *mail.Mailer
-	Textures *texture.Service
-	Players  *player.Service
-	Reports  *report.Service
-	Renders  *render.Service
-	Notify   *notify.Service
+	Log       *slog.Logger
+	DB        *db.DB // nil when only generating the OpenAPI document
+	Settings  *settings.Service
+	Themes    *theme.Registry
+	Broker    *pubsub.Broker
+	Accounts  *account.Service
+	Captcha   *captcha.Service
+	Mailer    *mail.Mailer
+	Textures  *texture.Service
+	Players   *player.Service
+	Reports   *report.Service
+	Renders   *render.Service
+	Notify    *notify.Service
+	Yggdrasil *yggdrasil.Service
+	OAuth     *oauth.Service
+	Social    *social.Service
 	// ClientInfo resolves the client address and public host behind trusted proxies
 	// (the gateway's live resolver). Nil = trust no proxy.
 	ClientInfo func(*http.Request) realip.Info
@@ -87,7 +93,7 @@ func New(d Deps) (http.Handler, huma.API) {
 	cfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
 		"session": {Type: "apiKey", In: "cookie", Name: SessionCookie,
 			Description: "Browser session from /api/v1/auth/login. State-changing requests must also send the " + CSRFHeader + " header."},
-		"adminToken": {Type: "http", Scheme: "bearer", Description: "Admin token from data/secrets/admin.token, for scripts until personal access tokens land (M3)."},
+		"adminToken": {Type: "http", Scheme: "bearer", Description: "Admin token from data/secrets/admin.token, for scripts."},
 	}
 	api := humachi.New(r, cfg)
 
@@ -104,9 +110,16 @@ func New(d Deps) (http.Handler, huma.API) {
 	registerReports(api, d)
 	registerAdminPlayers(api, d)
 	registerNotifications(api, d)
+	registerYggdrasilAccount(api, d)
+	registerOAuthAccount(api, d)
+	registerSocial(api, d)
 	mountFiles(r, d)
 	mountGame(r, d)
 	mountRender(r, d)
+	mountYggdrasil(r, d)
+	mountOAuth(r, d)
+	mountBSAPI(r, d)
+	mountSocial(r, d)
 
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok")) })
 	r.Get("/readyz", func(w http.ResponseWriter, req *http.Request) {

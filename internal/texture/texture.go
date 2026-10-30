@@ -356,6 +356,28 @@ func (s *Service) Closet(ctx context.Context, userID int64, f ClosetFilter) ([]*
 	return list, next, nil
 }
 
+// ClosetPage is a numbered page of a user's closet with the total, as Blessing Skin's
+// resource API pages it (newest texture first; page from 1, perPage 1–100).
+func (s *Service) ClosetPage(ctx context.Context, userID int64, f ClosetFilter, page, perPage int) ([]*ent.ClosetItem, int, error) {
+	where := []predicate.ClosetItem{closetitem.UserID(userID)}
+	switch f.Category {
+	case "skin":
+		where = append(where, closetitem.HasTextureWith(tex.TypeIn(tex.TypeSteve, tex.TypeAlex)))
+	case "cape":
+		where = append(where, closetitem.HasTextureWith(tex.TypeEQ(tex.TypeCape)))
+	}
+	if q := strings.TrimSpace(f.Query); q != "" {
+		where = append(where, closetitem.NameContainsFold(q))
+	}
+	total, err := s.db.ClosetItem.Query().Where(where...).Count(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	list, err := s.db.ClosetItem.Query().Where(where...).WithTexture().
+		Order(ent.Desc(closetitem.FieldTextureID)).Offset((page - 1) * perPage).Limit(perPage).All(ctx)
+	return list, total, err
+}
+
 // Open returns the stored file of a texture the viewer may see (/raw/{tid}).
 func (s *Service) Open(ctx context.Context, id int64, v Viewer) (*ent.Texture, storage.File, error) {
 	t, err := s.Get(ctx, id, v)

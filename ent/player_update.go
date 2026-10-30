@@ -15,6 +15,8 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggsession"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggtoken"
 )
 
 // PlayerUpdate is the builder for updating Player entities.
@@ -153,6 +155,36 @@ func (_u *PlayerUpdate) SetCape(v *Texture) *PlayerUpdate {
 	return _u.SetCapeID(v.ID)
 }
 
+// AddYggTokenIDs adds the "ygg_tokens" edge to the YggToken entity by IDs.
+func (_u *PlayerUpdate) AddYggTokenIDs(ids ...int64) *PlayerUpdate {
+	_u.mutation.AddYggTokenIDs(ids...)
+	return _u
+}
+
+// AddYggTokens adds the "ygg_tokens" edges to the YggToken entity.
+func (_u *PlayerUpdate) AddYggTokens(v ...*YggToken) *PlayerUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddYggTokenIDs(ids...)
+}
+
+// AddYggSessionIDs adds the "ygg_sessions" edge to the YggSession entity by IDs.
+func (_u *PlayerUpdate) AddYggSessionIDs(ids ...int64) *PlayerUpdate {
+	_u.mutation.AddYggSessionIDs(ids...)
+	return _u
+}
+
+// AddYggSessions adds the "ygg_sessions" edges to the YggSession entity.
+func (_u *PlayerUpdate) AddYggSessions(v ...*YggSession) *PlayerUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddYggSessionIDs(ids...)
+}
+
 // Mutation returns the PlayerMutation object of the builder.
 func (_u *PlayerUpdate) Mutation() *PlayerMutation {
 	return _u.mutation
@@ -174,6 +206,48 @@ func (_u *PlayerUpdate) ClearSkin() *PlayerUpdate {
 func (_u *PlayerUpdate) ClearCape() *PlayerUpdate {
 	_u.mutation.ClearCape()
 	return _u
+}
+
+// ClearYggTokens clears all "ygg_tokens" edges to the YggToken entity.
+func (_u *PlayerUpdate) ClearYggTokens() *PlayerUpdate {
+	_u.mutation.ClearYggTokens()
+	return _u
+}
+
+// RemoveYggTokenIDs removes the "ygg_tokens" edge to YggToken entities by IDs.
+func (_u *PlayerUpdate) RemoveYggTokenIDs(ids ...int64) *PlayerUpdate {
+	_u.mutation.RemoveYggTokenIDs(ids...)
+	return _u
+}
+
+// RemoveYggTokens removes "ygg_tokens" edges to YggToken entities.
+func (_u *PlayerUpdate) RemoveYggTokens(v ...*YggToken) *PlayerUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveYggTokenIDs(ids...)
+}
+
+// ClearYggSessions clears all "ygg_sessions" edges to the YggSession entity.
+func (_u *PlayerUpdate) ClearYggSessions() *PlayerUpdate {
+	_u.mutation.ClearYggSessions()
+	return _u
+}
+
+// RemoveYggSessionIDs removes the "ygg_sessions" edge to YggSession entities by IDs.
+func (_u *PlayerUpdate) RemoveYggSessionIDs(ids ...int64) *PlayerUpdate {
+	_u.mutation.RemoveYggSessionIDs(ids...)
+	return _u
+}
+
+// RemoveYggSessions removes "ygg_sessions" edges to YggSession entities.
+func (_u *PlayerUpdate) RemoveYggSessions(v ...*YggSession) *PlayerUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveYggSessionIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -346,6 +420,96 @@ func (_u *PlayerUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.YggTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   player.YggTokensTable,
+			Columns: []string{player.YggTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggtoken.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedYggTokensIDs(); len(nodes) > 0 && !_u.mutation.YggTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   player.YggTokensTable,
+			Columns: []string{player.YggTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.YggTokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   player.YggTokensTable,
+			Columns: []string{player.YggTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.YggSessionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   player.YggSessionsTable,
+			Columns: []string{player.YggSessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggsession.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedYggSessionsIDs(); len(nodes) > 0 && !_u.mutation.YggSessionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   player.YggSessionsTable,
+			Columns: []string{player.YggSessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggsession.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.YggSessionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   player.YggSessionsTable,
+			Columns: []string{player.YggSessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggsession.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{player.Label}
@@ -489,6 +653,36 @@ func (_u *PlayerUpdateOne) SetCape(v *Texture) *PlayerUpdateOne {
 	return _u.SetCapeID(v.ID)
 }
 
+// AddYggTokenIDs adds the "ygg_tokens" edge to the YggToken entity by IDs.
+func (_u *PlayerUpdateOne) AddYggTokenIDs(ids ...int64) *PlayerUpdateOne {
+	_u.mutation.AddYggTokenIDs(ids...)
+	return _u
+}
+
+// AddYggTokens adds the "ygg_tokens" edges to the YggToken entity.
+func (_u *PlayerUpdateOne) AddYggTokens(v ...*YggToken) *PlayerUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddYggTokenIDs(ids...)
+}
+
+// AddYggSessionIDs adds the "ygg_sessions" edge to the YggSession entity by IDs.
+func (_u *PlayerUpdateOne) AddYggSessionIDs(ids ...int64) *PlayerUpdateOne {
+	_u.mutation.AddYggSessionIDs(ids...)
+	return _u
+}
+
+// AddYggSessions adds the "ygg_sessions" edges to the YggSession entity.
+func (_u *PlayerUpdateOne) AddYggSessions(v ...*YggSession) *PlayerUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddYggSessionIDs(ids...)
+}
+
 // Mutation returns the PlayerMutation object of the builder.
 func (_u *PlayerUpdateOne) Mutation() *PlayerMutation {
 	return _u.mutation
@@ -510,6 +704,48 @@ func (_u *PlayerUpdateOne) ClearSkin() *PlayerUpdateOne {
 func (_u *PlayerUpdateOne) ClearCape() *PlayerUpdateOne {
 	_u.mutation.ClearCape()
 	return _u
+}
+
+// ClearYggTokens clears all "ygg_tokens" edges to the YggToken entity.
+func (_u *PlayerUpdateOne) ClearYggTokens() *PlayerUpdateOne {
+	_u.mutation.ClearYggTokens()
+	return _u
+}
+
+// RemoveYggTokenIDs removes the "ygg_tokens" edge to YggToken entities by IDs.
+func (_u *PlayerUpdateOne) RemoveYggTokenIDs(ids ...int64) *PlayerUpdateOne {
+	_u.mutation.RemoveYggTokenIDs(ids...)
+	return _u
+}
+
+// RemoveYggTokens removes "ygg_tokens" edges to YggToken entities.
+func (_u *PlayerUpdateOne) RemoveYggTokens(v ...*YggToken) *PlayerUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveYggTokenIDs(ids...)
+}
+
+// ClearYggSessions clears all "ygg_sessions" edges to the YggSession entity.
+func (_u *PlayerUpdateOne) ClearYggSessions() *PlayerUpdateOne {
+	_u.mutation.ClearYggSessions()
+	return _u
+}
+
+// RemoveYggSessionIDs removes the "ygg_sessions" edge to YggSession entities by IDs.
+func (_u *PlayerUpdateOne) RemoveYggSessionIDs(ids ...int64) *PlayerUpdateOne {
+	_u.mutation.RemoveYggSessionIDs(ids...)
+	return _u
+}
+
+// RemoveYggSessions removes "ygg_sessions" edges to YggSession entities.
+func (_u *PlayerUpdateOne) RemoveYggSessions(v ...*YggSession) *PlayerUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveYggSessionIDs(ids...)
 }
 
 // Where appends a list predicates to the PlayerUpdate builder.
@@ -705,6 +941,96 @@ func (_u *PlayerUpdateOne) sqlSave(ctx context.Context) (_node *Player, err erro
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(texture.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.YggTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   player.YggTokensTable,
+			Columns: []string{player.YggTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggtoken.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedYggTokensIDs(); len(nodes) > 0 && !_u.mutation.YggTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   player.YggTokensTable,
+			Columns: []string{player.YggTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.YggTokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   player.YggTokensTable,
+			Columns: []string{player.YggTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.YggSessionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   player.YggSessionsTable,
+			Columns: []string{player.YggSessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggsession.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedYggSessionsIDs(); len(nodes) > 0 && !_u.mutation.YggSessionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   player.YggSessionsTable,
+			Columns: []string{player.YggSessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggsession.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.YggSessionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   player.YggSessionsTable,
+			Columns: []string{player.YggSessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggsession.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

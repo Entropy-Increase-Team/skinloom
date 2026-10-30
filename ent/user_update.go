@@ -15,13 +15,20 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
+	"github.com/Entropy-Increase-Team/skinloom/ent/socialaccount"
+	"github.com/Entropy-Increase-Team/skinloom/ent/socialflow"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggtoken"
 )
 
 // UserUpdate is the builder for updating User entities.
@@ -468,6 +475,111 @@ func (_u *UserUpdate) AddNotifications(v ...*Notification) *UserUpdate {
 	return _u.AddNotificationIDs(ids...)
 }
 
+// AddYggTokenIDs adds the "ygg_tokens" edge to the YggToken entity by IDs.
+func (_u *UserUpdate) AddYggTokenIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddYggTokenIDs(ids...)
+	return _u
+}
+
+// AddYggTokens adds the "ygg_tokens" edges to the YggToken entity.
+func (_u *UserUpdate) AddYggTokens(v ...*YggToken) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddYggTokenIDs(ids...)
+}
+
+// AddOauthClientIDs adds the "oauth_clients" edge to the OAuthClient entity by IDs.
+func (_u *UserUpdate) AddOauthClientIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddOauthClientIDs(ids...)
+	return _u
+}
+
+// AddOauthClients adds the "oauth_clients" edges to the OAuthClient entity.
+func (_u *UserUpdate) AddOauthClients(v ...*OAuthClient) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOauthClientIDs(ids...)
+}
+
+// AddOauthGrantIDs adds the "oauth_grants" edge to the OAuthGrant entity by IDs.
+func (_u *UserUpdate) AddOauthGrantIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddOauthGrantIDs(ids...)
+	return _u
+}
+
+// AddOauthGrants adds the "oauth_grants" edges to the OAuthGrant entity.
+func (_u *UserUpdate) AddOauthGrants(v ...*OAuthGrant) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOauthGrantIDs(ids...)
+}
+
+// AddOauthCodeIDs adds the "oauth_codes" edge to the OAuthCode entity by IDs.
+func (_u *UserUpdate) AddOauthCodeIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddOauthCodeIDs(ids...)
+	return _u
+}
+
+// AddOauthCodes adds the "oauth_codes" edges to the OAuthCode entity.
+func (_u *UserUpdate) AddOauthCodes(v ...*OAuthCode) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOauthCodeIDs(ids...)
+}
+
+// AddOauthTokenIDs adds the "oauth_tokens" edge to the OAuthToken entity by IDs.
+func (_u *UserUpdate) AddOauthTokenIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddOauthTokenIDs(ids...)
+	return _u
+}
+
+// AddOauthTokens adds the "oauth_tokens" edges to the OAuthToken entity.
+func (_u *UserUpdate) AddOauthTokens(v ...*OAuthToken) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOauthTokenIDs(ids...)
+}
+
+// AddSocialAccountIDs adds the "social_accounts" edge to the SocialAccount entity by IDs.
+func (_u *UserUpdate) AddSocialAccountIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddSocialAccountIDs(ids...)
+	return _u
+}
+
+// AddSocialAccounts adds the "social_accounts" edges to the SocialAccount entity.
+func (_u *UserUpdate) AddSocialAccounts(v ...*SocialAccount) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSocialAccountIDs(ids...)
+}
+
+// AddSocialFlowIDs adds the "social_flows" edge to the SocialFlow entity by IDs.
+func (_u *UserUpdate) AddSocialFlowIDs(ids ...string) *UserUpdate {
+	_u.mutation.AddSocialFlowIDs(ids...)
+	return _u
+}
+
+// AddSocialFlows adds the "social_flows" edges to the SocialFlow entity.
+func (_u *UserUpdate) AddSocialFlows(v ...*SocialFlow) *UserUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSocialFlowIDs(ids...)
+}
+
 // AddAnnouncementsSentIDs adds the "announcements_sent" edge to the Announcement entity by IDs.
 func (_u *UserUpdate) AddAnnouncementsSentIDs(ids ...int64) *UserUpdate {
 	_u.mutation.AddAnnouncementsSentIDs(ids...)
@@ -696,6 +808,153 @@ func (_u *UserUpdate) RemoveNotifications(v ...*Notification) *UserUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveNotificationIDs(ids...)
+}
+
+// ClearYggTokens clears all "ygg_tokens" edges to the YggToken entity.
+func (_u *UserUpdate) ClearYggTokens() *UserUpdate {
+	_u.mutation.ClearYggTokens()
+	return _u
+}
+
+// RemoveYggTokenIDs removes the "ygg_tokens" edge to YggToken entities by IDs.
+func (_u *UserUpdate) RemoveYggTokenIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemoveYggTokenIDs(ids...)
+	return _u
+}
+
+// RemoveYggTokens removes "ygg_tokens" edges to YggToken entities.
+func (_u *UserUpdate) RemoveYggTokens(v ...*YggToken) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveYggTokenIDs(ids...)
+}
+
+// ClearOauthClients clears all "oauth_clients" edges to the OAuthClient entity.
+func (_u *UserUpdate) ClearOauthClients() *UserUpdate {
+	_u.mutation.ClearOauthClients()
+	return _u
+}
+
+// RemoveOauthClientIDs removes the "oauth_clients" edge to OAuthClient entities by IDs.
+func (_u *UserUpdate) RemoveOauthClientIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemoveOauthClientIDs(ids...)
+	return _u
+}
+
+// RemoveOauthClients removes "oauth_clients" edges to OAuthClient entities.
+func (_u *UserUpdate) RemoveOauthClients(v ...*OAuthClient) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOauthClientIDs(ids...)
+}
+
+// ClearOauthGrants clears all "oauth_grants" edges to the OAuthGrant entity.
+func (_u *UserUpdate) ClearOauthGrants() *UserUpdate {
+	_u.mutation.ClearOauthGrants()
+	return _u
+}
+
+// RemoveOauthGrantIDs removes the "oauth_grants" edge to OAuthGrant entities by IDs.
+func (_u *UserUpdate) RemoveOauthGrantIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemoveOauthGrantIDs(ids...)
+	return _u
+}
+
+// RemoveOauthGrants removes "oauth_grants" edges to OAuthGrant entities.
+func (_u *UserUpdate) RemoveOauthGrants(v ...*OAuthGrant) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOauthGrantIDs(ids...)
+}
+
+// ClearOauthCodes clears all "oauth_codes" edges to the OAuthCode entity.
+func (_u *UserUpdate) ClearOauthCodes() *UserUpdate {
+	_u.mutation.ClearOauthCodes()
+	return _u
+}
+
+// RemoveOauthCodeIDs removes the "oauth_codes" edge to OAuthCode entities by IDs.
+func (_u *UserUpdate) RemoveOauthCodeIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemoveOauthCodeIDs(ids...)
+	return _u
+}
+
+// RemoveOauthCodes removes "oauth_codes" edges to OAuthCode entities.
+func (_u *UserUpdate) RemoveOauthCodes(v ...*OAuthCode) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOauthCodeIDs(ids...)
+}
+
+// ClearOauthTokens clears all "oauth_tokens" edges to the OAuthToken entity.
+func (_u *UserUpdate) ClearOauthTokens() *UserUpdate {
+	_u.mutation.ClearOauthTokens()
+	return _u
+}
+
+// RemoveOauthTokenIDs removes the "oauth_tokens" edge to OAuthToken entities by IDs.
+func (_u *UserUpdate) RemoveOauthTokenIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemoveOauthTokenIDs(ids...)
+	return _u
+}
+
+// RemoveOauthTokens removes "oauth_tokens" edges to OAuthToken entities.
+func (_u *UserUpdate) RemoveOauthTokens(v ...*OAuthToken) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOauthTokenIDs(ids...)
+}
+
+// ClearSocialAccounts clears all "social_accounts" edges to the SocialAccount entity.
+func (_u *UserUpdate) ClearSocialAccounts() *UserUpdate {
+	_u.mutation.ClearSocialAccounts()
+	return _u
+}
+
+// RemoveSocialAccountIDs removes the "social_accounts" edge to SocialAccount entities by IDs.
+func (_u *UserUpdate) RemoveSocialAccountIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemoveSocialAccountIDs(ids...)
+	return _u
+}
+
+// RemoveSocialAccounts removes "social_accounts" edges to SocialAccount entities.
+func (_u *UserUpdate) RemoveSocialAccounts(v ...*SocialAccount) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSocialAccountIDs(ids...)
+}
+
+// ClearSocialFlows clears all "social_flows" edges to the SocialFlow entity.
+func (_u *UserUpdate) ClearSocialFlows() *UserUpdate {
+	_u.mutation.ClearSocialFlows()
+	return _u
+}
+
+// RemoveSocialFlowIDs removes the "social_flows" edge to SocialFlow entities by IDs.
+func (_u *UserUpdate) RemoveSocialFlowIDs(ids ...string) *UserUpdate {
+	_u.mutation.RemoveSocialFlowIDs(ids...)
+	return _u
+}
+
+// RemoveSocialFlows removes "social_flows" edges to SocialFlow entities.
+func (_u *UserUpdate) RemoveSocialFlows(v ...*SocialFlow) *UserUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSocialFlowIDs(ids...)
 }
 
 // ClearAnnouncementsSent clears all "announcements_sent" edges to the Announcement entity.
@@ -1342,6 +1601,321 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.YggTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.YggTokensTable,
+			Columns: []string{user.YggTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggtoken.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedYggTokensIDs(); len(nodes) > 0 && !_u.mutation.YggTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.YggTokensTable,
+			Columns: []string{user.YggTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.YggTokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.YggTokensTable,
+			Columns: []string{user.YggTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OauthClientsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthClientsTable,
+			Columns: []string{user.OauthClientsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthclient.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOauthClientsIDs(); len(nodes) > 0 && !_u.mutation.OauthClientsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthClientsTable,
+			Columns: []string{user.OauthClientsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthclient.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OauthClientsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthClientsTable,
+			Columns: []string{user.OauthClientsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthclient.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OauthGrantsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthGrantsTable,
+			Columns: []string{user.OauthGrantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthgrant.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOauthGrantsIDs(); len(nodes) > 0 && !_u.mutation.OauthGrantsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthGrantsTable,
+			Columns: []string{user.OauthGrantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthgrant.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OauthGrantsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthGrantsTable,
+			Columns: []string{user.OauthGrantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthgrant.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OauthCodesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthCodesTable,
+			Columns: []string{user.OauthCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthcode.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOauthCodesIDs(); len(nodes) > 0 && !_u.mutation.OauthCodesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthCodesTable,
+			Columns: []string{user.OauthCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthcode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OauthCodesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthCodesTable,
+			Columns: []string{user.OauthCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthcode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OauthTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthTokensTable,
+			Columns: []string{user.OauthTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOauthTokensIDs(); len(nodes) > 0 && !_u.mutation.OauthTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthTokensTable,
+			Columns: []string{user.OauthTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OauthTokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthTokensTable,
+			Columns: []string{user.OauthTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SocialAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SocialAccountsTable,
+			Columns: []string{user.SocialAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(socialaccount.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSocialAccountsIDs(); len(nodes) > 0 && !_u.mutation.SocialAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SocialAccountsTable,
+			Columns: []string{user.SocialAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(socialaccount.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SocialAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SocialAccountsTable,
+			Columns: []string{user.SocialAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(socialaccount.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SocialFlowsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SocialFlowsTable,
+			Columns: []string{user.SocialFlowsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(socialflow.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSocialFlowsIDs(); len(nodes) > 0 && !_u.mutation.SocialFlowsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SocialFlowsTable,
+			Columns: []string{user.SocialFlowsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(socialflow.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SocialFlowsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SocialFlowsTable,
+			Columns: []string{user.SocialFlowsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(socialflow.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.AnnouncementsSentCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -1838,6 +2412,111 @@ func (_u *UserUpdateOne) AddNotifications(v ...*Notification) *UserUpdateOne {
 	return _u.AddNotificationIDs(ids...)
 }
 
+// AddYggTokenIDs adds the "ygg_tokens" edge to the YggToken entity by IDs.
+func (_u *UserUpdateOne) AddYggTokenIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddYggTokenIDs(ids...)
+	return _u
+}
+
+// AddYggTokens adds the "ygg_tokens" edges to the YggToken entity.
+func (_u *UserUpdateOne) AddYggTokens(v ...*YggToken) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddYggTokenIDs(ids...)
+}
+
+// AddOauthClientIDs adds the "oauth_clients" edge to the OAuthClient entity by IDs.
+func (_u *UserUpdateOne) AddOauthClientIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddOauthClientIDs(ids...)
+	return _u
+}
+
+// AddOauthClients adds the "oauth_clients" edges to the OAuthClient entity.
+func (_u *UserUpdateOne) AddOauthClients(v ...*OAuthClient) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOauthClientIDs(ids...)
+}
+
+// AddOauthGrantIDs adds the "oauth_grants" edge to the OAuthGrant entity by IDs.
+func (_u *UserUpdateOne) AddOauthGrantIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddOauthGrantIDs(ids...)
+	return _u
+}
+
+// AddOauthGrants adds the "oauth_grants" edges to the OAuthGrant entity.
+func (_u *UserUpdateOne) AddOauthGrants(v ...*OAuthGrant) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOauthGrantIDs(ids...)
+}
+
+// AddOauthCodeIDs adds the "oauth_codes" edge to the OAuthCode entity by IDs.
+func (_u *UserUpdateOne) AddOauthCodeIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddOauthCodeIDs(ids...)
+	return _u
+}
+
+// AddOauthCodes adds the "oauth_codes" edges to the OAuthCode entity.
+func (_u *UserUpdateOne) AddOauthCodes(v ...*OAuthCode) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOauthCodeIDs(ids...)
+}
+
+// AddOauthTokenIDs adds the "oauth_tokens" edge to the OAuthToken entity by IDs.
+func (_u *UserUpdateOne) AddOauthTokenIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddOauthTokenIDs(ids...)
+	return _u
+}
+
+// AddOauthTokens adds the "oauth_tokens" edges to the OAuthToken entity.
+func (_u *UserUpdateOne) AddOauthTokens(v ...*OAuthToken) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOauthTokenIDs(ids...)
+}
+
+// AddSocialAccountIDs adds the "social_accounts" edge to the SocialAccount entity by IDs.
+func (_u *UserUpdateOne) AddSocialAccountIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddSocialAccountIDs(ids...)
+	return _u
+}
+
+// AddSocialAccounts adds the "social_accounts" edges to the SocialAccount entity.
+func (_u *UserUpdateOne) AddSocialAccounts(v ...*SocialAccount) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSocialAccountIDs(ids...)
+}
+
+// AddSocialFlowIDs adds the "social_flows" edge to the SocialFlow entity by IDs.
+func (_u *UserUpdateOne) AddSocialFlowIDs(ids ...string) *UserUpdateOne {
+	_u.mutation.AddSocialFlowIDs(ids...)
+	return _u
+}
+
+// AddSocialFlows adds the "social_flows" edges to the SocialFlow entity.
+func (_u *UserUpdateOne) AddSocialFlows(v ...*SocialFlow) *UserUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSocialFlowIDs(ids...)
+}
+
 // AddAnnouncementsSentIDs adds the "announcements_sent" edge to the Announcement entity by IDs.
 func (_u *UserUpdateOne) AddAnnouncementsSentIDs(ids ...int64) *UserUpdateOne {
 	_u.mutation.AddAnnouncementsSentIDs(ids...)
@@ -2066,6 +2745,153 @@ func (_u *UserUpdateOne) RemoveNotifications(v ...*Notification) *UserUpdateOne 
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveNotificationIDs(ids...)
+}
+
+// ClearYggTokens clears all "ygg_tokens" edges to the YggToken entity.
+func (_u *UserUpdateOne) ClearYggTokens() *UserUpdateOne {
+	_u.mutation.ClearYggTokens()
+	return _u
+}
+
+// RemoveYggTokenIDs removes the "ygg_tokens" edge to YggToken entities by IDs.
+func (_u *UserUpdateOne) RemoveYggTokenIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemoveYggTokenIDs(ids...)
+	return _u
+}
+
+// RemoveYggTokens removes "ygg_tokens" edges to YggToken entities.
+func (_u *UserUpdateOne) RemoveYggTokens(v ...*YggToken) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveYggTokenIDs(ids...)
+}
+
+// ClearOauthClients clears all "oauth_clients" edges to the OAuthClient entity.
+func (_u *UserUpdateOne) ClearOauthClients() *UserUpdateOne {
+	_u.mutation.ClearOauthClients()
+	return _u
+}
+
+// RemoveOauthClientIDs removes the "oauth_clients" edge to OAuthClient entities by IDs.
+func (_u *UserUpdateOne) RemoveOauthClientIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemoveOauthClientIDs(ids...)
+	return _u
+}
+
+// RemoveOauthClients removes "oauth_clients" edges to OAuthClient entities.
+func (_u *UserUpdateOne) RemoveOauthClients(v ...*OAuthClient) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOauthClientIDs(ids...)
+}
+
+// ClearOauthGrants clears all "oauth_grants" edges to the OAuthGrant entity.
+func (_u *UserUpdateOne) ClearOauthGrants() *UserUpdateOne {
+	_u.mutation.ClearOauthGrants()
+	return _u
+}
+
+// RemoveOauthGrantIDs removes the "oauth_grants" edge to OAuthGrant entities by IDs.
+func (_u *UserUpdateOne) RemoveOauthGrantIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemoveOauthGrantIDs(ids...)
+	return _u
+}
+
+// RemoveOauthGrants removes "oauth_grants" edges to OAuthGrant entities.
+func (_u *UserUpdateOne) RemoveOauthGrants(v ...*OAuthGrant) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOauthGrantIDs(ids...)
+}
+
+// ClearOauthCodes clears all "oauth_codes" edges to the OAuthCode entity.
+func (_u *UserUpdateOne) ClearOauthCodes() *UserUpdateOne {
+	_u.mutation.ClearOauthCodes()
+	return _u
+}
+
+// RemoveOauthCodeIDs removes the "oauth_codes" edge to OAuthCode entities by IDs.
+func (_u *UserUpdateOne) RemoveOauthCodeIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemoveOauthCodeIDs(ids...)
+	return _u
+}
+
+// RemoveOauthCodes removes "oauth_codes" edges to OAuthCode entities.
+func (_u *UserUpdateOne) RemoveOauthCodes(v ...*OAuthCode) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOauthCodeIDs(ids...)
+}
+
+// ClearOauthTokens clears all "oauth_tokens" edges to the OAuthToken entity.
+func (_u *UserUpdateOne) ClearOauthTokens() *UserUpdateOne {
+	_u.mutation.ClearOauthTokens()
+	return _u
+}
+
+// RemoveOauthTokenIDs removes the "oauth_tokens" edge to OAuthToken entities by IDs.
+func (_u *UserUpdateOne) RemoveOauthTokenIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemoveOauthTokenIDs(ids...)
+	return _u
+}
+
+// RemoveOauthTokens removes "oauth_tokens" edges to OAuthToken entities.
+func (_u *UserUpdateOne) RemoveOauthTokens(v ...*OAuthToken) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOauthTokenIDs(ids...)
+}
+
+// ClearSocialAccounts clears all "social_accounts" edges to the SocialAccount entity.
+func (_u *UserUpdateOne) ClearSocialAccounts() *UserUpdateOne {
+	_u.mutation.ClearSocialAccounts()
+	return _u
+}
+
+// RemoveSocialAccountIDs removes the "social_accounts" edge to SocialAccount entities by IDs.
+func (_u *UserUpdateOne) RemoveSocialAccountIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemoveSocialAccountIDs(ids...)
+	return _u
+}
+
+// RemoveSocialAccounts removes "social_accounts" edges to SocialAccount entities.
+func (_u *UserUpdateOne) RemoveSocialAccounts(v ...*SocialAccount) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSocialAccountIDs(ids...)
+}
+
+// ClearSocialFlows clears all "social_flows" edges to the SocialFlow entity.
+func (_u *UserUpdateOne) ClearSocialFlows() *UserUpdateOne {
+	_u.mutation.ClearSocialFlows()
+	return _u
+}
+
+// RemoveSocialFlowIDs removes the "social_flows" edge to SocialFlow entities by IDs.
+func (_u *UserUpdateOne) RemoveSocialFlowIDs(ids ...string) *UserUpdateOne {
+	_u.mutation.RemoveSocialFlowIDs(ids...)
+	return _u
+}
+
+// RemoveSocialFlows removes "social_flows" edges to SocialFlow entities.
+func (_u *UserUpdateOne) RemoveSocialFlows(v ...*SocialFlow) *UserUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSocialFlowIDs(ids...)
 }
 
 // ClearAnnouncementsSent clears all "announcements_sent" edges to the Announcement entity.
@@ -2735,6 +3561,321 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(notification.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.YggTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.YggTokensTable,
+			Columns: []string{user.YggTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggtoken.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedYggTokensIDs(); len(nodes) > 0 && !_u.mutation.YggTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.YggTokensTable,
+			Columns: []string{user.YggTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.YggTokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.YggTokensTable,
+			Columns: []string{user.YggTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OauthClientsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthClientsTable,
+			Columns: []string{user.OauthClientsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthclient.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOauthClientsIDs(); len(nodes) > 0 && !_u.mutation.OauthClientsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthClientsTable,
+			Columns: []string{user.OauthClientsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthclient.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OauthClientsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthClientsTable,
+			Columns: []string{user.OauthClientsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthclient.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OauthGrantsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthGrantsTable,
+			Columns: []string{user.OauthGrantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthgrant.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOauthGrantsIDs(); len(nodes) > 0 && !_u.mutation.OauthGrantsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthGrantsTable,
+			Columns: []string{user.OauthGrantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthgrant.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OauthGrantsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthGrantsTable,
+			Columns: []string{user.OauthGrantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthgrant.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OauthCodesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthCodesTable,
+			Columns: []string{user.OauthCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthcode.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOauthCodesIDs(); len(nodes) > 0 && !_u.mutation.OauthCodesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthCodesTable,
+			Columns: []string{user.OauthCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthcode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OauthCodesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthCodesTable,
+			Columns: []string{user.OauthCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthcode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OauthTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthTokensTable,
+			Columns: []string{user.OauthTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOauthTokensIDs(); len(nodes) > 0 && !_u.mutation.OauthTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthTokensTable,
+			Columns: []string{user.OauthTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OauthTokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthTokensTable,
+			Columns: []string{user.OauthTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SocialAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SocialAccountsTable,
+			Columns: []string{user.SocialAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(socialaccount.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSocialAccountsIDs(); len(nodes) > 0 && !_u.mutation.SocialAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SocialAccountsTable,
+			Columns: []string{user.SocialAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(socialaccount.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SocialAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SocialAccountsTable,
+			Columns: []string{user.SocialAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(socialaccount.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SocialFlowsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SocialFlowsTable,
+			Columns: []string{user.SocialFlowsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(socialflow.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSocialFlowsIDs(); len(nodes) > 0 && !_u.mutation.SocialFlowsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SocialFlowsTable,
+			Columns: []string{user.SocialFlowsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(socialflow.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SocialFlowsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SocialFlowsTable,
+			Columns: []string{user.SocialFlowsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(socialflow.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

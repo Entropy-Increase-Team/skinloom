@@ -14,6 +14,8 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggsession"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggtoken"
 )
 
 // PlayerCreate is the builder for creating a Player entity.
@@ -129,6 +131,36 @@ func (_c *PlayerCreate) SetSkin(v *Texture) *PlayerCreate {
 // SetCape sets the "cape" edge to the Texture entity.
 func (_c *PlayerCreate) SetCape(v *Texture) *PlayerCreate {
 	return _c.SetCapeID(v.ID)
+}
+
+// AddYggTokenIDs adds the "ygg_tokens" edge to the YggToken entity by IDs.
+func (_c *PlayerCreate) AddYggTokenIDs(ids ...int64) *PlayerCreate {
+	_c.mutation.AddYggTokenIDs(ids...)
+	return _c
+}
+
+// AddYggTokens adds the "ygg_tokens" edges to the YggToken entity.
+func (_c *PlayerCreate) AddYggTokens(v ...*YggToken) *PlayerCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddYggTokenIDs(ids...)
+}
+
+// AddYggSessionIDs adds the "ygg_sessions" edge to the YggSession entity by IDs.
+func (_c *PlayerCreate) AddYggSessionIDs(ids ...int64) *PlayerCreate {
+	_c.mutation.AddYggSessionIDs(ids...)
+	return _c
+}
+
+// AddYggSessions adds the "ygg_sessions" edges to the YggSession entity.
+func (_c *PlayerCreate) AddYggSessions(v ...*YggSession) *PlayerCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddYggSessionIDs(ids...)
 }
 
 // Mutation returns the PlayerMutation object of the builder.
@@ -316,6 +348,38 @@ func (_c *PlayerCreate) createSpec() (*Player, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.CapeID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.YggTokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   player.YggTokensTable,
+			Columns: []string{player.YggTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.YggSessionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   player.YggSessionsTable,
+			Columns: []string{player.YggSessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggsession.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

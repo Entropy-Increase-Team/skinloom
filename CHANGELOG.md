@@ -4,6 +4,73 @@
 
 ## [Unreleased]
 
+### 安全与正确性（M3 收尾检查）
+- 应用主人被封禁或注销后，应用已经签发给其他用户的访问令牌也立即失效（原来要等令牌过期，最长 1 天）；解封后恢复。
+- 兼容 BS 的资源 API 只为自己的路径回应跨域预检。原来 `/api/*` 的通配规则也会给 `/api/v1` 的预检返回 `Access-Control-Allow-Origin: *`，浏览器仍会拒绝（不允许 `X-SkinLoom-Request` 头、不带 Cookie），但 CSRF 防护只剩一层；新增回归测试。
+- Yggdrasil 元数据的 `skinDomains` 只在没有设置 `site.url` 时才使用请求的地址，不再把请求里的 `Host` 加进去。
+- `/oauth/token` 的内部错误写入日志，不再只返回 `server_error`。
+- 应用和个人访问令牌的名称按字符计（最多 64 个），22 个汉字以上的名称不再返回 500。
+- 兼容 BS 的分页接口对极大的 `page` 不再溢出（原来会回到第一页，PostgreSQL 上报错）。
+- 没有密码的账号不能解除最后一个仍在配置里的提供方的绑定（已删除的提供方的绑定不算登录方式）；两个同时的解绑不会把绑定全部删掉。
+- 第三方登录的 `next` 过长时忽略它，而不是让登录失败；`/api/admin/reports` 的筛选值无效（如 `status:9`）时返回空列表，不再返回全部举报。
+
+### 新增（M3 外置登录与开放平台 · 第四部分：第三方登录）
+- **第三方登录**：用 GitHub、Microsoft 或任何 OpenID Connect 提供方（Google、Keycloak、Authentik 等）登录，不需要插件。提供方写在新设置 `auth.social.providers` 里（设置 `site.url` 后生效），回调地址是 `<site.url>/api/v1/auth/social/<id>/callback`。登录页和注册页显示"使用 … 登录"按钮。
+- **第一次登录**：已绑定的直接登录；提供方和本站都验证过的同一邮箱自动绑定（从 BS 迁移过来的第三方登录用户这样找回账号）；其余进入 `/auth/social`，创建新账号（邮箱、昵称预填）或"登录并绑定"已有账号。
+- **已绑定的账号**：个人资料页可以查看、绑定其它提供方、解除绑定。通过第三方登录创建的账号没有密码，可以在个人资料页设置第一个密码。
+- 接口 `POST /api/v1/auth/social/{id}/start`、`GET /api/v1/auth/social/{id}/callback`、`GET /api/v1/auth/social/pending`、`POST /api/v1/auth/social/pending/register`、`POST /api/v1/auth/social/pending/link`、`GET /api/v1/me/social`、`POST/DELETE /api/v1/me/social/{id}`；`UserView` 增加 `hasPassword`，站点 bootstrap 增加 `auth.social`。数据库新增 `social_accounts`、`social_flows` 表（迁移 `20261030040409_social`）。文档站新增"第三方登录"页面；ADR 0025。
+
+### 安全与正确性（M3 第四部分）
+- 只有提供方和本站**都**验证过的邮箱才会自动绑定（BS 只按邮箱认人：先用别人的邮箱注册、或用可随意填写邮箱的 Microsoft 工作账号，都能登录别人的账号）。GitHub 只认已验证的主邮箱，Microsoft 只认个人账号或已验证域名的邮箱（防 nOAuth）。
+- 每次登录都带 PKCE 和 state（与浏览器 cookie 绑定、只能用一次），OpenID Connect 还校验 nonce、issuer、audience 与有效期；提供方地址必须是 https，回调地址只用 `site.url` 生成。
+- 绑定时浏览器里已经换了账号，绑定作废；一个第三方账号只能绑定一个本站账号。
+- 没有密码的账号不能用密码或启动器登录，最后一个绑定不能解除；新账号同样受 `auth.registration` 与 `auth.registrations_per_ip` 限制。绑定、解绑写入审计日志，登录和注册记录登录方式。
+
+### 新增（M3 外置登录与开放平台 · 第三部分：兼容 BS 的管理类接口）
+- **管理类资源 API**：`/api/admin/users`（列表、改邮箱、切换邮箱验证、改昵称、改密码、改积分、改权限、删除）、`/api/admin/players`（列表、改名、转移、换材质、删除）、`/api/admin/closet/{uid}`（查看、放入、取出）、`/api/admin/reports`（列表、处理）、`POST /api/admin/notifications`，与 Blessing Skin 的路径和格式相同，需要管理员授予的管理类 scope（应用令牌或个人访问令牌）。至此 BS 的 OAuth 资源 API 全部可用。
+- 列表支持 `page` 翻页和 `q` 搜索（普通文字，或 `uid:N`、`status:0` 这样的第一个条件）。ADR 0024。
+
+### 安全与正确性（M3 第三部分）
+- 管理类接口与后台页面走同一套服务和权限规则：管理员只能管理普通用户，谁都不能改自己的权限；操作写入同样的审计记录（修 BS A01：管理端与 OAuth API 各写一份、行为不一致）。
+- 给角色换材质要求材质在主人的衣柜里、类型正确（修 C07）；发通知返回结果而不是跳转到 `/admin`（修 C15）。
+- 令牌主人不再是管理员时，令牌立即不能再调用管理类接口；封禁用户会吊销他的全部令牌。
+
+### 新增（M3 外置登录与开放平台 · 第二部分：OAuth 2.0、个人访问令牌与兼容 API）
+- **OAuth 2.0 提供方**：其它网站和程序可以"用本站账号登录"。授权码流程（`/oauth/authorize`、`/oauth/token`），支持 PKCE、刷新令牌、吊销（`/oauth/revoke`）与元数据（`/.well-known/oauth-authorization-server`）；与 Blessing Skin（Laravel Passport）的客户端兼容，scope 名称相同。
+- **授权确认页** `/user/oauth/authorize`：显示应用、创建者和它要的每项权限；已经允许过的应用不再询问。
+- **应用与令牌** `/user/oauth/manage`：
+  - 注册应用（服务端应用有密钥，只显示一次，可以重置；浏览器 / 桌面 / 手机应用无密钥、必须用 PKCE），修改名称和回调地址，删除；
+  - 查看和撤销已授权的应用；
+  - 创建个人访问令牌（选权限和有效期），给自己的脚本调用接口，显示最近使用时间。
+  - 接口 `GET/POST /api/v1/me/oauth/clients`、`PATCH/DELETE /api/v1/me/oauth/clients/{id}`、`POST /api/v1/me/oauth/clients/{id}/secret`、`GET /api/v1/me/oauth/grants`、`DELETE /api/v1/me/oauth/grants/{id}`、`GET/POST /api/v1/me/tokens`、`DELETE /api/v1/me/tokens/{id}`、`GET /api/v1/oauth/scopes`、`GET/POST /api/v1/oauth/authorize`。
+- **兼容 Blessing Skin 的资源 API**：`/api`、`/api/user`、`/api/user/notifications`、`/api/players`、`/api/closet` 及其读写操作，响应格式与 BS 相同，应用的令牌和个人访问令牌都能用。管理类接口（`/api/admin/*`）将在第三部分提供。
+- 用户中心增加"应用与令牌"入口。新设置 `oauth.access_token_ttl_seconds`（默认 1 天）、`oauth.refresh_token_ttl_seconds`（默认 30 天）；数据库新增 `oauth_clients`、`oauth_grants`、`oauth_codes`、`oauth_tokens` 表（迁移 `20261029155749_oauth`）。文档站新增"开放平台"页面；ADR 0023。
+
+### 安全与正确性（M3 第二部分）
+- 应用密钥、授权码、访问与刷新令牌、个人访问令牌都只存哈希（BS 明文保存并一直显示应用密钥）。令牌带前缀（`slo_`、`slr_`、`slp_`），便于密钥扫描工具发现泄露。
+- 衣柜写权限 `Closet.ReadWrite` 现在可以授予，旧的拼写 `Closet.ReadWrtie` 也接受（修 C13：BS 的第三方应用永远拿不到）。
+- 改密码、找回密码、封禁、注销、"退出其它所有设备"时，应用的令牌和个人访问令牌一并失效（03 S02）；撤销授权或删除应用会删掉它的全部令牌。
+- 回调地址必须与登记的完全一致；`client_id` 或回调地址不对时错误显示在本站，不跳转。授权码只能用一次，同时兑换也只有一个成功；没通过检查的授权码同样作废。刷新令牌每次使用后更换。
+- 公开客户端必须使用 PKCE。管理类权限只有管理员能授予，使用时还要求令牌主人仍是管理员。应用主人被封禁或注销后应用停用。
+- 资源 API：读不存在或别人的通知返回 404（修 C15：BS 500）；衣柜每页最多 100 条；每个用户每分钟最多 60 次请求。
+- 访问令牌默认 1 天有效（BS 一年），需要时可以调长。
+
+### 新增（M3 外置登录与开放平台 · 第一部分：Yggdrasil）
+- **外置登录**：内置 authlib-injector 的 Yggdrasil API（`/api/yggdrasil`），与 Blessing Skin 的 yggdrasil-api 插件协议相同。HMCL、PCL2、BakaXL 等启动器添加外置登录后，用站点邮箱或角色名和密码登录、进服，游戏服务器用 authlib-injector 校验，皮肤由站点提供；也可以在启动器里直接上传皮肤和披风。
+- **启动器引导**：首页"启动器"区块与个人资料页给出接口地址、复制按钮和可以直接拖进启动器的链接；所有页面带 `X-Authlib-Injector-API-Location` 头，启动器里只填站点地址也行。
+- **游戏启动器管理**：个人资料页显示有几个启动器登录着账号，可以一键全部退出。接口 `GET /api/v1/me/yggdrasil`、`POST /api/v1/me/yggdrasil/signout`。
+- 新设置 `yggdrasil.token_valid_seconds`、`yggdrasil.token_refresh_seconds`、`yggdrasil.tokens_per_user`、`yggdrasil.search_profile_max`、`yggdrasil.skin_domains`、`yggdrasil.enable_ali`；数据库新增 `site_secrets`、`ygg_tokens`、`ygg_sessions` 表（迁移 `20261029123138_yggdrasil`）。文档站新增"外置登录"页面；ADR 0022。
+
+### 安全与正确性（M3 第一部分）
+- 启动器令牌存在数据库里（只存哈希），重启、升级、清缓存都不会让玩家掉线（修插件 Y01）；并发登录不会丢令牌，每人最多保留 `yggdrasil.tokens_per_user` 个（Y08）。
+- 令牌按用户 ID 归属：邮箱含大写字母时刷新出的令牌能正常使用（修插件 #212），用角色名或任意大小写的邮箱 signout 都会吊销全部令牌（Y02）。令牌过期时间按服务器记录检查。
+- 用角色名登录会绑定该角色（修 #123）；改名不影响已登录的启动器（#231）；返回的角色名是库内写法（#232）。
+- 修改或重置密码、封禁、注销账号、退出其它设备时，启动器一并退出（03 S02）。管理员把角色转给别人后，旧主人的启动器不能再用它进服。
+- 登录限流不再只按请求里的用户名计：按地址、地址 + 账号、账号三个维度，单一来源刷不掉别人的登录（修 Y04）。被封禁的账号得到明确的提示。
+- 材质上传接口只接受角色主人的令牌（插件接受任何人的有效令牌），照常收积分、校验尺寸。
+- join 之后角色被删或主人被封禁时 hasJoined 返回 204（修 Y05：插件 500）；批量查询角色名只用一次查询，数量受 `yggdrasil.search_profile_max` 限制。
+- 签名私钥（RSA 4096）与令牌密钥保存在数据库，多个实例共用，启动时加载一次（修 Y06、Y09）；签名结果缓存，hasJoined 不必每次做 RSA 运算。
+
 ### 新增（M2 材质与角色 · 第五部分：渲染器、站内通知与 S3 存储；M2 完成）
 - **头像与预览图**：`/avatar/player/{角色名}`、`/avatar/user/{用户 ID}`、`/avatar/{材质编号}`、`/avatar/hash/{哈希}`、`/preview/{材质编号}`、`/preview/hash/{哈希}`，地址与 Blessing Skin 相同。头像支持 `size` 和立体的 `3d`，预览图是皮肤正背面并排或披风；默认无损 WebP，`?png` 或客户端不支持时输出 PNG。像素保持清晰（BS 会插值模糊），旧版 64×32 皮肤按 Minecraft 的方式补出左手左腿。
 - **头像**：衣柜里的皮肤可以"设为头像"，页头与个人资料页显示；个人资料页可以移除。接口 `PUT /api/v1/me/avatar`。

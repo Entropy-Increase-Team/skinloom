@@ -201,3 +201,30 @@ func TestStaticAssetsServedFromDisk(t *testing.T) {
 		t.Fatalf("public file: %q", rec.Body)
 	}
 }
+
+// X-Authlib-Injector-API-Location must be on the front page (a launcher given the site
+// address reads it there) and follow the setting live.
+func TestSetHeadersReachEveryResponse(t *testing.T) {
+	h := newHarness(t, nil)
+	on := true
+	h.gw.SetHeaders(func(hdr http.Header) {
+		if on {
+			hdr.Set("X-Authlib-Injector-API-Location", "/api/yggdrasil")
+		}
+	})
+	rec := h.do(http.MethodGet, "/", "203.0.113.1:1", nil)
+	<-h.seen
+	if rec.Header().Get("X-Authlib-Injector-API-Location") != "/api/yggdrasil" || rec.Body.String() != "page" {
+		t.Fatalf("front page: %v", rec.Header())
+	}
+	if rec := h.do(http.MethodGet, "/api/v1/site/bootstrap", "203.0.113.1:1", nil); rec.Header().Get("X-Authlib-Injector-API-Location") == "" {
+		t.Fatal("backend answers carry it too")
+	}
+	<-h.api
+	on = false
+	rec = h.do(http.MethodGet, "/", "203.0.113.1:1", nil)
+	<-h.seen
+	if rec.Header().Get("X-Authlib-Injector-API-Location") != "" {
+		t.Fatal("turned off")
+	}
+}

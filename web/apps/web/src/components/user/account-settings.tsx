@@ -10,7 +10,15 @@ import {
   revokeSession,
   type SessionView,
   setAvatar,
+  signOutLaunchers,
   updateMe,
+  type YggdrasilTokens,
+  getYggdrasil,
+  linkSocial,
+  listSocial,
+  type SocialLinks,
+  type SocialRedirect,
+  unlinkSocial,
 } from '@skinloom/api-client'
 import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Label } from '@skinloom/ui'
 import Link from 'next/link'
@@ -19,6 +27,8 @@ import { useLocale, useTranslations } from 'next-intl'
 import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from 'react'
 
 import { Field, FormError } from '@/components/auth/field'
+import { ProviderIcon, SocialError } from '@/components/auth/social-buttons'
+import { CopyButton } from '@/components/blocks/copy-button'
 import { Avatar } from '@/components/user/avatar'
 import { problemOf } from '@/lib/problem'
 import { describeUA } from '@/lib/ua'
@@ -164,10 +174,13 @@ export function ProfileSection({ viewer, locales }: { viewer: Viewer; locales: L
   )
 }
 
-export function PasswordSection() {
+/** Change the password; an account created through a provider sets its first one here. */
+export function PasswordSection({ viewer }: { viewer: Viewer }) {
   const t = useTranslations('profile')
   const tf = useTranslations('fieldErrors')
+  const router = useRouter()
   const s = useSubmit()
+  const first = !viewer.hasPassword
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = e.currentTarget
@@ -178,19 +191,22 @@ export function PasswordSection() {
     }
     const ok = await s.run(
       () => changePassword({ currentPassword: String(f.get('password') ?? ''), newPassword: String(f.get('newPassword') ?? '') }),
-      t('passwordChanged'),
+      first ? t('passwordSet') : t('passwordChanged'),
     )
     if (ok) {
       form.reset()
       sessionsChanged()
+      if (first) router.refresh()
     }
   }
   return (
-    <Section title={t('password')} description={t('passwordHint')}>
+    <Section title={first ? t('setPassword') : t('password')} description={first ? t('setPasswordHint') : t('passwordHint')}>
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <FormError message={s.error} />
         <Done message={s.done} />
-        <Field id="password" label={t('currentPassword')} type="password" autoComplete="current-password" required error={s.fields.password} />
+        {!first && (
+          <Field id="password" label={t('currentPassword')} type="password" autoComplete="current-password" required error={s.fields.password} />
+        )}
         <Field
           id="newPassword"
           label={t('newPassword')}
@@ -203,7 +219,7 @@ export function PasswordSection() {
         />
         <Field id="confirm" label={t('confirmPassword')} type="password" autoComplete="new-password" required error={s.fields.confirm} />
         <Button type="submit" className="self-start" disabled={s.pending}>
-          {t('changePassword')}
+          {first ? t('setPassword') : t('changePassword')}
         </Button>
       </form>
     </Section>
@@ -234,12 +250,52 @@ export function EmailSection({ viewer, mail }: { viewer: Viewer; mail: boolean }
         <FormError message={s.error} />
         <Done message={s.done} />
         <Field id="email" label={t('newEmail')} type="email" autoComplete="email" required error={s.fields.email} />
-        <Field id="emailPassword" label={t('currentPassword')} type="password" autoComplete="current-password" required error={s.fields.password} />
+        {viewer.hasPassword && (
+          <Field id="emailPassword" label={t('currentPassword')} type="password" autoComplete="current-password" required error={s.fields.password} />
+        )}
         <p className="text-xs text-muted-foreground">{t('emailHint')}</p>
         <Button type="submit" className="self-start" disabled={s.pending}>
           {t('changeEmail')}
         </Button>
       </form>
+    </Section>
+  )
+}
+
+/** Game launchers (authlib-injector): the address to give them, how many are signed in, sign them all out. */
+export function LaunchersSection() {
+  const t = useTranslations('profile')
+  const tl = useTranslations('launcher')
+  const s = useSubmit()
+  const [info, setInfo] = useState<YggdrasilTokens | null>(null)
+  useEffect(() => {
+    getYggdrasil().then(
+      (r) => setInfo(r.data as YggdrasilTokens),
+      () => setInfo(null),
+    )
+  }, [])
+  if (!info) return null
+  return (
+    <Section title={t('launchers')} description={t('launchersHint')}>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <code className="rounded-md bg-muted px-3 py-2 font-mono text-sm">{info.apiUrl}</code>
+          <CopyButton value={info.apiUrl} label={tl('copy')} copiedLabel={tl('copied')} />
+        </div>
+        <p className="text-sm text-muted-foreground">{t('launchersSignedIn', { count: info.tokens })}</p>
+        <FormError message={s.error} />
+        <Done message={s.done} />
+        <Button
+          variant="outline"
+          className="self-start"
+          disabled={s.pending || info.tokens === 0}
+          onClick={async () => {
+            if (await s.run(() => signOutLaunchers(), t('launchersSignedOut'))) setInfo({ ...info, tokens: 0 })
+          }}
+        >
+          {t('launchersSignOut')}
+        </Button>
+      </div>
     </Section>
   )
 }
@@ -315,7 +371,7 @@ export function SessionsSection() {
   )
 }
 
-export function DeleteSection() {
+export function DeleteSection({ viewer }: { viewer: Viewer }) {
   const t = useTranslations('profile')
   const router = useRouter()
   const s = useSubmit()
@@ -333,11 +389,99 @@ export function DeleteSection() {
     <Section title={t('delete')} description={t('deleteHint')}>
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <FormError message={s.error} />
-        <Field id="deletePassword" label={t('currentPassword')} type="password" autoComplete="current-password" required error={s.fields.password} />
+        {viewer.hasPassword && (
+          <Field id="deletePassword" label={t('currentPassword')} type="password" autoComplete="current-password" required error={s.fields.password} />
+        )}
         <Button type="submit" variant="destructive" className="self-start" disabled={s.pending}>
           {t('deleteButton')}
         </Button>
       </form>
+    </Section>
+  )
+}
+
+/** Accounts at sign-in providers linked to this one: sign in with them, link more, unlink. */
+export function SocialSection({ viewer, linked, error }: { viewer: Viewer; linked: boolean; error?: string }) {
+  const t = useTranslations('social')
+  const locale = useLocale()
+  const s = useSubmit()
+  const [info, setInfo] = useState<SocialLinks | null>(null)
+  const load = useCallback(async () => {
+    try {
+      setInfo((await listSocial()).data as SocialLinks)
+    } catch {
+      setInfo(null)
+    }
+  }, [])
+  useEffect(() => {
+    void load()
+  }, [load])
+  if (!info || (info.links.length === 0 && info.providers.length === 0)) return null
+  const linkedIds = new Set(info.links.map((l) => l.provider))
+  const unlinked = info.providers.filter((p) => !linkedIds.has(p.id))
+  const when = (iso: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(iso))
+  // Without a password the last link to a provider the site still offers is the only
+  // way in (links to removed providers have no providerType and can always go).
+  const usable = info.links.filter((l) => l.providerType)
+  const keepLast = !viewer.hasPassword && usable.length === 1
+
+  return (
+    <Section title={t('section.title')} description={t('section.hint')}>
+      <div className="flex flex-col gap-3">
+        <SocialError code={error} />
+        {linked && <Done message={t('section.linked')} />}
+        <FormError message={s.error} />
+        {info.links.length > 0 && (
+          <ul className="divide-y rounded-md border">
+            {info.links.map((l) => (
+              <li key={l.provider} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                <div className="flex min-w-0 items-center gap-3">
+                  <ProviderIcon type={l.providerType} className="size-5 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="font-medium">{l.providerName || l.provider}</div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {l.name} · {t('section.since', { when: when(l.createdAt) })}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={s.pending || (keepLast && Boolean(l.providerType))}
+                  onClick={async () => {
+                    if (!window.confirm(t('section.unlinkConfirm', { provider: l.providerName || l.provider }))) return
+                    if (await s.run(() => unlinkSocial(l.provider), '')) await load()
+                  }}
+                >
+                  {t('section.unlink')}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {keepLast && <p className="text-xs text-muted-foreground">{t('section.keepLast')}</p>}
+        {unlinked.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {unlinked.map((p) => (
+              <Button
+                key={p.id}
+                variant="outline"
+                size="sm"
+                disabled={s.pending}
+                onClick={() =>
+                  void s.run(async () => {
+                    const res = await linkSocial(p.id)
+                    window.location.assign((res.data as SocialRedirect).url)
+                  }, '')
+                }
+              >
+                <ProviderIcon type={p.type} />
+                {t('section.link', { name: p.name })}
+              </Button>
+            ))}
+          </div>
+        )}
+      </div>
     </Section>
   )
 }

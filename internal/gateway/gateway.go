@@ -53,7 +53,13 @@ type Gateway struct {
 	log   *slog.Logger
 	state atomic.Pointer[webState]
 	real  atomic.Pointer[realip.Resolver]
+	// headers adds response headers to every answer, pages included (see SetHeaders).
+	headers atomic.Pointer[func(http.Header)]
 }
+
+// SetHeaders sets a function that adds headers to every response, such as
+// X-Authlib-Injector-API-Location, which launchers look for on the site's front page.
+func (g *Gateway) SetHeaders(f func(http.Header)) { g.headers.Store(&f) }
 
 type webState struct {
 	staticDir string // <server.js dir>/.next/static, served under /_next/static/
@@ -122,6 +128,9 @@ func (g *Gateway) ClearWeb(reason string) {
 }
 
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if f := g.headers.Load(); f != nil {
+		(*f)(w.Header())
+	}
 	p := r.URL.Path
 	// Route on the cleaned path only. Like http.ServeMux, redirect "/a/../b" and "//b"
 	// so path ownership cannot be sidestepped and caches see one canonical URL.

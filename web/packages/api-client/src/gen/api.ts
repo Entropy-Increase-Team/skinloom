@@ -272,6 +272,26 @@ export interface Answer {
   value: string;
 }
 
+export interface ApproveInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  allow: boolean;
+  /** @maxLength 20 */
+  client_id: string;
+  /** @maxLength 128 */
+  code_challenge?: string;
+  /** @maxLength 8 */
+  code_challenge_method?: string;
+  /** @maxLength 2048 */
+  redirect_uri?: string;
+  /** @maxLength 32 */
+  response_type: string;
+  /** @maxLength 1024 */
+  scope?: string;
+  /** @maxLength 1024 */
+  state?: string;
+}
+
 export type AuditViewMeta = {[key: string]: unknown};
 
 export interface AuditView {
@@ -318,10 +338,54 @@ export interface CaptchaInfo {
   siteKey?: string;
 }
 
+export type SocialProviderInfoType = typeof SocialProviderInfoType[keyof typeof SocialProviderInfoType];
+
+
+export const SocialProviderInfoType = {
+  github: 'github',
+  microsoft: 'microsoft',
+  oidc: 'oidc',
+} as const;
+
+export interface SocialProviderInfo {
+  id: string;
+  name: string;
+  type: SocialProviderInfoType;
+}
+
 export interface AuthInfo {
   captcha: CaptchaInfo;
   mail: boolean;
   registration: AuthInfoRegistration;
+  social: SocialProviderInfo[];
+}
+
+export interface OAuthClientRef {
+  id: number;
+  name: string;
+  /** The nickname of who registered it */
+  owner: string;
+}
+
+export interface AuthorizeInfo {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  client?: OAuthClientRef;
+  /** The request is broken and cannot go back to the application: show this */
+  error?: string;
+  /** You already allowed all of it: approve without asking */
+  granted: boolean;
+  /** Send the browser here (an error the application handles) */
+  redirect?: string;
+  redirectUri?: string;
+  /** What would be granted */
+  scopes?: string[];
+}
+
+export interface AuthorizeResult {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  redirect: string;
 }
 
 export type BlockProps = {[key: string]: unknown};
@@ -458,6 +522,32 @@ export interface ClosetPage {
   next: number;
 }
 
+export interface CreateClientInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** A server-side application that keeps a secret (false: browser or native app, PKCE) */
+  confidential: boolean;
+  /** @maxLength 256 */
+  name: string;
+  /** @maxItems 10 */
+  redirectUris: string[];
+}
+
+export interface CreateTokenInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /**
+     * 0: never
+     * @minimum 0
+     * @maximum 366
+     */
+  expiresInDays: number;
+  /** @maxLength 256 */
+  name: string;
+  /** @maxItems 32 */
+  scopes: string[];
+}
+
 export interface SignInfo {
   /** Once per calendar day instead of every gapHours */
   daily: boolean;
@@ -574,6 +664,27 @@ export interface MarkedRead {
   count: number;
 }
 
+export interface PersonalTokenView {
+  createdAt: string;
+  /**
+     * null: never
+     * @nullable
+     */
+  expiresAt: string | null;
+  id: number;
+  /** @nullable */
+  lastUsedAt: string | null;
+  name: string;
+  scopes: string[];
+}
+
+export interface NewPersonalToken {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  info: PersonalTokenView;
+  token: string;
+}
+
 export interface NotificationView {
   /** A copy of a message sent to many users */
   announcement: boolean;
@@ -592,6 +703,64 @@ export interface NotificationPage {
   next: number;
   notifications: NotificationView[];
   unread: number;
+}
+
+export interface OAuthClientView {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** Has a secret; public clients must use PKCE */
+  confidential: boolean;
+  createdAt: string;
+  /** The client_id */
+  id: number;
+  name: string;
+  redirectUris: string[];
+}
+
+export interface OAuthClientList {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  clients: OAuthClientView[];
+}
+
+export interface OAuthClientSecret {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  client: OAuthClientView;
+  /** Empty for a public client */
+  secret: string;
+}
+
+export interface OAuthGrantView {
+  client: OAuthClientRef;
+  createdAt: string;
+  scopes: string[];
+  /** Last allowed */
+  updatedAt: string;
+}
+
+export interface OAuthGrantList {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  grants: OAuthGrantView[];
+}
+
+export interface Scope {
+  /** Only administrators can grant it; others' grants leave it out */
+  admin: boolean;
+  name: string;
+}
+
+export interface OAuthScopes {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  scopes: Scope[];
+}
+
+export interface PersonalTokenList {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  tokens: PersonalTokenView[];
 }
 
 export interface PlayerView {
@@ -912,6 +1081,81 @@ export interface SignResult {
   score: number;
 }
 
+export interface SocialLinkView {
+  createdAt: string;
+  lastUsedAt?: string;
+  /** The account at the provider (a login or an email) */
+  name: string;
+  provider: string;
+  /** Empty when the provider is no longer configured */
+  providerName: string;
+  /** github, microsoft, oidc; empty when no longer configured */
+  providerType: string;
+}
+
+export interface SocialLinks {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  links: SocialLinkView[];
+  providers: SocialProviderInfo[];
+}
+
+export type SocialPendingRegistration = typeof SocialPendingRegistration[keyof typeof SocialPendingRegistration];
+
+
+export const SocialPendingRegistration = {
+  open: 'open',
+  closed: 'closed',
+} as const;
+
+export interface SocialPending {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** May be empty */
+  email: string;
+  /** Keeping this address makes it verified without a mail */
+  emailVerified: boolean;
+  expiresAt: string;
+  /** The account at the provider */
+  name: string;
+  /** Where to go once signed in; empty = /user */
+  next: string;
+  /** Suggested nickname */
+  nickname: string;
+  provider: string;
+  providerName: string;
+  providerType: string;
+  registration: SocialPendingRegistration;
+}
+
+export interface SocialRedirect {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** The provider's sign-in page */
+  url: string;
+}
+
+export interface SocialRegisterInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** @maxLength 255 */
+  email: string;
+  /** @maxLength 255 */
+  nickname: string;
+}
+
+export interface SocialStartInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /**
+     * A path on this site to go to afterwards; default /user. Ignored when longer than 512 bytes
+     * @maxLength 8192
+     */
+  next?: string;
+  /** Keep the session for 30 days */
+  remember?: boolean;
+}
+
 /**
  * steve and alex are skins (classic and slim arms)
  */
@@ -991,6 +1235,15 @@ export interface UnreadCount {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
   unread: number;
+}
+
+export interface UpdateClientInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** @maxLength 256 */
+  name?: string;
+  /** @maxItems 10 */
+  redirectUris?: string[];
 }
 
 export interface UpdateMeInputBody {
@@ -1112,6 +1365,8 @@ export interface UserView {
   createdAt: string;
   email: string;
   emailVerified: boolean;
+  /** False for an account created through a sign-in provider until a password is set; it then needs no current password */
+  hasPassword: boolean;
   id: number;
   /** Preferred UI language; empty = follow the browser */
   locale: string;
@@ -1140,6 +1395,14 @@ export interface WearInputBody {
      * @minimum 0
      */
   skin?: number;
+}
+
+export interface YggdrasilTokens {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** The address to give authlib-injector */
+  apiUrl: string;
+  tokens: number;
 }
 
 export type ListAuditParams = {
@@ -1331,6 +1594,37 @@ before?: number;
  * @maximum 100
  */
 limit?: number;
+};
+
+export type GetAuthorizationParams = {
+/**
+ * @maxLength 32
+ */
+response_type?: string;
+/**
+ * @maxLength 20
+ */
+client_id?: string;
+/**
+ * @maxLength 2048
+ */
+redirect_uri?: string;
+/**
+ * @maxLength 1024
+ */
+scope?: string;
+/**
+ * @maxLength 1024
+ */
+state?: string;
+/**
+ * @maxLength 128
+ */
+code_challenge?: string;
+/**
+ * @maxLength 8
+ */
+code_challenge_method?: string;
 };
 
 export type GetBootstrapParams = {
@@ -2847,6 +3141,211 @@ return apiFetch<registerResponse>(getRegisterUrl(),
 
 
 
+export type getSocialPendingResponse200 = {
+  data: SocialPending
+  status: 200
+}
+
+export type getSocialPendingResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getSocialPendingResponseSuccess = (getSocialPendingResponse200) & {
+  headers: Headers;
+};
+export type getSocialPendingResponseError = (getSocialPendingResponseDefault) & {
+  headers: Headers;
+};
+
+export type getSocialPendingResponse = (getSocialPendingResponseSuccess | getSocialPendingResponseError)
+
+export const getGetSocialPendingUrl = () => {
+
+
+
+
+  return `/api/v1/auth/social/pending`
+}
+
+/**
+ * After a sign-in with a provider account no site account is linked to (cookie skinloom_social).
+ * @summary The provider account waiting for an account
+ */
+export const getSocialPending = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getSocialPendingResponse> => {
+
+  return apiFetch<getSocialPendingResponse>(getGetSocialPendingUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type linkSocialPendingResponse200 = {
+  data: SocialLinks
+  status: 200
+}
+
+export type linkSocialPendingResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type linkSocialPendingResponseSuccess = (linkSocialPendingResponse200) & {
+  headers: Headers;
+};
+export type linkSocialPendingResponseError = (linkSocialPendingResponseDefault) & {
+  headers: Headers;
+};
+
+export type linkSocialPendingResponse = (linkSocialPendingResponseSuccess | linkSocialPendingResponseError)
+
+export const getLinkSocialPendingUrl = () => {
+
+
+
+
+  return `/api/v1/auth/social/pending/link`
+}
+
+/**
+ * For someone who signed in with a provider account no site account is linked to, then signed in with their password.
+ * @summary Link the provider account to yours
+ */
+export const linkSocialPending = async ( options?: Parameters<typeof apiFetch>[1]): Promise<linkSocialPendingResponse> => {
+
+  return apiFetch<linkSocialPendingResponse>(getLinkSocialPendingUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type registerSocialResponse200 = {
+  data: UserView
+  status: 200
+}
+
+export type registerSocialResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type registerSocialResponseSuccess = (registerSocialResponse200) & {
+  headers: Headers;
+};
+export type registerSocialResponseError = (registerSocialResponseDefault) & {
+  headers: Headers;
+};
+
+export type registerSocialResponse = (registerSocialResponseSuccess | registerSocialResponseError)
+
+export const getRegisterSocialUrl = () => {
+
+
+
+
+  return `/api/v1/auth/social/pending/register`
+}
+
+/**
+ * The account has no password until you set one. Keeping the address the provider verified makes it verified. Needs auth.registration = open; counts against auth.registrations_per_ip.
+ * @summary Create an account for the provider account
+ */
+export const registerSocial = async (socialRegisterInputBody: NonReadonly<SocialRegisterInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<registerSocialResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<registerSocialResponse>(getRegisterSocialUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(socialRegisterInputBody)
+  }
+);}
+
+
+
+export type startSocialLoginResponse200 = {
+  data: SocialRedirect
+  status: 200
+}
+
+export type startSocialLoginResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type startSocialLoginResponseSuccess = (startSocialLoginResponse200) & {
+  headers: Headers;
+};
+export type startSocialLoginResponseError = (startSocialLoginResponseDefault) & {
+  headers: Headers;
+};
+
+export type startSocialLoginResponse = (startSocialLoginResponseSuccess | startSocialLoginResponseError)
+
+export const getStartSocialLoginUrl = (provider: string,) => {
+
+
+
+
+  return `/api/v1/auth/social/${provider}/start`
+}
+
+/**
+ * Returns the provider's sign-in page to send the browser to. The provider sends it back to /api/v1/auth/social/{provider}/callback, which signs in (or, for someone new, leads to /auth/social).
+ * @summary Sign in with a provider
+ */
+export const startSocialLogin = async (provider: string,
+    socialStartInputBody: NonReadonly<SocialStartInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<startSocialLoginResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<startSocialLoginResponse>(getStartSocialLoginUrl(provider),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(socialStartInputBody)
+  }
+);}
+
+
+
 export type getCaptchaImageResponse200 = {
   data: CaptchaImage
   status: 200
@@ -3549,6 +4048,336 @@ export const readNotification = async (id: number, options?: Parameters<typeof a
 
 
 
+export type listOAuthClientsResponse200 = {
+  data: OAuthClientList
+  status: 200
+}
+
+export type listOAuthClientsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listOAuthClientsResponseSuccess = (listOAuthClientsResponse200) & {
+  headers: Headers;
+};
+export type listOAuthClientsResponseError = (listOAuthClientsResponseDefault) & {
+  headers: Headers;
+};
+
+export type listOAuthClientsResponse = (listOAuthClientsResponseSuccess | listOAuthClientsResponseError)
+
+export const getListOAuthClientsUrl = () => {
+
+
+
+
+  return `/api/v1/me/oauth/clients`
+}
+
+/**
+ * @summary Your applications
+ */
+export const listOAuthClients = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listOAuthClientsResponse> => {
+
+  return apiFetch<listOAuthClientsResponse>(getListOAuthClientsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type createOAuthClientResponse201 = {
+  data: OAuthClientSecret
+  status: 201
+}
+
+export type createOAuthClientResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 201>
+}
+
+export type createOAuthClientResponseSuccess = (createOAuthClientResponse201) & {
+  headers: Headers;
+};
+export type createOAuthClientResponseError = (createOAuthClientResponseDefault) & {
+  headers: Headers;
+};
+
+export type createOAuthClientResponse = (createOAuthClientResponseSuccess | createOAuthClientResponseError)
+
+export const getCreateOAuthClientUrl = () => {
+
+
+
+
+  return `/api/v1/me/oauth/clients`
+}
+
+/**
+ * @summary Register an application
+ */
+export const createOAuthClient = async (createClientInputBody: NonReadonly<CreateClientInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<createOAuthClientResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createOAuthClientResponse>(getCreateOAuthClientUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createClientInputBody)
+  }
+);}
+
+
+
+export type deleteOAuthClientResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteOAuthClientResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 204>
+}
+
+export type deleteOAuthClientResponseSuccess = (deleteOAuthClientResponse204) & {
+  headers: Headers;
+};
+export type deleteOAuthClientResponseError = (deleteOAuthClientResponseDefault) & {
+  headers: Headers;
+};
+
+export type deleteOAuthClientResponse = (deleteOAuthClientResponseSuccess | deleteOAuthClientResponseError)
+
+export const getDeleteOAuthClientUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/me/oauth/clients/${id}`
+}
+
+/**
+ * @summary Delete an application
+ */
+export const deleteOAuthClient = async (id: number, options?: Parameters<typeof apiFetch>[1]): Promise<deleteOAuthClientResponse> => {
+
+  return apiFetch<deleteOAuthClientResponse>(getDeleteOAuthClientUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type updateOAuthClientResponse200 = {
+  data: OAuthClientView
+  status: 200
+}
+
+export type updateOAuthClientResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type updateOAuthClientResponseSuccess = (updateOAuthClientResponse200) & {
+  headers: Headers;
+};
+export type updateOAuthClientResponseError = (updateOAuthClientResponseDefault) & {
+  headers: Headers;
+};
+
+export type updateOAuthClientResponse = (updateOAuthClientResponseSuccess | updateOAuthClientResponseError)
+
+export const getUpdateOAuthClientUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/me/oauth/clients/${id}`
+}
+
+/**
+ * @summary Rename an application or change its redirect URIs
+ */
+export const updateOAuthClient = async (id: number,
+    updateClientInputBody: NonReadonly<UpdateClientInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<updateOAuthClientResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateOAuthClientResponse>(getUpdateOAuthClientUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateClientInputBody)
+  }
+);}
+
+
+
+export type resetOAuthClientSecretResponse200 = {
+  data: OAuthClientSecret
+  status: 200
+}
+
+export type resetOAuthClientSecretResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type resetOAuthClientSecretResponseSuccess = (resetOAuthClientSecretResponse200) & {
+  headers: Headers;
+};
+export type resetOAuthClientSecretResponseError = (resetOAuthClientSecretResponseDefault) & {
+  headers: Headers;
+};
+
+export type resetOAuthClientSecretResponse = (resetOAuthClientSecretResponseSuccess | resetOAuthClientSecretResponseError)
+
+export const getResetOAuthClientSecretUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/me/oauth/clients/${id}/secret`
+}
+
+/**
+ * @summary Give an application a new secret
+ */
+export const resetOAuthClientSecret = async (id: number, options?: Parameters<typeof apiFetch>[1]): Promise<resetOAuthClientSecretResponse> => {
+
+  return apiFetch<resetOAuthClientSecretResponse>(getResetOAuthClientSecretUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type listOAuthGrantsResponse200 = {
+  data: OAuthGrantList
+  status: 200
+}
+
+export type listOAuthGrantsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listOAuthGrantsResponseSuccess = (listOAuthGrantsResponse200) & {
+  headers: Headers;
+};
+export type listOAuthGrantsResponseError = (listOAuthGrantsResponseDefault) & {
+  headers: Headers;
+};
+
+export type listOAuthGrantsResponse = (listOAuthGrantsResponseSuccess | listOAuthGrantsResponseError)
+
+export const getListOAuthGrantsUrl = () => {
+
+
+
+
+  return `/api/v1/me/oauth/grants`
+}
+
+/**
+ * @summary Applications you allowed
+ */
+export const listOAuthGrants = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listOAuthGrantsResponse> => {
+
+  return apiFetch<listOAuthGrantsResponse>(getListOAuthGrantsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type revokeOAuthGrantResponse204 = {
+  data: void
+  status: 204
+}
+
+export type revokeOAuthGrantResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 204>
+}
+
+export type revokeOAuthGrantResponseSuccess = (revokeOAuthGrantResponse204) & {
+  headers: Headers;
+};
+export type revokeOAuthGrantResponseError = (revokeOAuthGrantResponseDefault) & {
+  headers: Headers;
+};
+
+export type revokeOAuthGrantResponse = (revokeOAuthGrantResponseSuccess | revokeOAuthGrantResponseError)
+
+export const getRevokeOAuthGrantUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/me/oauth/grants/${id}`
+}
+
+/**
+ * @summary Take an application's access away
+ */
+export const revokeOAuthGrant = async (id: number, options?: Parameters<typeof apiFetch>[1]): Promise<revokeOAuthGrantResponse> => {
+
+  return apiFetch<revokeOAuthGrantResponse>(getRevokeOAuthGrantUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
 export type changePasswordResponse204 = {
   data: void
   status: 204
@@ -4080,6 +4909,516 @@ export const signIn = async ( options?: Parameters<typeof apiFetch>[1]): Promise
   {
     ...options,
     method: 'POST'
+
+
+  }
+);}
+
+
+
+export type listSocialResponse200 = {
+  data: SocialLinks
+  status: 200
+}
+
+export type listSocialResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listSocialResponseSuccess = (listSocialResponse200) & {
+  headers: Headers;
+};
+export type listSocialResponseError = (listSocialResponseDefault) & {
+  headers: Headers;
+};
+
+export type listSocialResponse = (listSocialResponseSuccess | listSocialResponseError)
+
+export const getListSocialUrl = () => {
+
+
+
+
+  return `/api/v1/me/social`
+}
+
+/**
+ * @summary Your linked provider accounts
+ */
+export const listSocial = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listSocialResponse> => {
+
+  return apiFetch<listSocialResponse>(getListSocialUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type unlinkSocialResponse204 = {
+  data: void
+  status: 204
+}
+
+export type unlinkSocialResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 204>
+}
+
+export type unlinkSocialResponseSuccess = (unlinkSocialResponse204) & {
+  headers: Headers;
+};
+export type unlinkSocialResponseError = (unlinkSocialResponseDefault) & {
+  headers: Headers;
+};
+
+export type unlinkSocialResponse = (unlinkSocialResponseSuccess | unlinkSocialResponseError)
+
+export const getUnlinkSocialUrl = (provider: string,) => {
+
+
+
+
+  return `/api/v1/me/social/${provider}`
+}
+
+/**
+ * An account without a password cannot unlink its last provider account that is still configured (409).
+ * @summary Unlink a provider account
+ */
+export const unlinkSocial = async (provider: string, options?: Parameters<typeof apiFetch>[1]): Promise<unlinkSocialResponse> => {
+
+  return apiFetch<unlinkSocialResponse>(getUnlinkSocialUrl(provider),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type linkSocialResponse200 = {
+  data: SocialRedirect
+  status: 200
+}
+
+export type linkSocialResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type linkSocialResponseSuccess = (linkSocialResponse200) & {
+  headers: Headers;
+};
+export type linkSocialResponseError = (linkSocialResponseDefault) & {
+  headers: Headers;
+};
+
+export type linkSocialResponse = (linkSocialResponseSuccess | linkSocialResponseError)
+
+export const getLinkSocialUrl = (provider: string,) => {
+
+
+
+
+  return `/api/v1/me/social/${provider}`
+}
+
+/**
+ * Like startSocialLogin, but the callback links the provider account to yours and returns to /user/profile.
+ * @summary Link a provider account
+ */
+export const linkSocial = async (provider: string, options?: Parameters<typeof apiFetch>[1]): Promise<linkSocialResponse> => {
+
+  return apiFetch<linkSocialResponse>(getLinkSocialUrl(provider),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type listPersonalTokensResponse200 = {
+  data: PersonalTokenList
+  status: 200
+}
+
+export type listPersonalTokensResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listPersonalTokensResponseSuccess = (listPersonalTokensResponse200) & {
+  headers: Headers;
+};
+export type listPersonalTokensResponseError = (listPersonalTokensResponseDefault) & {
+  headers: Headers;
+};
+
+export type listPersonalTokensResponse = (listPersonalTokensResponseSuccess | listPersonalTokensResponseError)
+
+export const getListPersonalTokensUrl = () => {
+
+
+
+
+  return `/api/v1/me/tokens`
+}
+
+/**
+ * @summary Your personal access tokens
+ */
+export const listPersonalTokens = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listPersonalTokensResponse> => {
+
+  return apiFetch<listPersonalTokensResponse>(getListPersonalTokensUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type createPersonalTokenResponse201 = {
+  data: NewPersonalToken
+  status: 201
+}
+
+export type createPersonalTokenResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 201>
+}
+
+export type createPersonalTokenResponseSuccess = (createPersonalTokenResponse201) & {
+  headers: Headers;
+};
+export type createPersonalTokenResponseError = (createPersonalTokenResponseDefault) & {
+  headers: Headers;
+};
+
+export type createPersonalTokenResponse = (createPersonalTokenResponseSuccess | createPersonalTokenResponseError)
+
+export const getCreatePersonalTokenUrl = () => {
+
+
+
+
+  return `/api/v1/me/tokens`
+}
+
+/**
+ * @summary Create a personal access token
+ */
+export const createPersonalToken = async (createTokenInputBody: NonReadonly<CreateTokenInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<createPersonalTokenResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createPersonalTokenResponse>(getCreatePersonalTokenUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createTokenInputBody)
+  }
+);}
+
+
+
+export type deletePersonalTokenResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deletePersonalTokenResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 204>
+}
+
+export type deletePersonalTokenResponseSuccess = (deletePersonalTokenResponse204) & {
+  headers: Headers;
+};
+export type deletePersonalTokenResponseError = (deletePersonalTokenResponseDefault) & {
+  headers: Headers;
+};
+
+export type deletePersonalTokenResponse = (deletePersonalTokenResponseSuccess | deletePersonalTokenResponseError)
+
+export const getDeletePersonalTokenUrl = (id: number,) => {
+
+
+
+
+  return `/api/v1/me/tokens/${id}`
+}
+
+/**
+ * @summary Revoke a personal access token
+ */
+export const deletePersonalToken = async (id: number, options?: Parameters<typeof apiFetch>[1]): Promise<deletePersonalTokenResponse> => {
+
+  return apiFetch<deletePersonalTokenResponse>(getDeletePersonalTokenUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type getYggdrasilResponse200 = {
+  data: YggdrasilTokens
+  status: 200
+}
+
+export type getYggdrasilResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getYggdrasilResponseSuccess = (getYggdrasilResponse200) & {
+  headers: Headers;
+};
+export type getYggdrasilResponseError = (getYggdrasilResponseDefault) & {
+  headers: Headers;
+};
+
+export type getYggdrasilResponse = (getYggdrasilResponseSuccess | getYggdrasilResponseError)
+
+export const getGetYggdrasilUrl = () => {
+
+
+
+
+  return `/api/v1/me/yggdrasil`
+}
+
+/**
+ * @summary Game launchers signed in to your account
+ */
+export const getYggdrasil = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getYggdrasilResponse> => {
+
+  return apiFetch<getYggdrasilResponse>(getGetYggdrasilUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type signOutLaunchersResponse200 = {
+  data: YggdrasilTokens
+  status: 200
+}
+
+export type signOutLaunchersResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type signOutLaunchersResponseSuccess = (signOutLaunchersResponse200) & {
+  headers: Headers;
+};
+export type signOutLaunchersResponseError = (signOutLaunchersResponseDefault) & {
+  headers: Headers;
+};
+
+export type signOutLaunchersResponse = (signOutLaunchersResponseSuccess | signOutLaunchersResponseError)
+
+export const getSignOutLaunchersUrl = () => {
+
+
+
+
+  return `/api/v1/me/yggdrasil/signout`
+}
+
+/**
+ * @summary Sign every game launcher out
+ */
+export const signOutLaunchers = async ( options?: Parameters<typeof apiFetch>[1]): Promise<signOutLaunchersResponse> => {
+
+  return apiFetch<signOutLaunchersResponse>(getSignOutLaunchersUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type getAuthorizationResponse200 = {
+  data: AuthorizeInfo
+  status: 200
+}
+
+export type getAuthorizationResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getAuthorizationResponseSuccess = (getAuthorizationResponse200) & {
+  headers: Headers;
+};
+export type getAuthorizationResponseError = (getAuthorizationResponseDefault) & {
+  headers: Headers;
+};
+
+export type getAuthorizationResponse = (getAuthorizationResponseSuccess | getAuthorizationResponseError)
+
+export const getGetAuthorizationUrl = (params?: GetAuthorizationParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/oauth/authorize?${stringifiedParams}` : `/api/v1/oauth/authorize`
+}
+
+/**
+ * @summary Check an authorization request for the consent screen
+ */
+export const getAuthorization = async (params?: GetAuthorizationParams, options?: Parameters<typeof apiFetch>[1]): Promise<getAuthorizationResponse> => {
+
+  return apiFetch<getAuthorizationResponse>(getGetAuthorizationUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type authorizeResponse200 = {
+  data: AuthorizeResult
+  status: 200
+}
+
+export type authorizeResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type authorizeResponseSuccess = (authorizeResponse200) & {
+  headers: Headers;
+};
+export type authorizeResponseError = (authorizeResponseDefault) & {
+  headers: Headers;
+};
+
+export type authorizeResponse = (authorizeResponseSuccess | authorizeResponseError)
+
+export const getAuthorizeUrl = () => {
+
+
+
+
+  return `/api/v1/oauth/authorize`
+}
+
+/**
+ * @summary Allow or refuse an application
+ */
+export const authorize = async (approveInputBody: NonReadonly<ApproveInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<authorizeResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<authorizeResponse>(getAuthorizeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(approveInputBody)
+  }
+);}
+
+
+
+export type listOAuthScopesResponse200 = {
+  data: OAuthScopes
+  status: 200
+}
+
+export type listOAuthScopesResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listOAuthScopesResponseSuccess = (listOAuthScopesResponse200) & {
+  headers: Headers;
+};
+export type listOAuthScopesResponseError = (listOAuthScopesResponseDefault) & {
+  headers: Headers;
+};
+
+export type listOAuthScopesResponse = (listOAuthScopesResponseSuccess | listOAuthScopesResponseError)
+
+export const getListOAuthScopesUrl = () => {
+
+
+
+
+  return `/api/v1/oauth/scopes`
+}
+
+/**
+ * @summary Scopes applications and personal access tokens can be given
+ */
+export const listOAuthScopes = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listOAuthScopesResponse> => {
+
+  return apiFetch<listOAuthScopesResponse>(getListOAuthScopesUrl(),
+  {
+    ...options,
+    method: 'GET'
 
 
   }

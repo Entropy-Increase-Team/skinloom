@@ -19,14 +19,23 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/job"
 	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/setting"
+	"github.com/Entropy-Increase-Team/skinloom/ent/sitesecret"
+	"github.com/Entropy-Increase-Team/skinloom/ent/socialaccount"
+	"github.com/Entropy-Increase-Team/skinloom/ent/socialflow"
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggsession"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggtoken"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -87,21 +96,30 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			announcement.Table: announcement.ValidColumn,
-			auditlog.Table:     auditlog.ValidColumn,
-			authtoken.Table:    authtoken.ValidColumn,
-			blob.Table:         blob.ValidColumn,
-			closetitem.Table:   closetitem.ValidColumn,
-			job.Table:          job.ValidColumn,
-			notification.Table: notification.ValidColumn,
-			player.Table:       player.ValidColumn,
-			report.Table:       report.ValidColumn,
-			scoreentry.Table:   scoreentry.ValidColumn,
-			session.Table:      session.ValidColumn,
-			setting.Table:      setting.ValidColumn,
-			systemstate.Table:  systemstate.ValidColumn,
-			texture.Table:      texture.ValidColumn,
-			user.Table:         user.ValidColumn,
+			announcement.Table:  announcement.ValidColumn,
+			auditlog.Table:      auditlog.ValidColumn,
+			authtoken.Table:     authtoken.ValidColumn,
+			blob.Table:          blob.ValidColumn,
+			closetitem.Table:    closetitem.ValidColumn,
+			job.Table:           job.ValidColumn,
+			notification.Table:  notification.ValidColumn,
+			oauthclient.Table:   oauthclient.ValidColumn,
+			oauthcode.Table:     oauthcode.ValidColumn,
+			oauthgrant.Table:    oauthgrant.ValidColumn,
+			oauthtoken.Table:    oauthtoken.ValidColumn,
+			player.Table:        player.ValidColumn,
+			report.Table:        report.ValidColumn,
+			scoreentry.Table:    scoreentry.ValidColumn,
+			session.Table:       session.ValidColumn,
+			setting.Table:       setting.ValidColumn,
+			sitesecret.Table:    sitesecret.ValidColumn,
+			socialaccount.Table: socialaccount.ValidColumn,
+			socialflow.Table:    socialflow.ValidColumn,
+			systemstate.Table:   systemstate.ValidColumn,
+			texture.Table:       texture.ValidColumn,
+			user.Table:          user.ValidColumn,
+			yggsession.Table:    yggsession.ValidColumn,
+			yggtoken.Table:      yggtoken.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

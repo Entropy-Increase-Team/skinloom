@@ -25,3 +25,7 @@
 | [0019](0019-closet-texture-edit-and-sign-in.md) | 收藏、材质编辑与删除、签到与用户中心 | 已接受 |
 | [0020](0020-reports-and-admin-tools.md) | 举报、后台概览与后台角色、衣柜管理 | 已接受 |
 | [0021](0021-renderer-notifications-and-s3.md) | 渲染器、站内通知与 S3 兼容存储 | 已接受 |
+| [0022](0022-yggdrasil.md) | Yggdrasil 外置登录（authlib-injector） | 已接受 |
+| [0023](0023-oauth-provider-and-resource-api.md) | OAuth 2.0 提供方、个人访问令牌与 Blessing Skin 兼容资源 API | 已接受 |
+| [0024](0024-bs-admin-resource-api.md) | 兼容 Blessing Skin 的管理类资源 API | 已接受 |
+| [0025](0025-social-login.md) | 社交登录（GitHub、Microsoft、OpenID Connect） | 已接受 |

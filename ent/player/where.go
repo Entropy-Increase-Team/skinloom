@@ -519,6 +519,52 @@ func HasCapeWith(preds ...predicate.Texture) predicate.Player {
 	})
 }
 
+// HasYggTokens applies the HasEdge predicate on the "ygg_tokens" edge.
+func HasYggTokens() predicate.Player {
+	return predicate.Player(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, YggTokensTable, YggTokensColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasYggTokensWith applies the HasEdge predicate on the "ygg_tokens" edge with a given conditions (other predicates).
+func HasYggTokensWith(preds ...predicate.YggToken) predicate.Player {
+	return predicate.Player(func(s *sql.Selector) {
+		step := newYggTokensStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasYggSessions applies the HasEdge predicate on the "ygg_sessions" edge.
+func HasYggSessions() predicate.Player {
+	return predicate.Player(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, YggSessionsTable, YggSessionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasYggSessionsWith applies the HasEdge predicate on the "ygg_sessions" edge with a given conditions (other predicates).
+func HasYggSessionsWith(preds ...predicate.YggSession) predicate.Player {
+	return predicate.Player(func(s *sql.Selector) {
+		step := newYggSessionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Player) predicate.Player {
 	return predicate.Player(sql.AndPredicates(predicates...))

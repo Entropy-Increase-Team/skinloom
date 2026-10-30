@@ -15,12 +15,19 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
+	"github.com/Entropy-Increase-Team/skinloom/ent/socialaccount"
+	"github.com/Entropy-Increase-Team/skinloom/ent/socialflow"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggtoken"
 )
 
 // UserCreate is the builder for creating a User entity.
@@ -405,6 +412,111 @@ func (_c *UserCreate) AddNotifications(v ...*Notification) *UserCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddNotificationIDs(ids...)
+}
+
+// AddYggTokenIDs adds the "ygg_tokens" edge to the YggToken entity by IDs.
+func (_c *UserCreate) AddYggTokenIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddYggTokenIDs(ids...)
+	return _c
+}
+
+// AddYggTokens adds the "ygg_tokens" edges to the YggToken entity.
+func (_c *UserCreate) AddYggTokens(v ...*YggToken) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddYggTokenIDs(ids...)
+}
+
+// AddOauthClientIDs adds the "oauth_clients" edge to the OAuthClient entity by IDs.
+func (_c *UserCreate) AddOauthClientIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddOauthClientIDs(ids...)
+	return _c
+}
+
+// AddOauthClients adds the "oauth_clients" edges to the OAuthClient entity.
+func (_c *UserCreate) AddOauthClients(v ...*OAuthClient) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddOauthClientIDs(ids...)
+}
+
+// AddOauthGrantIDs adds the "oauth_grants" edge to the OAuthGrant entity by IDs.
+func (_c *UserCreate) AddOauthGrantIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddOauthGrantIDs(ids...)
+	return _c
+}
+
+// AddOauthGrants adds the "oauth_grants" edges to the OAuthGrant entity.
+func (_c *UserCreate) AddOauthGrants(v ...*OAuthGrant) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddOauthGrantIDs(ids...)
+}
+
+// AddOauthCodeIDs adds the "oauth_codes" edge to the OAuthCode entity by IDs.
+func (_c *UserCreate) AddOauthCodeIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddOauthCodeIDs(ids...)
+	return _c
+}
+
+// AddOauthCodes adds the "oauth_codes" edges to the OAuthCode entity.
+func (_c *UserCreate) AddOauthCodes(v ...*OAuthCode) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddOauthCodeIDs(ids...)
+}
+
+// AddOauthTokenIDs adds the "oauth_tokens" edge to the OAuthToken entity by IDs.
+func (_c *UserCreate) AddOauthTokenIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddOauthTokenIDs(ids...)
+	return _c
+}
+
+// AddOauthTokens adds the "oauth_tokens" edges to the OAuthToken entity.
+func (_c *UserCreate) AddOauthTokens(v ...*OAuthToken) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddOauthTokenIDs(ids...)
+}
+
+// AddSocialAccountIDs adds the "social_accounts" edge to the SocialAccount entity by IDs.
+func (_c *UserCreate) AddSocialAccountIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddSocialAccountIDs(ids...)
+	return _c
+}
+
+// AddSocialAccounts adds the "social_accounts" edges to the SocialAccount entity.
+func (_c *UserCreate) AddSocialAccounts(v ...*SocialAccount) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddSocialAccountIDs(ids...)
+}
+
+// AddSocialFlowIDs adds the "social_flows" edge to the SocialFlow entity by IDs.
+func (_c *UserCreate) AddSocialFlowIDs(ids ...string) *UserCreate {
+	_c.mutation.AddSocialFlowIDs(ids...)
+	return _c
+}
+
+// AddSocialFlows adds the "social_flows" edges to the SocialFlow entity.
+func (_c *UserCreate) AddSocialFlows(v ...*SocialFlow) *UserCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddSocialFlowIDs(ids...)
 }
 
 // AddAnnouncementsSentIDs adds the "announcements_sent" edge to the Announcement entity by IDs.
@@ -839,6 +951,118 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(notification.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.YggTokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.YggTokensTable,
+			Columns: []string{user.YggTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(yggtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.OauthClientsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthClientsTable,
+			Columns: []string{user.OauthClientsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthclient.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.OauthGrantsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthGrantsTable,
+			Columns: []string{user.OauthGrantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthgrant.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.OauthCodesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthCodesTable,
+			Columns: []string{user.OauthCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthcode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.OauthTokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthTokensTable,
+			Columns: []string{user.OauthTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SocialAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SocialAccountsTable,
+			Columns: []string{user.SocialAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(socialaccount.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SocialFlowsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SocialFlowsTable,
+			Columns: []string{user.SocialFlowsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(socialflow.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

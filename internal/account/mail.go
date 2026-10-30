@@ -9,9 +9,12 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggtoken"
 	"github.com/Entropy-Increase-Team/skinloom/internal/jobs"
 	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
 )
@@ -246,8 +249,26 @@ func (s *Service) ResetPassword(ctx context.Context, token, password string, met
 	})
 }
 
-// revokeSessions ends every live session of a user.
+// revokeSessions ends every live session of a user, and the tokens with them.
+// revokeTokens revokes what signs the user in elsewhere than the website: launcher
+// (Yggdrasil) tokens, applications' OAuth tokens and codes, and personal access
+// tokens. Applications keep their grant and get new tokens when the user signs in
+// with them again.
+func revokeTokens(ctx context.Context, c *ent.Client, userID int64) error {
+	if _, err := c.YggToken.Delete().Where(yggtoken.UserID(userID)).Exec(ctx); err != nil {
+		return err
+	}
+	if _, err := c.OAuthCode.Delete().Where(oauthcode.UserID(userID)).Exec(ctx); err != nil {
+		return err
+	}
+	_, err := c.OAuthToken.Delete().Where(oauthtoken.UserID(userID)).Exec(ctx)
+	return err
+}
+
 func revokeSessions(ctx context.Context, tx *ent.Client, userID int64, now time.Time) error {
+	if err := revokeTokens(ctx, tx, userID); err != nil {
+		return err
+	}
 	return tx.Session.Update().
 		Where(session.UserID(userID), session.RevokedAtIsNil()).
 		SetRevokedAt(now).Exec(ctx)

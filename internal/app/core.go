@@ -21,6 +21,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/logging"
 	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
 	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
+	"github.com/Entropy-Increase-Team/skinloom/internal/oauth"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/player"
@@ -29,9 +30,11 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/report"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/social"
 	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
 	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
 	"github.com/Entropy-Increase-Team/skinloom/internal/theme"
+	"github.com/Entropy-Increase-Team/skinloom/internal/yggdrasil"
 	"github.com/Entropy-Increase-Team/skinloom/themes"
 )
 
@@ -72,12 +75,15 @@ type Core struct {
 	Captcha  *captcha.Service
 	Mailer   *mail.Mailer
 	// Jobs runs background work; Run starts its worker (CLI commands do not).
-	Jobs     *jobs.Queue
-	Textures *texture.Service
-	Players  *player.Service
-	Reports  *report.Service
-	Renders  *render.Service
-	Notify   *notify.Service
+	Jobs      *jobs.Queue
+	Textures  *texture.Service
+	Players   *player.Service
+	Reports   *report.Service
+	Renders   *render.Service
+	Notify    *notify.Service
+	Yggdrasil *yggdrasil.Service
+	OAuth     *oauth.Service
+	Social    *social.Service
 	// FreshConfig is true when this start wrote the default config file.
 	FreshConfig bool
 }
@@ -127,7 +133,7 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 	}
 	reg := settings.NewRegistry()
 	defs := slices.Concat(account.SettingDefs(), captcha.SettingDefs(), mail.SettingDefs(),
-		score.SettingDefs(), texture.SettingDefs(), player.SettingDefs())
+		score.SettingDefs(), texture.SettingDefs(), player.SettingDefs(), yggdrasil.SettingDefs(), oauth.SettingDefs(), social.SettingDefs())
 	if err := reg.Register(defs...); err != nil {
 		database.Close()
 		return nil, err
@@ -151,6 +157,9 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 	c.Reports = report.NewService(database.Ent, c.Textures, log.With("component", "report"))
 	c.Renders = render.NewService(4, 64<<20) // 4 renders at once, 64 MiB of results
 	c.Notify = notify.NewService(database.Ent, log.With("component", "notify"))
+	c.Yggdrasil = yggdrasil.NewService(database.Ent, c.Accounts, c.Players, c.Textures, log.With("component", "yggdrasil"))
+	c.OAuth = oauth.NewService(database.Ent, log.With("component", "oauth"))
+	c.Social = social.NewService(database.Ent, c.Accounts, log.With("component", "social"))
 	c.Jobs.Register(account.MailJobKind, c.sendMail)
 	c.Accounts.SetJobNotifier(c.Jobs.Kick)
 	c.Jobs.Register(texture.SweepJobKind, c.Textures.HandleSweepJob)

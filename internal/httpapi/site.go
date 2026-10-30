@@ -11,6 +11,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/buildinfo"
 	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
 	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
+	"github.com/Entropy-Increase-Team/skinloom/internal/social"
 	"github.com/Entropy-Increase-Team/skinloom/internal/theme"
 )
 
@@ -69,6 +70,8 @@ type AuthInfo struct {
 	// Mail is true when mail and site.url are configured: password reset and email
 	// verification work.
 	Mail bool `json:"mail"`
+	// Social are the sign-in providers (none until site.url is set).
+	Social []SocialProviderInfo `json:"social"`
 }
 
 // CaptchaInfo is the public half of the captcha configuration.
@@ -132,6 +135,7 @@ func registerSite(api huma.API, d Deps) {
 			Registration: snap.String("auth.registration"),
 			Captcha:      CaptchaInfo{Provider: cmp.Or(cc.Provider, captcha.None), SiteKey: cc.SiteKey},
 			Mail:         mailReady(snap),
+			Social:       socialProviders(social.PolicyFrom(snap)),
 		}
 		if d.Accounts != nil {
 			needs, err := d.Accounts.NeedsSetup(ctx)

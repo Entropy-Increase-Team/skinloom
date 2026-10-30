@@ -18,6 +18,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
 	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
+	"github.com/Entropy-Increase-Team/skinloom/internal/oauth"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/player"
@@ -26,9 +27,11 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/report"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/social"
 	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
 	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
 	"github.com/Entropy-Increase-Team/skinloom/internal/theme"
+	"github.com/Entropy-Increase-Team/skinloom/internal/yggdrasil"
 	"github.com/Entropy-Increase-Team/skinloom/themes"
 )
 
@@ -56,7 +59,7 @@ func newTestDeps(t *testing.T) Deps {
 	}
 	reg := settings.NewRegistry()
 	if err := reg.Register(slices.Concat(account.SettingDefs(), captcha.SettingDefs(), mail.SettingDefs(),
-		score.SettingDefs(), texture.SettingDefs(), player.SettingDefs())...); err != nil {
+		score.SettingDefs(), texture.SettingDefs(), player.SettingDefs(), yggdrasil.SettingDefs(), oauth.SettingDefs(), social.SettingDefs())...); err != nil {
 		t.Fatal(err)
 	}
 	reg.SetValidator("theme.active", themeReg.ValidateActive)
@@ -69,10 +72,15 @@ func newTestDeps(t *testing.T) Deps {
 		t.Fatal(err)
 	}
 	textures := texture.NewService(database.Ent, store, log)
-	return Deps{Log: log, DB: database, Settings: svc, Themes: themeReg, Broker: broker, AdminToken: testToken,
+	deps := Deps{Log: log, DB: database, Settings: svc, Themes: themeReg, Broker: broker, AdminToken: testToken,
 		Accounts: account.NewService(database.Ent, log), Captcha: captcha.NewService(captcha.Options{}), Mailer: mail.New(log),
 		Textures: textures, Players: player.NewService(database.Ent, log), Reports: report.NewService(database.Ent, textures, log),
 		Renders: render.NewService(2, 1<<20), Notify: notify.NewService(database.Ent, log)}
+	deps.Yggdrasil = yggdrasil.NewService(database.Ent, deps.Accounts, deps.Players, textures, log)
+	deps.OAuth = oauth.NewService(database.Ent, log)
+	deps.Social = social.NewService(database.Ent, deps.Accounts, log)
+	deps.Yggdrasil.KeyBits = 1024 // 4096 takes seconds to generate
+	return deps
 }
 
 func do(t *testing.T, h http.Handler, method, path, auth, body string) *httptest.ResponseRecorder {

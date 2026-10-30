@@ -19,6 +19,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/launcher"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/realip"
 	"github.com/Entropy-Increase-Team/skinloom/internal/secrets"
+	"github.com/Entropy-Increase-Team/skinloom/internal/yggdrasil"
 )
 
 // RunOptions control `skinloom up` / `skinloom serve`.
@@ -59,11 +60,12 @@ func Run(ctx context.Context, o RunOptions) error {
 	go core.Jobs.Run(runCtx, 5*time.Second)
 	go purgeDeletedAccounts(runCtx, core)
 	go sweepOrphanFiles(runCtx, core)
+	go yggdrasilUpkeep(runCtx, core)
 
 	var gw *gateway.Gateway // created below; serves requests only after Serve starts
 	api, _ := httpapi.New(httpapi.Deps{
 		Log: log.With("component", "http"), DB: core.DB, Settings: core.Settings,
-		Themes: core.Themes, Broker: core.Broker, Accounts: core.Accounts, Captcha: core.Captcha, Mailer: core.Mailer, Textures: core.Textures, Players: core.Players, Reports: core.Reports, Renders: core.Renders, Notify: core.Notify,
+		Themes: core.Themes, Broker: core.Broker, Accounts: core.Accounts, Captcha: core.Captcha, Mailer: core.Mailer, Textures: core.Textures, Players: core.Players, Reports: core.Reports, Renders: core.Renders, Notify: core.Notify, Yggdrasil: core.Yggdrasil, OAuth: core.OAuth, Social: core.Social,
 		AdminToken: sec.AdminToken,
 		ClientInfo: func(r *http.Request) realip.Info { return gw.ClientInfo(r) },
 	})
@@ -80,6 +82,11 @@ func Run(ctx context.Context, o RunOptions) error {
 	}
 	var handler http.Handler = api
 	gw = gateway.New(api, log.With("component", "gateway"), resolver)
+	gw.SetHeaders(func(h http.Header) {
+		if yggdrasil.PolicyFrom(core.Settings.Current()).EnableALI {
+			h.Set("X-Authlib-Injector-API-Location", httpapi.YggdrasilPrefix) // relative: the same site
+		}
+	})
 	web := launcher.NewWeb(log.With("component", "launcher"), log.With("component", "web"))
 	if cfg.Server.Role == "all" {
 		handler = gw
@@ -291,6 +298,33 @@ func purgeDeletedAccounts(ctx context.Context, core *Core) {
 // sweepOrphanFiles deletes stored texture files that no texture uses (uploads whose
 // transaction failed, lost sweep jobs), daily. Every node may run it; the checks
 // make deleting twice harmless.
+// yggdrasilUpkeep loads (on a new site, generates) the Yggdrasil signing key before the
+// first launcher needs it, then hourly deletes join sessions, launcher tokens and
+// OAuth codes and tokens past use, and unfinished social sign-ins.
+func yggdrasilUpkeep(ctx context.Context, core *Core) {
+	if err := core.Yggdrasil.Warm(ctx); err != nil && ctx.Err() == nil {
+		core.Log.Warn("yggdrasil keys", "err", err)
+	}
+	t := time.NewTicker(time.Hour)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+		if _, err := core.Yggdrasil.Cleanup(ctx); err != nil && ctx.Err() == nil {
+			core.Log.Warn("yggdrasil cleanup", "err", err)
+		}
+		if _, err := core.OAuth.Cleanup(ctx); err != nil && ctx.Err() == nil {
+			core.Log.Warn("oauth cleanup", "err", err)
+		}
+		if _, err := core.Social.Cleanup(ctx); err != nil && ctx.Err() == nil {
+			core.Log.Warn("social sign-in cleanup", "err", err)
+		}
+	}
+}
+
 func sweepOrphanFiles(ctx context.Context, core *Core) {
 	t := time.NewTicker(24 * time.Hour)
 	defer t.Stop()

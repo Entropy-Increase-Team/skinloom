@@ -313,6 +313,10 @@ func (s *Service) Login(ctx context.Context, in LoginInput, p LoginPolicy, meta 
 	if err != nil {
 		return nil, nil, err
 	}
+	if !HasPassword(u) { // signs in through a provider only
+		s.hasher.burn(ctx, password)
+		return fail()
+	}
 	ok, rehash, err := s.hasher.Verify(ctx, u.PasswordAlgo, u.PasswordHash, password)
 	if err != nil {
 		if ctx.Err() != nil {
@@ -373,6 +377,67 @@ func (s *Service) Login(ctx context.Context, in LoginInput, p LoginPolicy, meta 
 		return nil, nil, err
 	}
 	return u, sess, nil
+}
+
+// VerifyCredentials checks an email and password for a client that cannot show a
+// captcha (a game launcher's Yggdrasil login): the same rate limits as Login, with the
+// per-account lockout always on, and no session. Banned accounts give
+// ErrAccountDisabled; deleted ones (even within the grace period) fail like a wrong
+// password, since only the website can restore an account.
+func (s *Service) VerifyCredentials(ctx context.Context, email, password string, meta RequestMeta) (*ent.User, error) {
+	meta = meta.clipped()
+	acct, ip := NormalizeEmail(email), ipKey(meta.IP)
+	clientAcct := ip + "|" + acct
+	limits := []struct {
+		l   *Limiter
+		key string
+	}{{s.ipLimit, ip}, {s.clientAccountLimit, clientAcct}, {s.accountLimit, acct}}
+	for _, c := range limits {
+		if wait, blocked := c.l.Blocked(c.key); blocked {
+			return nil, &RateLimitError{RetryAfter: wait}
+		}
+	}
+	fail := func() (*ent.User, error) {
+		for _, c := range limits {
+			c.l.Fail(c.key)
+		}
+		return nil, ErrInvalidCredentials
+	}
+	if n := len([]rune(password)); n == 0 || n > MaxPasswordLen {
+		return fail()
+	}
+	u, err := s.db.User.Query().Where(user.EmailNormalized(acct)).Only(ctx)
+	if ent.IsNotFound(err) {
+		s.hasher.burn(ctx, password)
+		return fail()
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !HasPassword(u) {
+		s.hasher.burn(ctx, password)
+		return fail()
+	}
+	ok, rehash, err := s.hasher.Verify(ctx, u.PasswordAlgo, u.PasswordHash, password)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		s.log.Warn("stored password hash cannot be verified", "user", u.ID, "algo", u.PasswordAlgo, "err", err)
+	}
+	if !ok || u.Status == user.StatusDeleted {
+		return fail()
+	}
+	if u.Status == user.StatusBanned {
+		return nil, ErrAccountDisabled
+	}
+	s.clientAccountLimit.Reset(clientAcct)
+	if rehash {
+		if h, err := s.hasher.Hash(ctx, password); err == nil {
+			_ = s.db.User.UpdateOneID(u.ID).SetPasswordHash(h).SetPasswordAlgo(AlgoArgon2id).Exec(ctx)
+		}
+	}
+	return u, nil
 }
 
 // RegisterInput is a new account from the registration form.

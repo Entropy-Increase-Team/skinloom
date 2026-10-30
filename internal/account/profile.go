@@ -59,8 +59,13 @@ func (s *Service) UpdateProfile(ctx context.Context, userID int64, up ProfileUpd
 
 // checkPassword verifies the signed-in user's password before a sensitive change.
 // Wrong guesses are limited per user, so a stolen session cannot be used to find the
-// password.
+// password. An account without a password (created through a sign-in provider) has
+// nothing to check: its session is all there is, and setting a first password needs
+// no current one.
 func (s *Service) checkPassword(ctx context.Context, u *ent.User, password string) error {
+	if !HasPassword(u) {
+		return nil
+	}
 	key := strconv.FormatInt(u.ID, 10)
 	if wait, blocked := s.passwordChecks.Blocked(key); blocked {
 		return &RateLimitError{RetryAfter: wait}
@@ -228,7 +233,12 @@ func (s *Service) RevokeOtherSessions(ctx context.Context, v *Viewer) error {
 	return revokeOtherSessions(ctx, s.db, v, s.now())
 }
 
+// revokeOtherSessions also revokes launcher, application and personal access tokens:
+// they are other devices too.
 func revokeOtherSessions(ctx context.Context, c *ent.Client, v *Viewer, now time.Time) error {
+	if err := revokeTokens(ctx, c, v.User.ID); err != nil {
+		return err
+	}
 	return c.Session.Update().
 		Where(session.UserID(v.User.ID), session.IDNEQ(v.SessionID), session.RevokedAtIsNil()).
 		SetRevokedAt(now).Exec(ctx)

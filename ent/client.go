@@ -22,14 +22,23 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/job"
 	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/setting"
+	"github.com/Entropy-Increase-Team/skinloom/ent/sitesecret"
+	"github.com/Entropy-Increase-Team/skinloom/ent/socialaccount"
+	"github.com/Entropy-Increase-Team/skinloom/ent/socialflow"
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggsession"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggtoken"
 
 	stdsql "database/sql"
 )
@@ -53,6 +62,14 @@ type Client struct {
 	Job *JobClient
 	// Notification is the client for interacting with the Notification builders.
 	Notification *NotificationClient
+	// OAuthClient is the client for interacting with the OAuthClient builders.
+	OAuthClient *OAuthClientClient
+	// OAuthCode is the client for interacting with the OAuthCode builders.
+	OAuthCode *OAuthCodeClient
+	// OAuthGrant is the client for interacting with the OAuthGrant builders.
+	OAuthGrant *OAuthGrantClient
+	// OAuthToken is the client for interacting with the OAuthToken builders.
+	OAuthToken *OAuthTokenClient
 	// Player is the client for interacting with the Player builders.
 	Player *PlayerClient
 	// Report is the client for interacting with the Report builders.
@@ -63,12 +80,22 @@ type Client struct {
 	Session *SessionClient
 	// Setting is the client for interacting with the Setting builders.
 	Setting *SettingClient
+	// SiteSecret is the client for interacting with the SiteSecret builders.
+	SiteSecret *SiteSecretClient
+	// SocialAccount is the client for interacting with the SocialAccount builders.
+	SocialAccount *SocialAccountClient
+	// SocialFlow is the client for interacting with the SocialFlow builders.
+	SocialFlow *SocialFlowClient
 	// SystemState is the client for interacting with the SystemState builders.
 	SystemState *SystemStateClient
 	// Texture is the client for interacting with the Texture builders.
 	Texture *TextureClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// YggSession is the client for interacting with the YggSession builders.
+	YggSession *YggSessionClient
+	// YggToken is the client for interacting with the YggToken builders.
+	YggToken *YggTokenClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -87,14 +114,23 @@ func (c *Client) init() {
 	c.ClosetItem = NewClosetItemClient(c.config)
 	c.Job = NewJobClient(c.config)
 	c.Notification = NewNotificationClient(c.config)
+	c.OAuthClient = NewOAuthClientClient(c.config)
+	c.OAuthCode = NewOAuthCodeClient(c.config)
+	c.OAuthGrant = NewOAuthGrantClient(c.config)
+	c.OAuthToken = NewOAuthTokenClient(c.config)
 	c.Player = NewPlayerClient(c.config)
 	c.Report = NewReportClient(c.config)
 	c.ScoreEntry = NewScoreEntryClient(c.config)
 	c.Session = NewSessionClient(c.config)
 	c.Setting = NewSettingClient(c.config)
+	c.SiteSecret = NewSiteSecretClient(c.config)
+	c.SocialAccount = NewSocialAccountClient(c.config)
+	c.SocialFlow = NewSocialFlowClient(c.config)
 	c.SystemState = NewSystemStateClient(c.config)
 	c.Texture = NewTextureClient(c.config)
 	c.User = NewUserClient(c.config)
+	c.YggSession = NewYggSessionClient(c.config)
+	c.YggToken = NewYggTokenClient(c.config)
 }
 
 type (
@@ -185,23 +221,32 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:          ctx,
-		config:       cfg,
-		Announcement: NewAnnouncementClient(cfg),
-		AuditLog:     NewAuditLogClient(cfg),
-		AuthToken:    NewAuthTokenClient(cfg),
-		Blob:         NewBlobClient(cfg),
-		ClosetItem:   NewClosetItemClient(cfg),
-		Job:          NewJobClient(cfg),
-		Notification: NewNotificationClient(cfg),
-		Player:       NewPlayerClient(cfg),
-		Report:       NewReportClient(cfg),
-		ScoreEntry:   NewScoreEntryClient(cfg),
-		Session:      NewSessionClient(cfg),
-		Setting:      NewSettingClient(cfg),
-		SystemState:  NewSystemStateClient(cfg),
-		Texture:      NewTextureClient(cfg),
-		User:         NewUserClient(cfg),
+		ctx:           ctx,
+		config:        cfg,
+		Announcement:  NewAnnouncementClient(cfg),
+		AuditLog:      NewAuditLogClient(cfg),
+		AuthToken:     NewAuthTokenClient(cfg),
+		Blob:          NewBlobClient(cfg),
+		ClosetItem:    NewClosetItemClient(cfg),
+		Job:           NewJobClient(cfg),
+		Notification:  NewNotificationClient(cfg),
+		OAuthClient:   NewOAuthClientClient(cfg),
+		OAuthCode:     NewOAuthCodeClient(cfg),
+		OAuthGrant:    NewOAuthGrantClient(cfg),
+		OAuthToken:    NewOAuthTokenClient(cfg),
+		Player:        NewPlayerClient(cfg),
+		Report:        NewReportClient(cfg),
+		ScoreEntry:    NewScoreEntryClient(cfg),
+		Session:       NewSessionClient(cfg),
+		Setting:       NewSettingClient(cfg),
+		SiteSecret:    NewSiteSecretClient(cfg),
+		SocialAccount: NewSocialAccountClient(cfg),
+		SocialFlow:    NewSocialFlowClient(cfg),
+		SystemState:   NewSystemStateClient(cfg),
+		Texture:       NewTextureClient(cfg),
+		User:          NewUserClient(cfg),
+		YggSession:    NewYggSessionClient(cfg),
+		YggToken:      NewYggTokenClient(cfg),
 	}, nil
 }
 
@@ -219,23 +264,32 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:          ctx,
-		config:       cfg,
-		Announcement: NewAnnouncementClient(cfg),
-		AuditLog:     NewAuditLogClient(cfg),
-		AuthToken:    NewAuthTokenClient(cfg),
-		Blob:         NewBlobClient(cfg),
-		ClosetItem:   NewClosetItemClient(cfg),
-		Job:          NewJobClient(cfg),
-		Notification: NewNotificationClient(cfg),
-		Player:       NewPlayerClient(cfg),
-		Report:       NewReportClient(cfg),
-		ScoreEntry:   NewScoreEntryClient(cfg),
-		Session:      NewSessionClient(cfg),
-		Setting:      NewSettingClient(cfg),
-		SystemState:  NewSystemStateClient(cfg),
-		Texture:      NewTextureClient(cfg),
-		User:         NewUserClient(cfg),
+		ctx:           ctx,
+		config:        cfg,
+		Announcement:  NewAnnouncementClient(cfg),
+		AuditLog:      NewAuditLogClient(cfg),
+		AuthToken:     NewAuthTokenClient(cfg),
+		Blob:          NewBlobClient(cfg),
+		ClosetItem:    NewClosetItemClient(cfg),
+		Job:           NewJobClient(cfg),
+		Notification:  NewNotificationClient(cfg),
+		OAuthClient:   NewOAuthClientClient(cfg),
+		OAuthCode:     NewOAuthCodeClient(cfg),
+		OAuthGrant:    NewOAuthGrantClient(cfg),
+		OAuthToken:    NewOAuthTokenClient(cfg),
+		Player:        NewPlayerClient(cfg),
+		Report:        NewReportClient(cfg),
+		ScoreEntry:    NewScoreEntryClient(cfg),
+		Session:       NewSessionClient(cfg),
+		Setting:       NewSettingClient(cfg),
+		SiteSecret:    NewSiteSecretClient(cfg),
+		SocialAccount: NewSocialAccountClient(cfg),
+		SocialFlow:    NewSocialFlowClient(cfg),
+		SystemState:   NewSystemStateClient(cfg),
+		Texture:       NewTextureClient(cfg),
+		User:          NewUserClient(cfg),
+		YggSession:    NewYggSessionClient(cfg),
+		YggToken:      NewYggTokenClient(cfg),
 	}, nil
 }
 
@@ -266,8 +320,10 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.Announcement, c.AuditLog, c.AuthToken, c.Blob, c.ClosetItem, c.Job,
-		c.Notification, c.Player, c.Report, c.ScoreEntry, c.Session, c.Setting,
-		c.SystemState, c.Texture, c.User,
+		c.Notification, c.OAuthClient, c.OAuthCode, c.OAuthGrant, c.OAuthToken,
+		c.Player, c.Report, c.ScoreEntry, c.Session, c.Setting, c.SiteSecret,
+		c.SocialAccount, c.SocialFlow, c.SystemState, c.Texture, c.User, c.YggSession,
+		c.YggToken,
 	} {
 		n.Use(hooks...)
 	}
@@ -278,8 +334,10 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.Announcement, c.AuditLog, c.AuthToken, c.Blob, c.ClosetItem, c.Job,
-		c.Notification, c.Player, c.Report, c.ScoreEntry, c.Session, c.Setting,
-		c.SystemState, c.Texture, c.User,
+		c.Notification, c.OAuthClient, c.OAuthCode, c.OAuthGrant, c.OAuthToken,
+		c.Player, c.Report, c.ScoreEntry, c.Session, c.Setting, c.SiteSecret,
+		c.SocialAccount, c.SocialFlow, c.SystemState, c.Texture, c.User, c.YggSession,
+		c.YggToken,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -302,6 +360,14 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Job.mutate(ctx, m)
 	case *NotificationMutation:
 		return c.Notification.mutate(ctx, m)
+	case *OAuthClientMutation:
+		return c.OAuthClient.mutate(ctx, m)
+	case *OAuthCodeMutation:
+		return c.OAuthCode.mutate(ctx, m)
+	case *OAuthGrantMutation:
+		return c.OAuthGrant.mutate(ctx, m)
+	case *OAuthTokenMutation:
+		return c.OAuthToken.mutate(ctx, m)
 	case *PlayerMutation:
 		return c.Player.mutate(ctx, m)
 	case *ReportMutation:
@@ -312,12 +378,22 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Session.mutate(ctx, m)
 	case *SettingMutation:
 		return c.Setting.mutate(ctx, m)
+	case *SiteSecretMutation:
+		return c.SiteSecret.mutate(ctx, m)
+	case *SocialAccountMutation:
+		return c.SocialAccount.mutate(ctx, m)
+	case *SocialFlowMutation:
+		return c.SocialFlow.mutate(ctx, m)
 	case *SystemStateMutation:
 		return c.SystemState.mutate(ctx, m)
 	case *TextureMutation:
 		return c.Texture.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
+	case *YggSessionMutation:
+		return c.YggSession.mutate(ctx, m)
+	case *YggTokenMutation:
+		return c.YggToken.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -1382,6 +1458,698 @@ func (c *NotificationClient) mutate(ctx context.Context, m *NotificationMutation
 	}
 }
 
+// OAuthClientClient is a client for the OAuthClient schema.
+type OAuthClientClient struct {
+	config
+}
+
+// NewOAuthClientClient returns a client for the OAuthClient from the given config.
+func NewOAuthClientClient(c config) *OAuthClientClient {
+	return &OAuthClientClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `oauthclient.Hooks(f(g(h())))`.
+func (c *OAuthClientClient) Use(hooks ...Hook) {
+	c.hooks.OAuthClient = append(c.hooks.OAuthClient, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `oauthclient.Intercept(f(g(h())))`.
+func (c *OAuthClientClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OAuthClient = append(c.inters.OAuthClient, interceptors...)
+}
+
+// Create returns a builder for creating a OAuthClient entity.
+func (c *OAuthClientClient) Create() *OAuthClientCreate {
+	mutation := newOAuthClientMutation(c.config, OpCreate)
+	return &OAuthClientCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OAuthClient entities.
+func (c *OAuthClientClient) CreateBulk(builders ...*OAuthClientCreate) *OAuthClientCreateBulk {
+	return &OAuthClientCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OAuthClientClient) MapCreateBulk(slice any, setFunc func(*OAuthClientCreate, int)) *OAuthClientCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OAuthClientCreateBulk{err: fmt.Errorf("calling to OAuthClientClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OAuthClientCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OAuthClientCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OAuthClient.
+func (c *OAuthClientClient) Update() *OAuthClientUpdate {
+	mutation := newOAuthClientMutation(c.config, OpUpdate)
+	return &OAuthClientUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OAuthClientClient) UpdateOne(_m *OAuthClient) *OAuthClientUpdateOne {
+	mutation := newOAuthClientMutation(c.config, OpUpdateOne, withOAuthClient(_m))
+	return &OAuthClientUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OAuthClientClient) UpdateOneID(id int64) *OAuthClientUpdateOne {
+	mutation := newOAuthClientMutation(c.config, OpUpdateOne, withOAuthClientID(id))
+	return &OAuthClientUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OAuthClient.
+func (c *OAuthClientClient) Delete() *OAuthClientDelete {
+	mutation := newOAuthClientMutation(c.config, OpDelete)
+	return &OAuthClientDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OAuthClientClient) DeleteOne(_m *OAuthClient) *OAuthClientDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OAuthClientClient) DeleteOneID(id int64) *OAuthClientDeleteOne {
+	builder := c.Delete().Where(oauthclient.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OAuthClientDeleteOne{builder}
+}
+
+// Query returns a query builder for OAuthClient.
+func (c *OAuthClientClient) Query() *OAuthClientQuery {
+	return &OAuthClientQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOAuthClient},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OAuthClient entity by its id.
+func (c *OAuthClientClient) Get(ctx context.Context, id int64) (*OAuthClient, error) {
+	return c.Query().Where(oauthclient.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OAuthClientClient) GetX(ctx context.Context, id int64) *OAuthClient {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryOwner queries the owner edge of a OAuthClient.
+func (c *OAuthClientClient) QueryOwner(_m *OAuthClient) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oauthclient.Table, oauthclient.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, oauthclient.OwnerTable, oauthclient.OwnerColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryGrants queries the grants edge of a OAuthClient.
+func (c *OAuthClientClient) QueryGrants(_m *OAuthClient) *OAuthGrantQuery {
+	query := (&OAuthGrantClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oauthclient.Table, oauthclient.FieldID, id),
+			sqlgraph.To(oauthgrant.Table, oauthgrant.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, oauthclient.GrantsTable, oauthclient.GrantsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCodes queries the codes edge of a OAuthClient.
+func (c *OAuthClientClient) QueryCodes(_m *OAuthClient) *OAuthCodeQuery {
+	query := (&OAuthCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oauthclient.Table, oauthclient.FieldID, id),
+			sqlgraph.To(oauthcode.Table, oauthcode.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, oauthclient.CodesTable, oauthclient.CodesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTokens queries the tokens edge of a OAuthClient.
+func (c *OAuthClientClient) QueryTokens(_m *OAuthClient) *OAuthTokenQuery {
+	query := (&OAuthTokenClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oauthclient.Table, oauthclient.FieldID, id),
+			sqlgraph.To(oauthtoken.Table, oauthtoken.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, oauthclient.TokensTable, oauthclient.TokensColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OAuthClientClient) Hooks() []Hook {
+	return c.hooks.OAuthClient
+}
+
+// Interceptors returns the client interceptors.
+func (c *OAuthClientClient) Interceptors() []Interceptor {
+	return c.inters.OAuthClient
+}
+
+func (c *OAuthClientClient) mutate(ctx context.Context, m *OAuthClientMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OAuthClientCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OAuthClientUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OAuthClientUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OAuthClientDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OAuthClient mutation op: %q", m.Op())
+	}
+}
+
+// OAuthCodeClient is a client for the OAuthCode schema.
+type OAuthCodeClient struct {
+	config
+}
+
+// NewOAuthCodeClient returns a client for the OAuthCode from the given config.
+func NewOAuthCodeClient(c config) *OAuthCodeClient {
+	return &OAuthCodeClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `oauthcode.Hooks(f(g(h())))`.
+func (c *OAuthCodeClient) Use(hooks ...Hook) {
+	c.hooks.OAuthCode = append(c.hooks.OAuthCode, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `oauthcode.Intercept(f(g(h())))`.
+func (c *OAuthCodeClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OAuthCode = append(c.inters.OAuthCode, interceptors...)
+}
+
+// Create returns a builder for creating a OAuthCode entity.
+func (c *OAuthCodeClient) Create() *OAuthCodeCreate {
+	mutation := newOAuthCodeMutation(c.config, OpCreate)
+	return &OAuthCodeCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OAuthCode entities.
+func (c *OAuthCodeClient) CreateBulk(builders ...*OAuthCodeCreate) *OAuthCodeCreateBulk {
+	return &OAuthCodeCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OAuthCodeClient) MapCreateBulk(slice any, setFunc func(*OAuthCodeCreate, int)) *OAuthCodeCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OAuthCodeCreateBulk{err: fmt.Errorf("calling to OAuthCodeClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OAuthCodeCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OAuthCodeCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OAuthCode.
+func (c *OAuthCodeClient) Update() *OAuthCodeUpdate {
+	mutation := newOAuthCodeMutation(c.config, OpUpdate)
+	return &OAuthCodeUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OAuthCodeClient) UpdateOne(_m *OAuthCode) *OAuthCodeUpdateOne {
+	mutation := newOAuthCodeMutation(c.config, OpUpdateOne, withOAuthCode(_m))
+	return &OAuthCodeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OAuthCodeClient) UpdateOneID(id int64) *OAuthCodeUpdateOne {
+	mutation := newOAuthCodeMutation(c.config, OpUpdateOne, withOAuthCodeID(id))
+	return &OAuthCodeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OAuthCode.
+func (c *OAuthCodeClient) Delete() *OAuthCodeDelete {
+	mutation := newOAuthCodeMutation(c.config, OpDelete)
+	return &OAuthCodeDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OAuthCodeClient) DeleteOne(_m *OAuthCode) *OAuthCodeDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OAuthCodeClient) DeleteOneID(id int64) *OAuthCodeDeleteOne {
+	builder := c.Delete().Where(oauthcode.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OAuthCodeDeleteOne{builder}
+}
+
+// Query returns a query builder for OAuthCode.
+func (c *OAuthCodeClient) Query() *OAuthCodeQuery {
+	return &OAuthCodeQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOAuthCode},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OAuthCode entity by its id.
+func (c *OAuthCodeClient) Get(ctx context.Context, id int64) (*OAuthCode, error) {
+	return c.Query().Where(oauthcode.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OAuthCodeClient) GetX(ctx context.Context, id int64) *OAuthCode {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryClient queries the client edge of a OAuthCode.
+func (c *OAuthCodeClient) QueryClient(_m *OAuthCode) *OAuthClientQuery {
+	query := (&OAuthClientClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oauthcode.Table, oauthcode.FieldID, id),
+			sqlgraph.To(oauthclient.Table, oauthclient.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, oauthcode.ClientTable, oauthcode.ClientColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUser queries the user edge of a OAuthCode.
+func (c *OAuthCodeClient) QueryUser(_m *OAuthCode) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oauthcode.Table, oauthcode.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, oauthcode.UserTable, oauthcode.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OAuthCodeClient) Hooks() []Hook {
+	return c.hooks.OAuthCode
+}
+
+// Interceptors returns the client interceptors.
+func (c *OAuthCodeClient) Interceptors() []Interceptor {
+	return c.inters.OAuthCode
+}
+
+func (c *OAuthCodeClient) mutate(ctx context.Context, m *OAuthCodeMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OAuthCodeCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OAuthCodeUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OAuthCodeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OAuthCodeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OAuthCode mutation op: %q", m.Op())
+	}
+}
+
+// OAuthGrantClient is a client for the OAuthGrant schema.
+type OAuthGrantClient struct {
+	config
+}
+
+// NewOAuthGrantClient returns a client for the OAuthGrant from the given config.
+func NewOAuthGrantClient(c config) *OAuthGrantClient {
+	return &OAuthGrantClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `oauthgrant.Hooks(f(g(h())))`.
+func (c *OAuthGrantClient) Use(hooks ...Hook) {
+	c.hooks.OAuthGrant = append(c.hooks.OAuthGrant, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `oauthgrant.Intercept(f(g(h())))`.
+func (c *OAuthGrantClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OAuthGrant = append(c.inters.OAuthGrant, interceptors...)
+}
+
+// Create returns a builder for creating a OAuthGrant entity.
+func (c *OAuthGrantClient) Create() *OAuthGrantCreate {
+	mutation := newOAuthGrantMutation(c.config, OpCreate)
+	return &OAuthGrantCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OAuthGrant entities.
+func (c *OAuthGrantClient) CreateBulk(builders ...*OAuthGrantCreate) *OAuthGrantCreateBulk {
+	return &OAuthGrantCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OAuthGrantClient) MapCreateBulk(slice any, setFunc func(*OAuthGrantCreate, int)) *OAuthGrantCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OAuthGrantCreateBulk{err: fmt.Errorf("calling to OAuthGrantClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OAuthGrantCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OAuthGrantCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OAuthGrant.
+func (c *OAuthGrantClient) Update() *OAuthGrantUpdate {
+	mutation := newOAuthGrantMutation(c.config, OpUpdate)
+	return &OAuthGrantUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OAuthGrantClient) UpdateOne(_m *OAuthGrant) *OAuthGrantUpdateOne {
+	mutation := newOAuthGrantMutation(c.config, OpUpdateOne, withOAuthGrant(_m))
+	return &OAuthGrantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OAuthGrantClient) UpdateOneID(id int64) *OAuthGrantUpdateOne {
+	mutation := newOAuthGrantMutation(c.config, OpUpdateOne, withOAuthGrantID(id))
+	return &OAuthGrantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OAuthGrant.
+func (c *OAuthGrantClient) Delete() *OAuthGrantDelete {
+	mutation := newOAuthGrantMutation(c.config, OpDelete)
+	return &OAuthGrantDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OAuthGrantClient) DeleteOne(_m *OAuthGrant) *OAuthGrantDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OAuthGrantClient) DeleteOneID(id int64) *OAuthGrantDeleteOne {
+	builder := c.Delete().Where(oauthgrant.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OAuthGrantDeleteOne{builder}
+}
+
+// Query returns a query builder for OAuthGrant.
+func (c *OAuthGrantClient) Query() *OAuthGrantQuery {
+	return &OAuthGrantQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOAuthGrant},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OAuthGrant entity by its id.
+func (c *OAuthGrantClient) Get(ctx context.Context, id int64) (*OAuthGrant, error) {
+	return c.Query().Where(oauthgrant.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OAuthGrantClient) GetX(ctx context.Context, id int64) *OAuthGrant {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a OAuthGrant.
+func (c *OAuthGrantClient) QueryUser(_m *OAuthGrant) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oauthgrant.Table, oauthgrant.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, oauthgrant.UserTable, oauthgrant.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryClient queries the client edge of a OAuthGrant.
+func (c *OAuthGrantClient) QueryClient(_m *OAuthGrant) *OAuthClientQuery {
+	query := (&OAuthClientClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oauthgrant.Table, oauthgrant.FieldID, id),
+			sqlgraph.To(oauthclient.Table, oauthclient.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, oauthgrant.ClientTable, oauthgrant.ClientColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OAuthGrantClient) Hooks() []Hook {
+	return c.hooks.OAuthGrant
+}
+
+// Interceptors returns the client interceptors.
+func (c *OAuthGrantClient) Interceptors() []Interceptor {
+	return c.inters.OAuthGrant
+}
+
+func (c *OAuthGrantClient) mutate(ctx context.Context, m *OAuthGrantMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OAuthGrantCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OAuthGrantUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OAuthGrantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OAuthGrantDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OAuthGrant mutation op: %q", m.Op())
+	}
+}
+
+// OAuthTokenClient is a client for the OAuthToken schema.
+type OAuthTokenClient struct {
+	config
+}
+
+// NewOAuthTokenClient returns a client for the OAuthToken from the given config.
+func NewOAuthTokenClient(c config) *OAuthTokenClient {
+	return &OAuthTokenClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `oauthtoken.Hooks(f(g(h())))`.
+func (c *OAuthTokenClient) Use(hooks ...Hook) {
+	c.hooks.OAuthToken = append(c.hooks.OAuthToken, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `oauthtoken.Intercept(f(g(h())))`.
+func (c *OAuthTokenClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OAuthToken = append(c.inters.OAuthToken, interceptors...)
+}
+
+// Create returns a builder for creating a OAuthToken entity.
+func (c *OAuthTokenClient) Create() *OAuthTokenCreate {
+	mutation := newOAuthTokenMutation(c.config, OpCreate)
+	return &OAuthTokenCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OAuthToken entities.
+func (c *OAuthTokenClient) CreateBulk(builders ...*OAuthTokenCreate) *OAuthTokenCreateBulk {
+	return &OAuthTokenCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OAuthTokenClient) MapCreateBulk(slice any, setFunc func(*OAuthTokenCreate, int)) *OAuthTokenCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OAuthTokenCreateBulk{err: fmt.Errorf("calling to OAuthTokenClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OAuthTokenCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OAuthTokenCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OAuthToken.
+func (c *OAuthTokenClient) Update() *OAuthTokenUpdate {
+	mutation := newOAuthTokenMutation(c.config, OpUpdate)
+	return &OAuthTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OAuthTokenClient) UpdateOne(_m *OAuthToken) *OAuthTokenUpdateOne {
+	mutation := newOAuthTokenMutation(c.config, OpUpdateOne, withOAuthToken(_m))
+	return &OAuthTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OAuthTokenClient) UpdateOneID(id int64) *OAuthTokenUpdateOne {
+	mutation := newOAuthTokenMutation(c.config, OpUpdateOne, withOAuthTokenID(id))
+	return &OAuthTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OAuthToken.
+func (c *OAuthTokenClient) Delete() *OAuthTokenDelete {
+	mutation := newOAuthTokenMutation(c.config, OpDelete)
+	return &OAuthTokenDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OAuthTokenClient) DeleteOne(_m *OAuthToken) *OAuthTokenDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OAuthTokenClient) DeleteOneID(id int64) *OAuthTokenDeleteOne {
+	builder := c.Delete().Where(oauthtoken.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OAuthTokenDeleteOne{builder}
+}
+
+// Query returns a query builder for OAuthToken.
+func (c *OAuthTokenClient) Query() *OAuthTokenQuery {
+	return &OAuthTokenQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOAuthToken},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OAuthToken entity by its id.
+func (c *OAuthTokenClient) Get(ctx context.Context, id int64) (*OAuthToken, error) {
+	return c.Query().Where(oauthtoken.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OAuthTokenClient) GetX(ctx context.Context, id int64) *OAuthToken {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a OAuthToken.
+func (c *OAuthTokenClient) QueryUser(_m *OAuthToken) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oauthtoken.Table, oauthtoken.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, oauthtoken.UserTable, oauthtoken.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryClient queries the client edge of a OAuthToken.
+func (c *OAuthTokenClient) QueryClient(_m *OAuthToken) *OAuthClientQuery {
+	query := (&OAuthClientClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oauthtoken.Table, oauthtoken.FieldID, id),
+			sqlgraph.To(oauthclient.Table, oauthclient.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, oauthtoken.ClientTable, oauthtoken.ClientColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OAuthTokenClient) Hooks() []Hook {
+	return c.hooks.OAuthToken
+}
+
+// Interceptors returns the client interceptors.
+func (c *OAuthTokenClient) Interceptors() []Interceptor {
+	return c.inters.OAuthToken
+}
+
+func (c *OAuthTokenClient) mutate(ctx context.Context, m *OAuthTokenMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OAuthTokenCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OAuthTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OAuthTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OAuthTokenDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OAuthToken mutation op: %q", m.Op())
+	}
+}
+
 // PlayerClient is a client for the Player schema.
 type PlayerClient struct {
 	config
@@ -1531,6 +2299,38 @@ func (c *PlayerClient) QueryCape(_m *Player) *TextureQuery {
 			sqlgraph.From(player.Table, player.FieldID, id),
 			sqlgraph.To(texture.Table, texture.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, player.CapeTable, player.CapeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryYggTokens queries the ygg_tokens edge of a Player.
+func (c *PlayerClient) QueryYggTokens(_m *Player) *YggTokenQuery {
+	query := (&YggTokenClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(player.Table, player.FieldID, id),
+			sqlgraph.To(yggtoken.Table, yggtoken.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, player.YggTokensTable, player.YggTokensColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryYggSessions queries the ygg_sessions edge of a Player.
+func (c *PlayerClient) QueryYggSessions(_m *Player) *YggSessionQuery {
+	query := (&YggSessionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(player.Table, player.FieldID, id),
+			sqlgraph.To(yggsession.Table, yggsession.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, player.YggSessionsTable, player.YggSessionsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -2191,6 +2991,437 @@ func (c *SettingClient) mutate(ctx context.Context, m *SettingMutation) (Value, 
 	}
 }
 
+// SiteSecretClient is a client for the SiteSecret schema.
+type SiteSecretClient struct {
+	config
+}
+
+// NewSiteSecretClient returns a client for the SiteSecret from the given config.
+func NewSiteSecretClient(c config) *SiteSecretClient {
+	return &SiteSecretClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `sitesecret.Hooks(f(g(h())))`.
+func (c *SiteSecretClient) Use(hooks ...Hook) {
+	c.hooks.SiteSecret = append(c.hooks.SiteSecret, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `sitesecret.Intercept(f(g(h())))`.
+func (c *SiteSecretClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SiteSecret = append(c.inters.SiteSecret, interceptors...)
+}
+
+// Create returns a builder for creating a SiteSecret entity.
+func (c *SiteSecretClient) Create() *SiteSecretCreate {
+	mutation := newSiteSecretMutation(c.config, OpCreate)
+	return &SiteSecretCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SiteSecret entities.
+func (c *SiteSecretClient) CreateBulk(builders ...*SiteSecretCreate) *SiteSecretCreateBulk {
+	return &SiteSecretCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SiteSecretClient) MapCreateBulk(slice any, setFunc func(*SiteSecretCreate, int)) *SiteSecretCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SiteSecretCreateBulk{err: fmt.Errorf("calling to SiteSecretClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SiteSecretCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SiteSecretCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SiteSecret.
+func (c *SiteSecretClient) Update() *SiteSecretUpdate {
+	mutation := newSiteSecretMutation(c.config, OpUpdate)
+	return &SiteSecretUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SiteSecretClient) UpdateOne(_m *SiteSecret) *SiteSecretUpdateOne {
+	mutation := newSiteSecretMutation(c.config, OpUpdateOne, withSiteSecret(_m))
+	return &SiteSecretUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SiteSecretClient) UpdateOneID(id string) *SiteSecretUpdateOne {
+	mutation := newSiteSecretMutation(c.config, OpUpdateOne, withSiteSecretID(id))
+	return &SiteSecretUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SiteSecret.
+func (c *SiteSecretClient) Delete() *SiteSecretDelete {
+	mutation := newSiteSecretMutation(c.config, OpDelete)
+	return &SiteSecretDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SiteSecretClient) DeleteOne(_m *SiteSecret) *SiteSecretDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SiteSecretClient) DeleteOneID(id string) *SiteSecretDeleteOne {
+	builder := c.Delete().Where(sitesecret.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SiteSecretDeleteOne{builder}
+}
+
+// Query returns a query builder for SiteSecret.
+func (c *SiteSecretClient) Query() *SiteSecretQuery {
+	return &SiteSecretQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSiteSecret},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SiteSecret entity by its id.
+func (c *SiteSecretClient) Get(ctx context.Context, id string) (*SiteSecret, error) {
+	return c.Query().Where(sitesecret.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SiteSecretClient) GetX(ctx context.Context, id string) *SiteSecret {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *SiteSecretClient) Hooks() []Hook {
+	return c.hooks.SiteSecret
+}
+
+// Interceptors returns the client interceptors.
+func (c *SiteSecretClient) Interceptors() []Interceptor {
+	return c.inters.SiteSecret
+}
+
+func (c *SiteSecretClient) mutate(ctx context.Context, m *SiteSecretMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SiteSecretCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SiteSecretUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SiteSecretUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SiteSecretDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown SiteSecret mutation op: %q", m.Op())
+	}
+}
+
+// SocialAccountClient is a client for the SocialAccount schema.
+type SocialAccountClient struct {
+	config
+}
+
+// NewSocialAccountClient returns a client for the SocialAccount from the given config.
+func NewSocialAccountClient(c config) *SocialAccountClient {
+	return &SocialAccountClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `socialaccount.Hooks(f(g(h())))`.
+func (c *SocialAccountClient) Use(hooks ...Hook) {
+	c.hooks.SocialAccount = append(c.hooks.SocialAccount, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `socialaccount.Intercept(f(g(h())))`.
+func (c *SocialAccountClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SocialAccount = append(c.inters.SocialAccount, interceptors...)
+}
+
+// Create returns a builder for creating a SocialAccount entity.
+func (c *SocialAccountClient) Create() *SocialAccountCreate {
+	mutation := newSocialAccountMutation(c.config, OpCreate)
+	return &SocialAccountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SocialAccount entities.
+func (c *SocialAccountClient) CreateBulk(builders ...*SocialAccountCreate) *SocialAccountCreateBulk {
+	return &SocialAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SocialAccountClient) MapCreateBulk(slice any, setFunc func(*SocialAccountCreate, int)) *SocialAccountCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SocialAccountCreateBulk{err: fmt.Errorf("calling to SocialAccountClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SocialAccountCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SocialAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SocialAccount.
+func (c *SocialAccountClient) Update() *SocialAccountUpdate {
+	mutation := newSocialAccountMutation(c.config, OpUpdate)
+	return &SocialAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SocialAccountClient) UpdateOne(_m *SocialAccount) *SocialAccountUpdateOne {
+	mutation := newSocialAccountMutation(c.config, OpUpdateOne, withSocialAccount(_m))
+	return &SocialAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SocialAccountClient) UpdateOneID(id int64) *SocialAccountUpdateOne {
+	mutation := newSocialAccountMutation(c.config, OpUpdateOne, withSocialAccountID(id))
+	return &SocialAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SocialAccount.
+func (c *SocialAccountClient) Delete() *SocialAccountDelete {
+	mutation := newSocialAccountMutation(c.config, OpDelete)
+	return &SocialAccountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SocialAccountClient) DeleteOne(_m *SocialAccount) *SocialAccountDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SocialAccountClient) DeleteOneID(id int64) *SocialAccountDeleteOne {
+	builder := c.Delete().Where(socialaccount.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SocialAccountDeleteOne{builder}
+}
+
+// Query returns a query builder for SocialAccount.
+func (c *SocialAccountClient) Query() *SocialAccountQuery {
+	return &SocialAccountQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSocialAccount},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SocialAccount entity by its id.
+func (c *SocialAccountClient) Get(ctx context.Context, id int64) (*SocialAccount, error) {
+	return c.Query().Where(socialaccount.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SocialAccountClient) GetX(ctx context.Context, id int64) *SocialAccount {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a SocialAccount.
+func (c *SocialAccountClient) QueryUser(_m *SocialAccount) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(socialaccount.Table, socialaccount.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, socialaccount.UserTable, socialaccount.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *SocialAccountClient) Hooks() []Hook {
+	return c.hooks.SocialAccount
+}
+
+// Interceptors returns the client interceptors.
+func (c *SocialAccountClient) Interceptors() []Interceptor {
+	return c.inters.SocialAccount
+}
+
+func (c *SocialAccountClient) mutate(ctx context.Context, m *SocialAccountMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SocialAccountCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SocialAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SocialAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SocialAccountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown SocialAccount mutation op: %q", m.Op())
+	}
+}
+
+// SocialFlowClient is a client for the SocialFlow schema.
+type SocialFlowClient struct {
+	config
+}
+
+// NewSocialFlowClient returns a client for the SocialFlow from the given config.
+func NewSocialFlowClient(c config) *SocialFlowClient {
+	return &SocialFlowClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `socialflow.Hooks(f(g(h())))`.
+func (c *SocialFlowClient) Use(hooks ...Hook) {
+	c.hooks.SocialFlow = append(c.hooks.SocialFlow, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `socialflow.Intercept(f(g(h())))`.
+func (c *SocialFlowClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SocialFlow = append(c.inters.SocialFlow, interceptors...)
+}
+
+// Create returns a builder for creating a SocialFlow entity.
+func (c *SocialFlowClient) Create() *SocialFlowCreate {
+	mutation := newSocialFlowMutation(c.config, OpCreate)
+	return &SocialFlowCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SocialFlow entities.
+func (c *SocialFlowClient) CreateBulk(builders ...*SocialFlowCreate) *SocialFlowCreateBulk {
+	return &SocialFlowCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SocialFlowClient) MapCreateBulk(slice any, setFunc func(*SocialFlowCreate, int)) *SocialFlowCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SocialFlowCreateBulk{err: fmt.Errorf("calling to SocialFlowClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SocialFlowCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SocialFlowCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SocialFlow.
+func (c *SocialFlowClient) Update() *SocialFlowUpdate {
+	mutation := newSocialFlowMutation(c.config, OpUpdate)
+	return &SocialFlowUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SocialFlowClient) UpdateOne(_m *SocialFlow) *SocialFlowUpdateOne {
+	mutation := newSocialFlowMutation(c.config, OpUpdateOne, withSocialFlow(_m))
+	return &SocialFlowUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SocialFlowClient) UpdateOneID(id string) *SocialFlowUpdateOne {
+	mutation := newSocialFlowMutation(c.config, OpUpdateOne, withSocialFlowID(id))
+	return &SocialFlowUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SocialFlow.
+func (c *SocialFlowClient) Delete() *SocialFlowDelete {
+	mutation := newSocialFlowMutation(c.config, OpDelete)
+	return &SocialFlowDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SocialFlowClient) DeleteOne(_m *SocialFlow) *SocialFlowDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SocialFlowClient) DeleteOneID(id string) *SocialFlowDeleteOne {
+	builder := c.Delete().Where(socialflow.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SocialFlowDeleteOne{builder}
+}
+
+// Query returns a query builder for SocialFlow.
+func (c *SocialFlowClient) Query() *SocialFlowQuery {
+	return &SocialFlowQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSocialFlow},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SocialFlow entity by its id.
+func (c *SocialFlowClient) Get(ctx context.Context, id string) (*SocialFlow, error) {
+	return c.Query().Where(socialflow.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SocialFlowClient) GetX(ctx context.Context, id string) *SocialFlow {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a SocialFlow.
+func (c *SocialFlowClient) QueryUser(_m *SocialFlow) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(socialflow.Table, socialflow.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, socialflow.UserTable, socialflow.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *SocialFlowClient) Hooks() []Hook {
+	return c.hooks.SocialFlow
+}
+
+// Interceptors returns the client interceptors.
+func (c *SocialFlowClient) Interceptors() []Interceptor {
+	return c.inters.SocialFlow
+}
+
+func (c *SocialFlowClient) mutate(ctx context.Context, m *SocialFlowMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SocialFlowCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SocialFlowUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SocialFlowUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SocialFlowDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown SocialFlow mutation op: %q", m.Op())
+	}
+}
+
 // SystemStateClient is a client for the SystemState schema.
 type SystemStateClient struct {
 	config
@@ -2821,6 +4052,118 @@ func (c *UserClient) QueryNotifications(_m *User) *NotificationQuery {
 	return query
 }
 
+// QueryYggTokens queries the ygg_tokens edge of a User.
+func (c *UserClient) QueryYggTokens(_m *User) *YggTokenQuery {
+	query := (&YggTokenClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(yggtoken.Table, yggtoken.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.YggTokensTable, user.YggTokensColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOauthClients queries the oauth_clients edge of a User.
+func (c *UserClient) QueryOauthClients(_m *User) *OAuthClientQuery {
+	query := (&OAuthClientClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(oauthclient.Table, oauthclient.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.OauthClientsTable, user.OauthClientsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOauthGrants queries the oauth_grants edge of a User.
+func (c *UserClient) QueryOauthGrants(_m *User) *OAuthGrantQuery {
+	query := (&OAuthGrantClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(oauthgrant.Table, oauthgrant.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.OauthGrantsTable, user.OauthGrantsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOauthCodes queries the oauth_codes edge of a User.
+func (c *UserClient) QueryOauthCodes(_m *User) *OAuthCodeQuery {
+	query := (&OAuthCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(oauthcode.Table, oauthcode.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.OauthCodesTable, user.OauthCodesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOauthTokens queries the oauth_tokens edge of a User.
+func (c *UserClient) QueryOauthTokens(_m *User) *OAuthTokenQuery {
+	query := (&OAuthTokenClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(oauthtoken.Table, oauthtoken.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.OauthTokensTable, user.OauthTokensColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySocialAccounts queries the social_accounts edge of a User.
+func (c *UserClient) QuerySocialAccounts(_m *User) *SocialAccountQuery {
+	query := (&SocialAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(socialaccount.Table, socialaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.SocialAccountsTable, user.SocialAccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySocialFlows queries the social_flows edge of a User.
+func (c *UserClient) QuerySocialFlows(_m *User) *SocialFlowQuery {
+	query := (&SocialFlowClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(socialflow.Table, socialflow.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.SocialFlowsTable, user.SocialFlowsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryAnnouncementsSent queries the announcements_sent edge of a User.
 func (c *UserClient) QueryAnnouncementsSent(_m *User) *AnnouncementQuery {
 	query := (&AnnouncementClient{config: c.config}).Query()
@@ -2862,16 +4205,333 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 	}
 }
 
+// YggSessionClient is a client for the YggSession schema.
+type YggSessionClient struct {
+	config
+}
+
+// NewYggSessionClient returns a client for the YggSession from the given config.
+func NewYggSessionClient(c config) *YggSessionClient {
+	return &YggSessionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `yggsession.Hooks(f(g(h())))`.
+func (c *YggSessionClient) Use(hooks ...Hook) {
+	c.hooks.YggSession = append(c.hooks.YggSession, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `yggsession.Intercept(f(g(h())))`.
+func (c *YggSessionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.YggSession = append(c.inters.YggSession, interceptors...)
+}
+
+// Create returns a builder for creating a YggSession entity.
+func (c *YggSessionClient) Create() *YggSessionCreate {
+	mutation := newYggSessionMutation(c.config, OpCreate)
+	return &YggSessionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of YggSession entities.
+func (c *YggSessionClient) CreateBulk(builders ...*YggSessionCreate) *YggSessionCreateBulk {
+	return &YggSessionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *YggSessionClient) MapCreateBulk(slice any, setFunc func(*YggSessionCreate, int)) *YggSessionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &YggSessionCreateBulk{err: fmt.Errorf("calling to YggSessionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*YggSessionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &YggSessionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for YggSession.
+func (c *YggSessionClient) Update() *YggSessionUpdate {
+	mutation := newYggSessionMutation(c.config, OpUpdate)
+	return &YggSessionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *YggSessionClient) UpdateOne(_m *YggSession) *YggSessionUpdateOne {
+	mutation := newYggSessionMutation(c.config, OpUpdateOne, withYggSession(_m))
+	return &YggSessionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *YggSessionClient) UpdateOneID(id int64) *YggSessionUpdateOne {
+	mutation := newYggSessionMutation(c.config, OpUpdateOne, withYggSessionID(id))
+	return &YggSessionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for YggSession.
+func (c *YggSessionClient) Delete() *YggSessionDelete {
+	mutation := newYggSessionMutation(c.config, OpDelete)
+	return &YggSessionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *YggSessionClient) DeleteOne(_m *YggSession) *YggSessionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *YggSessionClient) DeleteOneID(id int64) *YggSessionDeleteOne {
+	builder := c.Delete().Where(yggsession.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &YggSessionDeleteOne{builder}
+}
+
+// Query returns a query builder for YggSession.
+func (c *YggSessionClient) Query() *YggSessionQuery {
+	return &YggSessionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeYggSession},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a YggSession entity by its id.
+func (c *YggSessionClient) Get(ctx context.Context, id int64) (*YggSession, error) {
+	return c.Query().Where(yggsession.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *YggSessionClient) GetX(ctx context.Context, id int64) *YggSession {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPlayer queries the player edge of a YggSession.
+func (c *YggSessionClient) QueryPlayer(_m *YggSession) *PlayerQuery {
+	query := (&PlayerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(yggsession.Table, yggsession.FieldID, id),
+			sqlgraph.To(player.Table, player.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, yggsession.PlayerTable, yggsession.PlayerColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *YggSessionClient) Hooks() []Hook {
+	return c.hooks.YggSession
+}
+
+// Interceptors returns the client interceptors.
+func (c *YggSessionClient) Interceptors() []Interceptor {
+	return c.inters.YggSession
+}
+
+func (c *YggSessionClient) mutate(ctx context.Context, m *YggSessionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&YggSessionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&YggSessionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&YggSessionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&YggSessionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown YggSession mutation op: %q", m.Op())
+	}
+}
+
+// YggTokenClient is a client for the YggToken schema.
+type YggTokenClient struct {
+	config
+}
+
+// NewYggTokenClient returns a client for the YggToken from the given config.
+func NewYggTokenClient(c config) *YggTokenClient {
+	return &YggTokenClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `yggtoken.Hooks(f(g(h())))`.
+func (c *YggTokenClient) Use(hooks ...Hook) {
+	c.hooks.YggToken = append(c.hooks.YggToken, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `yggtoken.Intercept(f(g(h())))`.
+func (c *YggTokenClient) Intercept(interceptors ...Interceptor) {
+	c.inters.YggToken = append(c.inters.YggToken, interceptors...)
+}
+
+// Create returns a builder for creating a YggToken entity.
+func (c *YggTokenClient) Create() *YggTokenCreate {
+	mutation := newYggTokenMutation(c.config, OpCreate)
+	return &YggTokenCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of YggToken entities.
+func (c *YggTokenClient) CreateBulk(builders ...*YggTokenCreate) *YggTokenCreateBulk {
+	return &YggTokenCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *YggTokenClient) MapCreateBulk(slice any, setFunc func(*YggTokenCreate, int)) *YggTokenCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &YggTokenCreateBulk{err: fmt.Errorf("calling to YggTokenClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*YggTokenCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &YggTokenCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for YggToken.
+func (c *YggTokenClient) Update() *YggTokenUpdate {
+	mutation := newYggTokenMutation(c.config, OpUpdate)
+	return &YggTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *YggTokenClient) UpdateOne(_m *YggToken) *YggTokenUpdateOne {
+	mutation := newYggTokenMutation(c.config, OpUpdateOne, withYggToken(_m))
+	return &YggTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *YggTokenClient) UpdateOneID(id int64) *YggTokenUpdateOne {
+	mutation := newYggTokenMutation(c.config, OpUpdateOne, withYggTokenID(id))
+	return &YggTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for YggToken.
+func (c *YggTokenClient) Delete() *YggTokenDelete {
+	mutation := newYggTokenMutation(c.config, OpDelete)
+	return &YggTokenDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *YggTokenClient) DeleteOne(_m *YggToken) *YggTokenDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *YggTokenClient) DeleteOneID(id int64) *YggTokenDeleteOne {
+	builder := c.Delete().Where(yggtoken.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &YggTokenDeleteOne{builder}
+}
+
+// Query returns a query builder for YggToken.
+func (c *YggTokenClient) Query() *YggTokenQuery {
+	return &YggTokenQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeYggToken},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a YggToken entity by its id.
+func (c *YggTokenClient) Get(ctx context.Context, id int64) (*YggToken, error) {
+	return c.Query().Where(yggtoken.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *YggTokenClient) GetX(ctx context.Context, id int64) *YggToken {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a YggToken.
+func (c *YggTokenClient) QueryUser(_m *YggToken) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(yggtoken.Table, yggtoken.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, yggtoken.UserTable, yggtoken.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPlayer queries the player edge of a YggToken.
+func (c *YggTokenClient) QueryPlayer(_m *YggToken) *PlayerQuery {
+	query := (&PlayerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(yggtoken.Table, yggtoken.FieldID, id),
+			sqlgraph.To(player.Table, player.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, yggtoken.PlayerTable, yggtoken.PlayerColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *YggTokenClient) Hooks() []Hook {
+	return c.hooks.YggToken
+}
+
+// Interceptors returns the client interceptors.
+func (c *YggTokenClient) Interceptors() []Interceptor {
+	return c.inters.YggToken
+}
+
+func (c *YggTokenClient) mutate(ctx context.Context, m *YggTokenMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&YggTokenCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&YggTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&YggTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&YggTokenDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown YggToken mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Announcement, AuditLog, AuthToken, Blob, ClosetItem, Job, Notification, Player,
-		Report, ScoreEntry, Session, Setting, SystemState, Texture, User []ent.Hook
+		Announcement, AuditLog, AuthToken, Blob, ClosetItem, Job, Notification,
+		OAuthClient, OAuthCode, OAuthGrant, OAuthToken, Player, Report, ScoreEntry,
+		Session, Setting, SiteSecret, SocialAccount, SocialFlow, SystemState, Texture,
+		User, YggSession, YggToken []ent.Hook
 	}
 	inters struct {
-		Announcement, AuditLog, AuthToken, Blob, ClosetItem, Job, Notification, Player,
-		Report, ScoreEntry, Session, Setting, SystemState, Texture,
-		User []ent.Interceptor
+		Announcement, AuditLog, AuthToken, Blob, ClosetItem, Job, Notification,
+		OAuthClient, OAuthCode, OAuthGrant, OAuthToken, Player, Report, ScoreEntry,
+		Session, Setting, SiteSecret, SocialAccount, SocialFlow, SystemState, Texture,
+		User, YggSession, YggToken []ent.Interceptor
 	}
 )
 

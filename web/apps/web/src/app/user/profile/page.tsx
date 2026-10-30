@@ -2,7 +2,16 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 
-import { AvatarSection, DeleteSection, EmailSection, PasswordSection, ProfileSection, SessionsSection } from '@/components/user/account-settings'
+import {
+  AvatarSection,
+  DeleteSection,
+  EmailSection,
+  LaunchersSection,
+  PasswordSection,
+  ProfileSection,
+  SessionsSection,
+  SocialSection,
+} from '@/components/user/account-settings'
 import { getBootstrap } from '@/lib/bootstrap'
 import { getViewer } from '@/lib/viewer'
 
@@ -11,7 +20,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('title') }
 }
 
-export default async function ProfilePage() {
+export default async function ProfilePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const params = await searchParams
   const viewer = await getViewer()
   if (!viewer) redirect('/auth/login?next=/user/profile')
   const boot = await getBootstrap()
@@ -26,10 +36,16 @@ export default async function ProfilePage() {
       </div>
       <AvatarSection viewer={viewer} />
       <ProfileSection viewer={viewer} locales={boot.locales} />
-      <PasswordSection />
+      <PasswordSection viewer={viewer} />
       <EmailSection viewer={viewer} mail={boot.auth.mail} />
+      <SocialSection
+        viewer={viewer}
+        linked={params.social_linked !== undefined}
+        error={typeof params.social_error === 'string' ? params.social_error : undefined}
+      />
       <SessionsSection />
-      {admin ? <p className="text-sm text-muted-foreground">{t('adminNoDelete')}</p> : <DeleteSection />}
+      <LaunchersSection />
+      {admin ? <p className="text-sm text-muted-foreground">{t('adminNoDelete')}</p> : <DeleteSection viewer={viewer} />}
     </div>
   )
 }

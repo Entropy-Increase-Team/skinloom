@@ -1,6 +1,6 @@
 import { type Dashboard, getDashboard } from '@skinloom/api-client'
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@skinloom/ui'
-import { Coins, Flag, HardDrive, Images, Megaphone, Shirt, Upload, UserCog, Users } from 'lucide-react'
+import { Coins, Flag, HardDrive, Images, KeyRound, Megaphone, Shirt, Upload, UserCog, Users } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -41,6 +41,7 @@ export default async function DashboardPage() {
     { href: '/skinlib', icon: Images, label: t('links.skinlib') },
     { href: '/user/profile', icon: UserCog, label: t('links.profile') },
     { href: '/user/reports', icon: Flag, label: t('links.reports') },
+    { href: '/user/oauth/manage', icon: KeyRound, label: t('links.developer') },
   ]
 
   return (

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 
 import { LoginForm } from '@/components/auth/login-form'
+import { SocialError } from '@/components/auth/social-buttons'
 import { getBootstrap } from '@/lib/bootstrap'
 import { safeNext } from '@/lib/safe-url'
 import { getViewer } from '@/lib/viewer'
@@ -15,8 +16,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const next = safeNext((await searchParams).next)
-  if (await getViewer()) redirect(next)
+  const params = await searchParams
+  const next = safeNext(params.next)
+  // From /auth/social: sign in to link the provider account just used.
+  const linkPending = params.social === 'link'
+  if (await getViewer()) redirect(linkPending ? '/auth/social' : next)
+  const socialError = typeof params.social_error === 'string' ? params.social_error : undefined
   const boot = await getBootstrap()
   const t = await getTranslations('auth')
 
@@ -25,10 +30,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">{t('signIn')}</CardTitle>
-          <CardDescription>{t('signInTo', { site: boot.site.name })}</CardDescription>
+          <CardDescription>{linkPending ? t('signInToLink') : t('signInTo', { site: boot.site.name })}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <LoginForm next={next} captcha={boot.auth.captcha} />
+        <CardContent className="flex flex-col gap-4">
+          <SocialError code={socialError} />
+          <LoginForm next={next} captcha={boot.auth.captcha} providers={boot.auth.social} linkPending={linkPending} />
         </CardContent>
       </Card>
       <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">

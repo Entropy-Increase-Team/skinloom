@@ -12,15 +12,24 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/job"
 	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/schema"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/setting"
+	"github.com/Entropy-Increase-Team/skinloom/ent/sitesecret"
+	"github.com/Entropy-Increase-Team/skinloom/ent/socialaccount"
+	"github.com/Entropy-Increase-Team/skinloom/ent/socialflow"
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggsession"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggtoken"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -231,6 +240,122 @@ func init() {
 	notificationDescCreatedAt := notificationFields[6].Descriptor()
 	// notification.DefaultCreatedAt holds the default value on creation for the created_at field.
 	notification.DefaultCreatedAt = notificationDescCreatedAt.Default.(func() time.Time)
+	oauthclientFields := schema.OAuthClient{}.Fields()
+	_ = oauthclientFields
+	// oauthclientDescName is the schema descriptor for name field.
+	oauthclientDescName := oauthclientFields[2].Descriptor()
+	// oauthclient.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	oauthclient.NameValidator = func() func(string) error {
+		validators := oauthclientDescName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name string) error {
+			for _, fn := range fns {
+				if err := fn(name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// oauthclientDescSecretHash is the schema descriptor for secret_hash field.
+	oauthclientDescSecretHash := oauthclientFields[3].Descriptor()
+	// oauthclient.SecretHashValidator is a validator for the "secret_hash" field. It is called by the builders before save.
+	oauthclient.SecretHashValidator = oauthclientDescSecretHash.Validators[0].(func(string) error)
+	// oauthclientDescCreatedAt is the schema descriptor for created_at field.
+	oauthclientDescCreatedAt := oauthclientFields[5].Descriptor()
+	// oauthclient.DefaultCreatedAt holds the default value on creation for the created_at field.
+	oauthclient.DefaultCreatedAt = oauthclientDescCreatedAt.Default.(func() time.Time)
+	// oauthclientDescUpdatedAt is the schema descriptor for updated_at field.
+	oauthclientDescUpdatedAt := oauthclientFields[6].Descriptor()
+	// oauthclient.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	oauthclient.DefaultUpdatedAt = oauthclientDescUpdatedAt.Default.(func() time.Time)
+	// oauthclient.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	oauthclient.UpdateDefaultUpdatedAt = oauthclientDescUpdatedAt.UpdateDefault.(func() time.Time)
+	oauthcodeFields := schema.OAuthCode{}.Fields()
+	_ = oauthcodeFields
+	// oauthcodeDescCodeHash is the schema descriptor for code_hash field.
+	oauthcodeDescCodeHash := oauthcodeFields[1].Descriptor()
+	// oauthcode.CodeHashValidator is a validator for the "code_hash" field. It is called by the builders before save.
+	oauthcode.CodeHashValidator = func() func(string) error {
+		validators := oauthcodeDescCodeHash.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(code_hash string) error {
+			for _, fn := range fns {
+				if err := fn(code_hash); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// oauthcodeDescRedirectURI is the schema descriptor for redirect_uri field.
+	oauthcodeDescRedirectURI := oauthcodeFields[4].Descriptor()
+	// oauthcode.RedirectURIValidator is a validator for the "redirect_uri" field. It is called by the builders before save.
+	oauthcode.RedirectURIValidator = oauthcodeDescRedirectURI.Validators[0].(func(string) error)
+	// oauthcodeDescCodeChallenge is the schema descriptor for code_challenge field.
+	oauthcodeDescCodeChallenge := oauthcodeFields[6].Descriptor()
+	// oauthcode.DefaultCodeChallenge holds the default value on creation for the code_challenge field.
+	oauthcode.DefaultCodeChallenge = oauthcodeDescCodeChallenge.Default.(string)
+	// oauthcode.CodeChallengeValidator is a validator for the "code_challenge" field. It is called by the builders before save.
+	oauthcode.CodeChallengeValidator = oauthcodeDescCodeChallenge.Validators[0].(func(string) error)
+	// oauthcodeDescCodeChallengeMethod is the schema descriptor for code_challenge_method field.
+	oauthcodeDescCodeChallengeMethod := oauthcodeFields[7].Descriptor()
+	// oauthcode.DefaultCodeChallengeMethod holds the default value on creation for the code_challenge_method field.
+	oauthcode.DefaultCodeChallengeMethod = oauthcodeDescCodeChallengeMethod.Default.(string)
+	// oauthcode.CodeChallengeMethodValidator is a validator for the "code_challenge_method" field. It is called by the builders before save.
+	oauthcode.CodeChallengeMethodValidator = oauthcodeDescCodeChallengeMethod.Validators[0].(func(string) error)
+	oauthgrantFields := schema.OAuthGrant{}.Fields()
+	_ = oauthgrantFields
+	// oauthgrantDescCreatedAt is the schema descriptor for created_at field.
+	oauthgrantDescCreatedAt := oauthgrantFields[4].Descriptor()
+	// oauthgrant.DefaultCreatedAt holds the default value on creation for the created_at field.
+	oauthgrant.DefaultCreatedAt = oauthgrantDescCreatedAt.Default.(func() time.Time)
+	// oauthgrantDescUpdatedAt is the schema descriptor for updated_at field.
+	oauthgrantDescUpdatedAt := oauthgrantFields[5].Descriptor()
+	// oauthgrant.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	oauthgrant.DefaultUpdatedAt = oauthgrantDescUpdatedAt.Default.(func() time.Time)
+	// oauthgrant.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	oauthgrant.UpdateDefaultUpdatedAt = oauthgrantDescUpdatedAt.UpdateDefault.(func() time.Time)
+	oauthtokenFields := schema.OAuthToken{}.Fields()
+	_ = oauthtokenFields
+	// oauthtokenDescTokenHash is the schema descriptor for token_hash field.
+	oauthtokenDescTokenHash := oauthtokenFields[2].Descriptor()
+	// oauthtoken.TokenHashValidator is a validator for the "token_hash" field. It is called by the builders before save.
+	oauthtoken.TokenHashValidator = func() func(string) error {
+		validators := oauthtokenDescTokenHash.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(token_hash string) error {
+			for _, fn := range fns {
+				if err := fn(token_hash); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// oauthtokenDescRefreshHash is the schema descriptor for refresh_hash field.
+	oauthtokenDescRefreshHash := oauthtokenFields[3].Descriptor()
+	// oauthtoken.RefreshHashValidator is a validator for the "refresh_hash" field. It is called by the builders before save.
+	oauthtoken.RefreshHashValidator = oauthtokenDescRefreshHash.Validators[0].(func(string) error)
+	// oauthtokenDescName is the schema descriptor for name field.
+	oauthtokenDescName := oauthtokenFields[6].Descriptor()
+	// oauthtoken.DefaultName holds the default value on creation for the name field.
+	oauthtoken.DefaultName = oauthtokenDescName.Default.(string)
+	// oauthtoken.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	oauthtoken.NameValidator = oauthtokenDescName.Validators[0].(func(string) error)
+	// oauthtokenDescCreatedAt is the schema descriptor for created_at field.
+	oauthtokenDescCreatedAt := oauthtokenFields[8].Descriptor()
+	// oauthtoken.DefaultCreatedAt holds the default value on creation for the created_at field.
+	oauthtoken.DefaultCreatedAt = oauthtokenDescCreatedAt.Default.(func() time.Time)
 	playerFields := schema.Player{}.Fields()
 	_ = playerFields
 	// playerDescName is the schema descriptor for name field.
@@ -423,6 +548,176 @@ func init() {
 			return nil
 		}
 	}()
+	sitesecretFields := schema.SiteSecret{}.Fields()
+	_ = sitesecretFields
+	// sitesecretDescCreatedAt is the schema descriptor for created_at field.
+	sitesecretDescCreatedAt := sitesecretFields[2].Descriptor()
+	// sitesecret.DefaultCreatedAt holds the default value on creation for the created_at field.
+	sitesecret.DefaultCreatedAt = sitesecretDescCreatedAt.Default.(func() time.Time)
+	// sitesecretDescID is the schema descriptor for id field.
+	sitesecretDescID := sitesecretFields[0].Descriptor()
+	// sitesecret.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	sitesecret.IDValidator = func() func(string) error {
+		validators := sitesecretDescID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(id string) error {
+			for _, fn := range fns {
+				if err := fn(id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	socialaccountFields := schema.SocialAccount{}.Fields()
+	_ = socialaccountFields
+	// socialaccountDescProvider is the schema descriptor for provider field.
+	socialaccountDescProvider := socialaccountFields[1].Descriptor()
+	// socialaccount.ProviderValidator is a validator for the "provider" field. It is called by the builders before save.
+	socialaccount.ProviderValidator = func() func(string) error {
+		validators := socialaccountDescProvider.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(provider string) error {
+			for _, fn := range fns {
+				if err := fn(provider); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// socialaccountDescSubject is the schema descriptor for subject field.
+	socialaccountDescSubject := socialaccountFields[2].Descriptor()
+	// socialaccount.SubjectValidator is a validator for the "subject" field. It is called by the builders before save.
+	socialaccount.SubjectValidator = func() func(string) error {
+		validators := socialaccountDescSubject.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(subject string) error {
+			for _, fn := range fns {
+				if err := fn(subject); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// socialaccountDescEmail is the schema descriptor for email field.
+	socialaccountDescEmail := socialaccountFields[4].Descriptor()
+	// socialaccount.DefaultEmail holds the default value on creation for the email field.
+	socialaccount.DefaultEmail = socialaccountDescEmail.Default.(string)
+	// socialaccount.EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	socialaccount.EmailValidator = socialaccountDescEmail.Validators[0].(func(string) error)
+	// socialaccountDescName is the schema descriptor for name field.
+	socialaccountDescName := socialaccountFields[5].Descriptor()
+	// socialaccount.DefaultName holds the default value on creation for the name field.
+	socialaccount.DefaultName = socialaccountDescName.Default.(string)
+	// socialaccount.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	socialaccount.NameValidator = socialaccountDescName.Validators[0].(func(string) error)
+	// socialaccountDescCreatedAt is the schema descriptor for created_at field.
+	socialaccountDescCreatedAt := socialaccountFields[6].Descriptor()
+	// socialaccount.DefaultCreatedAt holds the default value on creation for the created_at field.
+	socialaccount.DefaultCreatedAt = socialaccountDescCreatedAt.Default.(func() time.Time)
+	socialflowFields := schema.SocialFlow{}.Fields()
+	_ = socialflowFields
+	// socialflowDescProvider is the schema descriptor for provider field.
+	socialflowDescProvider := socialflowFields[2].Descriptor()
+	// socialflow.ProviderValidator is a validator for the "provider" field. It is called by the builders before save.
+	socialflow.ProviderValidator = func() func(string) error {
+		validators := socialflowDescProvider.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(provider string) error {
+			for _, fn := range fns {
+				if err := fn(provider); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// socialflowDescVerifier is the schema descriptor for verifier field.
+	socialflowDescVerifier := socialflowFields[4].Descriptor()
+	// socialflow.DefaultVerifier holds the default value on creation for the verifier field.
+	socialflow.DefaultVerifier = socialflowDescVerifier.Default.(string)
+	// socialflow.VerifierValidator is a validator for the "verifier" field. It is called by the builders before save.
+	socialflow.VerifierValidator = socialflowDescVerifier.Validators[0].(func(string) error)
+	// socialflowDescNonce is the schema descriptor for nonce field.
+	socialflowDescNonce := socialflowFields[5].Descriptor()
+	// socialflow.DefaultNonce holds the default value on creation for the nonce field.
+	socialflow.DefaultNonce = socialflowDescNonce.Default.(string)
+	// socialflow.NonceValidator is a validator for the "nonce" field. It is called by the builders before save.
+	socialflow.NonceValidator = socialflowDescNonce.Validators[0].(func(string) error)
+	// socialflowDescNext is the schema descriptor for next field.
+	socialflowDescNext := socialflowFields[6].Descriptor()
+	// socialflow.DefaultNext holds the default value on creation for the next field.
+	socialflow.DefaultNext = socialflowDescNext.Default.(string)
+	// socialflow.NextValidator is a validator for the "next" field. It is called by the builders before save.
+	socialflow.NextValidator = socialflowDescNext.Validators[0].(func(string) error)
+	// socialflowDescRemember is the schema descriptor for remember field.
+	socialflowDescRemember := socialflowFields[7].Descriptor()
+	// socialflow.DefaultRemember holds the default value on creation for the remember field.
+	socialflow.DefaultRemember = socialflowDescRemember.Default.(bool)
+	// socialflowDescSubject is the schema descriptor for subject field.
+	socialflowDescSubject := socialflowFields[8].Descriptor()
+	// socialflow.DefaultSubject holds the default value on creation for the subject field.
+	socialflow.DefaultSubject = socialflowDescSubject.Default.(string)
+	// socialflow.SubjectValidator is a validator for the "subject" field. It is called by the builders before save.
+	socialflow.SubjectValidator = socialflowDescSubject.Validators[0].(func(string) error)
+	// socialflowDescEmail is the schema descriptor for email field.
+	socialflowDescEmail := socialflowFields[9].Descriptor()
+	// socialflow.DefaultEmail holds the default value on creation for the email field.
+	socialflow.DefaultEmail = socialflowDescEmail.Default.(string)
+	// socialflow.EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	socialflow.EmailValidator = socialflowDescEmail.Validators[0].(func(string) error)
+	// socialflowDescEmailVerified is the schema descriptor for email_verified field.
+	socialflowDescEmailVerified := socialflowFields[10].Descriptor()
+	// socialflow.DefaultEmailVerified holds the default value on creation for the email_verified field.
+	socialflow.DefaultEmailVerified = socialflowDescEmailVerified.Default.(bool)
+	// socialflowDescName is the schema descriptor for name field.
+	socialflowDescName := socialflowFields[11].Descriptor()
+	// socialflow.DefaultName holds the default value on creation for the name field.
+	socialflow.DefaultName = socialflowDescName.Default.(string)
+	// socialflow.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	socialflow.NameValidator = socialflowDescName.Validators[0].(func(string) error)
+	// socialflowDescNickname is the schema descriptor for nickname field.
+	socialflowDescNickname := socialflowFields[12].Descriptor()
+	// socialflow.DefaultNickname holds the default value on creation for the nickname field.
+	socialflow.DefaultNickname = socialflowDescNickname.Default.(string)
+	// socialflow.NicknameValidator is a validator for the "nickname" field. It is called by the builders before save.
+	socialflow.NicknameValidator = socialflowDescNickname.Validators[0].(func(string) error)
+	// socialflowDescCreatedAt is the schema descriptor for created_at field.
+	socialflowDescCreatedAt := socialflowFields[13].Descriptor()
+	// socialflow.DefaultCreatedAt holds the default value on creation for the created_at field.
+	socialflow.DefaultCreatedAt = socialflowDescCreatedAt.Default.(func() time.Time)
+	// socialflowDescID is the schema descriptor for id field.
+	socialflowDescID := socialflowFields[0].Descriptor()
+	// socialflow.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	socialflow.IDValidator = func() func(string) error {
+		validators := socialflowDescID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(id string) error {
+			for _, fn := range fns {
+				if err := fn(id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	systemstateFields := schema.SystemState{}.Fields()
 	_ = systemstateFields
 	// systemstateDescIntValue is the schema descriptor for int_value field.
@@ -601,4 +896,58 @@ func init() {
 	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
 	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
+	yggsessionFields := schema.YggSession{}.Fields()
+	_ = yggsessionFields
+	// yggsessionDescServerID is the schema descriptor for server_id field.
+	yggsessionDescServerID := yggsessionFields[1].Descriptor()
+	// yggsession.ServerIDValidator is a validator for the "server_id" field. It is called by the builders before save.
+	yggsession.ServerIDValidator = func() func(string) error {
+		validators := yggsessionDescServerID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(server_id string) error {
+			for _, fn := range fns {
+				if err := fn(server_id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// yggsessionDescIP is the schema descriptor for ip field.
+	yggsessionDescIP := yggsessionFields[3].Descriptor()
+	// yggsession.DefaultIP holds the default value on creation for the ip field.
+	yggsession.DefaultIP = yggsessionDescIP.Default.(string)
+	// yggsession.IPValidator is a validator for the "ip" field. It is called by the builders before save.
+	yggsession.IPValidator = yggsessionDescIP.Validators[0].(func(string) error)
+	yggtokenFields := schema.YggToken{}.Fields()
+	_ = yggtokenFields
+	// yggtokenDescTokenHash is the schema descriptor for token_hash field.
+	yggtokenDescTokenHash := yggtokenFields[1].Descriptor()
+	// yggtoken.TokenHashValidator is a validator for the "token_hash" field. It is called by the builders before save.
+	yggtoken.TokenHashValidator = func() func(string) error {
+		validators := yggtokenDescTokenHash.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(token_hash string) error {
+			for _, fn := range fns {
+				if err := fn(token_hash); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// yggtokenDescClientToken is the schema descriptor for client_token field.
+	yggtokenDescClientToken := yggtokenFields[2].Descriptor()
+	// yggtoken.ClientTokenValidator is a validator for the "client_token" field. It is called by the builders before save.
+	yggtoken.ClientTokenValidator = yggtokenDescClientToken.Validators[0].(func(string) error)
+	// yggtokenDescCreatedAt is the schema descriptor for created_at field.
+	yggtokenDescCreatedAt := yggtokenFields[5].Descriptor()
+	// yggtoken.DefaultCreatedAt holds the default value on creation for the created_at field.
+	yggtoken.DefaultCreatedAt = yggtokenDescCreatedAt.Default.(func() time.Time)
 }

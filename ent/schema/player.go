@@ -46,6 +46,9 @@ func (Player) Edges() []ent.Edge {
 		edge.From("owner", User.Type).Ref("players").Field("user_id").Unique().Required(),
 		edge.From("skin", Texture.Type).Ref("skin_players").Field("skin_id").Unique(),
 		edge.From("cape", Texture.Type).Ref("cape_players").Field("cape_id").Unique(),
+		// A deleted player's launcher tokens and join sessions go with it.
+		edge.To("ygg_tokens", YggToken.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("ygg_sessions", YggSession.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

@@ -40,7 +40,9 @@
     "body": "在支持 authlib-injector 的启动器里添加外置登录服务器，填入下面的地址：",
     "copy": "复制",
     "copied": "已复制",
-    "note": "外置登录服务将在后续版本开放，地址保持不变。"
+    "note": "支持拖拽的启动器（如 HMCL、PCL2、BakaXL）可以直接把\"拖到启动器\"拖进添加外置登录的窗口；也可以只填本站地址，启动器会自动找到上面的接口。",
+    "drag": "拖到启动器",
+    "dragHint": "按住拖到启动器的外置登录窗口里"
   },
   "announcement": {
     "title": "公告"
@@ -115,7 +117,8 @@
     "admin": "进入管理后台",
     "closet": "衣柜",
     "players": "角色",
-    "dashboard": "用户中心"
+    "dashboard": "用户中心",
+    "signInToLink": "登录要绑定的账号。"
   },
   "setup": {
     "title": "初始化站点",
@@ -269,7 +272,15 @@
     "avatarHint": "头像是你衣柜里某个皮肤的头部。",
     "chooseAvatar": "去衣柜选择",
     "removeAvatar": "移除头像",
-    "avatarRemoved": "已移除头像。"
+    "avatarRemoved": "已移除头像。",
+    "launchers": "游戏启动器",
+    "launchersHint": "在支持 authlib-injector 的启动器里添加外置登录，填下面的地址，用本站邮箱（或角色名）和密码登录。",
+    "launchersSignedIn": "{count, plural, =0 {目前没有启动器登录。} other {有 # 个启动器登录着这个账号。}}",
+    "launchersSignOut": "退出所有启动器",
+    "launchersSignedOut": "已退出所有启动器，需要在启动器里重新登录。",
+    "setPassword": "设置密码",
+    "setPasswordHint": "你的账号通过第三方登录。设置密码后，也可以用邮箱和密码登录，以及在游戏启动器中登录。",
+    "passwordSet": "密码已设置。现在也可以用邮箱和密码登录了。"
   },
   "admin": {
     "title": "管理后台",
@@ -512,7 +523,8 @@
       "upload": "上传材质",
       "skinlib": "逛逛皮肤库",
       "profile": "个人资料",
-      "reports": "我的举报"
+      "reports": "我的举报",
+      "developer": "应用与令牌"
     }
   },
   "adminOverview": {
@@ -653,6 +665,140 @@
       "title": "标题需要 1–64 个字。",
       "content": "正文最多 10000 字。",
       "failed": "发送失败，请稍后重试。"
+    }
+  },
+  "oauth": {
+    "pageTitle": "授权应用",
+    "title": "{app} 想要访问你的账号",
+    "by": "由 {owner} 创建",
+    "wants": "它将可以：",
+    "redirectTo": "授权后将返回 {host}。只授权你信任的应用。",
+    "allow": "授权",
+    "deny": "拒绝",
+    "redirecting": "正在返回应用…",
+    "invalidTitle": "无法授权",
+    "invalidHint": "这个授权请求有误，请联系应用的开发者。",
+    "failed": "操作失败，请稍后重试。",
+    "manageTitle": "应用与令牌",
+    "manageHint": "让其它网站和程序用你的账号登录或读取数据（OAuth 2.0），或者为自己的脚本创建个人访问令牌。",
+    "copy": "复制",
+    "copied": "已复制",
+    "shownOnce": "只显示这一次，请立即保存。",
+    "save": "保存",
+    "cancel": "取消",
+    "edit": "编辑",
+    "delete": "删除",
+    "apps": {
+      "title": "我的应用",
+      "hint": "为你开发的网站或程序注册应用，用户就能通过本站授权登录。接口：",
+      "none": "还没有注册应用。",
+      "new": "注册新应用",
+      "name": "应用名称",
+      "redirectUris": "回调地址",
+      "redirectHint": "每行一个，最多 10 个，必须完全一致。",
+      "kind": "类型",
+      "confidentialHint": "服务端应用（有密钥）",
+      "publicHint": "浏览器或桌面 / 手机应用（无密钥，必须使用 PKCE）",
+      "confidential": "服务端",
+      "public": "公开客户端",
+      "create": "注册",
+      "secret": "应用密钥（client_secret）",
+      "resetSecret": "重置密钥",
+      "resetConfirm": "重置“{name}”的密钥？旧密钥立即失效。",
+      "deleteConfirm": "删除应用“{name}”？所有用户对它的授权和它的令牌都会失效。"
+    },
+    "grants": {
+      "title": "已授权的应用",
+      "hint": "你允许过的应用。撤销后它们无法再访问你的账号，下次使用需要重新授权。",
+      "none": "还没有授权过任何应用。",
+      "since": "最近授权于 {date}",
+      "revoke": "撤销授权",
+      "revokeConfirm": "撤销对“{name}”的授权？"
+    },
+    "tokens": {
+      "title": "个人访问令牌",
+      "hint": "给自己的脚本使用，与应用的令牌一样调用兼容 Blessing Skin 的接口，例如 {api}（请求头 Authorization: Bearer 令牌）。",
+      "none": "还没有令牌。",
+      "new": "创建令牌",
+      "name": "用途",
+      "scopes": "权限",
+      "expires": "有效期",
+      "days": "{days} 天",
+      "neverOption": "永不过期",
+      "create": "创建",
+      "created": "新的个人访问令牌",
+      "createdAt": "创建于 {date}",
+      "expiresAt": "{date} 过期",
+      "never": "永不过期",
+      "lastUsed": "最近使用 {date}",
+      "unused": "从未使用",
+      "deleteConfirm": "删除令牌“{name}”？使用它的脚本将无法再访问。"
+    },
+    "scopes": {
+      "User_Read": "读取你的账号信息（昵称、邮箱、积分等）",
+      "Notification_Read": "读取你的站内通知并标为已读",
+      "Player_Read": "查看你的角色",
+      "Player_ReadWrite": "查看、添加、改名、删除你的角色，给角色换材质",
+      "Closet_Read": "查看你的衣柜",
+      "Closet_ReadWrite": "查看你的衣柜，收藏、改名、移除材质",
+      "Notification_ReadWrite": "以管理员身份发送通知",
+      "UsersManagement_Read": "查看用户（管理员）",
+      "UsersManagement_ReadWrite": "管理用户（管理员）",
+      "PlayersManagement_Read": "查看所有角色（管理员）",
+      "PlayersManagement_ReadWrite": "管理所有角色（管理员）",
+      "ClosetManagement_Read": "查看用户的衣柜（管理员）",
+      "ClosetManagement_ReadWrite": "管理用户的衣柜（管理员）",
+      "ReportsManagement_Read": "查看举报（管理员）",
+      "ReportsManagement_ReadWrite": "处理举报（管理员）"
+    }
+  },
+  "social": {
+    "or": "或",
+    "continueWith": "使用 {name} 登录",
+    "redirecting": "正在跳转…",
+    "errors": {
+      "tooMany": "尝试次数过多，请稍后再试。",
+      "unreachable": "无法连接登录服务，请稍后再试。",
+      "failed": "出错了，请检查网络后重试。"
+    },
+    "callback": {
+      "expired": "这次登录已过期，或是在另一个浏览器中开始的，请重试。",
+      "denied": "已取消登录。",
+      "failed": "第三方登录失败。请重试，或使用其它方式登录。",
+      "disabled": "该账号已被禁用，请联系站点管理员。",
+      "gone": "该账号已被删除。",
+      "taken": "这个账号已绑定到本站的另一位用户。",
+      "already": "你已经绑定过该服务的账号，请先解除绑定。"
+    },
+    "pending": {
+      "title": "欢迎",
+      "intro": "还差一步就能使用{site}。",
+      "expired": "这次登录已过期，请重新开始。",
+      "again": "返回登录",
+      "signedInWith": "已通过 {provider} 登录：{name}",
+      "linkCurrent": "把这个 {provider} 账号绑定到你的账号 {nickname} 吗？之后两种方式都能登录。",
+      "linkButton": "绑定到我的账号",
+      "createHint": "第一次来？创建一个账号，密码可以以后再设置。",
+      "email": "邮箱",
+      "emailVerified": "已由 {provider} 验证。",
+      "emailMail": "我们会向这个地址发送验证链接。",
+      "nickname": "昵称",
+      "create": "创建账号",
+      "closed": "本站已关闭注册，只能绑定已有账号。",
+      "haveAccount": "已有账号？",
+      "signInToLink": "登录并绑定 {provider}",
+      "emailTaken": "该邮箱已注册。请登录后绑定这个账号。",
+      "tooMany": "你的网络注册的账号过多，请稍后再试。"
+    },
+    "section": {
+      "title": "已绑定的账号",
+      "hint": "用你在其它网站的账号登录。",
+      "linked": "已绑定，现在可以用它登录了。",
+      "since": "绑定于 {when}",
+      "unlink": "解除绑定",
+      "unlinkConfirm": "解除绑定 {provider}？之后将不能再用它登录。",
+      "keepLast": "这是你唯一的登录方式。请先设置密码再解除绑定。",
+      "link": "绑定 {name}"
     }
   }
 }

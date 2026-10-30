@@ -120,6 +120,7 @@ skinloom settings set site.name null                    # 恢复默认
 | `theme.active` / `theme.overrides` / `home.blocks` | `default` | 当前主题、主题 token 覆盖、首页区块 |
 | `auth.registration` | `open` | `open` 开放注册；`closed` 关闭注册 |
 | `auth.registrations_per_ip` | `3` | 同一地址（IPv6 按 /64）24 小时内最多注册几个账号，`0` 不限 |
+| `auth.social.providers` | `[]` | 第三方登录的提供方（GitHub、Microsoft、OpenID Connect），见[第三方登录](./social-login.md) |
 | `auth.login_captcha_after` | `3` | 同一客户端对同一账号登录失败几次后要求验证码，`0` 每次都要 |
 | `score.initial` | `1000` | 新账号的初始积分 |
 | `score.per_storage` / `score.private_per_storage` | `1` / `10` | 上传公开 / 私有材质每 KB 消耗的积分 |
@@ -143,6 +144,13 @@ skinloom settings set site.name null                    # 恢复默认
 | `player.name_regexp` | 空 | `custom` 规则使用的正则表达式（Go RE2 语法） |
 | `player.name_length_min` / `player.name_length_max` | `3` / `16` | 角色名长度（字符，上限 32） |
 | `yggdrasil.uuid_algorithm` | `v3` | 新角色的 UUID：`v3` 与离线服相同（由名字计算，改名会变）；`v4` 随机（改名不变） |
+| `yggdrasil.token_valid_seconds` / `yggdrasil.token_refresh_seconds` | `259200` / `604800` | 启动器令牌的有效期（3 天），以及从签发起多久内还能刷新（7 天），见[外置登录](./launchers.md) |
+| `yggdrasil.tokens_per_user` | `10` | 每个账号最多同时登录几个启动器 |
+| `yggdrasil.search_profile_max` | `5` | 按名字批量查询角色时一次最多几个 |
+| `yggdrasil.skin_domains` | 空 | 另外允许游戏加载皮肤的域名（逗号分隔），站点和 `storage.public_url` 的域名总是包括在内 |
+| `yggdrasil.enable_ali` | `true` | 在所有页面加 `X-Authlib-Injector-API-Location` 头，启动器只填站点地址就能找到外置登录接口 |
+| `oauth.access_token_ttl_seconds` | `86400` | 应用的访问令牌有效期（1 天，最长一年），见[开放平台](./open-platform.md) |
+| `oauth.refresh_token_ttl_seconds` | `2592000` | 刷新令牌多久不用就失效（30 天） |
 | `delivery.profile_cache_seconds` | `60` | 游戏客户端与 CDN 可以缓存角色数据（`/{角色名}.json` 等）多少秒 |
 | `delivery.missing_player_status` | `404` | 不存在的角色在 CustomSkinLoader 接口返回的状态码：`404` 或 `204` |
 | `captcha.provider` | `image` | `none` / `image`（内置图形验证码）/ `turnstile` / `recaptcha` / `hcaptcha` |

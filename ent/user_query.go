@@ -16,13 +16,20 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
 	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
+	"github.com/Entropy-Increase-Team/skinloom/ent/socialaccount"
+	"github.com/Entropy-Increase-Team/skinloom/ent/socialflow"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggtoken"
 )
 
 // UserQuery is the builder for querying User entities.
@@ -42,6 +49,13 @@ type UserQuery struct {
 	withReportsAgainst    *ReportQuery
 	withReportsHandled    *ReportQuery
 	withNotifications     *NotificationQuery
+	withYggTokens         *YggTokenQuery
+	withOauthClients      *OAuthClientQuery
+	withOauthGrants       *OAuthGrantQuery
+	withOauthCodes        *OAuthCodeQuery
+	withOauthTokens       *OAuthTokenQuery
+	withSocialAccounts    *SocialAccountQuery
+	withSocialFlows       *SocialFlowQuery
 	withAnnouncementsSent *AnnouncementQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -299,6 +313,160 @@ func (_q *UserQuery) QueryNotifications() *NotificationQuery {
 	return query
 }
 
+// QueryYggTokens chains the current query on the "ygg_tokens" edge.
+func (_q *UserQuery) QueryYggTokens() *YggTokenQuery {
+	query := (&YggTokenClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(yggtoken.Table, yggtoken.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.YggTokensTable, user.YggTokensColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryOauthClients chains the current query on the "oauth_clients" edge.
+func (_q *UserQuery) QueryOauthClients() *OAuthClientQuery {
+	query := (&OAuthClientClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(oauthclient.Table, oauthclient.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.OauthClientsTable, user.OauthClientsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryOauthGrants chains the current query on the "oauth_grants" edge.
+func (_q *UserQuery) QueryOauthGrants() *OAuthGrantQuery {
+	query := (&OAuthGrantClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(oauthgrant.Table, oauthgrant.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.OauthGrantsTable, user.OauthGrantsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryOauthCodes chains the current query on the "oauth_codes" edge.
+func (_q *UserQuery) QueryOauthCodes() *OAuthCodeQuery {
+	query := (&OAuthCodeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(oauthcode.Table, oauthcode.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.OauthCodesTable, user.OauthCodesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryOauthTokens chains the current query on the "oauth_tokens" edge.
+func (_q *UserQuery) QueryOauthTokens() *OAuthTokenQuery {
+	query := (&OAuthTokenClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(oauthtoken.Table, oauthtoken.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.OauthTokensTable, user.OauthTokensColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySocialAccounts chains the current query on the "social_accounts" edge.
+func (_q *UserQuery) QuerySocialAccounts() *SocialAccountQuery {
+	query := (&SocialAccountClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(socialaccount.Table, socialaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.SocialAccountsTable, user.SocialAccountsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySocialFlows chains the current query on the "social_flows" edge.
+func (_q *UserQuery) QuerySocialFlows() *SocialFlowQuery {
+	query := (&SocialFlowClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(socialflow.Table, socialflow.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.SocialFlowsTable, user.SocialFlowsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // QueryAnnouncementsSent chains the current query on the "announcements_sent" edge.
 func (_q *UserQuery) QueryAnnouncementsSent() *AnnouncementQuery {
 	query := (&AnnouncementClient{config: _q.config}).Query()
@@ -523,6 +691,13 @@ func (_q *UserQuery) Clone() *UserQuery {
 		withReportsAgainst:    _q.withReportsAgainst.Clone(),
 		withReportsHandled:    _q.withReportsHandled.Clone(),
 		withNotifications:     _q.withNotifications.Clone(),
+		withYggTokens:         _q.withYggTokens.Clone(),
+		withOauthClients:      _q.withOauthClients.Clone(),
+		withOauthGrants:       _q.withOauthGrants.Clone(),
+		withOauthCodes:        _q.withOauthCodes.Clone(),
+		withOauthTokens:       _q.withOauthTokens.Clone(),
+		withSocialAccounts:    _q.withSocialAccounts.Clone(),
+		withSocialFlows:       _q.withSocialFlows.Clone(),
 		withAnnouncementsSent: _q.withAnnouncementsSent.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
@@ -640,6 +815,83 @@ func (_q *UserQuery) WithNotifications(opts ...func(*NotificationQuery)) *UserQu
 	return _q
 }
 
+// WithYggTokens tells the query-builder to eager-load the nodes that are connected to
+// the "ygg_tokens" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithYggTokens(opts ...func(*YggTokenQuery)) *UserQuery {
+	query := (&YggTokenClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withYggTokens = query
+	return _q
+}
+
+// WithOauthClients tells the query-builder to eager-load the nodes that are connected to
+// the "oauth_clients" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithOauthClients(opts ...func(*OAuthClientQuery)) *UserQuery {
+	query := (&OAuthClientClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withOauthClients = query
+	return _q
+}
+
+// WithOauthGrants tells the query-builder to eager-load the nodes that are connected to
+// the "oauth_grants" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithOauthGrants(opts ...func(*OAuthGrantQuery)) *UserQuery {
+	query := (&OAuthGrantClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withOauthGrants = query
+	return _q
+}
+
+// WithOauthCodes tells the query-builder to eager-load the nodes that are connected to
+// the "oauth_codes" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithOauthCodes(opts ...func(*OAuthCodeQuery)) *UserQuery {
+	query := (&OAuthCodeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withOauthCodes = query
+	return _q
+}
+
+// WithOauthTokens tells the query-builder to eager-load the nodes that are connected to
+// the "oauth_tokens" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithOauthTokens(opts ...func(*OAuthTokenQuery)) *UserQuery {
+	query := (&OAuthTokenClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withOauthTokens = query
+	return _q
+}
+
+// WithSocialAccounts tells the query-builder to eager-load the nodes that are connected to
+// the "social_accounts" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithSocialAccounts(opts ...func(*SocialAccountQuery)) *UserQuery {
+	query := (&SocialAccountClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withSocialAccounts = query
+	return _q
+}
+
+// WithSocialFlows tells the query-builder to eager-load the nodes that are connected to
+// the "social_flows" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithSocialFlows(opts ...func(*SocialFlowQuery)) *UserQuery {
+	query := (&SocialFlowClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withSocialFlows = query
+	return _q
+}
+
 // WithAnnouncementsSent tells the query-builder to eager-load the nodes that are connected to
 // the "announcements_sent" edge. The optional arguments are used to configure the query builder of the edge.
 func (_q *UserQuery) WithAnnouncementsSent(opts ...func(*AnnouncementQuery)) *UserQuery {
@@ -729,7 +981,7 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = _q.querySpec()
-		loadedTypes = [11]bool{
+		loadedTypes = [18]bool{
 			_q.withSessions != nil,
 			_q.withAuthTokens != nil,
 			_q.withTextures != nil,
@@ -740,6 +992,13 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 			_q.withReportsAgainst != nil,
 			_q.withReportsHandled != nil,
 			_q.withNotifications != nil,
+			_q.withYggTokens != nil,
+			_q.withOauthClients != nil,
+			_q.withOauthGrants != nil,
+			_q.withOauthCodes != nil,
+			_q.withOauthTokens != nil,
+			_q.withSocialAccounts != nil,
+			_q.withSocialFlows != nil,
 			_q.withAnnouncementsSent != nil,
 		}
 	)
@@ -828,6 +1087,55 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := _q.loadNotifications(ctx, query, nodes,
 			func(n *User) { n.Edges.Notifications = []*Notification{} },
 			func(n *User, e *Notification) { n.Edges.Notifications = append(n.Edges.Notifications, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withYggTokens; query != nil {
+		if err := _q.loadYggTokens(ctx, query, nodes,
+			func(n *User) { n.Edges.YggTokens = []*YggToken{} },
+			func(n *User, e *YggToken) { n.Edges.YggTokens = append(n.Edges.YggTokens, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withOauthClients; query != nil {
+		if err := _q.loadOauthClients(ctx, query, nodes,
+			func(n *User) { n.Edges.OauthClients = []*OAuthClient{} },
+			func(n *User, e *OAuthClient) { n.Edges.OauthClients = append(n.Edges.OauthClients, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withOauthGrants; query != nil {
+		if err := _q.loadOauthGrants(ctx, query, nodes,
+			func(n *User) { n.Edges.OauthGrants = []*OAuthGrant{} },
+			func(n *User, e *OAuthGrant) { n.Edges.OauthGrants = append(n.Edges.OauthGrants, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withOauthCodes; query != nil {
+		if err := _q.loadOauthCodes(ctx, query, nodes,
+			func(n *User) { n.Edges.OauthCodes = []*OAuthCode{} },
+			func(n *User, e *OAuthCode) { n.Edges.OauthCodes = append(n.Edges.OauthCodes, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withOauthTokens; query != nil {
+		if err := _q.loadOauthTokens(ctx, query, nodes,
+			func(n *User) { n.Edges.OauthTokens = []*OAuthToken{} },
+			func(n *User, e *OAuthToken) { n.Edges.OauthTokens = append(n.Edges.OauthTokens, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withSocialAccounts; query != nil {
+		if err := _q.loadSocialAccounts(ctx, query, nodes,
+			func(n *User) { n.Edges.SocialAccounts = []*SocialAccount{} },
+			func(n *User, e *SocialAccount) { n.Edges.SocialAccounts = append(n.Edges.SocialAccounts, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withSocialFlows; query != nil {
+		if err := _q.loadSocialFlows(ctx, query, nodes,
+			func(n *User) { n.Edges.SocialFlows = []*SocialFlow{} },
+			func(n *User, e *SocialFlow) { n.Edges.SocialFlows = append(n.Edges.SocialFlows, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -1151,6 +1459,219 @@ func (_q *UserQuery) loadNotifications(ctx context.Context, query *NotificationQ
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadYggTokens(ctx context.Context, query *YggTokenQuery, nodes []*User, init func(*User), assign func(*User, *YggToken)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(yggtoken.FieldUserID)
+	}
+	query.Where(predicate.YggToken(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.YggTokensColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadOauthClients(ctx context.Context, query *OAuthClientQuery, nodes []*User, init func(*User), assign func(*User, *OAuthClient)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(oauthclient.FieldUserID)
+	}
+	query.Where(predicate.OAuthClient(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.OauthClientsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadOauthGrants(ctx context.Context, query *OAuthGrantQuery, nodes []*User, init func(*User), assign func(*User, *OAuthGrant)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(oauthgrant.FieldUserID)
+	}
+	query.Where(predicate.OAuthGrant(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.OauthGrantsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadOauthCodes(ctx context.Context, query *OAuthCodeQuery, nodes []*User, init func(*User), assign func(*User, *OAuthCode)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(oauthcode.FieldUserID)
+	}
+	query.Where(predicate.OAuthCode(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.OauthCodesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadOauthTokens(ctx context.Context, query *OAuthTokenQuery, nodes []*User, init func(*User), assign func(*User, *OAuthToken)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(oauthtoken.FieldUserID)
+	}
+	query.Where(predicate.OAuthToken(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.OauthTokensColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadSocialAccounts(ctx context.Context, query *SocialAccountQuery, nodes []*User, init func(*User), assign func(*User, *SocialAccount)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(socialaccount.FieldUserID)
+	}
+	query.Where(predicate.SocialAccount(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.SocialAccountsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadSocialFlows(ctx context.Context, query *SocialFlowQuery, nodes []*User, init func(*User), assign func(*User, *SocialFlow)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(socialflow.FieldUserID)
+	}
+	query.Where(predicate.SocialFlow(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.SocialFlowsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

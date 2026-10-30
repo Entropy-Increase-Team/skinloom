@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 
 import { RegisterForm } from '@/components/auth/register-form'
+import { SocialButtons } from '@/components/auth/social-buttons'
 import { getBootstrap } from '@/lib/bootstrap'
 import { getViewer } from '@/lib/viewer'
 
@@ -27,8 +28,9 @@ export default async function RegisterPage() {
           <CardDescription>{open ? t('intro', { site: boot.site.name }) : t('closed')}</CardDescription>
         </CardHeader>
         {open && (
-          <CardContent>
+          <CardContent className="flex flex-col gap-4">
             <RegisterForm captcha={boot.auth.captcha} />
+            <SocialButtons providers={boot.auth.social} next="/user" />
           </CardContent>
         )}
       </Card>

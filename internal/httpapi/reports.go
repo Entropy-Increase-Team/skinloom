@@ -214,32 +214,38 @@ func registerReports(api huma.API, d Deps) {
 			if err != nil {
 				return nil, err
 			}
-			info := requestInfo(ctx)
-			ban := func(ctx context.Context, uploader int64) error {
-				banned := "banned"
-				_, err := d.Accounts.AdminUpdateUser(ctx, a, uploader, account.AdminUpdate{Status: &banned}, info.meta(""))
-				if errors.Is(err, account.ErrNotFound) {
-					return report.ErrNoUploader
-				}
-				return err
-			}
-			snap := d.Settings.Current()
-			r := score.RatesFrom(snap)
-			var handler *int64
-			if a != nil {
-				handler = &a.User.ID
-			}
-			rep, err := d.Reports.Review(ctx, handler, in.ID, in.Body.Action, r, r.ReturnOnDelete, ban)
+			rep, err := reviewReport(ctx, d, a, in.ID, in.Body.Action)
 			if err != nil {
 				return nil, reportError(d, err)
 			}
-			meta := map[string]any{"action": in.Body.Action}
-			if rep.UploaderID != nil {
-				meta["uploader"] = *rep.UploaderID
-			}
-			if err := d.Accounts.Audit(ctx, handler, "admin.report_reviewed", "report", strconv.FormatInt(rep.ID, 10), info.client.ClientIP, meta); err != nil {
-				d.Log.Warn("audit", "action", "admin.report_reviewed", "err", err)
-			}
 			return &struct{ Body AdminReportView }{adminReportView(rep)}, nil
 		})
+}
+
+// reviewReport upholds or rejects a report for an administrator (both APIs), and
+// records it in the audit log.
+func reviewReport(ctx context.Context, d Deps, a account.Actor, id int64, action string) (*ent.Report, error) {
+	info := requestInfo(ctx)
+	ban := func(ctx context.Context, uploader int64) error {
+		banned := "banned"
+		_, err := d.Accounts.AdminUpdateUser(ctx, a, uploader, account.AdminUpdate{Status: &banned}, info.meta(""))
+		if errors.Is(err, account.ErrNotFound) {
+			return report.ErrNoUploader
+		}
+		return err
+	}
+	r := score.RatesFrom(d.Settings.Current())
+	handler := actorIDOf(a)
+	rep, err := d.Reports.Review(ctx, handler, id, action, r, r.ReturnOnDelete, ban)
+	if err != nil {
+		return nil, err
+	}
+	meta := map[string]any{"action": action}
+	if rep.UploaderID != nil {
+		meta["uploader"] = *rep.UploaderID
+	}
+	if err := d.Accounts.Audit(ctx, handler, "admin.report_reviewed", "report", strconv.FormatInt(rep.ID, 10), info.client.ClientIP, meta); err != nil {
+		d.Log.Warn("audit", "action", "admin.report_reviewed", "err", err)
+	}
+	return rep, nil
 }

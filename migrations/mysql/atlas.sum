@@ -1,4 +1,4 @@
-h1:Mu5WKDErpkX3OCOfn0KlSbaSvPc8nyi9izKBgHM7DwQ=
+h1:hvsg/cOTprIOGBVptXj2dCcLS4EDIobrizVQ1jaCysI=
 20261022162614_init.sql h1:OQzin0UAOWUIvWU2PR+dscPjn423ktaZiETbsPoDMoE=
 20261023095021_accounts.sql h1:L/O4kjhSKCRLDJ9SolPKy6gMkYCWmgaaQpNsF4DsN1Y=
 20261023151731_jobs.sql h1:Lb4sY+y7V4/q/FvxKzB8iczekaE0t7ph1+x1qx7QsZ4=
@@ -7,3 +7,6 @@ h1:Mu5WKDErpkX3OCOfn0KlSbaSvPc8nyi9izKBgHM7DwQ=
 20261024081729_sign_in.sql h1:f//XIS4Tb50xn/ZMlWzTdi9MCbUKwt6sYUwpa4xp1Ik=
 20261024100910_reports.sql h1:lwFsCFG3wRyt6YudJ70kjdtx5loaocUAyEvAnYTNp8Q=
 20261024112658_notifications_avatars.sql h1:XgGieprPDDWNczFJaTOqfNntVzsqn+kz5kHpcOmy/P4=
+20261029123138_yggdrasil.sql h1:I4W6MQFDpNnDTIPfkVcn4A6b+apPfy0Pr3JtPIUgF1w=
+20261029155749_oauth.sql h1:8PTc/b+acJjRHkkVkrEw62T1LIRpFLC6EJdqfPywfFA=
+20261030040409_social.sql h1:K/+OWFReDpYuMrTax7rA/BJvBYcHrJ65a/wSuzMd8fc=

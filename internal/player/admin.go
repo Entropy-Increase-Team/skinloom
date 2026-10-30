@@ -20,7 +20,26 @@ type Filter struct {
 	Query  string
 	UserID int64 // one owner's players
 	Before int64 // players with smaller ids (the next page)
+	Offset int   // or skip this many (numbered pages)
 	Limit  int   // 1–100, default 20
+}
+
+func (f Filter) where() []predicate.Player {
+	var where []predicate.Player
+	if term := strings.TrimSpace(f.Query); term != "" {
+		match := []predicate.Player{entplayer.NameLowerHasPrefix(Key(term))}
+		if id, err := strconv.ParseInt(term, 10, 64); err == nil {
+			match = append(match, entplayer.ID(id))
+		}
+		if u := strings.ToLower(strings.ReplaceAll(term, "-", "")); len(u) == 32 {
+			match = append(match, entplayer.UUID(u))
+		}
+		where = append(where, entplayer.Or(match...))
+	}
+	if f.UserID > 0 {
+		where = append(where, entplayer.UserID(f.UserID))
+	}
+	return where
 }
 
 // Search returns one page of players, newest first, with their owner and what they
@@ -30,24 +49,12 @@ func (s *Service) Search(ctx context.Context, f Filter) ([]*ent.Player, int64, e
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
-	q := s.db.Player.Query()
-	if term := strings.TrimSpace(f.Query); term != "" {
-		match := []predicate.Player{entplayer.NameLowerHasPrefix(Key(term))}
-		if id, err := strconv.ParseInt(term, 10, 64); err == nil {
-			match = append(match, entplayer.ID(id))
-		}
-		if u := strings.ToLower(strings.ReplaceAll(term, "-", "")); len(u) == 32 {
-			match = append(match, entplayer.UUID(u))
-		}
-		q = q.Where(entplayer.Or(match...))
-	}
-	if f.UserID > 0 {
-		q = q.Where(entplayer.UserID(f.UserID))
-	}
+	where := f.where()
 	if f.Before > 0 {
-		q = q.Where(entplayer.IDLT(f.Before))
+		where = append(where, entplayer.IDLT(f.Before))
 	}
-	list, err := q.WithOwner().WithSkin().WithCape().Order(ent.Desc(entplayer.FieldID)).Limit(limit + 1).All(ctx)
+	list, err := s.db.Player.Query().Where(where...).WithOwner().WithSkin().WithCape().
+		Order(ent.Desc(entplayer.FieldID)).Offset(max(f.Offset, 0)).Limit(limit + 1).All(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -57,6 +64,11 @@ func (s *Service) Search(ctx context.Context, f Filter) ([]*ent.Player, int64, e
 		next = list[limit-1].ID
 	}
 	return list, next, nil
+}
+
+// Count is how many players the filter matches (Before, Offset and Limit aside).
+func (s *Service) Count(ctx context.Context, f Filter) (int, error) {
+	return s.db.Player.Query().Where(f.where()...).Count(ctx)
 }
 
 // Get returns any player with its owner and what it wears (administrators).

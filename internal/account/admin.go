@@ -52,13 +52,11 @@ type UserFilter struct {
 	Role   string
 	Status string
 	Before int64 // cursor: users with a smaller id (newest first)
+	Offset int   // or skip this many (numbered pages, as Blessing Skin's API pages)
 	Limit  int
 }
 
-// ListUsers returns a page of users, newest first, and the cursor of the next page
-// (0 when this is the last one).
-func (s *Service) ListUsers(ctx context.Context, f UserFilter) ([]*ent.User, int64, error) {
-	limit := pageSize(f.Limit)
+func (f UserFilter) where() []predicate.User {
 	var where []predicate.User
 	if q := strings.TrimSpace(f.Query); q != "" {
 		match := []predicate.User{user.EmailNormalizedContains(strings.ToLower(q)), user.NicknameContainsFold(q)}
@@ -73,10 +71,18 @@ func (s *Service) ListUsers(ctx context.Context, f UserFilter) ([]*ent.User, int
 	if f.Status != "" {
 		where = append(where, user.StatusEQ(user.Status(f.Status)))
 	}
+	return where
+}
+
+// ListUsers returns a page of users, newest first, and the cursor of the next page
+// (0 when this is the last one).
+func (s *Service) ListUsers(ctx context.Context, f UserFilter) ([]*ent.User, int64, error) {
+	limit := pageSize(f.Limit)
+	where := f.where()
 	if f.Before > 0 {
 		where = append(where, user.IDLT(f.Before))
 	}
-	list, err := s.db.User.Query().Where(where...).Order(ent.Desc(user.FieldID)).Limit(limit + 1).All(ctx)
+	list, err := s.db.User.Query().Where(where...).Order(ent.Desc(user.FieldID)).Offset(max(f.Offset, 0)).Limit(limit + 1).All(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -86,6 +92,11 @@ func (s *Service) ListUsers(ctx context.Context, f UserFilter) ([]*ent.User, int
 		next = list[limit-1].ID
 	}
 	return list, next, nil
+}
+
+// CountUsers is how many users the filter matches (Before, Offset and Limit aside).
+func (s *Service) CountUsers(ctx context.Context, f UserFilter) (int, error) {
+	return s.db.User.Query().Where(f.where()...).Count(ctx)
 }
 
 // GetUser returns one user.

@@ -28,6 +28,14 @@ type Tx struct {
 	Job *JobClient
 	// Notification is the client for interacting with the Notification builders.
 	Notification *NotificationClient
+	// OAuthClient is the client for interacting with the OAuthClient builders.
+	OAuthClient *OAuthClientClient
+	// OAuthCode is the client for interacting with the OAuthCode builders.
+	OAuthCode *OAuthCodeClient
+	// OAuthGrant is the client for interacting with the OAuthGrant builders.
+	OAuthGrant *OAuthGrantClient
+	// OAuthToken is the client for interacting with the OAuthToken builders.
+	OAuthToken *OAuthTokenClient
 	// Player is the client for interacting with the Player builders.
 	Player *PlayerClient
 	// Report is the client for interacting with the Report builders.
@@ -38,12 +46,22 @@ type Tx struct {
 	Session *SessionClient
 	// Setting is the client for interacting with the Setting builders.
 	Setting *SettingClient
+	// SiteSecret is the client for interacting with the SiteSecret builders.
+	SiteSecret *SiteSecretClient
+	// SocialAccount is the client for interacting with the SocialAccount builders.
+	SocialAccount *SocialAccountClient
+	// SocialFlow is the client for interacting with the SocialFlow builders.
+	SocialFlow *SocialFlowClient
 	// SystemState is the client for interacting with the SystemState builders.
 	SystemState *SystemStateClient
 	// Texture is the client for interacting with the Texture builders.
 	Texture *TextureClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// YggSession is the client for interacting with the YggSession builders.
+	YggSession *YggSessionClient
+	// YggToken is the client for interacting with the YggToken builders.
+	YggToken *YggTokenClient
 
 	// lazily loaded.
 	client     *Client
@@ -182,14 +200,23 @@ func (tx *Tx) init() {
 	tx.ClosetItem = NewClosetItemClient(tx.config)
 	tx.Job = NewJobClient(tx.config)
 	tx.Notification = NewNotificationClient(tx.config)
+	tx.OAuthClient = NewOAuthClientClient(tx.config)
+	tx.OAuthCode = NewOAuthCodeClient(tx.config)
+	tx.OAuthGrant = NewOAuthGrantClient(tx.config)
+	tx.OAuthToken = NewOAuthTokenClient(tx.config)
 	tx.Player = NewPlayerClient(tx.config)
 	tx.Report = NewReportClient(tx.config)
 	tx.ScoreEntry = NewScoreEntryClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)
 	tx.Setting = NewSettingClient(tx.config)
+	tx.SiteSecret = NewSiteSecretClient(tx.config)
+	tx.SocialAccount = NewSocialAccountClient(tx.config)
+	tx.SocialFlow = NewSocialFlowClient(tx.config)
 	tx.SystemState = NewSystemStateClient(tx.config)
 	tx.Texture = NewTextureClient(tx.config)
 	tx.User = NewUserClient(tx.config)
+	tx.YggSession = NewYggSessionClient(tx.config)
+	tx.YggToken = NewYggTokenClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

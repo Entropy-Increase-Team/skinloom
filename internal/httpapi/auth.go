@@ -64,7 +64,7 @@ func withRequestInfo(d Deps) func(http.Handler) http.Handler {
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !strings.HasPrefix(r.URL.Path, "/api/") {
+			if !backendRequest(r.URL.Path) {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -86,6 +86,12 @@ func withRequestInfo(d Deps) func(http.Handler) http.Handler {
 	}
 }
 
+// backendRequest reports whether a path gets request info (client address, viewer):
+// the APIs and the OAuth endpoints.
+func backendRequest(p string) bool {
+	return p == "/api" || strings.HasPrefix(p, "/api/") || strings.HasPrefix(p, "/oauth/") || strings.HasPrefix(p, "/.well-known/")
+}
+
 // sessionEndpoints always need the CSRF header, cookie or not: they set a session
 // (login CSRF would sign the victim into the attacker's account) or act on a
 // one-time link or mailbox, which another site must not trigger through a visitor.
@@ -104,7 +110,12 @@ func csrfGuard(d Deps) func(http.Handler) http.Handler {
 				return
 			}
 			_, cookieErr := r.Cookie(SessionCookie)
-			if !strings.HasPrefix(r.URL.Path, "/api/") || (cookieErr != nil && !sessionEndpoints[r.URL.Path]) {
+			// Only /api/v1 reads the session cookie. The Yggdrasil API, the Blessing Skin
+			// compatible resource API and /oauth take tokens, so a cookie the browser
+			// happens to send there does not make a request riskier.
+			// Social sign-in endpoints act on the flow cookie, or start one.
+			flow := strings.HasPrefix(r.URL.Path, "/api/v1/auth/social/")
+			if !strings.HasPrefix(r.URL.Path, "/api/v1/") || (cookieErr != nil && !sessionEndpoints[r.URL.Path] && !flow) {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -151,6 +162,7 @@ type UserView struct {
 	Nickname      string    `json:"nickname"`
 	Role          string    `json:"role" enum:"user,admin,superadmin"`
 	EmailVerified bool      `json:"emailVerified"`
+	HasPassword   bool      `json:"hasPassword" doc:"False for an account created through a sign-in provider until a password is set; it then needs no current password"`
 	Locale        string    `json:"locale" doc:"Preferred UI language; empty = follow the browser"`
 	Score         int64     `json:"score"`
 	AvatarID      *int64    `json:"avatarTextureId,omitempty" doc:"The skin whose head is the avatar, /avatar/user/{id}"`
@@ -159,7 +171,7 @@ type UserView struct {
 
 func userView(u *ent.User) UserView {
 	return UserView{ID: u.ID, Email: u.Email, Nickname: u.Nickname, Role: string(u.Role),
-		EmailVerified: u.EmailVerifiedAt != nil, Locale: u.Locale, Score: u.Score, AvatarID: u.AvatarTextureID, CreatedAt: u.CreatedAt}
+		EmailVerified: u.EmailVerifiedAt != nil, HasPassword: account.HasPassword(u), Locale: u.Locale, Score: u.Score, AvatarID: u.AvatarTextureID, CreatedAt: u.CreatedAt}
 }
 
 type userOutput struct {

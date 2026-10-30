@@ -49,9 +49,13 @@ type PlayerEdges struct {
 	Skin *Texture `json:"skin,omitempty"`
 	// Cape holds the value of the cape edge.
 	Cape *Texture `json:"cape,omitempty"`
+	// YggTokens holds the value of the ygg_tokens edge.
+	YggTokens []*YggToken `json:"ygg_tokens,omitempty"`
+	// YggSessions holds the value of the ygg_sessions edge.
+	YggSessions []*YggSession `json:"ygg_sessions,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [5]bool
 }
 
 // OwnerOrErr returns the Owner value or an error if the edge
@@ -85,6 +89,24 @@ func (e PlayerEdges) CapeOrErr() (*Texture, error) {
 		return nil, &NotFoundError{label: texture.Label}
 	}
 	return nil, &NotLoadedError{edge: "cape"}
+}
+
+// YggTokensOrErr returns the YggTokens value or an error if the edge
+// was not loaded in eager-loading.
+func (e PlayerEdges) YggTokensOrErr() ([]*YggToken, error) {
+	if e.loadedTypes[3] {
+		return e.YggTokens, nil
+	}
+	return nil, &NotLoadedError{edge: "ygg_tokens"}
+}
+
+// YggSessionsOrErr returns the YggSessions value or an error if the edge
+// was not loaded in eager-loading.
+func (e PlayerEdges) YggSessionsOrErr() ([]*YggSession, error) {
+	if e.loadedTypes[4] {
+		return e.YggSessions, nil
+	}
+	return nil, &NotLoadedError{edge: "ygg_sessions"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -195,6 +217,16 @@ func (_m *Player) QuerySkin() *TextureQuery {
 // QueryCape queries the "cape" edge of the Player entity.
 func (_m *Player) QueryCape() *TextureQuery {
 	return NewPlayerClient(_m.config).QueryCape(_m)
+}
+
+// QueryYggTokens queries the "ygg_tokens" edge of the Player entity.
+func (_m *Player) QueryYggTokens() *YggTokenQuery {
+	return NewPlayerClient(_m.config).QueryYggTokens(_m)
+}
+
+// QueryYggSessions queries the "ygg_sessions" edge of the Player entity.
+func (_m *Player) QueryYggSessions() *YggSessionQuery {
+	return NewPlayerClient(_m.config).QueryYggSessions(_m)
 }
 
 // Update returns a builder for updating this Player.

@@ -71,6 +71,20 @@ const (
 	EdgeReportsHandled = "reports_handled"
 	// EdgeNotifications holds the string denoting the notifications edge name in mutations.
 	EdgeNotifications = "notifications"
+	// EdgeYggTokens holds the string denoting the ygg_tokens edge name in mutations.
+	EdgeYggTokens = "ygg_tokens"
+	// EdgeOauthClients holds the string denoting the oauth_clients edge name in mutations.
+	EdgeOauthClients = "oauth_clients"
+	// EdgeOauthGrants holds the string denoting the oauth_grants edge name in mutations.
+	EdgeOauthGrants = "oauth_grants"
+	// EdgeOauthCodes holds the string denoting the oauth_codes edge name in mutations.
+	EdgeOauthCodes = "oauth_codes"
+	// EdgeOauthTokens holds the string denoting the oauth_tokens edge name in mutations.
+	EdgeOauthTokens = "oauth_tokens"
+	// EdgeSocialAccounts holds the string denoting the social_accounts edge name in mutations.
+	EdgeSocialAccounts = "social_accounts"
+	// EdgeSocialFlows holds the string denoting the social_flows edge name in mutations.
+	EdgeSocialFlows = "social_flows"
 	// EdgeAnnouncementsSent holds the string denoting the announcements_sent edge name in mutations.
 	EdgeAnnouncementsSent = "announcements_sent"
 	// Table holds the table name of the user in the database.
@@ -145,6 +159,55 @@ const (
 	NotificationsInverseTable = "notifications"
 	// NotificationsColumn is the table column denoting the notifications relation/edge.
 	NotificationsColumn = "user_id"
+	// YggTokensTable is the table that holds the ygg_tokens relation/edge.
+	YggTokensTable = "ygg_tokens"
+	// YggTokensInverseTable is the table name for the YggToken entity.
+	// It exists in this package in order to avoid circular dependency with the "yggtoken" package.
+	YggTokensInverseTable = "ygg_tokens"
+	// YggTokensColumn is the table column denoting the ygg_tokens relation/edge.
+	YggTokensColumn = "user_id"
+	// OauthClientsTable is the table that holds the oauth_clients relation/edge.
+	OauthClientsTable = "oauth_clients"
+	// OauthClientsInverseTable is the table name for the OAuthClient entity.
+	// It exists in this package in order to avoid circular dependency with the "oauthclient" package.
+	OauthClientsInverseTable = "oauth_clients"
+	// OauthClientsColumn is the table column denoting the oauth_clients relation/edge.
+	OauthClientsColumn = "user_id"
+	// OauthGrantsTable is the table that holds the oauth_grants relation/edge.
+	OauthGrantsTable = "oauth_grants"
+	// OauthGrantsInverseTable is the table name for the OAuthGrant entity.
+	// It exists in this package in order to avoid circular dependency with the "oauthgrant" package.
+	OauthGrantsInverseTable = "oauth_grants"
+	// OauthGrantsColumn is the table column denoting the oauth_grants relation/edge.
+	OauthGrantsColumn = "user_id"
+	// OauthCodesTable is the table that holds the oauth_codes relation/edge.
+	OauthCodesTable = "oauth_codes"
+	// OauthCodesInverseTable is the table name for the OAuthCode entity.
+	// It exists in this package in order to avoid circular dependency with the "oauthcode" package.
+	OauthCodesInverseTable = "oauth_codes"
+	// OauthCodesColumn is the table column denoting the oauth_codes relation/edge.
+	OauthCodesColumn = "user_id"
+	// OauthTokensTable is the table that holds the oauth_tokens relation/edge.
+	OauthTokensTable = "oauth_tokens"
+	// OauthTokensInverseTable is the table name for the OAuthToken entity.
+	// It exists in this package in order to avoid circular dependency with the "oauthtoken" package.
+	OauthTokensInverseTable = "oauth_tokens"
+	// OauthTokensColumn is the table column denoting the oauth_tokens relation/edge.
+	OauthTokensColumn = "user_id"
+	// SocialAccountsTable is the table that holds the social_accounts relation/edge.
+	SocialAccountsTable = "social_accounts"
+	// SocialAccountsInverseTable is the table name for the SocialAccount entity.
+	// It exists in this package in order to avoid circular dependency with the "socialaccount" package.
+	SocialAccountsInverseTable = "social_accounts"
+	// SocialAccountsColumn is the table column denoting the social_accounts relation/edge.
+	SocialAccountsColumn = "user_id"
+	// SocialFlowsTable is the table that holds the social_flows relation/edge.
+	SocialFlowsTable = "social_flows"
+	// SocialFlowsInverseTable is the table name for the SocialFlow entity.
+	// It exists in this package in order to avoid circular dependency with the "socialflow" package.
+	SocialFlowsInverseTable = "social_flows"
+	// SocialFlowsColumn is the table column denoting the social_flows relation/edge.
+	SocialFlowsColumn = "user_id"
 	// AnnouncementsSentTable is the table that holds the announcements_sent relation/edge.
 	AnnouncementsSentTable = "announcements"
 	// AnnouncementsSentInverseTable is the table name for the Announcement entity.
@@ -512,6 +575,104 @@ func ByNotifications(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByYggTokensCount orders the results by ygg_tokens count.
+func ByYggTokensCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newYggTokensStep(), opts...)
+	}
+}
+
+// ByYggTokens orders the results by ygg_tokens terms.
+func ByYggTokens(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newYggTokensStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByOauthClientsCount orders the results by oauth_clients count.
+func ByOauthClientsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newOauthClientsStep(), opts...)
+	}
+}
+
+// ByOauthClients orders the results by oauth_clients terms.
+func ByOauthClients(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOauthClientsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByOauthGrantsCount orders the results by oauth_grants count.
+func ByOauthGrantsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newOauthGrantsStep(), opts...)
+	}
+}
+
+// ByOauthGrants orders the results by oauth_grants terms.
+func ByOauthGrants(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOauthGrantsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByOauthCodesCount orders the results by oauth_codes count.
+func ByOauthCodesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newOauthCodesStep(), opts...)
+	}
+}
+
+// ByOauthCodes orders the results by oauth_codes terms.
+func ByOauthCodes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOauthCodesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByOauthTokensCount orders the results by oauth_tokens count.
+func ByOauthTokensCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newOauthTokensStep(), opts...)
+	}
+}
+
+// ByOauthTokens orders the results by oauth_tokens terms.
+func ByOauthTokens(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOauthTokensStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// BySocialAccountsCount orders the results by social_accounts count.
+func BySocialAccountsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSocialAccountsStep(), opts...)
+	}
+}
+
+// BySocialAccounts orders the results by social_accounts terms.
+func BySocialAccounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSocialAccountsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// BySocialFlowsCount orders the results by social_flows count.
+func BySocialFlowsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSocialFlowsStep(), opts...)
+	}
+}
+
+// BySocialFlows orders the results by social_flows terms.
+func BySocialFlows(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSocialFlowsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByAnnouncementsSentCount orders the results by announcements_sent count.
 func ByAnnouncementsSentCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -593,6 +754,55 @@ func newNotificationsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(NotificationsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, NotificationsTable, NotificationsColumn),
+	)
+}
+func newYggTokensStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(YggTokensInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, YggTokensTable, YggTokensColumn),
+	)
+}
+func newOauthClientsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OauthClientsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, OauthClientsTable, OauthClientsColumn),
+	)
+}
+func newOauthGrantsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OauthGrantsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, OauthGrantsTable, OauthGrantsColumn),
+	)
+}
+func newOauthCodesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OauthCodesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, OauthCodesTable, OauthCodesColumn),
+	)
+}
+func newOauthTokensStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OauthTokensInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, OauthTokensTable, OauthTokensColumn),
+	)
+}
+func newSocialAccountsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SocialAccountsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SocialAccountsTable, SocialAccountsColumn),
+	)
+}
+func newSocialFlowsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SocialFlowsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SocialFlowsTable, SocialFlowsColumn),
 	)
 }
 func newAnnouncementsSentStep() *sqlgraph.Step {

@@ -17,7 +17,7 @@ import (
 
 // Tables in an order that deletes children before parents.
 var tables = []string{
-	"notifications", "announcements", "reports", "players", "closet_items", "textures", "blobs", "score_ledger",
+	"social_accounts", "social_flows", "oauth_tokens", "oauth_codes", "oauth_grants", "oauth_clients", "ygg_sessions", "ygg_tokens", "site_secrets", "notifications", "announcements", "reports", "players", "closet_items", "textures", "blobs", "score_ledger",
 	"jobs", "sessions", "auth_tokens", "audit_logs", "users",
 }
 

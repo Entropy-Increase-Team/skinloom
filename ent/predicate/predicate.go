@@ -27,6 +27,18 @@ type Job func(*sql.Selector)
 // Notification is the predicate function for notification builders.
 type Notification func(*sql.Selector)
 
+// OAuthClient is the predicate function for oauthclient builders.
+type OAuthClient func(*sql.Selector)
+
+// OAuthCode is the predicate function for oauthcode builders.
+type OAuthCode func(*sql.Selector)
+
+// OAuthGrant is the predicate function for oauthgrant builders.
+type OAuthGrant func(*sql.Selector)
+
+// OAuthToken is the predicate function for oauthtoken builders.
+type OAuthToken func(*sql.Selector)
+
 // Player is the predicate function for player builders.
 type Player func(*sql.Selector)
 
@@ -42,6 +54,15 @@ type Session func(*sql.Selector)
 // Setting is the predicate function for setting builders.
 type Setting func(*sql.Selector)
 
+// SiteSecret is the predicate function for sitesecret builders.
+type SiteSecret func(*sql.Selector)
+
+// SocialAccount is the predicate function for socialaccount builders.
+type SocialAccount func(*sql.Selector)
+
+// SocialFlow is the predicate function for socialflow builders.
+type SocialFlow func(*sql.Selector)
+
 // SystemState is the predicate function for systemstate builders.
 type SystemState func(*sql.Selector)
 
@@ -50,3 +71,9 @@ type Texture func(*sql.Selector)
 
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
+
+// YggSession is the predicate function for yggsession builders.
+type YggSession func(*sql.Selector)
+
+// YggToken is the predicate function for yggtoken builders.
+type YggToken func(*sql.Selector)

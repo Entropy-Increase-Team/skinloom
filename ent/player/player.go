@@ -36,6 +36,10 @@ const (
 	EdgeSkin = "skin"
 	// EdgeCape holds the string denoting the cape edge name in mutations.
 	EdgeCape = "cape"
+	// EdgeYggTokens holds the string denoting the ygg_tokens edge name in mutations.
+	EdgeYggTokens = "ygg_tokens"
+	// EdgeYggSessions holds the string denoting the ygg_sessions edge name in mutations.
+	EdgeYggSessions = "ygg_sessions"
 	// Table holds the table name of the player in the database.
 	Table = "players"
 	// OwnerTable is the table that holds the owner relation/edge.
@@ -59,6 +63,20 @@ const (
 	CapeInverseTable = "textures"
 	// CapeColumn is the table column denoting the cape relation/edge.
 	CapeColumn = "cape_id"
+	// YggTokensTable is the table that holds the ygg_tokens relation/edge.
+	YggTokensTable = "ygg_tokens"
+	// YggTokensInverseTable is the table name for the YggToken entity.
+	// It exists in this package in order to avoid circular dependency with the "yggtoken" package.
+	YggTokensInverseTable = "ygg_tokens"
+	// YggTokensColumn is the table column denoting the ygg_tokens relation/edge.
+	YggTokensColumn = "player_id"
+	// YggSessionsTable is the table that holds the ygg_sessions relation/edge.
+	YggSessionsTable = "ygg_sessions"
+	// YggSessionsInverseTable is the table name for the YggSession entity.
+	// It exists in this package in order to avoid circular dependency with the "yggsession" package.
+	YggSessionsInverseTable = "ygg_sessions"
+	// YggSessionsColumn is the table column denoting the ygg_sessions relation/edge.
+	YggSessionsColumn = "player_id"
 )
 
 // Columns holds all SQL columns for player fields.
@@ -167,6 +185,34 @@ func ByCapeField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newCapeStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByYggTokensCount orders the results by ygg_tokens count.
+func ByYggTokensCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newYggTokensStep(), opts...)
+	}
+}
+
+// ByYggTokens orders the results by ygg_tokens terms.
+func ByYggTokens(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newYggTokensStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByYggSessionsCount orders the results by ygg_sessions count.
+func ByYggSessionsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newYggSessionsStep(), opts...)
+	}
+}
+
+// ByYggSessions orders the results by ygg_sessions terms.
+func ByYggSessions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newYggSessionsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newOwnerStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -186,5 +232,19 @@ func newCapeStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CapeInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, CapeTable, CapeColumn),
+	)
+}
+func newYggTokensStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(YggTokensInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, YggTokensTable, YggTokensColumn),
+	)
+}
+func newYggSessionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(YggSessionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, YggSessionsTable, YggSessionsColumn),
 	)
 }

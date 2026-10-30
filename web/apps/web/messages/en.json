@@ -40,7 +40,9 @@
     "body": "In a launcher that supports authlib-injector, add an external authentication server with this address:",
     "copy": "Copy",
     "copied": "Copied",
-    "note": "External login opens in an upcoming release; the address will stay the same."
+    "note": "Launchers with drag and drop (HMCL, PCL2, BakaXL and others) take the \"Drag to launcher\" link dropped into their add-server window; entering just this site’s address also works, the launcher finds the API from it.",
+    "drag": "Drag to launcher",
+    "dragHint": "Drag this into your launcher’s external login window"
   },
   "announcement": {
     "title": "Announcement"
@@ -115,7 +117,8 @@
     "admin": "Open the admin panel",
     "closet": "Closet",
     "players": "Players",
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "signInToLink": "Sign in to the account you want to link it to."
   },
   "setup": {
     "title": "Set up your site",
@@ -269,7 +272,15 @@
     "avatarHint": "Your avatar is the head of a skin in your closet.",
     "chooseAvatar": "Choose in the closet",
     "removeAvatar": "Remove avatar",
-    "avatarRemoved": "Avatar removed."
+    "avatarRemoved": "Avatar removed.",
+    "launchers": "Game launchers",
+    "launchersHint": "In a launcher that supports authlib-injector, add an external login server with this address and sign in with your email (or a player name) and password.",
+    "launchersSignedIn": "{count, plural, =0 {No launcher is signed in.} one {One launcher is signed in to this account.} other {# launchers are signed in to this account.}}",
+    "launchersSignOut": "Sign all launchers out",
+    "launchersSignedOut": "All launchers are signed out; sign in again in the launcher.",
+    "setPassword": "Set a password",
+    "setPasswordHint": "Your account signs in through a provider. With a password you can also sign in with your email, and in game launchers.",
+    "passwordSet": "Password set. You can now sign in with your email and password too."
   },
   "admin": {
     "title": "Admin",
@@ -512,7 +523,8 @@
       "upload": "Upload a texture",
       "skinlib": "Browse the skin library",
       "profile": "Profile",
-      "reports": "My reports"
+      "reports": "My reports",
+      "developer": "Apps & tokens"
     }
   },
   "adminOverview": {
@@ -653,6 +665,140 @@
       "title": "The title needs 1–64 characters.",
       "content": "The text can be at most 10000 characters.",
       "failed": "Could not send. Please try again."
+    }
+  },
+  "oauth": {
+    "pageTitle": "Authorize an application",
+    "title": "{app} wants to access your account",
+    "by": "by {owner}",
+    "wants": "It will be able to:",
+    "redirectTo": "You will be sent back to {host}. Only allow applications you trust.",
+    "allow": "Allow",
+    "deny": "Deny",
+    "redirecting": "Returning to the application…",
+    "invalidTitle": "Cannot authorize",
+    "invalidHint": "This authorization request is broken; contact the application’s developer.",
+    "failed": "Something went wrong. Try again later.",
+    "manageTitle": "Apps & tokens",
+    "manageHint": "Let other sites and programs sign in with your account or read your data (OAuth 2.0), or create personal access tokens for your own scripts.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "shownOnce": "Shown only this once: save it now.",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "apps": {
+      "title": "My applications",
+      "hint": "Register the site or program you build, and its users can sign in through this site. Endpoints:",
+      "none": "No applications yet.",
+      "new": "Register an application",
+      "name": "Name",
+      "redirectUris": "Redirect URIs",
+      "redirectHint": "One per line, up to 10; matched exactly.",
+      "kind": "Type",
+      "confidentialHint": "Server-side application (with a secret)",
+      "publicHint": "Browser, desktop or mobile app (no secret, PKCE required)",
+      "confidential": "Server-side",
+      "public": "Public client",
+      "create": "Register",
+      "secret": "Client secret",
+      "resetSecret": "Reset secret",
+      "resetConfirm": "Reset the secret of “{name}”? The old one stops working at once.",
+      "deleteConfirm": "Delete “{name}”? Every user’s authorization of it and its tokens stop working."
+    },
+    "grants": {
+      "title": "Authorized applications",
+      "hint": "Applications you allowed. Revoked ones lose access and must ask again.",
+      "none": "You have not authorized any application.",
+      "since": "last authorized {date}",
+      "revoke": "Revoke",
+      "revokeConfirm": "Revoke access of “{name}”?"
+    },
+    "tokens": {
+      "title": "Personal access tokens",
+      "hint": "For your own scripts: call the Blessing Skin compatible API like applications do, for example {api} (header Authorization: Bearer token).",
+      "none": "No tokens yet.",
+      "new": "Create a token",
+      "name": "What it is for",
+      "scopes": "Permissions",
+      "expires": "Expires",
+      "days": "{days} days",
+      "neverOption": "Never",
+      "create": "Create",
+      "created": "Your new personal access token",
+      "createdAt": "created {date}",
+      "expiresAt": "expires {date}",
+      "never": "never expires",
+      "lastUsed": "last used {date}",
+      "unused": "never used",
+      "deleteConfirm": "Delete the token “{name}”? Scripts using it lose access."
+    },
+    "scopes": {
+      "User_Read": "Read your account (nickname, email, score…)",
+      "Notification_Read": "Read your notifications and mark them read",
+      "Player_Read": "See your players",
+      "Player_ReadWrite": "See, add, rename and delete your players, and change what they wear",
+      "Closet_Read": "See your closet",
+      "Closet_ReadWrite": "See your closet, add, rename and remove textures",
+      "Notification_ReadWrite": "Send notifications as an administrator",
+      "UsersManagement_Read": "See users (administrators)",
+      "UsersManagement_ReadWrite": "Manage users (administrators)",
+      "PlayersManagement_Read": "See all players (administrators)",
+      "PlayersManagement_ReadWrite": "Manage all players (administrators)",
+      "ClosetManagement_Read": "See users’ closets (administrators)",
+      "ClosetManagement_ReadWrite": "Manage users’ closets (administrators)",
+      "ReportsManagement_Read": "See reports (administrators)",
+      "ReportsManagement_ReadWrite": "Handle reports (administrators)"
+    }
+  },
+  "social": {
+    "or": "or",
+    "continueWith": "Continue with {name}",
+    "redirecting": "Redirecting…",
+    "errors": {
+      "tooMany": "Too many attempts. Try again later.",
+      "unreachable": "The sign-in provider could not be reached. Try again later.",
+      "failed": "Something went wrong. Check your connection and try again."
+    },
+    "callback": {
+      "expired": "That sign-in expired or was started in another browser. Please try again.",
+      "denied": "Sign-in was cancelled.",
+      "failed": "Signing in with the provider failed. Try again, or use another way to sign in.",
+      "disabled": "This account has been disabled. Contact the site administrator.",
+      "gone": "This account has been deleted.",
+      "taken": "That account is already linked to another user of this site.",
+      "already": "You have already linked an account of this provider. Unlink it first."
+    },
+    "pending": {
+      "title": "Welcome",
+      "intro": "One more step to use {site}.",
+      "expired": "This sign-in has expired. Please start again.",
+      "again": "Back to sign in",
+      "signedInWith": "Signed in with {provider} as {name}",
+      "linkCurrent": "Link this {provider} account to your account {nickname}? You can then sign in with either.",
+      "linkButton": "Link to my account",
+      "createHint": "New here? Create an account. You can set a password later.",
+      "email": "Email",
+      "emailVerified": "Verified by {provider}.",
+      "emailMail": "We will send a verification link to this address.",
+      "nickname": "Nickname",
+      "create": "Create account",
+      "closed": "Registration is closed on this site; only existing accounts can be linked.",
+      "haveAccount": "Already have an account?",
+      "signInToLink": "Sign in to link {provider}",
+      "emailTaken": "This email is already registered. Sign in to link the account instead.",
+      "tooMany": "Too many accounts were registered from your network. Try again later."
+    },
+    "section": {
+      "title": "Linked accounts",
+      "hint": "Sign in with an account you have elsewhere.",
+      "linked": "Account linked. You can now sign in with it.",
+      "since": "linked {when}",
+      "unlink": "Unlink",
+      "unlinkConfirm": "Unlink {provider}? You will no longer be able to sign in with it.",
+      "keepLast": "This is your only way to sign in. Set a password before unlinking it.",
+      "link": "Link {name}"
     }
   }
 }

@@ -22,7 +22,7 @@ sidebar_position: 5
 
   长度由 `player.name_length_min` / `player.name_length_max` 决定（默认 3–16，最多 32）。无论哪条规则，名字都不能包含空格和 `/ \ ? # %`，否则游戏客户端拼出的地址会出错。
 - 角色只能穿**自己衣柜里**的材质，而且皮肤只能穿皮肤、披风只能穿披风。材质被删除后，穿着它的角色自动换回"没有皮肤"。
-- 每个角色都有 UUID，外置登录（M3）使用它：`yggdrasil.uuid_algorithm = v3`（默认）与离线服的算法相同，改名后 UUID 随之改变；`v4` 是随机的，改名不变。
+- 每个角色都有 UUID，[外置登录](./launchers.md)使用它：`yggdrasil.uuid_algorithm = v3`（默认）与离线服的算法相同，改名后 UUID 随之改变；`v4` 是随机的，改名不变。
 
 ## 让游戏显示皮肤
 
@@ -42,7 +42,7 @@ sidebar_position: 5
 
 **只支持固定图片地址的客户端**（Legacy）：皮肤 `https://skins.example.com/skin/{角色名}.png`，披风 `https://skins.example.com/cape/{角色名}.png`。
 
-使用外置登录（authlib-injector）的启动器不需要这些配置，外置登录将在 M3 提供。
+使用外置登录（authlib-injector）的启动器不需要这些配置，见[外置登录](./launchers.md)。
 
 ## 接口
 

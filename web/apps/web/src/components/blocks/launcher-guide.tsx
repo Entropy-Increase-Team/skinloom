@@ -29,6 +29,15 @@ export async function LauncherGuideBlock() {
           <div className="flex flex-wrap items-center gap-2">
             <code className="rounded-md bg-muted px-3 py-2 font-mono text-sm">{address}</code>
             <CopyButton value={address} label={t('copy')} copiedLabel={t('copied')} />
+            {/* authlib-injector's drag-and-drop: launchers that support it add the server when this is dropped on them. */}
+            <a
+              href={`authlib-injector:yggdrasil-server:${encodeURIComponent(address)}`}
+              draggable
+              className="inline-flex h-8 cursor-grab items-center rounded-md border border-dashed px-3 text-sm text-muted-foreground hover:text-foreground"
+              title={t('dragHint')}
+            >
+              {t('drag')}
+            </a>
           </div>
           <p className="text-xs text-muted-foreground">{t('note')}</p>
         </CardContent>

@@ -227,6 +227,184 @@ var (
 			},
 		},
 	}
+	// OauthClientsColumns holds the columns for the "oauth_clients" table.
+	OauthClientsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "name", Type: field.TypeString, Size: 64},
+		{Name: "secret_hash", Type: field.TypeString, Nullable: true, Size: 64},
+		{Name: "redirect_uris", Type: field.TypeJSON},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "user_id", Type: field.TypeInt64},
+	}
+	// OauthClientsTable holds the schema information for the "oauth_clients" table.
+	OauthClientsTable = &schema.Table{
+		Name:       "oauth_clients",
+		Columns:    OauthClientsColumns,
+		PrimaryKey: []*schema.Column{OauthClientsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "oauth_clients_users_oauth_clients",
+				Columns:    []*schema.Column{OauthClientsColumns[6]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "oauthclient_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{OauthClientsColumns[6]},
+			},
+		},
+	}
+	// OauthCodesColumns holds the columns for the "oauth_codes" table.
+	OauthCodesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "code_hash", Type: field.TypeString, Unique: true, Size: 64},
+		{Name: "redirect_uri", Type: field.TypeString, Size: 2048},
+		{Name: "scopes", Type: field.TypeJSON},
+		{Name: "code_challenge", Type: field.TypeString, Size: 128, Default: ""},
+		{Name: "code_challenge_method", Type: field.TypeString, Size: 8, Default: ""},
+		{Name: "expires_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "client_id", Type: field.TypeInt64},
+		{Name: "user_id", Type: field.TypeInt64},
+	}
+	// OauthCodesTable holds the schema information for the "oauth_codes" table.
+	OauthCodesTable = &schema.Table{
+		Name:       "oauth_codes",
+		Columns:    OauthCodesColumns,
+		PrimaryKey: []*schema.Column{OauthCodesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "oauth_codes_oauth_clients_codes",
+				Columns:    []*schema.Column{OauthCodesColumns[7]},
+				RefColumns: []*schema.Column{OauthClientsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "oauth_codes_users_oauth_codes",
+				Columns:    []*schema.Column{OauthCodesColumns[8]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "oauthcode_client_id",
+				Unique:  false,
+				Columns: []*schema.Column{OauthCodesColumns[7]},
+			},
+			{
+				Name:    "oauthcode_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{OauthCodesColumns[8]},
+			},
+			{
+				Name:    "oauthcode_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{OauthCodesColumns[6]},
+			},
+		},
+	}
+	// OauthGrantsColumns holds the columns for the "oauth_grants" table.
+	OauthGrantsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "scopes", Type: field.TypeJSON},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "client_id", Type: field.TypeInt64},
+		{Name: "user_id", Type: field.TypeInt64},
+	}
+	// OauthGrantsTable holds the schema information for the "oauth_grants" table.
+	OauthGrantsTable = &schema.Table{
+		Name:       "oauth_grants",
+		Columns:    OauthGrantsColumns,
+		PrimaryKey: []*schema.Column{OauthGrantsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "oauth_grants_oauth_clients_grants",
+				Columns:    []*schema.Column{OauthGrantsColumns[4]},
+				RefColumns: []*schema.Column{OauthClientsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "oauth_grants_users_oauth_grants",
+				Columns:    []*schema.Column{OauthGrantsColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "oauthgrant_user_id_client_id",
+				Unique:  true,
+				Columns: []*schema.Column{OauthGrantsColumns[5], OauthGrantsColumns[4]},
+			},
+			{
+				Name:    "oauthgrant_client_id",
+				Unique:  false,
+				Columns: []*schema.Column{OauthGrantsColumns[4]},
+			},
+		},
+	}
+	// OauthTokensColumns holds the columns for the "oauth_tokens" table.
+	OauthTokensColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"oauth", "personal"}},
+		{Name: "token_hash", Type: field.TypeString, Unique: true, Size: 64},
+		{Name: "refresh_hash", Type: field.TypeString, Unique: true, Nullable: true, Size: 64},
+		{Name: "name", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "scopes", Type: field.TypeJSON},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "expires_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "refresh_until", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "last_used_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "client_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "user_id", Type: field.TypeInt64},
+	}
+	// OauthTokensTable holds the schema information for the "oauth_tokens" table.
+	OauthTokensTable = &schema.Table{
+		Name:       "oauth_tokens",
+		Columns:    OauthTokensColumns,
+		PrimaryKey: []*schema.Column{OauthTokensColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "oauth_tokens_oauth_clients_tokens",
+				Columns:    []*schema.Column{OauthTokensColumns[10]},
+				RefColumns: []*schema.Column{OauthClientsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "oauth_tokens_users_oauth_tokens",
+				Columns:    []*schema.Column{OauthTokensColumns[11]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "oauthtoken_user_id_kind",
+				Unique:  false,
+				Columns: []*schema.Column{OauthTokensColumns[11], OauthTokensColumns[1]},
+			},
+			{
+				Name:    "oauthtoken_client_id_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{OauthTokensColumns[10], OauthTokensColumns[11]},
+			},
+			{
+				Name:    "oauthtoken_refresh_until",
+				Unique:  false,
+				Columns: []*schema.Column{OauthTokensColumns[8]},
+			},
+			{
+				Name:    "oauthtoken_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{OauthTokensColumns[7]},
+			},
+		},
+	}
 	// PlayersColumns holds the columns for the "players" table.
 	PlayersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -432,6 +610,99 @@ var (
 		Columns:    SettingsColumns,
 		PrimaryKey: []*schema.Column{SettingsColumns[0]},
 	}
+	// SiteSecretsColumns holds the columns for the "site_secrets" table.
+	SiteSecretsColumns = []*schema.Column{
+		{Name: "key", Type: field.TypeString, Size: 64},
+		{Name: "value", Type: field.TypeString, Size: 2147483647},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+	}
+	// SiteSecretsTable holds the schema information for the "site_secrets" table.
+	SiteSecretsTable = &schema.Table{
+		Name:       "site_secrets",
+		Columns:    SiteSecretsColumns,
+		PrimaryKey: []*schema.Column{SiteSecretsColumns[0]},
+	}
+	// SocialAccountsColumns holds the columns for the "social_accounts" table.
+	SocialAccountsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "provider", Type: field.TypeString, Size: 32},
+		{Name: "subject", Type: field.TypeString, Size: 255},
+		{Name: "email", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "name", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "last_used_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "user_id", Type: field.TypeInt64},
+	}
+	// SocialAccountsTable holds the schema information for the "social_accounts" table.
+	SocialAccountsTable = &schema.Table{
+		Name:       "social_accounts",
+		Columns:    SocialAccountsColumns,
+		PrimaryKey: []*schema.Column{SocialAccountsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "social_accounts_users_social_accounts",
+				Columns:    []*schema.Column{SocialAccountsColumns[7]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "socialaccount_provider_subject",
+				Unique:  true,
+				Columns: []*schema.Column{SocialAccountsColumns[1], SocialAccountsColumns[2]},
+			},
+			{
+				Name:    "socialaccount_user_id_provider",
+				Unique:  true,
+				Columns: []*schema.Column{SocialAccountsColumns[7], SocialAccountsColumns[1]},
+			},
+		},
+	}
+	// SocialFlowsColumns holds the columns for the "social_flows" table.
+	SocialFlowsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Size: 64},
+		{Name: "purpose", Type: field.TypeEnum, Enums: []string{"login", "link", "signup"}},
+		{Name: "provider", Type: field.TypeString, Size: 32},
+		{Name: "verifier", Type: field.TypeString, Size: 128, Default: ""},
+		{Name: "nonce", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "next", Type: field.TypeString, Size: 512, Default: ""},
+		{Name: "remember", Type: field.TypeBool, Default: false},
+		{Name: "subject", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "email", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "email_verified", Type: field.TypeBool, Default: false},
+		{Name: "name", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "nickname", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "expires_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "user_id", Type: field.TypeInt64, Nullable: true},
+	}
+	// SocialFlowsTable holds the schema information for the "social_flows" table.
+	SocialFlowsTable = &schema.Table{
+		Name:       "social_flows",
+		Columns:    SocialFlowsColumns,
+		PrimaryKey: []*schema.Column{SocialFlowsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "social_flows_users_social_flows",
+				Columns:    []*schema.Column{SocialFlowsColumns[14]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "socialflow_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{SocialFlowsColumns[14]},
+			},
+			{
+				Name:    "socialflow_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{SocialFlowsColumns[13]},
+			},
+		},
+	}
 	// SystemStateColumns holds the columns for the "system_state" table.
 	SystemStateColumns = []*schema.Column{
 		{Name: "key", Type: field.TypeString, Size: 64},
@@ -559,6 +830,88 @@ var (
 			},
 		},
 	}
+	// YggSessionsColumns holds the columns for the "ygg_sessions" table.
+	YggSessionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "server_id", Type: field.TypeString, Unique: true, Size: 128},
+		{Name: "ip", Type: field.TypeString, Size: 45, Default: ""},
+		{Name: "expires_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "player_id", Type: field.TypeInt64},
+	}
+	// YggSessionsTable holds the schema information for the "ygg_sessions" table.
+	YggSessionsTable = &schema.Table{
+		Name:       "ygg_sessions",
+		Columns:    YggSessionsColumns,
+		PrimaryKey: []*schema.Column{YggSessionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "ygg_sessions_players_ygg_sessions",
+				Columns:    []*schema.Column{YggSessionsColumns[4]},
+				RefColumns: []*schema.Column{PlayersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "yggsession_player_id",
+				Unique:  false,
+				Columns: []*schema.Column{YggSessionsColumns[4]},
+			},
+			{
+				Name:    "yggsession_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{YggSessionsColumns[3]},
+			},
+		},
+	}
+	// YggTokensColumns holds the columns for the "ygg_tokens" table.
+	YggTokensColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "token_hash", Type: field.TypeString, Unique: true, Size: 64},
+		{Name: "client_token", Type: field.TypeString, Size: 128},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "expires_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "refresh_until", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "player_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "user_id", Type: field.TypeInt64},
+	}
+	// YggTokensTable holds the schema information for the "ygg_tokens" table.
+	YggTokensTable = &schema.Table{
+		Name:       "ygg_tokens",
+		Columns:    YggTokensColumns,
+		PrimaryKey: []*schema.Column{YggTokensColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "ygg_tokens_players_ygg_tokens",
+				Columns:    []*schema.Column{YggTokensColumns[6]},
+				RefColumns: []*schema.Column{PlayersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "ygg_tokens_users_ygg_tokens",
+				Columns:    []*schema.Column{YggTokensColumns[7]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "yggtoken_user_id_id",
+				Unique:  false,
+				Columns: []*schema.Column{YggTokensColumns[7], YggTokensColumns[0]},
+			},
+			{
+				Name:    "yggtoken_player_id",
+				Unique:  false,
+				Columns: []*schema.Column{YggTokensColumns[6]},
+			},
+			{
+				Name:    "yggtoken_refresh_until",
+				Unique:  false,
+				Columns: []*schema.Column{YggTokensColumns[5]},
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AnnouncementsTable,
@@ -568,14 +921,23 @@ var (
 		ClosetItemsTable,
 		JobsTable,
 		NotificationsTable,
+		OauthClientsTable,
+		OauthCodesTable,
+		OauthGrantsTable,
+		OauthTokensTable,
 		PlayersTable,
 		ReportsTable,
 		ScoreLedgerTable,
 		SessionsTable,
 		SettingsTable,
+		SiteSecretsTable,
+		SocialAccountsTable,
+		SocialFlowsTable,
 		SystemStateTable,
 		TexturesTable,
 		UsersTable,
+		YggSessionsTable,
+		YggTokensTable,
 	}
 )
 
@@ -607,6 +969,25 @@ func init() {
 	NotificationsTable.Annotation = &entsql.Annotation{
 		Table: "notifications",
 	}
+	OauthClientsTable.ForeignKeys[0].RefTable = UsersTable
+	OauthClientsTable.Annotation = &entsql.Annotation{
+		Table: "oauth_clients",
+	}
+	OauthCodesTable.ForeignKeys[0].RefTable = OauthClientsTable
+	OauthCodesTable.ForeignKeys[1].RefTable = UsersTable
+	OauthCodesTable.Annotation = &entsql.Annotation{
+		Table: "oauth_codes",
+	}
+	OauthGrantsTable.ForeignKeys[0].RefTable = OauthClientsTable
+	OauthGrantsTable.ForeignKeys[1].RefTable = UsersTable
+	OauthGrantsTable.Annotation = &entsql.Annotation{
+		Table: "oauth_grants",
+	}
+	OauthTokensTable.ForeignKeys[0].RefTable = OauthClientsTable
+	OauthTokensTable.ForeignKeys[1].RefTable = UsersTable
+	OauthTokensTable.Annotation = &entsql.Annotation{
+		Table: "oauth_tokens",
+	}
 	PlayersTable.ForeignKeys[0].RefTable = TexturesTable
 	PlayersTable.ForeignKeys[1].RefTable = TexturesTable
 	PlayersTable.ForeignKeys[2].RefTable = UsersTable
@@ -631,6 +1012,17 @@ func init() {
 	SettingsTable.Annotation = &entsql.Annotation{
 		Table: "settings",
 	}
+	SiteSecretsTable.Annotation = &entsql.Annotation{
+		Table: "site_secrets",
+	}
+	SocialAccountsTable.ForeignKeys[0].RefTable = UsersTable
+	SocialAccountsTable.Annotation = &entsql.Annotation{
+		Table: "social_accounts",
+	}
+	SocialFlowsTable.ForeignKeys[0].RefTable = UsersTable
+	SocialFlowsTable.Annotation = &entsql.Annotation{
+		Table: "social_flows",
+	}
 	SystemStateTable.Annotation = &entsql.Annotation{
 		Table: "system_state",
 	}
@@ -641,5 +1033,14 @@ func init() {
 	}
 	UsersTable.Annotation = &entsql.Annotation{
 		Table: "users",
+	}
+	YggSessionsTable.ForeignKeys[0].RefTable = PlayersTable
+	YggSessionsTable.Annotation = &entsql.Annotation{
+		Table: "ygg_sessions",
+	}
+	YggTokensTable.ForeignKeys[0].RefTable = PlayersTable
+	YggTokensTable.ForeignKeys[1].RefTable = UsersTable
+	YggTokensTable.Annotation = &entsql.Annotation{
+		Table: "ygg_tokens",
 	}
 }

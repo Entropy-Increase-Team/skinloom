@@ -81,11 +81,25 @@ type UserEdges struct {
 	ReportsHandled []*Report `json:"reports_handled,omitempty"`
 	// Notifications holds the value of the notifications edge.
 	Notifications []*Notification `json:"notifications,omitempty"`
+	// YggTokens holds the value of the ygg_tokens edge.
+	YggTokens []*YggToken `json:"ygg_tokens,omitempty"`
+	// OauthClients holds the value of the oauth_clients edge.
+	OauthClients []*OAuthClient `json:"oauth_clients,omitempty"`
+	// OauthGrants holds the value of the oauth_grants edge.
+	OauthGrants []*OAuthGrant `json:"oauth_grants,omitempty"`
+	// OauthCodes holds the value of the oauth_codes edge.
+	OauthCodes []*OAuthCode `json:"oauth_codes,omitempty"`
+	// OauthTokens holds the value of the oauth_tokens edge.
+	OauthTokens []*OAuthToken `json:"oauth_tokens,omitempty"`
+	// SocialAccounts holds the value of the social_accounts edge.
+	SocialAccounts []*SocialAccount `json:"social_accounts,omitempty"`
+	// SocialFlows holds the value of the social_flows edge.
+	SocialFlows []*SocialFlow `json:"social_flows,omitempty"`
 	// AnnouncementsSent holds the value of the announcements_sent edge.
 	AnnouncementsSent []*Announcement `json:"announcements_sent,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [11]bool
+	loadedTypes [18]bool
 }
 
 // SessionsOrErr returns the Sessions value or an error if the edge
@@ -178,10 +192,73 @@ func (e UserEdges) NotificationsOrErr() ([]*Notification, error) {
 	return nil, &NotLoadedError{edge: "notifications"}
 }
 
+// YggTokensOrErr returns the YggTokens value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) YggTokensOrErr() ([]*YggToken, error) {
+	if e.loadedTypes[10] {
+		return e.YggTokens, nil
+	}
+	return nil, &NotLoadedError{edge: "ygg_tokens"}
+}
+
+// OauthClientsOrErr returns the OauthClients value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) OauthClientsOrErr() ([]*OAuthClient, error) {
+	if e.loadedTypes[11] {
+		return e.OauthClients, nil
+	}
+	return nil, &NotLoadedError{edge: "oauth_clients"}
+}
+
+// OauthGrantsOrErr returns the OauthGrants value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) OauthGrantsOrErr() ([]*OAuthGrant, error) {
+	if e.loadedTypes[12] {
+		return e.OauthGrants, nil
+	}
+	return nil, &NotLoadedError{edge: "oauth_grants"}
+}
+
+// OauthCodesOrErr returns the OauthCodes value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) OauthCodesOrErr() ([]*OAuthCode, error) {
+	if e.loadedTypes[13] {
+		return e.OauthCodes, nil
+	}
+	return nil, &NotLoadedError{edge: "oauth_codes"}
+}
+
+// OauthTokensOrErr returns the OauthTokens value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) OauthTokensOrErr() ([]*OAuthToken, error) {
+	if e.loadedTypes[14] {
+		return e.OauthTokens, nil
+	}
+	return nil, &NotLoadedError{edge: "oauth_tokens"}
+}
+
+// SocialAccountsOrErr returns the SocialAccounts value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) SocialAccountsOrErr() ([]*SocialAccount, error) {
+	if e.loadedTypes[15] {
+		return e.SocialAccounts, nil
+	}
+	return nil, &NotLoadedError{edge: "social_accounts"}
+}
+
+// SocialFlowsOrErr returns the SocialFlows value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) SocialFlowsOrErr() ([]*SocialFlow, error) {
+	if e.loadedTypes[16] {
+		return e.SocialFlows, nil
+	}
+	return nil, &NotLoadedError{edge: "social_flows"}
+}
+
 // AnnouncementsSentOrErr returns the AnnouncementsSent value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) AnnouncementsSentOrErr() ([]*Announcement, error) {
-	if e.loadedTypes[10] {
+	if e.loadedTypes[17] {
 		return e.AnnouncementsSent, nil
 	}
 	return nil, &NotLoadedError{edge: "announcements_sent"}
@@ -393,6 +470,41 @@ func (_m *User) QueryReportsHandled() *ReportQuery {
 // QueryNotifications queries the "notifications" edge of the User entity.
 func (_m *User) QueryNotifications() *NotificationQuery {
 	return NewUserClient(_m.config).QueryNotifications(_m)
+}
+
+// QueryYggTokens queries the "ygg_tokens" edge of the User entity.
+func (_m *User) QueryYggTokens() *YggTokenQuery {
+	return NewUserClient(_m.config).QueryYggTokens(_m)
+}
+
+// QueryOauthClients queries the "oauth_clients" edge of the User entity.
+func (_m *User) QueryOauthClients() *OAuthClientQuery {
+	return NewUserClient(_m.config).QueryOauthClients(_m)
+}
+
+// QueryOauthGrants queries the "oauth_grants" edge of the User entity.
+func (_m *User) QueryOauthGrants() *OAuthGrantQuery {
+	return NewUserClient(_m.config).QueryOauthGrants(_m)
+}
+
+// QueryOauthCodes queries the "oauth_codes" edge of the User entity.
+func (_m *User) QueryOauthCodes() *OAuthCodeQuery {
+	return NewUserClient(_m.config).QueryOauthCodes(_m)
+}
+
+// QueryOauthTokens queries the "oauth_tokens" edge of the User entity.
+func (_m *User) QueryOauthTokens() *OAuthTokenQuery {
+	return NewUserClient(_m.config).QueryOauthTokens(_m)
+}
+
+// QuerySocialAccounts queries the "social_accounts" edge of the User entity.
+func (_m *User) QuerySocialAccounts() *SocialAccountQuery {
+	return NewUserClient(_m.config).QuerySocialAccounts(_m)
+}
+
+// QuerySocialFlows queries the "social_flows" edge of the User entity.
+func (_m *User) QuerySocialFlows() *SocialFlowQuery {
+	return NewUserClient(_m.config).QuerySocialFlows(_m)
 }
 
 // QueryAnnouncementsSent queries the "announcements_sent" edge of the User entity.

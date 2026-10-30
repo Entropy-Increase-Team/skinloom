@@ -174,40 +174,51 @@ func registerNotifications(api huma.API, d Deps) {
 				return nil, err
 			}
 			b := in.Body
-			var out SentNotification
-			switch b.To {
-			case "user":
-				var u *ent.User
-				switch {
-				case b.UserID > 0:
-					u, err = d.Accounts.GetUser(ctx, b.UserID)
-				case b.Email != "":
-					u, err = d.Accounts.GetUserByEmail(ctx, b.Email)
-				default:
-					err = account.ErrNotFound
-				}
-				if errors.Is(err, account.ErrNotFound) {
-					return nil, apiError(&account.FieldError{Field: "userId", Message: "no such user"})
-				}
-				if err != nil {
-					return nil, err
-				}
-				n, err := d.Notify.Send(ctx, u.ID, b.Title, b.Content)
-				if err != nil {
-					return nil, apiError(err)
-				}
-				out = SentNotification{Kind: "notification", ID: n.ID}
-			default:
-				ann, err := d.Notify.Announce(ctx, actorIDOf(a), b.To, b.Title, b.Content)
-				if err != nil {
-					return nil, apiError(err)
-				}
-				out = SentNotification{Kind: "announcement", ID: ann.ID}
-			}
-			if err := d.Accounts.Audit(ctx, actorIDOf(a), "admin.notification_sent", out.Kind, strconv.FormatInt(out.ID, 10),
-				requestInfo(ctx).client.ClientIP, map[string]any{"to": b.To, "title": b.Title}); err != nil {
-				d.Log.Warn("audit", "action", "admin.notification_sent", "err", err)
+			out, err := sendNotification(ctx, d, a, b.To, b.UserID, b.Email, b.Title, b.Content)
+			if err != nil {
+				return nil, err
 			}
 			return &struct{ Body SentNotification }{out}, nil
 		})
+}
+
+// sendNotification sends a notification for an administrator (both APIs): to is all
+// or users (an announcement) or user (by userID or email). Errors are Huma errors.
+func sendNotification(ctx context.Context, d Deps, a account.Actor, to string, userID int64, email, title, content string) (SentNotification, error) {
+	var out SentNotification
+	switch to {
+	case "user":
+		var u *ent.User
+		var err error
+		switch {
+		case userID > 0:
+			u, err = d.Accounts.GetUser(ctx, userID)
+		case email != "":
+			u, err = d.Accounts.GetUserByEmail(ctx, email)
+		default:
+			err = account.ErrNotFound
+		}
+		if errors.Is(err, account.ErrNotFound) {
+			return out, apiError(&account.FieldError{Field: "userId", Message: "no such user"})
+		}
+		if err != nil {
+			return out, err
+		}
+		n, err := d.Notify.Send(ctx, u.ID, title, content)
+		if err != nil {
+			return out, apiError(err)
+		}
+		out = SentNotification{Kind: "notification", ID: n.ID}
+	default:
+		ann, err := d.Notify.Announce(ctx, actorIDOf(a), to, title, content)
+		if err != nil {
+			return out, apiError(err)
+		}
+		out = SentNotification{Kind: "announcement", ID: ann.ID}
+	}
+	if err := d.Accounts.Audit(ctx, actorIDOf(a), "admin.notification_sent", out.Kind, strconv.FormatInt(out.ID, 10),
+		requestInfo(ctx).client.ClientIP, map[string]any{"to": to, "title": title}); err != nil {
+		d.Log.Warn("audit", "action", "admin.notification_sent", "err", err)
+	}
+	return out, nil
 }

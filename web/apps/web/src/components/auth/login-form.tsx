@@ -1,17 +1,33 @@
 'use client'
 
-import { type Answer, type CaptchaInfo, login } from '@skinloom/api-client'
+import { type Answer, type CaptchaInfo, linkSocialPending, login, type SocialProviderInfo } from '@skinloom/api-client'
 import { Button } from '@skinloom/ui'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useRef, useState } from 'react'
 
 import { problemOf } from '@/lib/problem'
 
 import { Captcha } from './captcha'
 import { Field, FormError } from './field'
+import { SocialButtons } from './social-buttons'
 
-export function LoginForm({ next, captcha }: { next: string; captcha: CaptchaInfo }) {
+/**
+ * The email and password form, then the sign-in providers. With linkPending the
+ * person came from /auth/social: once signed in, the provider account they just used
+ * is linked to this account.
+ */
+export function LoginForm({
+  next,
+  captcha,
+  providers = [],
+  linkPending = false,
+}: {
+  next: string
+  captcha: CaptchaInfo
+  providers?: SocialProviderInfo[]
+  linkPending?: boolean
+}) {
   const t = useTranslations('auth')
   const tf = useTranslations('fieldErrors')
   const router = useRouter()
@@ -23,6 +39,7 @@ export function LoginForm({ next, captcha }: { next: string; captcha: CaptchaInf
   const [captchaError, setCaptchaError] = useState<string>()
   const [answer, setAnswer] = useState<Answer | null>(null)
   const [resetKey, setResetKey] = useState(0)
+  const remember = useRef<HTMLInputElement>(null)
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -41,7 +58,15 @@ export function LoginForm({ next, captcha }: { next: string; captcha: CaptchaInf
         remember: f.get('remember') === 'on',
         ...(needCaptcha && answer ? { captcha: answer } : {}),
       })
-      router.replace(next)
+      if (linkPending) {
+        const code = await linkSocialPending().then(
+          () => 'social_linked=1',
+          (err) => `social_error=${problemOf(err).status === 409 ? 'already' : 'expired'}`,
+        )
+        router.replace(`/user/profile?${code}`)
+      } else {
+        router.replace(next)
+      }
       router.refresh()
     } catch (err) {
       const p = problemOf(err)
@@ -68,12 +93,13 @@ export function LoginForm({ next, captcha }: { next: string; captcha: CaptchaInf
       <Field id="password" label={t('password')} type="password" autoComplete="current-password" required />
       {needCaptcha && <Captcha config={captcha} onChange={setAnswer} resetKey={resetKey} error={captchaError} />}
       <label className="flex items-center gap-2 text-sm text-muted-foreground">
-        <input type="checkbox" name="remember" className="size-4 accent-primary" />
+        <input ref={remember} type="checkbox" name="remember" className="size-4 accent-primary" />
         {t('remember')}
       </label>
       <Button type="submit" disabled={pending}>
         {pending ? t('signingIn') : t('signIn')}
       </Button>
+      {!linkPending && <SocialButtons providers={providers} next={next} remember={() => remember.current?.checked ?? false} />}
     </form>
   )
 }

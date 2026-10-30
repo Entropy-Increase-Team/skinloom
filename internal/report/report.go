@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
+	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	entreport "github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
@@ -101,8 +102,28 @@ func (s *Service) Submit(ctx context.Context, v texture.Viewer, textureID int64,
 type Filter struct {
 	Status     string // pending | resolved | rejected; empty for all
 	ReporterID int64
+	UploaderID int64 // reports against one uploader
+	TextureID  int64
 	Before     int64 // reports with smaller ids (the next page)
+	Offset     int   // or skip this many (numbered pages)
 	Limit      int   // 1–100, default 20
+}
+
+func (f Filter) where() []predicate.Report {
+	var where []predicate.Report
+	if f.Status != "" {
+		where = append(where, entreport.StatusEQ(entreport.Status(f.Status)))
+	}
+	if f.ReporterID > 0 {
+		where = append(where, entreport.ReporterID(f.ReporterID))
+	}
+	if f.UploaderID > 0 {
+		where = append(where, entreport.UploaderID(f.UploaderID))
+	}
+	if f.TextureID > 0 {
+		where = append(where, entreport.TextureID(f.TextureID))
+	}
+	return where
 }
 
 // List returns one page of reports with their texture (and its uploader), reporter,
@@ -113,19 +134,13 @@ func (s *Service) List(ctx context.Context, f Filter) ([]*ent.Report, int64, err
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
-	q := s.db.Report.Query()
-	if f.Status != "" {
-		q = q.Where(entreport.StatusEQ(entreport.Status(f.Status)))
-	}
-	if f.ReporterID > 0 {
-		q = q.Where(entreport.ReporterID(f.ReporterID))
-	}
+	where := f.where()
 	if f.Before > 0 {
-		q = q.Where(entreport.IDLT(f.Before))
+		where = append(where, entreport.IDLT(f.Before))
 	}
-	list, err := q.WithTexture(func(q *ent.TextureQuery) { q.WithUploader() }).
+	list, err := s.db.Report.Query().Where(where...).WithTexture(func(q *ent.TextureQuery) { q.WithUploader() }).
 		WithReporter().WithUploader().WithHandler().
-		Order(ent.Desc(entreport.FieldID)).Limit(limit + 1).All(ctx)
+		Order(ent.Desc(entreport.FieldID)).Offset(max(f.Offset, 0)).Limit(limit + 1).All(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -135,6 +150,11 @@ func (s *Service) List(ctx context.Context, f Filter) ([]*ent.Report, int64, err
 		next = list[limit-1].ID
 	}
 	return list, next, nil
+}
+
+// Count is how many reports the filter matches (Before, Offset and Limit aside).
+func (s *Service) Count(ctx context.Context, f Filter) (int, error) {
+	return s.db.Report.Query().Where(f.where()...).Count(ctx)
 }
 
 // Get returns one report with the same edges as List.

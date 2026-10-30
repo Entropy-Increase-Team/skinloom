@@ -132,20 +132,10 @@ func registerAdminPlayers(api huma.API, d Deps) {
 			Tags: []string{"admin"}, Security: adminSecurity, DefaultStatus: status}
 	}
 	audit := func(ctx context.Context, a account.Actor, action, targetType string, id int64, meta map[string]any) {
-		if err := d.Accounts.Audit(ctx, actorIDOf(a), action, targetType, strconv.FormatInt(id, 10), requestInfo(ctx).client.ClientIP, meta); err != nil {
-			d.Log.Warn("audit", "action", action, "err", err)
-		}
+		adminAudit(ctx, d, a, action, targetType, id, meta)
 	}
-	// managed loads a player whose owner the actor may manage.
 	managed := func(ctx context.Context, a account.Actor, id int64) (*ent.Player, error) {
-		p, err := d.Players.Get(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := d.Accounts.MayManageOwned(ctx, a, p.UserID); err != nil {
-			return nil, err
-		}
-		return p, nil
+		return managedPlayer(ctx, d, a, id)
 	}
 
 	huma.Register(api, op("getOverview", http.MethodGet, "/api/v1/admin/overview", "Site totals and the last 31 days", 0),
@@ -192,30 +182,11 @@ func registerAdminPlayers(api huma.API, d Deps) {
 			if err != nil {
 				return nil, adminPlayerError(err)
 			}
-			meta := map[string]any{}
-			if in.Body.UserID != nil && *in.Body.UserID != p.UserID {
-				if _, err := d.Accounts.MayManageOwned(ctx, a, *in.Body.UserID); err != nil {
-					if errors.Is(err, account.ErrNotFound) {
-						return nil, apiError(&account.FieldError{Field: "userId", Message: "no such user"})
-					}
-					return nil, adminError(err)
+			if err := updatePlayerAsAdmin(ctx, d, a, p, in.Body.Name, in.Body.UserID); err != nil {
+				if errors.Is(err, account.ErrNotFound) {
+					return nil, apiError(&account.FieldError{Field: "userId", Message: "no such user"})
 				}
-			}
-			if in.Body.Name != nil && *in.Body.Name != p.Name {
-				renamed, err := d.Players.Rename(ctx, p.UserID, p.ID, *in.Body.Name, player.PolicyFrom(d.Settings.Current()))
-				if err != nil {
-					return nil, adminPlayerError(err)
-				}
-				meta["name"] = []string{p.Name, renamed.Name}
-			}
-			if in.Body.UserID != nil && *in.Body.UserID != p.UserID {
-				if _, err := d.Players.Transfer(ctx, p.ID, *in.Body.UserID); err != nil {
-					return nil, adminPlayerError(err)
-				}
-				meta["owner"] = []int64{p.UserID, *in.Body.UserID}
-			}
-			if len(meta) > 0 {
-				audit(ctx, a, "admin.player_updated", "player", p.ID, meta)
+				return nil, adminPlayerError(err)
 			}
 			if p, err = d.Players.Get(ctx, p.ID); err != nil {
 				return nil, adminPlayerError(err)
@@ -318,6 +289,53 @@ func registerAdminPlayers(api huma.API, d Deps) {
 			audit(ctx, a, "admin.closet_removed", "user", in.ID, map[string]any{"texture": in.TextureID, "refunded": n})
 			return &struct{ Body Unfavorited }{Unfavorited{Refunded: n}}, nil
 		})
+}
+
+// adminAudit records an administrator's action (both APIs).
+func adminAudit(ctx context.Context, d Deps, a account.Actor, action, targetType string, id int64, meta map[string]any) {
+	if err := d.Accounts.Audit(ctx, actorIDOf(a), action, targetType, strconv.FormatInt(id, 10), requestInfo(ctx).client.ClientIP, meta); err != nil {
+		d.Log.Warn("audit", "action", action, "err", err)
+	}
+}
+
+// managedPlayer loads a player whose owner the actor may manage.
+func managedPlayer(ctx context.Context, d Deps, a account.Actor, id int64) (*ent.Player, error) {
+	p, err := d.Players.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := d.Accounts.MayManageOwned(ctx, a, p.UserID); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+// updatePlayerAsAdmin renames a player and/or gives it to another user the actor may
+// manage (account.ErrNotFound: no such user), and records it.
+func updatePlayerAsAdmin(ctx context.Context, d Deps, a account.Actor, p *ent.Player, name *string, owner *int64) error {
+	if owner != nil && *owner != p.UserID {
+		if _, err := d.Accounts.MayManageOwned(ctx, a, *owner); err != nil {
+			return err
+		}
+	}
+	meta := map[string]any{}
+	if name != nil && *name != p.Name {
+		renamed, err := d.Players.Rename(ctx, p.UserID, p.ID, *name, player.PolicyFrom(d.Settings.Current()))
+		if err != nil {
+			return err
+		}
+		meta["name"] = []string{p.Name, renamed.Name}
+	}
+	if owner != nil && *owner != p.UserID {
+		if _, err := d.Players.Transfer(ctx, p.ID, *owner); err != nil {
+			return err
+		}
+		meta["owner"] = []int64{p.UserID, *owner}
+	}
+	if len(meta) > 0 {
+		adminAudit(ctx, d, a, "admin.player_updated", "player", p.ID, meta)
+	}
+	return nil
 }
 
 // actorIDOf is who acts, for the audit log: nil for the admin token.
