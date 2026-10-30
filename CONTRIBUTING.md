@@ -37,6 +37,7 @@ go run ./cmd/skinloom up --dev      # 后端 + 前端开发服务器，访问 ht
 
 - **保留路径**：`/api/`、`/oauth/`、`/.well-known/`、`/{name}.json`、`/csl/`、`/usm/`、`/skin/`、`/cape/`、`/textures/`、`/raw/`、`/avatar/`、`/preview/`、`/events`、`/healthz`、`/readyz`、`/plugins-assets/`、`/themes-assets/` 归后端所有（`internal/gateway`），前端路由不得占用。
 - **不变量进数据库**：唯一性、外键、CHECK 写在 schema 里；写操作放在事务里；积分与计数用原子更新。
+- **事务先加锁、再判断**：按"材质 → 用户（id 升序）→ 角色 → 其它"的顺序加锁，决定结果的数据（可见性、上传者、在不在衣柜里）在加锁之后重新读取；管理操作的审计记录、领域事件（`hook.Event.Publish`）写在同一个事务里（ADR 0026–0028）。每个新事务都要有在 PostgreSQL 上跑的并发测试。
 - **请求路径上不做运维动作**：不迁移、不清缓存、不写配置文件。
 - **Hook 与插槽是公共 API**：新增随意，改名/删除/改载荷要走弃用流程并写 ADR。
 - Go 代码用 `go fmt ./...` 格式化：它使用 go.mod 指定的工具链版本，与 CI 一致；PATH 里的 `gofmt` 可能是更旧的版本，格式化结果不同，会让 CI 的 gofmt 检查失败。注释写"为什么"。前端用 `@skinloom/ui` 组件与主题 token，不写死颜色。

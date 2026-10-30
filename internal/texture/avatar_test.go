@@ -39,7 +39,7 @@ func TestAvatar(t *testing.T) {
 
 		// The skin goes private: bob's avatar no longer shows it, alice's (hers) does.
 		private := false
-		if _, err := f.s.Update(ctx, Viewer{UserID: alice}, skin.ID, Edit{Public: &private}, policy, paid); err != nil {
+		if _, err := f.s.Update(ctx, Viewer{UserID: alice}, skin.ID, Edit{Public: &private}, policy, paid, nil); err != nil {
 			t.Fatal(err)
 		}
 		if a, _ := f.s.Avatar(ctx, bob); a != nil {
@@ -50,7 +50,7 @@ func TestAvatar(t *testing.T) {
 		}
 
 		// Deleting the texture clears every avatar that pointed at it.
-		if err := f.s.Delete(ctx, Viewer{UserID: alice}, skin.ID, true); err != nil {
+		if err := f.s.Delete(ctx, Viewer{UserID: alice}, skin.ID, true, nil); err != nil {
 			t.Fatal(err)
 		}
 		for _, id := range []int64{alice, bob} {
@@ -94,7 +94,7 @@ func TestAvatarOfBannedUser(t *testing.T) {
 
 // Every way a texture is deleted clears the avatars pointing at it (there is no foreign
 // key to do it), including the private textures removed with an account.
-func TestDeletePrivateOfClearsAvatars(t *testing.T) {
+func TestUserDeletionClearsAvatars(t *testing.T) {
 	dbtest.ForEach(t, func(t *testing.T, d *db.DB) {
 		ctx := context.Background()
 		f := newFixture(t, d)
@@ -106,10 +106,8 @@ func TestDeletePrivateOfClearsAvatars(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		if err := f.s.DeletePrivateOf(ctx, alice); err != nil {
-			t.Fatal(err)
-		}
-		for _, id := range []int64{alice, admin} {
+		f.deleteUser(t, alice)
+		for _, id := range []int64{admin} {
 			if u := f.db.User.GetX(ctx, id); u.AvatarTextureID != nil {
 				t.Fatalf("user %d still points at the deleted texture %d", id, *u.AvatarTextureID)
 			}

@@ -402,7 +402,8 @@ func mountBSAdminAPI(r chi.Router, d Deps, loc func() *time.Location) {
 		}
 		// Unlike Blessing Skin, the texture must be in the owner's closet and of the
 		// right kind (C07), as on the admin pages.
-		if _, err := d.Players.Wear(req.Context(), pl.UserID, pl.ID, skin, cape); err != nil {
+		rec := adminRecord(req.Context(), actor(p), "admin.player_textures", "player", pl.ID, map[string]any{"skin": skin, "cape": cape})
+		if _, err := d.Players.Wear(req.Context(), pl.UserID, pl.ID, skin, cape, rec); err != nil {
 			if fields := validate.FieldErrors(err); len(fields) > 0 {
 				msg := fields[0].Field + ": " + fields[0].Message
 				if fields[0].Message == "no such texture" {
@@ -414,7 +415,6 @@ func mountBSAdminAPI(r chi.Router, d Deps, loc func() *time.Location) {
 			bsAdminFailed(w, d, locale, err)
 			return
 		}
-		adminAudit(req.Context(), d, actor(p), "admin.player_textures", "player", pl.ID, map[string]any{"skin": skin, "cape": cape})
 		bsResult(w, 0, bsText(locale, "admin.texturesSet", "player", pl.Name), nil)
 	}))
 
@@ -423,11 +423,11 @@ func mountBSAdminAPI(r chi.Router, d Deps, loc func() *time.Location) {
 		if pl == nil {
 			return
 		}
-		if _, err := d.Players.Delete(req.Context(), pl.UserID, pl.ID, score.RatesFrom(d.Settings.Current()).ReturnOnDelete); err != nil {
+		rec := adminRecord(req.Context(), actor(p), "admin.player_deleted", "player", pl.ID, map[string]any{"name": pl.Name, "owner": pl.UserID})
+		if _, err := d.Players.Delete(req.Context(), pl.UserID, pl.ID, score.RatesFrom(d.Settings.Current()).ReturnOnDelete, rec); err != nil {
 			bsAdminFailed(w, d, locale, err)
 			return
 		}
-		adminAudit(req.Context(), d, actor(p), "admin.player_deleted", "player", pl.ID, map[string]any{"name": pl.Name, "owner": pl.UserID})
 		bsResult(w, 0, bsText(locale, "admin.playerDeleted"), nil)
 	}))
 
@@ -466,12 +466,17 @@ func mountBSAdminAPI(r chi.Router, d Deps, loc func() *time.Location) {
 				bsInvalid(w, locale, []*validate.FieldError{{Field: "tid", Message: "required, an integer"}})
 				return
 			}
+			action := "admin.closet_removed"
+			if add {
+				action = "admin.closet_added"
+			}
+			rec := adminRecord(req.Context(), actor(p), action, "user", u.ID, map[string]any{"texture": tid})
 			t, err := d.Textures.Get(req.Context(), tid, texture.Viewer{Admin: true})
 			if err == nil {
 				if add {
-					_, err = d.Textures.GiveToCloset(req.Context(), u.ID, tid)
+					_, err = d.Textures.GiveToCloset(req.Context(), u.ID, tid, rec)
 				} else {
-					_, err = d.Textures.Unfavorite(req.Context(), u.ID, tid, score.RatesFrom(d.Settings.Current()).ReturnOnDelete)
+					_, err = d.Textures.Unfavorite(req.Context(), u.ID, tid, score.RatesFrom(d.Settings.Current()).ReturnOnDelete, rec)
 				}
 			}
 			switch {
@@ -484,11 +489,6 @@ func mountBSAdminAPI(r chi.Router, d Deps, loc func() *time.Location) {
 			case err != nil:
 				bsAdminFailed(w, d, locale, err)
 			default:
-				action := "admin.closet_removed"
-				if add {
-					action = "admin.closet_added"
-				}
-				adminAudit(req.Context(), d, actor(p), action, "user", u.ID, map[string]any{"texture": tid})
 				bsResult(w, 0, "", map[string]any{"user": bsAdminUser(u, loc()), "texture": bsTexture(t, loc())})
 			}
 		})

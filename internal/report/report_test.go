@@ -175,7 +175,7 @@ func TestReviewDelete(t *testing.T) {
 		second := f.submit(t, carol, skin.ID)
 		unrelated := f.submit(t, carol, other.ID)
 
-		got, err := f.s.Review(ctx, &admin, first.ID, ActionDelete, charged, true, noBan)
+		got, err := f.s.Review(ctx, &admin, first.ID, ActionDelete, charged, true, noBan, nil)
 		if err != nil || got.Status != entreport.StatusResolved || *got.Action != entreport.ActionDelete ||
 			*got.HandlerID != admin || got.HandledAt == nil || got.TextureID != nil {
 			t.Fatalf("Review: %+v, %v", got, err)
@@ -196,7 +196,7 @@ func TestReviewDelete(t *testing.T) {
 		if r := f.db.Report.GetX(ctx, unrelated.ID); r.Status != entreport.StatusPending {
 			t.Fatalf("reports of other textures stay pending: %s", r.Status)
 		}
-		if _, err := f.s.Review(ctx, &admin, first.ID, ActionReject, charged, true, noBan); !errors.Is(err, ErrReviewed) {
+		if _, err := f.s.Review(ctx, &admin, first.ID, ActionReject, charged, true, noBan, nil); !errors.Is(err, ErrReviewed) {
 			t.Fatalf("a second review: %v", err)
 		}
 		if n := f.db.ScoreEntry.Query().Where(scoreentry.Reason(score.ReasonReportReward)).CountX(ctx); n != 1 {
@@ -205,11 +205,11 @@ func TestReviewDelete(t *testing.T) {
 
 		// The uploader deleted the texture before the review: charge back, no reward.
 		late := f.submit(t, bob, other.ID)
-		if err := f.tx.Delete(ctx, texture.Viewer{UserID: alice}, other.ID, true); err != nil {
+		if err := f.tx.Delete(ctx, texture.Viewer{UserID: alice}, other.ID, true, nil); err != nil {
 			t.Fatal(err)
 		}
 		before := f.score(bob)
-		if got, err := f.s.Review(ctx, nil, late.ID, ActionDelete, charged, true, noBan); err != nil ||
+		if got, err := f.s.Review(ctx, nil, late.ID, ActionDelete, charged, true, noBan, nil); err != nil ||
 			got.Status != entreport.StatusResolved || got.HandlerID != nil {
 			t.Fatalf("texture gone: %+v, %v", got, err)
 		}
@@ -230,7 +230,7 @@ func TestReviewReject(t *testing.T) {
 
 		// A charge is kept on rejection.
 		rep := f.submit(t, bob, skin.ID)
-		if got, err := f.s.Review(ctx, nil, rep.ID, ActionReject, charged, true, noBan); err != nil || got.Status != entreport.StatusRejected {
+		if got, err := f.s.Review(ctx, nil, rep.ID, ActionReject, charged, true, noBan, nil); err != nil || got.Status != entreport.StatusRejected {
 			t.Fatalf("reject: %+v, %v", got, err)
 		}
 		if f.score(bob) != 95 {
@@ -247,7 +247,7 @@ func TestReviewReject(t *testing.T) {
 			t.Fatalf("rewarded submit: %d, %v", balance, err)
 		}
 		f.db.User.UpdateOneID(bob).SetScore(1).ExecX(ctx)
-		if _, err := f.s.Review(ctx, nil, rep2.ID, ActionReject, rewarded, true, noBan); err != nil || f.score(bob) != 1 {
+		if _, err := f.s.Review(ctx, nil, rep2.ID, ActionReject, rewarded, true, noBan, nil); err != nil || f.score(bob) != 1 {
 			t.Fatalf("spent reward: %v, %d", err, f.score(bob))
 		}
 	})
@@ -264,14 +264,14 @@ func TestReviewBan(t *testing.T) {
 
 		refused := errors.New("not allowed")
 		if _, err := f.s.Review(ctx, nil, rep.ID, ActionBan, charged, true,
-			func(context.Context, int64) error { return refused }); !errors.Is(err, refused) {
+			func(context.Context, int64) error { return refused }, nil); !errors.Is(err, refused) {
 			t.Fatalf("a refused ban: %v", err)
 		}
 		if r := f.db.Report.GetX(ctx, rep.ID); r.Status != entreport.StatusPending || f.score(bob) != 95 {
 			t.Fatalf("a refused ban changes nothing: %s, %d", r.Status, f.score(bob))
 		}
 		var banned int64
-		got, err := f.s.Review(ctx, nil, rep.ID, ActionBan, charged, true, func(_ context.Context, id int64) error { banned = id; return nil })
+		got, err := f.s.Review(ctx, nil, rep.ID, ActionBan, charged, true, func(_ context.Context, id int64) error { banned = id; return nil }, nil)
 		if err != nil || banned != alice || got.Status != entreport.StatusResolved || f.score(bob) != 110 {
 			t.Fatalf("ban: %+v, %v, banned %d, bob %d", got, err, banned, f.score(bob))
 		}
@@ -284,10 +284,10 @@ func TestReviewBan(t *testing.T) {
 		mine := f.upload(t, carol, true, 3)
 		rep2 := f.submit(t, bob, mine.ID)
 		f.db.User.DeleteOneID(carol).ExecX(ctx)
-		if _, err := f.s.Review(ctx, nil, rep2.ID, ActionBan, charged, true, noBan); !errors.Is(err, ErrNoUploader) {
+		if _, err := f.s.Review(ctx, nil, rep2.ID, ActionBan, charged, true, noBan, nil); !errors.Is(err, ErrNoUploader) {
 			t.Fatalf("no uploader: %v", err)
 		}
-		if _, err := f.s.Review(ctx, nil, rep2.ID, "explode", charged, true, noBan); len(validate.FieldErrors(err)) != 1 {
+		if _, err := f.s.Review(ctx, nil, rep2.ID, "explode", charged, true, noBan, nil); len(validate.FieldErrors(err)) != 1 {
 			t.Fatalf("unknown action: %v", err)
 		}
 	})
@@ -309,7 +309,7 @@ func TestReviewConcurrent(t *testing.T) {
 			for _, action := range []string{ActionDelete, ActionReject} {
 				go func() {
 					<-start
-					_, err := f.s.Review(ctx, nil, rep.ID, action, charged, true, noBan)
+					_, err := f.s.Review(ctx, nil, rep.ID, action, charged, true, noBan, nil)
 					errs <- err
 				}()
 			}
@@ -363,7 +363,7 @@ func TestReviewsOfOneTextureConcurrently(t *testing.T) {
 					action = ActionReject
 				}
 				wg.Go(func() {
-					_, err := f.s.Review(ctx, nil, rep.ID, action, charged, true, noBan)
+					_, err := f.s.Review(ctx, nil, rep.ID, action, charged, true, noBan, nil)
 					mu.Lock()
 					defer mu.Unlock()
 					switch {
@@ -381,6 +381,31 @@ func TestReviewsOfOneTextureConcurrently(t *testing.T) {
 			if f.db.Texture.Query().Where(enttexture.ID(skin.ID)).ExistX(ctx) {
 				t.Fatalf("round %d: the texture is still there", round)
 			}
+		}
+	})
+}
+
+// The reporter's account is deleted between reading the report and settling it (the
+// ban runs first, outside the transaction). Review decided from the report read
+// before its transaction and paid the reward to the deleted account: "user not
+// found", HTTP 500. It reads the report again under its locks now.
+func TestReviewReporterDeletedMeanwhile(t *testing.T) {
+	dbtest.ForEach(t, func(t *testing.T, d *db.DB) {
+		ctx := context.Background()
+		f := newFixture(t, d)
+		uploader := f.user(t, "up@example.com", 100)
+		reporter := f.user(t, "rep@example.com", 100)
+		skin := f.upload(t, uploader, true, 7)
+		rep := f.submit(t, reporter, skin.ID)
+		deleteReporter := func(ctx context.Context, _ int64) error {
+			return f.db.User.DeleteOneID(reporter).Exec(ctx) // what an administrator does meanwhile
+		}
+		got, err := f.s.Review(ctx, nil, rep.ID, ActionBan, charged, true, deleteReporter, nil)
+		if err != nil {
+			t.Fatalf("review: %v", err)
+		}
+		if got.Status != "resolved" || got.ReporterID != nil {
+			t.Fatalf("report %+v", got)
 		}
 	})
 }

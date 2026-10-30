@@ -4,12 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"maps"
 	"net/http"
-	"slices"
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
 )
 
@@ -98,7 +97,8 @@ func registerAdmin(api huma.API, d Deps) {
 			}
 			changes[k] = raw
 		}
-		if _, err := d.Settings.Set(ctx, actor, changes); err != nil {
+		rec := &audit.Entry{Actor: actor, Action: "settings.update", TargetType: "settings", IP: requestInfo(ctx).client.ClientIP}
+		if _, err := d.Settings.Set(ctx, actor, changes, rec); err != nil {
 			var verr *settings.ValidationError
 			if errors.As(err, &verr) {
 				details := make([]error, 0, len(verr.Fields))
@@ -108,13 +108,6 @@ func registerAdmin(api huma.API, d Deps) {
 				return nil, huma.Error422UnprocessableEntity("invalid settings", details...)
 			}
 			return nil, err
-		}
-		if d.Accounts != nil {
-			keys := slices.Sorted(maps.Keys(in.Body))
-			if err := d.Accounts.Audit(ctx, actor, "settings.update", "settings", "", requestInfo(ctx).client.ClientIP,
-				map[string]any{"keys": keys}); err != nil {
-				d.Log.Warn("audit settings.update", "err", err)
-			}
 		}
 		return &settingsOutput{Body: settingsList(d.Settings)}, nil
 	})

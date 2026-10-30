@@ -111,16 +111,18 @@ func (s *Service) ResendVerification(ctx context.Context, userID int64, mc MailC
 		return ErrAlreadyVerified
 	}
 	key := strconv.FormatInt(userID, 10)
-	for _, l := range []*Limiter{s.resendMinute, s.resendDay} {
-		if wait, blocked := l.Blocked(key); blocked {
-			return &RateLimitError{RetryAfter: wait}
-		}
+	if wait, blocked := s.resendMinute.Take(key); blocked {
+		return &RateLimitError{RetryAfter: wait}
+	}
+	if wait, blocked := s.resendDay.Take(key); blocked {
+		s.resendMinute.Release(key)
+		return &RateLimitError{RetryAfter: wait}
 	}
 	if err := s.withTx(ctx, func(tx *ent.Client) error { return s.sendVerification(ctx, tx, u, mc) }); err != nil {
+		s.resendMinute.Release(key) // nothing was sent
+		s.resendDay.Release(key)
 		return err
 	}
-	s.resendMinute.Fail(key)
-	s.resendDay.Fail(key)
 	s.kick()
 	return nil
 }
@@ -173,10 +175,9 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email string, mc Mai
 		l   *Limiter
 		key string
 	}{{s.forgotIP, ip}, {s.forgotAccount, acct}} {
-		if wait, blocked := c.l.Blocked(c.key); blocked {
+		if wait, blocked := c.l.Take(c.key); blocked {
 			return &RateLimitError{RetryAfter: wait}
 		}
-		c.l.Fail(c.key)
 	}
 	u, err := s.db.User.Query().Where(user.EmailNormalized(acct), user.StatusEQ(user.StatusActive)).Only(ctx)
 	if ent.IsNotFound(err) {

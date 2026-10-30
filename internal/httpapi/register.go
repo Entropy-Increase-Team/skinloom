@@ -55,10 +55,9 @@ func registerAccounts(api huma.API, d Deps) {
 			return nil, huma.Error404NotFound("the image captcha is not enabled")
 		}
 		client := account.ClientKey(requestInfo(ctx).client.ClientIP)
-		if wait, blocked := images.Blocked(client); blocked {
+		if wait, blocked := images.Take(client); blocked {
 			return nil, rateLimitError(&account.RateLimitError{RetryAfter: wait}, "too many captcha images, try again later")
 		}
-		images.Fail(client)
 		id, png, err := d.Captcha.NewImage()
 		if err != nil {
 			return nil, err

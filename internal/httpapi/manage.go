@@ -10,6 +10,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
@@ -143,7 +144,7 @@ func registerManage(api huma.API, d Deps) {
 			if err != nil {
 				return nil, err
 			}
-			refunded, err := d.Textures.Unfavorite(ctx, v.User.ID, in.TextureID, score.RatesFrom(d.Settings.Current()).ReturnOnDelete)
+			refunded, err := d.Textures.Unfavorite(ctx, v.User.ID, in.TextureID, score.RatesFrom(d.Settings.Current()).ReturnOnDelete, nil)
 			if err != nil {
 				return nil, manageError(d, err)
 			}
@@ -158,13 +159,12 @@ func registerManage(api huma.API, d Deps) {
 			}
 			snap := d.Settings.Current()
 			b := in.Body
+			// Written by the service only when this is someone else's texture (moderation).
+			rec := textureRecord(ctx, v.User.ID, "admin.texture_updated", in.ID, map[string]any{"name": b.Name, "type": b.Type, "public": b.Public})
 			t, err := d.Textures.Update(ctx, textureViewer(ctx), in.ID, texture.Edit{Name: b.Name, Type: b.Type, Public: b.Public},
-				texture.PolicyFrom(snap), score.RatesFrom(snap))
+				texture.PolicyFrom(snap), score.RatesFrom(snap), rec)
 			if err != nil {
 				return nil, manageError(d, err)
-			}
-			if t.UploaderID == nil || *t.UploaderID != v.User.ID { // an administrator moderating
-				auditTexture(ctx, d, v.User.ID, "admin.texture_updated", in.ID, map[string]any{"name": b.Name, "type": b.Type, "public": b.Public})
 			}
 			return &struct{ Body TextureView }{textureView(t)}, nil
 		})
@@ -175,15 +175,10 @@ func registerManage(api huma.API, d Deps) {
 			if err != nil {
 				return nil, err
 			}
-			t, err := d.Textures.Get(ctx, in.ID, textureViewer(ctx))
-			if err != nil {
+			// Written by the service only when this is someone else's texture (moderation).
+			rec := textureRecord(ctx, v.User.ID, "admin.texture_deleted", in.ID, nil)
+			if err := d.Textures.Delete(ctx, textureViewer(ctx), in.ID, score.RatesFrom(d.Settings.Current()).ReturnOnDelete, rec); err != nil {
 				return nil, manageError(d, err)
-			}
-			if err := d.Textures.Delete(ctx, textureViewer(ctx), in.ID, score.RatesFrom(d.Settings.Current()).ReturnOnDelete); err != nil {
-				return nil, manageError(d, err)
-			}
-			if t.UploaderID == nil || *t.UploaderID != v.User.ID {
-				auditTexture(ctx, d, v.User.ID, "admin.texture_deleted", in.ID, map[string]any{"name": t.Name, "hash": t.Hash})
 			}
 			return nil, nil
 		})
@@ -231,9 +226,9 @@ func registerManage(api huma.API, d Deps) {
 		})
 }
 
-// auditTexture records an administrator's change to someone else's texture.
-func auditTexture(ctx context.Context, d Deps, actor int64, action string, id int64, meta map[string]any) {
-	if err := d.Accounts.Audit(ctx, &actor, action, "texture", strconv.FormatInt(id, 10), requestInfo(ctx).client.ClientIP, meta); err != nil {
-		d.Log.Warn("audit", "action", action, "err", err)
-	}
+// textureRecord is the audit record of an administrator's change to someone else's
+// texture.
+func textureRecord(ctx context.Context, actor int64, action string, id int64, meta map[string]any) *audit.Entry {
+	return &audit.Entry{Actor: &actor, Action: action, TargetType: "texture", TargetID: strconv.FormatInt(id, 10),
+		IP: requestInfo(ctx).client.ClientIP, Meta: meta}
 }

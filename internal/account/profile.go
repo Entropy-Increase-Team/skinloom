@@ -14,6 +14,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
 )
 
@@ -67,15 +68,15 @@ func (s *Service) checkPassword(ctx context.Context, u *ent.User, password strin
 		return nil
 	}
 	key := strconv.FormatInt(u.ID, 10)
-	if wait, blocked := s.passwordChecks.Blocked(key); blocked {
+	if wait, blocked := s.passwordChecks.Take(key); blocked { // counted before checking: see Limiter.Take
 		return &RateLimitError{RetryAfter: wait}
 	}
 	ok, _, err := s.hasher.Verify(ctx, u.PasswordAlgo, u.PasswordHash, password)
 	if err != nil && ctx.Err() != nil {
+		s.passwordChecks.Release(key)
 		return ctx.Err()
 	}
 	if !ok {
-		s.passwordChecks.Fail(key)
 		return &FieldError{Field: "password", Message: "incorrect password"}
 	}
 	s.passwordChecks.Reset(key)
@@ -130,10 +131,9 @@ func (s *Service) ChangeEmail(ctx context.Context, v *Viewer, password, email st
 	// a signed-in user could ask about any number of addresses (registration has a
 	// captcha and per-address limits for the same answer).
 	key := strconv.FormatInt(old.ID, 10)
-	if wait, blocked := s.emailChanges.Blocked(key); blocked {
+	if wait, blocked := s.emailChanges.Take(key); blocked {
 		return nil, &RateLimitError{RetryAfter: wait}
 	}
-	s.emailChanges.Fail(key)
 	meta = meta.clipped()
 	var u *ent.User
 	err := s.withTx(ctx, func(tx *ent.Client) error {
@@ -278,26 +278,50 @@ func (s *Service) PurgeDeleted(ctx context.Context) (int, error) {
 	}
 	purged := 0
 	for _, id := range ids {
-		if err := s.beforeDelete(ctx, id); err != nil {
+		// One transaction per account, the hook included: a user who signs in again
+		// meanwhile (restoring the account) makes the delete match nothing, and the
+		// rollback keeps their private textures, which the hook had already deleted
+		// when it ran on its own.
+		err := s.withTx(ctx, func(tx *ent.Client) error {
+			if err := s.beforeDelete(ctx, tx, id); err != nil {
+				return err
+			}
+			n, err := tx.User.Delete().Where(append(expired, user.ID(id))...).Exec(ctx)
+			if err == nil && n == 0 {
+				return errRestored
+			}
+			if err != nil {
+				return err
+			}
+			return hook.OnUserDeleted.Publish(ctx, s.hooks, tx, hook.UserEvent{UserID: id})
+		})
+		switch {
+		case errors.Is(err, errRestored):
+		case err != nil:
 			return purged, err
+		default:
+			purged++
 		}
-		n, err := s.db.User.Delete().Where(append(expired, user.ID(id))...).Exec(ctx)
-		if err != nil {
-			return purged, err
-		}
-		purged += n
+	}
+	if purged > 0 {
+		s.kick() // the deletions may have queued file sweeps
 	}
 	return purged, nil
 }
 
-// SetBeforeDelete sets a function that runs before an account is removed for good
-// (purge or an administrator's delete), e.g. to delete the user's private textures,
-// which nobody else could ever see.
-func (s *Service) SetBeforeDelete(f func(ctx context.Context, userID int64) error) { s.onDelete = f }
+var errRestored = errors.New("restored meanwhile")
 
-func (s *Service) beforeDelete(ctx context.Context, userID int64) error {
+// SetBeforeDelete sets a function that runs inside the transaction that removes an
+// account for good (purge or an administrator's delete), before the user's row goes:
+// to delete the user's private textures, which nobody else could ever see, and to
+// lock what the deletion changes in the one order (see score.Lock).
+func (s *Service) SetBeforeDelete(f func(ctx context.Context, tx *ent.Client, userID int64) error) {
+	s.onDelete = f
+}
+
+func (s *Service) beforeDelete(ctx context.Context, tx *ent.Client, userID int64) error {
 	if s.onDelete == nil {
 		return nil
 	}
-	return s.onDelete(ctx, userID)
+	return s.onDelete(ctx, tx, userID)
 }

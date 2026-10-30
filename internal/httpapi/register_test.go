@@ -18,7 +18,7 @@ func setSettings(t *testing.T, d Deps, body string) {
 	if err := json.Unmarshal([]byte(body), &m); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := d.Settings.Set(context.Background(), nil, m); err != nil {
+	if _, err := d.Settings.Set(context.Background(), nil, m, nil); err != nil {
 		t.Fatal(err)
 	}
 }

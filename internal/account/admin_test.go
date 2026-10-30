@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 )
 
@@ -204,7 +205,7 @@ func testBeforeDeleteHook(t *testing.T, s *Service) {
 	_, sess := setupAdmin(t, s)
 	super := signedIn(t, s, sess.Token)
 	var called []int64
-	s.SetBeforeDelete(func(_ context.Context, id int64) error { called = append(called, id); return nil })
+	s.SetBeforeDelete(func(_ context.Context, _ *ent.Client, id int64) error { called = append(called, id); return nil })
 	if err := s.AdminDeleteUser(ctx, super, super.User.ID, meta); !errors.Is(err, ErrForbidden) || len(called) != 0 {
 		t.Fatalf("a refused delete must not run the hook: %v, %v", err, called)
 	}

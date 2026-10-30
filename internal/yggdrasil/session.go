@@ -310,7 +310,7 @@ func (s *Service) UploadTexture(ctx context.Context, token, profileID string, in
 	} else {
 		wear[1] = &id
 	}
-	if _, err := s.players.Wear(ctx, t.user.ID, p.ID, wear[0], wear[1]); err != nil {
+	if _, err := s.players.Wear(ctx, t.user.ID, p.ID, wear[0], wear[1], nil); err != nil {
 		return uploadError(err)
 	}
 	return nil
@@ -329,7 +329,7 @@ func (s *Service) ResetTexture(ctx context.Context, token, profileID, kind strin
 	} else {
 		wear[1] = &zero
 	}
-	_, err = s.players.Wear(ctx, t.user.ID, p.ID, wear[0], wear[1])
+	_, err = s.players.Wear(ctx, t.user.ID, p.ID, wear[0], wear[1], nil)
 	return err
 }
 

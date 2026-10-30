@@ -18,14 +18,24 @@ func (s *Service) SetAvatar(ctx context.Context, v Viewer, id int64) error {
 	if id == 0 {
 		return s.db.User.UpdateOneID(v.UserID).ClearAvatarTextureID().Exec(ctx)
 	}
-	t, err := s.Get(ctx, id, v)
-	if err != nil {
+	if _, err := s.Get(ctx, id, v); err != nil { // the usual not found / private answers
 		return err
 	}
-	if t.Type == tex.TypeCape {
-		return ErrNotSkin
-	}
-	return s.db.User.UpdateOneID(v.UserID).SetAvatarTextureID(id).Exec(ctx)
+	// The texture first, then the user (see score.Lock): a deletion clears the avatars
+	// showing it under the texture's lock, and this must not set one in between.
+	return withTx(ctx, s.db, func(tx *ent.Client) error {
+		t, err := lockAndGet(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if !v.MayView(t) {
+			return ErrPrivate
+		}
+		if t.Type == tex.TypeCape {
+			return ErrNotSkin
+		}
+		return tx.User.UpdateOneID(v.UserID).SetAvatarTextureID(id).Exec(ctx)
+	})
 }
 
 // Avatar returns the skin whose head is a user's avatar, or nil: none set, gone,

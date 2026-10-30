@@ -263,7 +263,7 @@ func registerAuth(api huma.API, d Deps) {
 		// The administrator exists now; finish even if the client already went away.
 		done := context.WithoutCancel(ctx)
 		if len(changes) > 0 {
-			if _, err := d.Settings.Set(done, &u.ID, changes); err != nil {
+			if _, err := d.Settings.Set(done, &u.ID, changes, nil); err != nil {
 				d.Log.Warn("setup: could not save site settings", "err", err)
 			}
 		}

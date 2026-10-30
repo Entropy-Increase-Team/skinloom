@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -22,6 +23,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/announcement"
 	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
 )
 
@@ -61,8 +63,9 @@ func check(title, content string) (string, string, error) {
 	return title, content, errors.Join(errs...)
 }
 
-// Send puts a notification in one user's inbox.
-func (s *Service) Send(ctx context.Context, userID int64, title, content string) (*ent.Notification, error) {
+// Send puts a notification in one user's inbox. rec, if not nil, is written to the
+// audit log in the same transaction, naming the new notification.
+func (s *Service) Send(ctx context.Context, userID int64, title, content string, rec *audit.Entry) (*ent.Notification, error) {
 	title, content, err := check(title, content)
 	if err != nil {
 		return nil, err
@@ -72,12 +75,21 @@ func (s *Service) Send(ctx context.Context, userID int64, title, content string)
 	if err := s.deliver(ctx, userID); err != nil {
 		return nil, err
 	}
-	return s.db.Notification.Create().SetUserID(userID).SetTitle(title).SetContent(content).Save(ctx)
+	var n *ent.Notification
+	err = withTx(ctx, s.db, func(tx *ent.Client) error {
+		n, err = tx.Notification.Create().SetUserID(userID).SetTitle(title).SetContent(content).Save(ctx)
+		if err != nil {
+			return err
+		}
+		return audit.Write(ctx, tx, rec.Target("notification", strconv.FormatInt(n.ID, 10)))
+	})
+	return n, err
 }
 
 // Announce sends a notification to every user of audience who exists now (later
-// users do not get it, as with Blessing Skin). sender is nil for the admin token.
-func (s *Service) Announce(ctx context.Context, sender *int64, audience, title, content string) (*ent.Announcement, error) {
+// users do not get it, as with Blessing Skin). sender is nil for the admin token. rec,
+// if not nil, is written to the audit log in the same transaction.
+func (s *Service) Announce(ctx context.Context, sender *int64, audience, title, content string, rec *audit.Entry) (*ent.Announcement, error) {
 	title, content, err := check(title, content)
 	if err != nil {
 		return nil, err
@@ -85,8 +97,16 @@ func (s *Service) Announce(ctx context.Context, sender *int64, audience, title, 
 	if audience != AudienceAll && audience != AudienceUsers {
 		return nil, &validate.FieldError{Field: "audience", Message: "must be all or users"}
 	}
-	return s.db.Announcement.Create().SetTitle(title).SetContent(content).
-		SetAudience(announcement.Audience(audience)).SetNillableSenderID(sender).Save(ctx)
+	var a *ent.Announcement
+	err = withTx(ctx, s.db, func(tx *ent.Client) error {
+		a, err = tx.Announcement.Create().SetTitle(title).SetContent(content).
+			SetAudience(announcement.Audience(audience)).SetNillableSenderID(sender).Save(ctx)
+		if err != nil {
+			return err
+		}
+		return audit.Write(ctx, tx, rec.Target("announcement", strconv.FormatInt(a.ID, 10)))
+	})
+	return a, err
 }
 
 // deliver copies into the user's inbox the announcements meant for them that they do

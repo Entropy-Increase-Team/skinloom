@@ -4,12 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/Entropy-Increase-Team/skinloom/ent/auditlog"
+	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
@@ -87,7 +91,7 @@ func testDefaultsAndSet(t *testing.T, database *db.DB) {
 
 	snap, err := svc.Set(ctx, nil, map[string]json.RawMessage{
 		"site.name": json.RawMessage(`{"zh-CN":"测试","en":"Test"}`),
-	})
+	}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +107,7 @@ func testDefaultsAndSet(t *testing.T, database *db.DB) {
 		t.Fatal("no change broadcast")
 	}
 
-	snap, err = svc.Set(ctx, nil, map[string]json.RawMessage{"site.name": json.RawMessage(`null`)})
+	snap, err = svc.Set(ctx, nil, map[string]json.RawMessage{"site.name": json.RawMessage(`null`)}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +124,7 @@ func testValidationRejectsWholeUpdate(t *testing.T, database *db.DB) {
 		"site.description": json.RawMessage(`{"en":"ok"}`),
 		"site.url":         json.RawMessage(`"ftp://nope"`),
 		"no.such":          json.RawMessage(`1`),
-	})
+	}, nil)
 	var verr *settings.ValidationError
 	if !errors.As(err, &verr) || len(verr.Fields) != 2 {
 		t.Fatalf("want 2 field errors, got %v", err)
@@ -144,7 +148,7 @@ func testWatchPicksUpOtherWriters(t *testing.T, database *db.DB) {
 
 	if _, err := writer.Set(context.Background(), nil, map[string]json.RawMessage{
 		"site.url": json.RawMessage(`"https://skin.example.com"`),
-	}); err != nil {
+	}, nil); err != nil {
 		t.Fatal(err)
 	}
 	select {
@@ -165,4 +169,50 @@ func TestPickLocalized(t *testing.T) {
 			t.Errorf("PickLocalized(%s) = %q, want %q", locale, got, want)
 		}
 	}
+}
+
+// Two administrators saving overlapping keys at once. Set wrote them in map order, so
+// two saves locked the rows in opposite orders and deadlocked (PostgreSQL, 8 saves at
+// once: 130 of 200 failed); it writes them in key order now. The record of a save is
+// written in its transaction.
+func TestConcurrentSetsOfOverlappingKeys(t *testing.T) {
+	forEachDB(t, func(t *testing.T, database *db.DB) {
+		log := slog.New(slog.NewTextHandler(io.Discard, nil))
+		bus := hook.NewBus(log, 1)
+		t.Cleanup(func() { bus.Close(context.Background()) })
+		reg := settings.NewRegistry()
+		var keys []string
+		for i := range 6 {
+			k := fmt.Sprintf("race.k%d", i)
+			keys = append(keys, k)
+			if err := reg.Register(settings.Def{Key: k, Type: settings.TypeInt, Default: 0}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		svc := settings.NewService(reg, database.Ent, pubsub.New(), bus, log)
+		if err := svc.Load(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		const action = "test.settings_race"
+		database.Ent.AuditLog.Delete().Where(auditlog.Action(action)).ExecX(context.Background()) // a shared server database
+		var wg sync.WaitGroup
+		for g := range 8 {
+			wg.Go(func() {
+				for i := range 10 {
+					ch := map[string]json.RawMessage{}
+					for _, k := range keys {
+						ch[k] = json.RawMessage(fmt.Sprint(g*100 + i))
+					}
+					if _, err := svc.Set(context.Background(), nil, ch, &audit.Entry{Action: action}); err != nil {
+						t.Error(err)
+						return
+					}
+				}
+			})
+		}
+		wg.Wait()
+		if n := database.Ent.AuditLog.Query().Where(auditlog.Action(action)).CountX(context.Background()); n != 80 {
+			t.Fatalf("%d audit records, want one per save (80)", n)
+		}
+	})
 }

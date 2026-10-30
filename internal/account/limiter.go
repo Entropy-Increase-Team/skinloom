@@ -45,11 +45,41 @@ func (l *Limiter) Blocked(key string) (time.Duration, bool) {
 	return left, b.n >= l.max
 }
 
+// Take counts one attempt for key unless key is already at the limit, in one step,
+// and reports like Blocked. Callers that check before expensive work (a password
+// hash) and count a failure after it must use this instead of Blocked and Fail:
+// requests arriving together would all pass Blocked before any of them was counted,
+// so a burst got as many tries as it had requests, whatever the limit (2026-10-30
+// review: 200 concurrent logins, 200 password checks, limit 10). Release takes the
+// attempt back when it turns out not to count.
+func (l *Limiter) Take(key string) (time.Duration, bool) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	now := l.now()
+	if b := l.hits[key]; b != nil && now.Sub(b.start) < l.window && b.n >= l.max {
+		return b.start.Add(l.window).Sub(now), true
+	}
+	l.add(key, now)
+	return 0, false
+}
+
+// Release forgets one attempt counted by Take (or Fail) in key's current window.
+func (l *Limiter) Release(key string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if b := l.hits[key]; b != nil && b.n > 0 && l.now().Sub(b.start) < l.window {
+		b.n--
+	}
+}
+
 // Fail records one failure for key.
 func (l *Limiter) Fail(key string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	now := l.now()
+	l.add(key, l.now())
+}
+
+func (l *Limiter) add(key string, now time.Time) {
 	b := l.hits[key]
 	if b == nil || now.Sub(b.start) >= l.window {
 		b = &bucket{start: now}

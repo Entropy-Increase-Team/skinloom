@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -23,8 +24,11 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	tex "github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
+	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
 )
 
 var (
@@ -35,13 +39,21 @@ var (
 
 // Service implements players.
 type Service struct {
-	db  *ent.Client
-	log *slog.Logger
+	db    *ent.Client
+	log   *slog.Logger
+	hooks *hook.Bus // see SetHooks
 }
 
 // NewService creates the service.
 func NewService(db *ent.Client, log *slog.Logger) *Service {
 	return &Service{db: db, log: log}
+}
+
+// SetHooks sets the bus player events are published to (none before it is set).
+func (s *Service) SetHooks(b *hook.Bus) { s.hooks = b }
+
+func event(p *ent.Player) hook.PlayerEvent {
+	return hook.PlayerEvent{PlayerID: p.ID, UserID: p.UserID, Name: p.Name, UUID: p.UUID}
 }
 
 // Key is the lookup key of a name: names are unique and found ignoring case.
@@ -152,7 +164,10 @@ func (s *Service) Create(ctx context.Context, userID int64, name string, p Polic
 		}
 		balance, err = score.Apply(ctx, tx, score.Change{UserID: userID, Delta: -r.PerPlayer,
 			Reason: score.ReasonPlayerCreate, RefType: "player", RefID: strconv.FormatInt(created.ID, 10)})
-		return err
+		if err != nil {
+			return err
+		}
+		return hook.OnPlayerCreated.Publish(ctx, s.hooks, tx, event(created))
 	})
 	return created, balance, err
 }
@@ -160,21 +175,10 @@ func (s *Service) Create(ctx context.Context, userID int64, name string, p Polic
 // Rename changes a player's name. With v3 UUIDs the UUID follows the name, as on an
 // offline-mode server; v4 UUIDs stay.
 func (s *Service) Rename(ctx context.Context, userID, id int64, name string, p Policy) (*ent.Player, error) {
-	name = strings.TrimSpace(name)
-	if err := ValidateName(name, p); err != nil {
+	if _, err := s.get(ctx, userID, id); err != nil {
 		return nil, err
 	}
-	pl, err := s.get(ctx, userID, id)
-	if err != nil {
-		return nil, err
-	}
-	upd := s.db.Player.UpdateOne(pl).SetName(name).SetNameLower(Key(name))
-	if !p.UUIDv4 {
-		upd.SetUUID(OfflineUUID(name))
-	}
-	if _, err := upd.Save(ctx); ent.IsConstraintError(err) {
-		return nil, errNameTaken
-	} else if err != nil {
+	if _, err := s.Edit(ctx, id, Change{Owner: userID, Name: &name}, p, nil); err != nil {
 		return nil, err
 	}
 	return s.get(ctx, userID, id)
@@ -182,15 +186,34 @@ func (s *Service) Rename(ctx context.Context, userID, id int64, name string, p P
 
 // Delete removes a player. With refund, the score its creation cost is given back:
 // the amount recorded in the ledger then, not today's price (Blessing Skin returned
-// the current score_per_player, C05).
-func (s *Service) Delete(ctx context.Context, userID, id int64, refund bool) (int64, error) {
-	pl, err := s.get(ctx, userID, id)
-	if err != nil {
+// the current score_per_player, C05). rec, if not nil, is written to the audit log in
+// the same transaction (an administrator's deletion).
+func (s *Service) Delete(ctx context.Context, userID, id int64, refund bool, rec *audit.Entry) (int64, error) {
+	if _, err := s.get(ctx, userID, id); err != nil {
 		return 0, err
 	}
 	var returned int64
-	err = withTx(ctx, s.db, func(tx *ent.Client) error {
+	err := withTx(ctx, s.db, func(tx *ent.Client) error {
+		// The owner first, then the player (see score.Lock): deleting the player before
+		// locking the owner whose score the refund changes deadlocked with a closet
+		// removal, which locks the texture, the owner, then the owner's players.
+		if err := score.Lock(ctx, tx, userID); err != nil {
+			return err
+		}
+		pl, err := tx.Player.Query().Where(entplayer.ID(id), entplayer.UserID(userID)).Only(ctx)
+		if ent.IsNotFound(err) {
+			return ErrNotFound // deleted or given away meanwhile
+		}
+		if err != nil {
+			return err
+		}
 		if err := tx.Player.DeleteOne(pl).Exec(ctx); err != nil {
+			return err
+		}
+		if err := hook.OnPlayerDeleted.Publish(ctx, s.hooks, tx, event(pl)); err != nil {
+			return err
+		}
+		if err := audit.Write(ctx, tx, rec); err != nil {
 			return err
 		}
 		if !refund {
@@ -212,62 +235,105 @@ func (s *Service) Delete(ctx context.Context, userID, id int64, refund bool) (in
 	return returned, err
 }
 
-// Wear sets what a player wears. For each of skin and cape: nil leaves it, 0 takes it
-// off, a texture id puts it on. The texture must be in the owner's closet and of the
-// right kind: a cape is not a skin (Blessing Skin let any closet item go anywhere, C07).
-func (s *Service) Wear(ctx context.Context, userID, id int64, skin, cape *int64) (*ent.Player, error) {
-	pl, err := s.get(ctx, userID, id)
-	if err != nil {
-		return nil, err
-	}
-	upd := s.db.Player.UpdateOne(pl)
-	var errs []error
-	for _, slot := range []struct {
-		field string
-		id    *int64
-		types []tex.Type
-		set   func(int64) *ent.PlayerUpdateOne
-		clear func() *ent.PlayerUpdateOne
-	}{
-		{"skin", skin, []tex.Type{tex.TypeSteve, tex.TypeAlex}, upd.SetSkinID, upd.ClearSkinID},
-		{"cape", cape, []tex.Type{tex.TypeCape}, upd.SetCapeID, upd.ClearCapeID},
-	} {
-		switch {
-		case slot.id == nil:
-		case *slot.id == 0:
-			slot.clear()
-		default:
-			t, err := s.db.Texture.Get(ctx, *slot.id)
-			if ent.IsNotFound(err) {
-				errs = append(errs, &validate.FieldError{Field: slot.field, Message: "no such texture"})
-				continue
-			}
-			if err != nil {
-				return nil, err
-			}
-			ok := false
-			for _, want := range slot.types {
-				ok = ok || t.Type == want
-			}
-			if !ok {
-				errs = append(errs, &validate.FieldError{Field: slot.field, Message: "not a " + slot.field})
-				continue
-			}
-			inCloset, err := s.db.ClosetItem.Query().Where(closetitem.UserID(userID), closetitem.TextureID(t.ID)).Exist(ctx)
-			if err != nil {
-				return nil, err
-			}
-			if !inCloset {
-				errs = append(errs, &validate.FieldError{Field: slot.field, Message: "not in your closet"})
-				continue
-			}
-			slot.set(t.ID)
+// lockTextures takes the locks of the textures a change puts on a player or checks
+// against a closet, in ascending id order and before the player's row (see
+// score.Lock). Closets only change under their texture's lock (adds, removals, a
+// texture going private), so a closet check made after this stays true until commit:
+// checked without it, a texture could leave the closet in between and stay on the
+// player. Missing textures are skipped (the caller reports them).
+func lockTextures(ctx context.Context, tx *ent.Client, ids ...*int64) error {
+	var list []int64
+	for _, id := range ids {
+		if id != nil && *id > 0 {
+			list = append(list, *id)
 		}
 	}
-	if err := errors.Join(errs...); err != nil {
+	slices.Sort(list)
+	for _, id := range slices.Compact(list) {
+		if err := texture.Lock(ctx, tx, id); err != nil && !errors.Is(err, texture.ErrNotFound) {
+			return err
+		}
+	}
+	return nil
+}
+
+// Wear sets what a player wears. For each of skin and cape: nil leaves it, 0 takes it
+// off, a texture id puts it on. The texture must be in the owner's closet and of the
+// right kind: a cape is not a skin (Blessing Skin let any closet item go anywhere,
+// C07). rec, if not nil, is written to the audit log in the same transaction.
+func (s *Service) Wear(ctx context.Context, userID, id int64, skin, cape *int64, rec *audit.Entry) (*ent.Player, error) {
+	if _, err := s.get(ctx, userID, id); err != nil {
 		return nil, err
 	}
-	if _, err := upd.Save(ctx); err != nil {
+	err := withTx(ctx, s.db, func(tx *ent.Client) error {
+		if err := lockTextures(ctx, tx, skin, cape); err != nil {
+			return err
+		}
+		pl, err := tx.Player.Query().Where(entplayer.ID(id), entplayer.UserID(userID)).Only(ctx)
+		if ent.IsNotFound(err) {
+			return ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		upd := tx.Player.UpdateOne(pl)
+		var errs []error
+		changed := false
+		for _, slot := range []struct {
+			field string
+			id    *int64
+			cur   *int64
+			types []tex.Type
+			set   func(int64) *ent.PlayerUpdateOne
+			clear func() *ent.PlayerUpdateOne
+		}{
+			{"skin", skin, pl.SkinID, []tex.Type{tex.TypeSteve, tex.TypeAlex}, upd.SetSkinID, upd.ClearSkinID},
+			{"cape", cape, pl.CapeID, []tex.Type{tex.TypeCape}, upd.SetCapeID, upd.ClearCapeID},
+		} {
+			switch {
+			case slot.id == nil:
+			case *slot.id == 0:
+				changed = changed || slot.cur != nil
+				slot.clear()
+			default:
+				t, err := tx.Texture.Get(ctx, *slot.id)
+				if ent.IsNotFound(err) {
+					errs = append(errs, &validate.FieldError{Field: slot.field, Message: "no such texture"})
+					continue
+				}
+				if err != nil {
+					return err
+				}
+				if !slices.Contains(slot.types, t.Type) {
+					errs = append(errs, &validate.FieldError{Field: slot.field, Message: "not a " + slot.field})
+					continue
+				}
+				inCloset, err := tx.ClosetItem.Query().Where(closetitem.UserID(userID), closetitem.TextureID(t.ID)).Exist(ctx)
+				if err != nil {
+					return err
+				}
+				if !inCloset {
+					errs = append(errs, &validate.FieldError{Field: slot.field, Message: "not in your closet"})
+					continue
+				}
+				changed = changed || slot.cur == nil || *slot.cur != t.ID
+				slot.set(t.ID)
+			}
+		}
+		if err := errors.Join(errs...); err != nil {
+			return err
+		}
+		if pl, err = upd.Save(ctx); err != nil {
+			return err
+		}
+		if changed {
+			if err := hook.OnPlayerUpdated.Publish(ctx, s.hooks, tx, event(pl)); err != nil {
+				return err
+			}
+		}
+		return audit.Write(ctx, tx, rec)
+	})
+	if err != nil {
 		return nil, err
 	}
 	return s.get(ctx, userID, id)

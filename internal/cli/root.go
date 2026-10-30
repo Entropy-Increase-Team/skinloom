@@ -17,6 +17,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/app"
+	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/buildinfo"
 	"github.com/Entropy-Increase-Team/skinloom/internal/httpapi"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
@@ -205,7 +206,9 @@ func settingsCmd(paths *app.Paths) *cobra.Command {
 			if !json.Valid(raw) {
 				raw, _ = json.Marshal(args[1]) // allow unquoted plain strings
 			}
-			snap, err := core.Settings.Set(cmd.Context(), nil, map[string]json.RawMessage{args[0]: raw})
+			// Recorded like a change in the admin panel, without an actor (the console).
+			rec := &audit.Entry{Action: "settings.update", TargetType: "settings", Meta: map[string]any{"via": "cli"}}
+			snap, err := core.Settings.Set(cmd.Context(), nil, map[string]json.RawMessage{args[0]: raw}, rec)
 			if err != nil {
 				return err
 			}

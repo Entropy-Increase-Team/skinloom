@@ -59,7 +59,7 @@ func Run(ctx context.Context, o RunOptions) error {
 	go core.Settings.Watch(runCtx, 2*time.Second)
 	go core.Jobs.Run(runCtx, 5*time.Second)
 	go purgeDeletedAccounts(runCtx, core)
-	go sweepOrphanFiles(runCtx, core)
+	go dailyUpkeep(runCtx, core)
 	go yggdrasilUpkeep(runCtx, core)
 
 	var gw *gateway.Gateway // created below; serves requests only after Serve starts
@@ -295,9 +295,6 @@ func purgeDeletedAccounts(ctx context.Context, core *Core) {
 	}
 }
 
-// sweepOrphanFiles deletes stored texture files that no texture uses (uploads whose
-// transaction failed, lost sweep jobs), daily. Every node may run it; the checks
-// make deleting twice harmless.
 // yggdrasilUpkeep loads (on a new site, generates) the Yggdrasil signing key before the
 // first launcher needs it, then hourly deletes join sessions, launcher tokens and
 // OAuth codes and tokens past use, and unfinished social sign-ins.
@@ -325,7 +322,10 @@ func yggdrasilUpkeep(ctx context.Context, core *Core) {
 	}
 }
 
-func sweepOrphanFiles(ctx context.Context, core *Core) {
+// dailyUpkeep deletes stored texture files that no texture uses (uploads whose
+// transaction failed, lost sweep jobs) and sets drifted like counts back to the
+// closet counts, daily. Every node may run it; both are safe to run twice.
+func dailyUpkeep(ctx context.Context, core *Core) {
 	t := time.NewTicker(24 * time.Hour)
 	defer t.Stop()
 	for {
@@ -338,6 +338,11 @@ func sweepOrphanFiles(ctx context.Context, core *Core) {
 			core.Log.Warn("sweep orphan texture files", "err", err)
 		} else if n > 0 {
 			core.Log.Info("deleted orphan texture files", "count", n)
+		}
+		if n, err := core.Textures.CalibrateLikes(ctx); err != nil && ctx.Err() == nil {
+			core.Log.Warn("calibrate texture likes", "err", err)
+		} else if n > 0 {
+			core.Log.Info("corrected texture like counts", "count", n)
 		}
 	}
 }

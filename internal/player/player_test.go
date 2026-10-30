@@ -144,17 +144,17 @@ func TestPlayers(t *testing.T) {
 		}
 
 		// Delete gives back what was paid (the ledger), not today's price.
-		if got, err := f.s.Delete(ctx, alice, p.ID, true); err != nil || got != 100 {
+		if got, err := f.s.Delete(ctx, alice, p.ID, true, nil); err != nil || got != 100 {
 			t.Fatalf("Delete refunded %d, %v", got, err)
 		}
 		if u := f.db.User.GetX(ctx, alice); u.Score != 150 {
 			t.Fatalf("score after the refund: %d", u.Score)
 		}
-		if _, err := f.s.Delete(ctx, alice, p.ID, true); !errors.Is(err, ErrNotFound) {
+		if _, err := f.s.Delete(ctx, alice, p.ID, true, nil); !errors.Is(err, ErrNotFound) {
 			t.Fatalf("deleted twice: %v", err)
 		}
 		free, _, _ := f.s.Create(ctx, bob, "FreeOne", official, score.Rates{})
-		if got, err := f.s.Delete(ctx, bob, free.ID, true); err != nil || got != 0 {
+		if got, err := f.s.Delete(ctx, bob, free.ID, true, nil); err != nil || got != 0 {
 			t.Fatalf("a free player refunds nothing: %d, %v", got, err)
 		}
 	})
@@ -210,18 +210,18 @@ func TestWearAndProfile(t *testing.T) {
 			t.Fatalf("a new player: %v", err)
 		}
 		// A cape is not a skin (C07), and only closet textures can be worn.
-		_, err := f.s.Wear(ctx, alice, p.ID, &cape, &slim)
+		_, err := f.s.Wear(ctx, alice, p.ID, &cape, &slim, nil)
 		if fe := validate.FieldErrors(err); len(fe) != 2 {
 			t.Fatalf("wrong kinds: %v", err)
 		}
-		if _, err := f.s.Wear(ctx, alice, p.ID, &notMine, nil); len(validate.FieldErrors(err)) != 1 {
+		if _, err := f.s.Wear(ctx, alice, p.ID, &notMine, nil, nil); len(validate.FieldErrors(err)) != 1 {
 			t.Fatalf("not in the closet: %v", err)
 		}
 		missing := int64(999999)
-		if _, err := f.s.Wear(ctx, alice, p.ID, &missing, nil); len(validate.FieldErrors(err)) != 1 {
+		if _, err := f.s.Wear(ctx, alice, p.ID, &missing, nil, nil); len(validate.FieldErrors(err)) != 1 {
 			t.Fatalf("no such texture: %v", err)
 		}
-		worn, err := f.s.Wear(ctx, alice, p.ID, &slim, &cape)
+		worn, err := f.s.Wear(ctx, alice, p.ID, &slim, &cape, nil)
 		if err != nil || worn.Edges.Skin == nil || worn.Edges.Cape == nil {
 			t.Fatalf("Wear: %+v, %v", worn, err)
 		}
@@ -234,7 +234,7 @@ func TestWearAndProfile(t *testing.T) {
 
 		// Taking the cape off leaves the skin.
 		zero := int64(0)
-		if _, err := f.s.Wear(ctx, alice, p.ID, nil, &zero); err != nil {
+		if _, err := f.s.Wear(ctx, alice, p.ID, nil, &zero, nil); err != nil {
 			t.Fatal(err)
 		}
 		if pr, _ := f.s.Profile(ctx, "Steve"); pr.Cape != "" || pr.Skin == "" {

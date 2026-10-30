@@ -14,6 +14,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 )
 
@@ -315,6 +316,11 @@ func (s *Service) AdminUpdateUser(ctx context.Context, a Actor, id int64, up Adm
 		if up.Score != nil {
 			auditMeta["score"] = []int64{target.Score, *up.Score}
 		}
+		if up.Status != nil && *up.Status == "banned" && target.Status != user.StatusBanned {
+			if err := hook.OnUserBanned.Publish(ctx, s.hooks, tx, hook.UserEvent{UserID: id}); err != nil {
+				return err
+			}
+		}
 		return audit(ctx, tx, actorID(a), "admin.user_updated", "user", strconv.FormatInt(id, 10), meta.IP, auditMeta)
 	})
 	return u, err
@@ -336,17 +342,24 @@ func (s *Service) AdminDeleteUser(ctx context.Context, a Actor, id int64, meta R
 	if target.Role == user.RoleSuperadmin {
 		return fmt.Errorf("%w: demote the super administrator before deleting the account", ErrForbidden)
 	}
-	if err := s.beforeDelete(ctx, id); err != nil {
-		return err
-	}
 	meta = meta.clipped()
-	return s.withTx(ctx, func(tx *ent.Client) error {
+	err = s.withTx(ctx, func(tx *ent.Client) error {
+		if err := s.beforeDelete(ctx, tx, id); err != nil {
+			return err
+		}
 		if err := tx.User.DeleteOneID(id).Exec(ctx); err != nil {
+			return err
+		}
+		if err := hook.OnUserDeleted.Publish(ctx, s.hooks, tx, hook.UserEvent{UserID: id}); err != nil {
 			return err
 		}
 		return audit(ctx, tx, actorID(a), "admin.user_deleted", "user", strconv.FormatInt(id, 10), meta.IP,
 			map[string]any{"email": target.Email, "nickname": target.Nickname})
 	})
+	if err == nil {
+		s.kick() // the deletion may have queued file sweeps
+	}
+	return err
 }
 
 // AuditFilter selects audit records.

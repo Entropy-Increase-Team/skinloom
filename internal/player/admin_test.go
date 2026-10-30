@@ -73,7 +73,7 @@ func TestTransfer(t *testing.T) {
 		cape := f.texture(t, alice, "cape", "bb", true)
 		d.Ent.ClosetItem.Create().SetUserID(bob).SetTextureID(cape).SetName("cape").ExecX(ctx) // bob has the cape too
 		p, _, _ := f.s.Create(ctx, alice, "Steve", official, rates)
-		if _, err := f.s.Wear(ctx, alice, p.ID, &skin, &cape); err != nil {
+		if _, err := f.s.Wear(ctx, alice, p.ID, &skin, &cape, nil); err != nil {
 			t.Fatal(err)
 		}
 
@@ -94,7 +94,7 @@ func TestTransfer(t *testing.T) {
 			t.Fatalf("no such player: %v", err)
 		}
 		// The creation fee stays with alice: bob deleting it gets nothing back.
-		if got, err := f.s.Delete(ctx, bob, p.ID, true); err != nil || got != 0 {
+		if got, err := f.s.Delete(ctx, bob, p.ID, true, nil); err != nil || got != 0 {
 			t.Fatalf("delete after transfer: %d, %v", got, err)
 		}
 	})

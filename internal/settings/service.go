@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sort"
 	"strings"
 	"sync/atomic"
@@ -14,6 +15,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/setting"
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
+	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/pubsub"
 )
@@ -174,8 +176,9 @@ func (s *Service) publish(next *Snapshot) bool {
 }
 
 // Set validates and stores changes in one transaction, bumps the config version and
-// publishes the new snapshot. A JSON null resets a key to its default.
-func (s *Service) Set(ctx context.Context, actor *int64, changes map[string]json.RawMessage) (*Snapshot, error) {
+// publishes the new snapshot. A JSON null resets a key to its default. rec, if not
+// nil, is written to the audit log in the same transaction, with the keys changed.
+func (s *Service) Set(ctx context.Context, actor *int64, changes map[string]json.RawMessage, rec *audit.Entry) (*Snapshot, error) {
 	verr := &ValidationError{Fields: map[string]string{}}
 	type change struct {
 		key   string
@@ -207,6 +210,13 @@ func (s *Service) Set(ctx context.Context, actor *int64, changes map[string]json
 	if len(list) == 0 {
 		return s.Current(), nil
 	}
+	// Rows are written in key order: in map order, two saves of overlapping keys locked
+	// them in opposite orders and deadlocked (PostgreSQL, 8 saves at once: 130 of 200).
+	slices.SortFunc(list, func(a, b change) int { return strings.Compare(a.key, b.key) })
+	keys := make([]string, 0, len(list))
+	for _, c := range list {
+		keys = append(keys, c.key)
+	}
 
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
@@ -235,17 +245,15 @@ func (s *Service) Set(ctx context.Context, actor *int64, changes map[string]json
 	if err != nil {
 		return nil, rollback(tx, err)
 	}
+	if err := audit.Write(ctx, tx.Client(), rec.With("keys", keys)); err != nil {
+		return nil, rollback(tx, err)
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 	if err := s.Load(ctx); err != nil {
 		return nil, err
 	}
-	keys := make([]string, 0, len(list))
-	for _, c := range list {
-		keys = append(keys, c.key)
-	}
-	sort.Strings(keys)
 	s.log.Info("settings updated", "keys", keys, "version", version)
 	s.announce(version, keys)
 	return s.Current(), nil

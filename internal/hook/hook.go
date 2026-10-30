@@ -3,7 +3,9 @@
 // Three kinds of hooks:
 //   - Guard:  synchronous, may reject an action with a reason (auth.register, texture.upload…)
 //   - Filter: synchronous, rewrites a value (player.name, user.badges…)
-//   - Event:  asynchronous notification after the fact (texture.uploaded…)
+//   - Event:  asynchronous notification after the fact (texture.uploaded…). Domain
+//     events are published inside the transaction of the change (Event.Publish) and
+//     delivered after it commits, at least once, through the job queue (the outbox).
 //
 // Hooks are declared once with a typed payload (NewGuard / NewFilter / NewEvent); the
 // declarations form the catalog that docs and the plugin SDK types are generated from.
@@ -13,15 +15,22 @@ package hook
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"reflect"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/Entropy-Increase-Team/skinloom/ent"
+	"github.com/Entropy-Increase-Team/skinloom/internal/jobs"
 	"github.com/Entropy-Increase-Team/skinloom/internal/registry"
 )
 
@@ -63,7 +72,9 @@ func (d Def) ID() string { return fmt.Sprintf("%s@%d", d.Name, d.Version) }
 var catalog = struct {
 	sync.Mutex
 	defs map[string]Def
-}{defs: map[string]Def{}}
+	// decode turns an event's stored payload back into its type, for Bus.Deliver.
+	decode map[string]func(json.RawMessage) (any, error)
+}{defs: map[string]Def{}, decode: map[string]func(json.RawMessage) (any, error){}}
 
 func declare(d Def) Def {
 	if d.Timeout == 0 {
@@ -316,8 +327,16 @@ type Event[P any] struct{ def Def }
 
 // NewEvent declares an event hook.
 func NewEvent[P any](name string, version int, doc string) Event[P] {
-	return Event[P]{def: declare(Def{Kind: KindEvent, Name: name, Version: version, Doc: doc,
+	e := Event[P]{def: declare(Def{Kind: KindEvent, Name: name, Version: version, Doc: doc,
 		Timeout: 30 * time.Second, Payload: reflect.TypeFor[P]()})}
+	catalog.Lock()
+	catalog.decode[name] = func(raw json.RawMessage) (any, error) {
+		var p P
+		err := json.Unmarshal(raw, &p)
+		return p, err
+	}
+	catalog.Unlock()
+	return e
 }
 
 // Def returns the catalog entry.
@@ -330,10 +349,9 @@ func (e Event[P]) Handle(order int, fn func(ctx context.Context, p P) error) Reg
 	}}}
 }
 
-// Emit queues p for every handler registered at the time of the call.
-//
-// M0 delivers in-process and best-effort; durable at-least-once delivery through the
-// outbox table arrives with the job queue in M1, behind this same method.
+// Emit queues p for every handler registered at the time of the call, in process and
+// best-effort: for process-local notices (settings.changed reaches each node through
+// its own reload). Changes to data use Publish.
 func (e Event[P]) Emit(b *Bus, p P) {
 	hs := b.handlers(e.def.Name)
 	if len(hs) == 0 {
@@ -356,4 +374,77 @@ func (e Event[P]) Emit(b *Bus, p P) {
 	default:
 		b.log.Warn("event queue full; event dropped", "hook", e.def.Name)
 	}
+}
+
+// OutboxJobKind is the job that delivers a published event (Event.Publish).
+const OutboxJobKind = "hook.event"
+
+// envelope is a published event in the job queue.
+type envelope struct {
+	Hook    string          `json:"hook"` // name@version
+	Key     string          `json:"key"`  // the same on every delivery attempt
+	Payload json.RawMessage `json:"payload"`
+}
+
+// Publish records p, inside tx (the transaction of the change), for delivery once tx
+// commits: the job queue's table is the outbox, so the event exists exactly when the
+// change does. Delivery is at least once (handlers see DeliveryKey to recognise a
+// repeat) and in no particular order across events. Nothing is stored when no
+// handler is registered at the time of the call, as with Emit, so events nobody
+// listens to cost nothing; a nil bus publishes nothing.
+func (e Event[P]) Publish(ctx context.Context, b *Bus, tx *ent.Client, p P) error {
+	if !e.Listening(b) {
+		return nil
+	}
+	raw, err := json.Marshal(p)
+	if err != nil {
+		return err
+	}
+	key := make([]byte, 16)
+	_, _ = rand.Read(key)
+	return jobs.Enqueue(ctx, tx, OutboxJobKind, envelope{Hook: e.def.ID(), Key: hex.EncodeToString(key), Payload: raw})
+}
+
+// Listening reports whether a handler is registered for the event now: a publisher
+// can skip gathering a payload nobody will get.
+func (e Event[P]) Listening(b *Bus) bool { return b != nil && len(b.handlers(e.def.Name)) > 0 }
+
+type deliveryKeyCtx struct{}
+
+// DeliveryKey identifies the delivery of a published event to its handlers; a retry
+// of the same event has the same key ("" outside a delivery).
+func DeliveryKey(ctx context.Context) string {
+	k, _ := ctx.Value(deliveryKeyCtx{}).(string)
+	return k
+}
+
+// Deliver is the job handler for OutboxJobKind. It runs the handlers registered now,
+// in order; if any fails, the job is retried and every handler runs again (hence at
+// least once).
+func (b *Bus) Deliver(ctx context.Context, payload json.RawMessage) error {
+	var env envelope
+	if err := json.Unmarshal(payload, &env); err != nil {
+		return jobs.Permanent(fmt.Errorf("bad event envelope: %w", err))
+	}
+	name, ver, _ := strings.Cut(env.Hook, "@")
+	d, ok := lookup(name)
+	if !ok || d.Kind != KindEvent || strconv.Itoa(d.Version) != ver {
+		return jobs.Permanent(fmt.Errorf("unknown event %q", env.Hook))
+	}
+	catalog.Lock()
+	decode := catalog.decode[name]
+	catalog.Unlock()
+	p, err := decode(env.Payload)
+	if err != nil {
+		return jobs.Permanent(fmt.Errorf("event %s: %w", env.Hook, err))
+	}
+	ctx = context.WithValue(ctx, deliveryKeyCtx{}, env.Key)
+	var errs []error
+	for _, h := range b.handlers(name) {
+		if _, err := b.call(ctx, d, h, p); err != nil {
+			b.log.Error("event handler failed; the event will be delivered again", "hook", env.Hook, "owner", h.owner, "err", err)
+			errs = append(errs, fmt.Errorf("%s: %w", h.owner, err))
+		}
+	}
+	return errors.Join(errs...)
 }

@@ -30,3 +30,5 @@
 | [0024](0024-bs-admin-resource-api.md) | 兼容 Blessing Skin 的管理类资源 API | 已接受 |
 | [0025](0025-social-login.md) | 社交登录（GitHub、Microsoft、OpenID Connect） | 已接受 |
 | [0026](0026-transaction-lock-order.md) | 事务的加锁顺序（防死锁） | 已接受 |
+| [0027](0027-decide-under-lock.md) | 事务里的判断放在加锁之后，加锁层级扩展到角色与删号 | 已接受 |
+| [0028](0028-domain-events-and-audit-in-tx.md) | 领域事件经任务队列投递，审计记录与变更同事务 | 已接受 |

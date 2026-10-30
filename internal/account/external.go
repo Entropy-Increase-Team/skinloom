@@ -9,6 +9,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 )
 
@@ -130,6 +131,9 @@ func (s *Service) RegisterExternal(ctx context.Context, in ExternalInput, p Regi
 			if err := s.sendVerification(ctx, tx, u, mc); err != nil {
 				return err
 			}
+		}
+		if err := hook.OnUserRegistered.Publish(ctx, s.hooks, tx, hook.UserEvent{UserID: u.ID, Method: in.Method}); err != nil {
+			return err
 		}
 		return audit(ctx, tx, &u.ID, "auth.register", "user", strconv.FormatInt(u.ID, 10), meta.IP, map[string]any{"method": in.Method})
 	})

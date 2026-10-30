@@ -326,7 +326,7 @@ func TestJoinAndProfiles(t *testing.T) {
 		if err := f.s.Join(ctx, a.AccessToken, steve.UUID, "server-3", ""); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := f.players.Delete(ctx, alice, steve.ID, false); err != nil {
+		if _, err := f.players.Delete(ctx, alice, steve.ID, false, nil); err != nil {
 			t.Fatal(err)
 		}
 		if got, err := f.s.HasJoined(ctx, "Steve", "server-3", "", ""); got != nil || err != nil {

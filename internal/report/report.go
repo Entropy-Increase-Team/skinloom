@@ -17,6 +17,8 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	entreport "github.com/Entropy-Increase-Team/skinloom/ent/report"
+	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
@@ -50,12 +52,16 @@ type Service struct {
 	db       *ent.Client
 	textures *texture.Service
 	log      *slog.Logger
+	hooks    *hook.Bus // see SetHooks
 }
 
 // NewService creates the service.
 func NewService(db *ent.Client, textures *texture.Service, log *slog.Logger) *Service {
 	return &Service{db: db, textures: textures, log: log}
 }
+
+// SetHooks sets the bus report events are published to (none before it is set).
+func (s *Service) SetHooks(b *hook.Bus) { s.hooks = b }
 
 func ref(id int64) string { return strconv.FormatInt(id, 10) }
 
@@ -83,13 +89,20 @@ func (s *Service) Submit(ctx context.Context, v texture.Viewer, textureID int64,
 	)
 	err = withTx(ctx, s.db, func(tx *ent.Client) error {
 		// Locks first, in the one order (see score.Lock): the texture, then the reporter.
+		// The texture is read again under its lock: it may have gone private meanwhile.
 		if err := texture.Lock(ctx, tx, t.ID); err != nil {
 			return err
+		}
+		t, err := tx.Texture.Get(ctx, t.ID)
+		if err != nil {
+			return err
+		}
+		if !v.MayView(t) {
+			return texture.ErrPrivate
 		}
 		if err := score.Lock(ctx, tx, v.UserID); err != nil {
 			return err
 		}
-		var err error
 		rep, err = tx.Report.Create().SetTextureID(t.ID).SetNillableUploaderID(t.UploaderID).
 			SetReporterID(v.UserID).SetReason(reason).Save(ctx)
 		if ent.IsConstraintError(err) {
@@ -100,7 +113,11 @@ func (s *Service) Submit(ctx context.Context, v texture.Viewer, textureID int64,
 		}
 		balance, err = score.Apply(ctx, tx, score.Change{UserID: v.UserID, Delta: r.ReporterModification,
 			Reason: score.ReasonReportSubmit, RefType: "report", RefID: ref(rep.ID)})
-		return err
+		if err != nil {
+			return err
+		}
+		return hook.OnReportSubmitted.Publish(ctx, s.hooks, tx,
+			hook.ReportEvent{ReportID: rep.ID, TextureID: rep.TextureID, Status: string(rep.Status)})
 	})
 	return rep, balance, err
 }
@@ -190,8 +207,10 @@ func (s *Service) Get(ctx context.Context, id int64) (*ent.Report, error) {
 //     the reporter is settled as for delete.
 //
 // Only one review of a report can win; a later one gets ErrReviewed. refund is
-// score.return_on_delete, for the texture deletion.
-func (s *Service) Review(ctx context.Context, handler *int64, id int64, action string, r score.Rates, refund bool, ban func(ctx context.Context, userID int64) error) (*ent.Report, error) {
+// score.return_on_delete, for the texture deletion. rec, if not nil, is written to the
+// audit log in the same transaction, with the uploader the report was about.
+func (s *Service) Review(ctx context.Context, handler *int64, id int64, action string, r score.Rates, refund bool,
+	ban func(ctx context.Context, userID int64) error, rec *audit.Entry) (*ent.Report, error) {
 	rep, err := s.db.Report.Get(ctx, id)
 	if ent.IsNotFound(err) {
 		return nil, ErrNotFound
@@ -213,6 +232,9 @@ func (s *Service) Review(ctx context.Context, handler *int64, id int64, action s
 	case ActionDelete, ActionReject:
 	default:
 		return nil, &validate.FieldError{Field: "action", Message: "must be delete, ban or reject"}
+	}
+	if rep.UploaderID != nil {
+		rec = rec.With("uploader", *rep.UploaderID)
 	}
 	deleted := false
 	err = withTx(ctx, s.db, func(tx *ent.Client) error {
@@ -252,6 +274,20 @@ func (s *Service) Review(ctx context.Context, handler *int64, id int64, action s
 		if err := score.Lock(ctx, tx, lock...); err != nil {
 			return err
 		}
+		// Read the reports again now: a reporter deleted meanwhile is gone from them
+		// (SET NULL) and must not be paid; deciding from the reads made before the
+		// transaction paid a deleted account ("user not found"). Accounts are deleted
+		// under their user's lock, so what is read now stays true until commit.
+		fresh, err := tx.Report.Get(ctx, rep.ID)
+		if err != nil {
+			return err
+		}
+		rep = fresh
+		for i, o := range others {
+			if others[i], err = tx.Report.Get(ctx, o.ID); err != nil {
+				return err
+			}
+		}
 		claim := func(id int64, status entreport.Status) error {
 			n, err := tx.Report.Update().Where(entreport.ID(id), entreport.StatusEQ(entreport.StatusPending)).
 				SetStatus(status).SetAction(entreport.Action(action)).SetHandledAt(now).
@@ -259,13 +295,20 @@ func (s *Service) Review(ctx context.Context, handler *int64, id int64, action s
 			if err == nil && n == 0 {
 				return ErrReviewed
 			}
-			return err
+			if err != nil {
+				return err
+			}
+			return hook.OnReportResolved.Publish(ctx, s.hooks, tx,
+				hook.ReportEvent{ReportID: id, TextureID: rep.TextureID, Status: string(status), Action: action})
 		}
 		if action == ActionReject {
 			if err := claim(rep.ID, entreport.StatusRejected); err != nil {
 				return err
 			}
-			return s.takeBackReward(ctx, tx, rep)
+			if err := s.takeBackReward(ctx, tx, rep); err != nil {
+				return err
+			}
+			return audit.Write(ctx, tx, rec)
 		}
 		if err := claim(rep.ID, entreport.StatusResolved); err != nil {
 			return err
@@ -290,7 +333,10 @@ func (s *Service) Review(ctx context.Context, handler *int64, id int64, action s
 				return err
 			}
 		}
-		return s.settle(ctx, tx, rep, reward, r)
+		if err := s.settle(ctx, tx, rep, reward, r); err != nil {
+			return err
+		}
+		return audit.Write(ctx, tx, rec)
 	})
 	if err != nil {
 		return nil, err

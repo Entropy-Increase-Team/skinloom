@@ -166,7 +166,7 @@ func registerPlayers(api huma.API, d Deps) {
 			if err != nil {
 				return nil, err
 			}
-			p, err := d.Players.Wear(ctx, v.User.ID, in.ID, in.Body.Skin, in.Body.Cape)
+			p, err := d.Players.Wear(ctx, v.User.ID, in.ID, in.Body.Skin, in.Body.Cape, nil)
 			if err != nil {
 				return nil, playerError(err)
 			}
@@ -179,7 +179,7 @@ func registerPlayers(api huma.API, d Deps) {
 			if err != nil {
 				return nil, err
 			}
-			refunded, err := d.Players.Delete(ctx, v.User.ID, in.ID, score.RatesFrom(d.Settings.Current()).ReturnOnDelete)
+			refunded, err := d.Players.Delete(ctx, v.User.ID, in.ID, score.RatesFrom(d.Settings.Current()).ReturnOnDelete, nil)
 			if err != nil {
 				return nil, playerError(err)
 			}

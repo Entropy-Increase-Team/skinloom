@@ -164,7 +164,13 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 	c.Accounts.SetJobNotifier(c.Jobs.Kick)
 	c.Jobs.Register(texture.SweepJobKind, c.Textures.HandleSweepJob)
 	c.Textures.SetJobNotifier(c.Jobs.Kick)
-	c.Accounts.SetBeforeDelete(c.Textures.DeletePrivateOf)
+	c.Accounts.SetBeforeDelete(c.Textures.BeforeUserDelete)
+	// Domain events go out through the job queue (hook.Event.Publish): the outbox.
+	c.Jobs.Register(hook.OutboxJobKind, bus.Deliver)
+	c.Accounts.SetHooks(bus)
+	c.Textures.SetHooks(bus)
+	c.Players.SetHooks(bus)
+	c.Reports.SetHooks(bus)
 	return c, nil
 }
 

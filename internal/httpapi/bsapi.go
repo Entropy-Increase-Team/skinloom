@@ -232,12 +232,11 @@ func bsRoute(d Deps, scopes []string, fn bsHandler) http.HandlerFunc {
 		}
 		locale := p.User.Locale
 		key := "u" + strconv.FormatInt(p.User.ID, 10)
-		if wait, blocked := bsRateLimit.Blocked(key); blocked {
+		if wait, blocked := bsRateLimit.Take(key); blocked {
 			w.Header().Set("Retry-After", strconv.Itoa(int(wait.Seconds())+1))
 			bsFail(w, http.StatusTooManyRequests, bsText(locale, "throttled"))
 			return
 		}
-		bsRateLimit.Fail(key)
 		allowed := false
 		for _, s := range scopes {
 			allowed = allowed || p.Can(s)
@@ -432,7 +431,7 @@ func mountBSAPI(r chi.Router, d Deps) {
 			if pl == nil {
 				return
 			}
-			if _, err := d.Players.Delete(req.Context(), p.User.ID, pl.ID, score.RatesFrom(d.Settings.Current()).ReturnOnDelete); err != nil {
+			if _, err := d.Players.Delete(req.Context(), p.User.ID, pl.ID, score.RatesFrom(d.Settings.Current()).ReturnOnDelete, nil); err != nil {
 				bsServerError(w, d, err)
 				return
 			}
@@ -477,7 +476,7 @@ func mountBSAPI(r chi.Router, d Deps) {
 					slots[i] = &id
 				}
 			}
-			worn, err := d.Players.Wear(req.Context(), p.User.ID, pl.ID, slots[0], slots[1])
+			worn, err := d.Players.Wear(req.Context(), p.User.ID, pl.ID, slots[0], slots[1], nil)
 			if fields := validate.FieldErrors(err); len(fields) > 0 {
 				bsResult(w, 1, fields[0].Field+": "+fields[0].Message, nil)
 				return
@@ -503,7 +502,7 @@ func mountBSAPI(r chi.Router, d Deps) {
 					slots[i] = &zero
 				}
 			}
-			cleared, err := d.Players.Wear(req.Context(), p.User.ID, pl.ID, slots[0], slots[1])
+			cleared, err := d.Players.Wear(req.Context(), p.User.ID, pl.ID, slots[0], slots[1], nil)
 			if err != nil {
 				bsServerError(w, d, err)
 				return
@@ -589,7 +588,7 @@ func mountBSAPI(r chi.Router, d Deps) {
 		r.Delete("/api/closet/{tid}", bsRoute(d, oneOf("Closet.ReadWrite"), func(w http.ResponseWriter, req *http.Request, p *oauth.Principal, locale string) {
 			tid, err := strconv.ParseInt(chi.URLParam(req, "tid"), 10, 64)
 			if err == nil {
-				_, err = d.Textures.Unfavorite(req.Context(), p.User.ID, tid, score.RatesFrom(d.Settings.Current()).ReturnOnDelete)
+				_, err = d.Textures.Unfavorite(req.Context(), p.User.ID, tid, score.RatesFrom(d.Settings.Current()).ReturnOnDelete, nil)
 			}
 			switch {
 			case err == nil:

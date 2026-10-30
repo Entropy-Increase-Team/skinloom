@@ -156,10 +156,9 @@ func registerReports(api huma.API, d Deps) {
 				return nil, err
 			}
 			key := strconv.FormatInt(v.User.ID, 10)
-			if wait, blocked := submits.Blocked(key); blocked {
+			if wait, blocked := submits.Take(key); blocked {
 				return nil, rateLimitError(&account.RateLimitError{RetryAfter: wait}, "too many reports, try again later")
 			}
-			submits.Fail(key)
 			rep, balance, err := d.Reports.Submit(ctx, textureViewer(ctx), in.ID, in.Body.Reason, score.RatesFrom(d.Settings.Current()))
 			if err != nil {
 				return nil, reportError(d, err)
@@ -235,17 +234,6 @@ func reviewReport(ctx context.Context, d Deps, a account.Actor, id int64, action
 		return err
 	}
 	r := score.RatesFrom(d.Settings.Current())
-	handler := actorIDOf(a)
-	rep, err := d.Reports.Review(ctx, handler, id, action, r, r.ReturnOnDelete, ban)
-	if err != nil {
-		return nil, err
-	}
-	meta := map[string]any{"action": action}
-	if rep.UploaderID != nil {
-		meta["uploader"] = *rep.UploaderID
-	}
-	if err := d.Accounts.Audit(ctx, handler, "admin.report_reviewed", "report", strconv.FormatInt(rep.ID, 10), info.client.ClientIP, meta); err != nil {
-		d.Log.Warn("audit", "action", "admin.report_reviewed", "err", err)
-	}
-	return rep, nil
+	rec := adminRecord(ctx, a, "admin.report_reviewed", "report", id, map[string]any{"action": action})
+	return d.Reports.Review(ctx, actorIDOf(a), id, action, r, r.ReturnOnDelete, ban, rec)
 }

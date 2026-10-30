@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/internal/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
 	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
 )
@@ -204,21 +204,24 @@ func sendNotification(ctx context.Context, d Deps, a account.Actor, to string, u
 		if err != nil {
 			return out, err
 		}
-		n, err := d.Notify.Send(ctx, u.ID, title, content)
+		n, err := d.Notify.Send(ctx, u.ID, title, content, sentRecord(ctx, a, to, title))
 		if err != nil {
 			return out, apiError(err)
 		}
 		out = SentNotification{Kind: "notification", ID: n.ID}
 	default:
-		ann, err := d.Notify.Announce(ctx, actorIDOf(a), to, title, content)
+		ann, err := d.Notify.Announce(ctx, actorIDOf(a), to, title, content, sentRecord(ctx, a, to, title))
 		if err != nil {
 			return out, apiError(err)
 		}
 		out = SentNotification{Kind: "announcement", ID: ann.ID}
 	}
-	if err := d.Accounts.Audit(ctx, actorIDOf(a), "admin.notification_sent", out.Kind, strconv.FormatInt(out.ID, 10),
-		requestInfo(ctx).client.ClientIP, map[string]any{"to": to, "title": title}); err != nil {
-		d.Log.Warn("audit", "action", "admin.notification_sent", "err", err)
-	}
 	return out, nil
+}
+
+// sentRecord is the audit record of a notification or announcement; the service
+// names its new row as the target.
+func sentRecord(ctx context.Context, a account.Actor, to, title string) *audit.Entry {
+	return &audit.Entry{Actor: actorIDOf(a), Action: "admin.notification_sent", IP: requestInfo(ctx).client.ClientIP,
+		Meta: map[string]any{"to": to, "title": title}}
 }

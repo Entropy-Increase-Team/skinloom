@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +17,8 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	tex "github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/jobs"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
@@ -72,7 +75,16 @@ func (s *Service) Favorite(ctx context.Context, v Viewer, id int64, name string,
 	)
 	err = withTx(ctx, s.db, func(tx *ent.Client) error {
 		// Locks first, in the one order (see score.Lock): the texture, then the user
-		// and the uploader whose scores change.
+		// and the uploader whose scores change. What the outcome depends on is read
+		// again under the lock: since Get the texture may have gone private (it must
+		// not land in another closet) or lost its uploader (deleted: no award).
+		t, err := lockAndGet(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if !v.MayView(t) {
+			return ErrPrivate
+		}
 		if err := tx.Texture.UpdateOneID(id).AddLikes(1).Exec(ctx); err != nil {
 			return err
 		}
@@ -83,7 +95,6 @@ func (s *Service) Favorite(ctx context.Context, v Viewer, id int64, name string,
 		if err := score.Lock(ctx, tx, lock...); err != nil {
 			return err
 		}
-		var err error
 		item, err = tx.ClosetItem.Create().SetUserID(v.UserID).SetTextureID(id).SetName(name).Save(ctx)
 		if ent.IsConstraintError(err) {
 			return ErrInCloset
@@ -97,27 +108,28 @@ func (s *Service) Favorite(ctx context.Context, v Viewer, id int64, name string,
 			return err
 		}
 		if up := t.UploaderID; up != nil && *up != v.UserID && r.AwardPerLike > 0 {
-			_, err = score.Apply(ctx, tx, score.Change{UserID: *up, Delta: r.AwardPerLike,
-				Reason: score.ReasonLikeAward, RefType: "closet", RefID: ref})
+			if _, err = score.Apply(ctx, tx, score.Change{UserID: *up, Delta: r.AwardPerLike,
+				Reason: score.ReasonLikeAward, RefType: "closet", RefID: ref}); err != nil {
+				return err
+			}
 		}
-		return err
+		return hook.OnClosetAdded.Publish(ctx, s.hooks, tx, hook.ClosetEvent{UserID: v.UserID, TextureID: id})
 	})
 	return item, balance, err
 }
 
 // Unfavorite removes a texture from the user's closet and from the user's players
 // (players only wear closet textures). With refund the closet fee comes back, and
-// the uploader's award for it is taken back if the uploader can still cover it.
-func (s *Service) Unfavorite(ctx context.Context, userID, id int64, refund bool) (int64, error) {
+// the uploader's award for it is taken back if the uploader can still cover it. rec,
+// if not nil, is written to the audit log in the same transaction (an administrator
+// taking it out).
+func (s *Service) Unfavorite(ctx context.Context, userID, id int64, refund bool, rec *audit.Entry) (int64, error) {
 	var returned int64
 	err := withTx(ctx, s.db, func(tx *ent.Client) error {
-		if err := Lock(ctx, tx, id); errors.Is(err, ErrNotFound) {
+		t, err := lockAndGet(ctx, tx, id)
+		if errors.Is(err, ErrNotFound) {
 			return ErrNotInCloset
 		} else if err != nil {
-			return err
-		}
-		t, err := tx.Texture.Get(ctx, id)
-		if err != nil {
 			return err
 		}
 		lock := []int64{userID}
@@ -139,8 +151,10 @@ func (s *Service) Unfavorite(ctx context.Context, userID, id int64, refund bool)
 		} else if n == 0 {
 			return ErrNotInCloset // removed by a concurrent request
 		}
-		returned, err = s.release(ctx, tx, t, item, refund)
-		return err
+		if returned, err = s.release(ctx, tx, t, item, refund); err != nil {
+			return err
+		}
+		return audit.Write(ctx, tx, rec.With("refunded", returned))
 	})
 	return returned, err
 }
@@ -152,7 +166,10 @@ func (s *Service) release(ctx context.Context, tx *ent.Client, t *ent.Texture, i
 	if err := tx.Texture.Update().Where(tex.ID(t.ID), tex.LikesGT(0)).AddLikes(-1).Exec(ctx); err != nil {
 		return 0, err
 	}
-	if err := takeOff(ctx, tx, t, entplayer.UserID(userID)); err != nil {
+	if err := s.takeOff(ctx, tx, t, entplayer.UserID(userID)); err != nil {
+		return 0, err
+	}
+	if err := hook.OnClosetRemoved.Publish(ctx, s.hooks, tx, hook.ClosetEvent{UserID: userID, TextureID: t.ID}); err != nil {
 		return 0, err
 	}
 	ref := closetRef(item.ID)
@@ -186,32 +203,74 @@ func (s *Service) release(ctx context.Context, tx *ent.Client, t *ent.Texture, i
 	return returned, nil
 }
 
-// takeOff clears t from the skin or cape slot of the players matching who.
-func takeOff(ctx context.Context, tx *ent.Client, t *ent.Texture, who ...predicate.Player) error {
+// takeOff clears t from the slot of its type on the players matching who.
+func (s *Service) takeOff(ctx context.Context, tx *ent.Client, t *ent.Texture, who ...predicate.Player) error {
 	if t.Type == tex.TypeCape {
-		return tx.Player.Update().Where(append(who, entplayer.CapeID(t.ID))...).ClearCapeID().Exec(ctx)
+		return s.clearSlot(ctx, tx, true, append(who, entplayer.CapeID(t.ID))...)
 	}
-	return tx.Player.Update().Where(append(who, entplayer.SkinID(t.ID))...).ClearSkinID().Exec(ctx)
+	return s.clearSlot(ctx, tx, false, append(who, entplayer.SkinID(t.ID))...)
+}
+
+// clearSlot empties the skin (or cape) slot of the players matching where and
+// publishes each as player.updated. It goes through ent, which bumps
+// players.updated_at, the Last-Modified game clients revalidate profiles with: a
+// slot emptied by the foreign key's SET NULL alone left it as it was.
+//
+// The update uses where itself, not a list of the players' ids: a popular texture's
+// wearers made that list longer than a statement may be (SQLite 32766 parameters,
+// PostgreSQL 65535). The caller holds the texture's lock, under which nobody puts it
+// on, so the players listed for the events are the ones updated. They are listed
+// only while something listens.
+func (s *Service) clearSlot(ctx context.Context, tx *ent.Client, cape bool, where ...predicate.Player) error {
+	var list []*ent.Player
+	if hook.OnPlayerUpdated.Listening(s.hooks) {
+		var err error
+		list, err = tx.Player.Query().Where(where...).
+			Select(entplayer.FieldID, entplayer.FieldUserID, entplayer.FieldName, entplayer.FieldUUID).All(ctx)
+		if err != nil {
+			return err
+		}
+	}
+	upd := tx.Player.Update().Where(where...)
+	if cape {
+		upd.ClearCapeID()
+	} else {
+		upd.ClearSkinID()
+	}
+	if err := upd.Exec(ctx); err != nil {
+		return err
+	}
+	for _, p := range list {
+		e := hook.PlayerEvent{PlayerID: p.ID, UserID: p.UserID, Name: p.Name, UUID: p.UUID}
+		if err := hook.OnPlayerUpdated.Publish(ctx, s.hooks, tx, e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func textureEvent(t *ent.Texture) hook.TextureEvent {
+	return hook.TextureEvent{TextureID: t.ID, UploaderID: t.UploaderID, Hash: t.Hash, Type: string(t.Type),
+		Public: t.Visibility == tex.VisibilityPublic}
 }
 
 // GiveToCloset adds a texture to a user's closet as an administrator does (Blessing
 // Skin's closet management API): free, and nothing for the uploader. Taking it out
 // again is Unfavorite, which refunds only what this item cost: nothing. A private
-// texture goes only into its uploader's closet, as everywhere else (dropOthers).
-func (s *Service) GiveToCloset(ctx context.Context, userID, id int64) (*ent.ClosetItem, error) {
+// texture goes only into its uploader's closet, as everywhere else (dropOthers). rec,
+// if not nil, is written to the audit log in the same transaction.
+func (s *Service) GiveToCloset(ctx context.Context, userID, id int64, rec *audit.Entry) (*ent.ClosetItem, error) {
 	var item *ent.ClosetItem
 	err := withTx(ctx, s.db, func(tx *ent.Client) error {
-		t, err := tx.Texture.Get(ctx, id)
-		if ent.IsNotFound(err) {
-			return ErrNotFound
-		}
+		// The texture first (see score.Lock), then the insert that references it; its
+		// visibility is read under the lock, so it cannot go private in between.
+		t, err := lockAndGet(ctx, tx, id)
 		if err != nil {
 			return err
 		}
-		if t.Visibility != tex.VisibilityPublic && (t.UploaderID == nil || *t.UploaderID != userID) {
+		if !(Viewer{UserID: userID}).MayView(t) {
 			return &validate.FieldError{Field: "textureId", Message: "private to its uploader"}
 		}
-		// The texture first (see score.Lock), then the insert that references it.
 		if err := tx.Texture.UpdateOneID(id).AddLikes(1).Exec(ctx); err != nil {
 			return err
 		}
@@ -219,7 +278,13 @@ func (s *Service) GiveToCloset(ctx context.Context, userID, id int64) (*ent.Clos
 		if ent.IsConstraintError(err) {
 			return ErrInCloset
 		}
-		return err
+		if err != nil {
+			return err
+		}
+		if err := hook.OnClosetAdded.Publish(ctx, s.hooks, tx, hook.ClosetEvent{UserID: userID, TextureID: id}); err != nil {
+			return err
+		}
+		return audit.Write(ctx, tx, rec)
 	})
 	return item, err
 }
@@ -271,8 +336,11 @@ func (s *Service) mayEdit(ctx context.Context, v Viewer, id int64) (*ent.Texture
 //     the way to private and never returned it, C12). Administrators changing
 //     someone else's texture charge nobody. Other users' closets lose a texture that
 //     goes private, with their fees returned and their players reset.
-func (s *Service) Update(ctx context.Context, v Viewer, id int64, e Edit, p Policy, r score.Rates) (*ent.Texture, error) {
-	t, err := s.mayEdit(ctx, v, id)
+//
+// rec is written to the audit log in the same transaction when the viewer is not the
+// uploader (an administrator moderating).
+func (s *Service) Update(ctx context.Context, v Viewer, id int64, e Edit, p Policy, r score.Rates, rec *audit.Entry) (*ent.Texture, error) {
+	t, err := s.mayEdit(ctx, v, id) // early, friendly refusals; decided again under the lock
 	if err != nil {
 		return nil, err
 	}
@@ -282,58 +350,67 @@ func (s *Service) Update(ctx context.Context, v Viewer, id int64, e Edit, p Poli
 		newName = strings.TrimSpace(*e.Name)
 		errs = append(errs, ValidateName(newName, p.NameRule))
 	}
-	newType := t.Type
+	var newType tex.Type
 	if e.Type != nil {
 		newType = tex.Type(*e.Type)
 		if tex.TypeValidator(newType) != nil {
 			errs = append(errs, &validate.FieldError{Field: "type", Message: "want steve, alex or cape"})
-		} else if newType != t.Type {
-			b, err := s.db.Blob.Get(ctx, t.Hash)
+		} else {
+			b, err := s.db.Blob.Get(ctx, t.Hash) // the image never changes: no need to lock it
 			if err != nil {
 				return nil, err
 			}
 			errs = append(errs, checkShape(b.Width, b.Height, newType, "type"))
 		}
 	}
-	goingPublic := e.Public != nil && *e.Public && t.Visibility == tex.VisibilityPrivate
-	goingPrivate := e.Public != nil && !*e.Public && t.Visibility == tex.VisibilityPublic
 	if err := errors.Join(errs...); err != nil {
 		return nil, err
 	}
-	if goingPublic {
-		dup, err := s.db.Texture.Query().
-			Where(tex.Hash(t.Hash), tex.VisibilityEQ(tex.VisibilityPublic), tex.IDNEQ(t.ID)).First(ctx)
-		if err == nil {
-			return nil, &PublicDuplicateError{ID: dup.ID}
-		}
-		if !ent.IsNotFound(err) {
-			return nil, err
-		}
-	}
-	charged := t.UploaderID != nil && *t.UploaderID == v.UserID // the uploader's own change
 	err = withTx(ctx, s.db, func(tx *ent.Client) error {
+		// The texture is locked first (see score.Lock) and everything the edit decides
+		// on is read after that: two "make private" requests at once each charged the
+		// difference when they decided from a read made before the transaction.
+		t, err := lockAndGet(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if !v.Admin && (t.UploaderID == nil || *t.UploaderID != v.UserID) {
+			return ErrForbidden
+		}
+		goingPublic := e.Public != nil && *e.Public && t.Visibility == tex.VisibilityPrivate
+		goingPrivate := e.Public != nil && !*e.Public && t.Visibility == tex.VisibilityPublic
+		charged := (goingPublic || goingPrivate) && t.UploaderID != nil && *t.UploaderID == v.UserID // the uploader's own change
 		var lock []int64
 		if charged {
 			lock = append(lock, v.UserID)
 		}
 		if goingPrivate {
-			if err := lockWithClosets(ctx, tx, t, lock...); err != nil {
+			err = lockUsersOf(ctx, tx, t, false, lock...)
+		} else {
+			err = score.Lock(ctx, tx, lock...)
+		}
+		if err != nil {
+			return err
+		}
+		if goingPublic {
+			dup, err := tx.Texture.Query().
+				Where(tex.Hash(t.Hash), tex.VisibilityEQ(tex.VisibilityPublic), tex.IDNEQ(t.ID)).First(ctx)
+			if err == nil {
+				return &PublicDuplicateError{ID: dup.ID}
+			}
+			if !ent.IsNotFound(err) {
 				return err
 			}
-		} else if err := Lock(ctx, tx, t.ID); err != nil {
-			return err
-		} else if err := score.Lock(ctx, tx, lock...); err != nil {
-			return err
 		}
 		u := tx.Texture.UpdateOneID(t.ID)
 		if newName != "" {
 			u.SetName(newName)
 		}
-		if newType != t.Type {
+		if newType != "" && newType != t.Type {
 			u.SetType(newType)
 			wasCape, isCape := t.Type == tex.TypeCape, newType == tex.TypeCape
 			if wasCape != isCape {
-				if err := takeOff(ctx, tx, t); err != nil { // t still has the old type
+				if err := s.takeOff(ctx, tx, t); err != nil { // t still has the old type
 					return err
 				}
 			}
@@ -361,13 +438,24 @@ func (s *Service) Update(ctx context.Context, v Viewer, id int64, e Edit, p Poli
 				}
 			}
 		}
-		_, err := u.Save(ctx)
-		return err
+		saved, err := u.Save(ctx)
+		if err != nil {
+			return err
+		}
+		if newName != "" || (newType != "" && newType != t.Type) || goingPublic || goingPrivate {
+			if err := hook.OnTextureUpdated.Publish(ctx, s.hooks, tx, textureEvent(saved)); err != nil {
+				return err
+			}
+		}
+		if t.UploaderID == nil || *t.UploaderID != v.UserID {
+			return audit.Write(ctx, tx, rec)
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return s.db.Texture.Query().Where(tex.ID(t.ID)).WithUploader(selectUploader).Only(ctx)
+	return s.db.Texture.Query().Where(tex.ID(id)).WithUploader(selectUploader).Only(ctx)
 }
 
 // Lock takes the row lock of texture id for the rest of tx, as the first lock of a
@@ -381,8 +469,19 @@ func Lock(ctx context.Context, tx *ent.Client, id int64) error {
 	return err
 }
 
-// UsersOf lists everyone whose closet holds texture id, and its uploader: the users
-// a deletion can refund or charge, for a caller that locks them first (score.Lock).
+// lockAndGet locks texture id (Lock) and reads it under the lock. A transaction must
+// decide from this read, not from one made before it started: the texture may have
+// changed (gone private, lost its uploader, changed type) while the lock was awaited.
+func lockAndGet(ctx context.Context, tx *ent.Client, id int64) (*ent.Texture, error) {
+	if err := Lock(ctx, tx, id); err != nil {
+		return nil, err
+	}
+	return tx.Texture.Get(ctx, id)
+}
+
+// UsersOf lists the users a deletion of texture id changes, for a caller that locks
+// them first (score.Lock): everyone whose closet holds it, its uploader, and everyone
+// showing it as their avatar.
 func (s *Service) UsersOf(ctx context.Context, tx *ent.Client, id int64) ([]int64, error) {
 	t, err := tx.Texture.Get(ctx, id)
 	if ent.IsNotFound(err) {
@@ -391,10 +490,13 @@ func (s *Service) UsersOf(ctx context.Context, tx *ent.Client, id int64) ([]int6
 	if err != nil {
 		return nil, err
 	}
-	return usersOf(ctx, tx, t)
+	return usersOf(ctx, tx, t, true)
 }
 
-func usersOf(ctx context.Context, tx *ent.Client, t *ent.Texture) ([]int64, error) {
+// usersOf lists everyone whose closet holds t and its uploader, plus with avatars
+// everyone whose avatar it is (a deletion clears those). Only a transaction holding
+// t's lock gets a list that stays true: closets and avatars change under that lock.
+func usersOf(ctx context.Context, tx *ent.Client, t *ent.Texture, avatars bool) ([]int64, error) {
 	items, err := tx.ClosetItem.Query().Where(closetitem.TextureID(t.ID)).Select(closetitem.FieldUserID).All(ctx)
 	if err != nil {
 		return nil, err
@@ -406,16 +508,20 @@ func usersOf(ctx context.Context, tx *ent.Client, t *ent.Texture) ([]int64, erro
 	if t.UploaderID != nil {
 		users = append(users, *t.UploaderID)
 	}
+	if avatars {
+		holders, err := tx.User.Query().Where(user.AvatarTextureID(t.ID)).IDs(ctx)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, holders...)
+	}
 	return users, nil
 }
 
-// lockWithClosets locks t, then everyone whose closet holds it and its uploader:
-// all the users dropOthers and a deletion may refund or charge.
-func lockWithClosets(ctx context.Context, tx *ent.Client, t *ent.Texture, more ...int64) error {
-	if err := Lock(ctx, tx, t.ID); err != nil {
-		return err
-	}
-	users, err := usersOf(ctx, tx, t)
+// lockUsersOf locks, once t is locked, the users usersOf lists: all the users
+// dropOthers and a deletion may refund, charge or (avatars) change.
+func lockUsersOf(ctx context.Context, tx *ent.Client, t *ent.Texture, avatars bool, more ...int64) error {
+	users, err := usersOf(ctx, tx, t, avatars)
 	if err != nil {
 		return err
 	}
@@ -448,13 +554,23 @@ func (s *Service) dropOthers(ctx context.Context, tx *ent.Client, t *ent.Texture
 // who added it to a closet gets the fee back, and the uploader gets back what the
 // upload cost in all (upload and visibility changes, net of the upload award; a net
 // gain is taken back if the uploader can cover it). Players wearing it wear nothing.
-// The file goes once no texture uses it (SweepFile).
-func (s *Service) Delete(ctx context.Context, v Viewer, id int64, refund bool) error {
+// The file goes once no texture uses it (SweepFile). rec is written to the audit log
+// in the same transaction when the viewer is not the uploader (an administrator
+// moderating), with the texture's name and hash.
+func (s *Service) Delete(ctx context.Context, v Viewer, id int64, refund bool, rec *audit.Entry) error {
 	t, err := s.mayEdit(ctx, v, id)
 	if err != nil {
 		return err
 	}
-	err = withTx(ctx, s.db, func(tx *ent.Client) error { return s.deleteIn(ctx, tx, t, refund) })
+	if t.UploaderID != nil && *t.UploaderID == v.UserID {
+		rec = nil // the uploader's own deletion (the uploader never changes, only goes)
+	}
+	err = withTx(ctx, s.db, func(tx *ent.Client) error {
+		if err := s.deleteIn(ctx, tx, t.ID, refund); err != nil {
+			return err
+		}
+		return audit.Write(ctx, tx, rec.With("name", t.Name).With("hash", t.Hash))
+	})
 	if err == nil {
 		s.kick()
 	}
@@ -465,18 +581,15 @@ func (s *Service) Delete(ctx context.Context, v Viewer, id int64, refund bool) e
 // review deletes the texture and settles the report at once). The caller checks who
 // may delete it, and calls Kick once the transaction has committed.
 func (s *Service) DeleteIn(ctx context.Context, tx *ent.Client, id int64, refund bool) error {
-	t, err := tx.Texture.Get(ctx, id)
-	if ent.IsNotFound(err) {
-		return ErrNotFound
-	}
+	return s.deleteIn(ctx, tx, id, refund)
+}
+
+func (s *Service) deleteIn(ctx context.Context, tx *ent.Client, id int64, refund bool) error {
+	t, err := lockAndGet(ctx, tx, id)
 	if err != nil {
 		return err
 	}
-	return s.deleteIn(ctx, tx, t, refund)
-}
-
-func (s *Service) deleteIn(ctx context.Context, tx *ent.Client, t *ent.Texture, refund bool) error {
-	if err := lockWithClosets(ctx, tx, t); err != nil {
+	if err := lockUsersOf(ctx, tx, t, true); err != nil {
 		return err
 	}
 	if err := s.dropOthers(ctx, tx, t, refund); err != nil {
@@ -496,7 +609,26 @@ func (s *Service) deleteIn(ctx context.Context, tx *ent.Client, t *ent.Texture, 
 			}
 		}
 	}
-	if err := tx.Texture.DeleteOneID(t.ID).Exec(ctx); err != nil { // closet items cascade, players set null
+	return s.remove(ctx, tx, t)
+}
+
+// remove deletes a locked texture whose scores are settled: the players still
+// wearing it (its uploader's) take it off, avatars showing it are cleared, the row
+// goes (closet items cascade) and the file loses a reference.
+func (s *Service) remove(ctx context.Context, tx *ent.Client, t *ent.Texture) error {
+	// Not left to the foreign key's SET NULL: /{name}.json kept answering 304 with the
+	// deleted texture (see clearSlot). Both slots: data imported from Blessing Skin can
+	// have a texture in the wrong one (C07).
+	if err := s.clearSlot(ctx, tx, false, entplayer.SkinID(t.ID)); err != nil {
+		return err
+	}
+	if err := s.clearSlot(ctx, tx, true, entplayer.CapeID(t.ID)); err != nil {
+		return err
+	}
+	if err := tx.Texture.DeleteOneID(t.ID).Exec(ctx); err != nil {
+		return err
+	}
+	if err := hook.OnTextureDeleted.Publish(ctx, s.hooks, tx, textureEvent(t)); err != nil {
 		return err
 	}
 	if err := clearAvatars(ctx, tx, t.ID); err != nil {
@@ -511,30 +643,65 @@ func clearAvatars(ctx context.Context, tx *ent.Client, textureID int64) error {
 	return tx.User.Update().Where(user.AvatarTextureID(textureID)).ClearAvatarTextureID().Exec(ctx)
 }
 
-// DeletePrivateOf deletes a user's private textures, just before the account goes for
-// good: nobody else could ever see them. Public textures stay, without an uploader
-// (Blessing Skin left both behind, C09).
-func (s *Service) DeletePrivateOf(ctx context.Context, userID int64) error {
-	list, err := s.db.Texture.Query().Where(tex.UploaderID(userID), tex.VisibilityEQ(tex.VisibilityPrivate)).All(ctx)
+// BeforeUserDelete runs in the transaction that deletes an account for good, before
+// the user's row goes:
+//   - it locks, in the one order (see score.Lock), every texture the deletion changes
+//     (the user's uploads, which lose their uploader, and the textures in their
+//     closet), then the user and everyone whose avatar is one of the private uploads.
+//     Deleting the row first locked the user and then, through the foreign key, their
+//     textures: the reverse of a closet add, and the two deadlocked;
+//   - it deletes the private uploads: nobody else could ever see them. Public ones
+//     stay, without an uploader (Blessing Skin left both behind, C09);
+//   - it counts the closet items, which the foreign key deletes, out of the textures'
+//     likes (they drifted upwards, Blessing Skin C04).
+//
+// The caller kicks the job worker once the transaction has committed (file sweeps).
+func (s *Service) BeforeUserDelete(ctx context.Context, tx *ent.Client, userID int64) error {
+	uploads, err := tx.Texture.Query().Where(tex.UploaderID(userID)).IDs(ctx)
 	if err != nil {
 		return err
 	}
-	for _, t := range list {
-		err := withTx(ctx, s.db, func(tx *ent.Client) error {
-			if err := tx.Texture.DeleteOneID(t.ID).Exec(ctx); err != nil {
-				return err
-			}
-			if err := clearAvatars(ctx, tx, t.ID); err != nil {
-				return err
-			}
-			return s.unref(ctx, tx, t.Hash)
-		})
-		if err != nil {
+	items, err := tx.ClosetItem.Query().Where(closetitem.UserID(userID)).Select(closetitem.FieldTextureID).All(ctx)
+	if err != nil {
+		return err
+	}
+	ids := uploads
+	for _, it := range items {
+		ids = append(ids, it.TextureID)
+	}
+	slices.Sort(ids)
+	for _, id := range slices.Compact(ids) {
+		if err := Lock(ctx, tx, id); err != nil && !errors.Is(err, ErrNotFound) {
 			return err
 		}
 	}
-	if len(list) > 0 {
-		s.kick()
+	private, err := tx.Texture.Query().Where(tex.UploaderID(userID), tex.VisibilityEQ(tex.VisibilityPrivate)).All(ctx)
+	if err != nil {
+		return err
+	}
+	users := []int64{userID}
+	for chunk := range slices.Chunk(private, 500) { // one query per 500, within any statement's parameter limit
+		ids := make([]int64, len(chunk))
+		for i, t := range chunk {
+			ids[i] = t.ID
+		}
+		holders, err := tx.User.Query().Where(user.AvatarTextureIDIn(ids...)).IDs(ctx)
+		if err != nil {
+			return err
+		}
+		users = append(users, holders...)
+	}
+	if err := score.Lock(ctx, tx, users...); err != nil {
+		return err
+	}
+	if err := tx.Texture.Update().Where(tex.HasClosetItemsWith(closetitem.UserID(userID)), tex.LikesGT(0)).
+		AddLikes(-1).Exec(ctx); err != nil {
+		return err
+	}
+	for _, t := range private {
+		if err := s.remove(ctx, tx, t); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -650,4 +817,77 @@ func (s *Service) Usage(ctx context.Context, userID int64) (count int, bytes int
 		bytes += t.Size
 	}
 	return len(list), bytes, err
+}
+
+// CalibrateLikes sets every texture's likes back to the number of closets holding it
+// and reports how many it corrected. Likes change with every closet add and removal,
+// in the same transaction; this catches what slips past: an account deleted at the
+// very moment its owner added a texture, data imported from Blessing Skin (design 04
+// §5.2). It reads in pages and corrects one texture per transaction, under that
+// texture's lock, so it never holds two locks and cannot deadlock with anything.
+func (s *Service) CalibrateLikes(ctx context.Context) (int, error) {
+	const pageSize = 500
+	fixed := 0
+	var after int64
+	for {
+		page, err := s.db.Texture.Query().Where(tex.IDGT(after)).Order(ent.Asc(tex.FieldID)).Limit(pageSize).
+			Select(tex.FieldID, tex.FieldLikes).All(ctx)
+		if err != nil || len(page) == 0 {
+			return fixed, err
+		}
+		after = page[len(page)-1].ID
+		ids := make([]int64, len(page))
+		for i, t := range page {
+			ids[i] = t.ID
+		}
+		var counts []struct {
+			TextureID int64 `json:"texture_id"`
+			Count     int   `json:"count"`
+		}
+		if err := s.db.ClosetItem.Query().Where(closetitem.TextureIDIn(ids...)).
+			GroupBy(closetitem.FieldTextureID).Aggregate(ent.Count()).Scan(ctx, &counts); err != nil {
+			return fixed, err
+		}
+		have := make(map[int64]int, len(counts))
+		for _, c := range counts {
+			have[c.TextureID] = c.Count
+		}
+		for _, t := range page {
+			if t.Likes == have[t.ID] {
+				continue
+			}
+			changed, err := s.calibrate(ctx, t.ID)
+			if err != nil {
+				return fixed, err
+			}
+			if changed {
+				fixed++
+			}
+		}
+		if len(page) < pageSize {
+			return fixed, nil
+		}
+	}
+}
+
+// calibrate recounts one texture's likes under its lock (the count read outside may
+// be out of date by then).
+func (s *Service) calibrate(ctx context.Context, id int64) (bool, error) {
+	changed := false
+	err := withTx(ctx, s.db, func(tx *ent.Client) error {
+		t, err := lockAndGet(ctx, tx, id)
+		if errors.Is(err, ErrNotFound) {
+			return nil // deleted meanwhile
+		}
+		if err != nil {
+			return err
+		}
+		n, err := tx.ClosetItem.Query().Where(closetitem.TextureID(id)).Count(ctx)
+		if err != nil || t.Likes == n {
+			return err
+		}
+		changed = true
+		return tx.Texture.UpdateOneID(id).SetLikes(n).Exec(ctx)
+	})
+	return changed, err
 }

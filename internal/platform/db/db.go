@@ -98,14 +98,45 @@ func Open(ctx context.Context, o Options) (*DB, error) {
 // Close releases the pool.
 func (db *DB) Close() error { return db.Ent.Close() }
 
-// sqliteDSN turns a plain path into a DSN with the pragmas SkinLoom relies on.
-// A value that already contains "?" is used as-is.
+// sqlitePragmas are the connection settings SkinLoom relies on. foreign_keys above
+// all: without it every ON DELETE CASCADE / SET NULL in the schema silently does
+// nothing.
+var sqlitePragmas = []string{"busy_timeout(10000)", "journal_mode(WAL)", "foreign_keys(1)", "synchronous(NORMAL)"}
+
+// sqliteDSN turns a plain path into a DSN with the pragmas SkinLoom relies on. A value
+// that already has a query keeps its path and its own parameters, and gets every
+// pragma it does not set itself; foreign_keys is always on (it used to be used as-is,
+// so a DSN with any parameter turned foreign keys off).
 func sqliteDSN(dsn, dataDir string) (string, error) {
 	if dsn == "" {
 		dsn = "skinloom.db"
 	}
-	if strings.Contains(dsn, "?") {
-		return dsn, nil
+	if base, raw, ok := strings.Cut(dsn, "?"); ok {
+		q, err := url.ParseQuery(raw)
+		if err != nil {
+			return "", fmt.Errorf("sqlite dsn: %w", err)
+		}
+		set := map[string]bool{}
+		var keep []string
+		for _, p := range q["_pragma"] {
+			name, _, _ := strings.Cut(p, "(")
+			name = strings.ToLower(strings.TrimSpace(name))
+			if name == "foreign_keys" {
+				continue
+			}
+			set[name] = true
+			keep = append(keep, p)
+		}
+		for _, p := range sqlitePragmas {
+			if name, _, _ := strings.Cut(p, "("); !set[name] {
+				keep = append(keep, p)
+			}
+		}
+		q["_pragma"] = keep
+		if q.Get("_txlock") == "" {
+			q.Set("_txlock", "immediate")
+		}
+		return base + "?" + q.Encode(), nil
 	}
 	path := strings.TrimPrefix(dsn, "file:")
 	if !filepath.IsAbs(path) {
@@ -115,7 +146,7 @@ func sqliteDSN(dsn, dataDir string) (string, error) {
 		return "", fmt.Errorf("create sqlite directory: %w", err)
 	}
 	q := url.Values{}
-	for _, p := range []string{"busy_timeout(10000)", "journal_mode(WAL)", "foreign_keys(1)", "synchronous(NORMAL)"} {
+	for _, p := range sqlitePragmas {
 		q.Add("_pragma", p)
 	}
 	q.Set("_txlock", "immediate")

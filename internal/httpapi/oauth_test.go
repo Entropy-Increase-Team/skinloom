@@ -183,7 +183,7 @@ func TestOAuthFlowAndResourceAPI(t *testing.T) {
 	}
 
 	// Notifications.
-	if _, err := d.Notify.Send(t.Context(), userID(t, alice), "Hello", "**hi**"); err != nil {
+	if _, err := d.Notify.Send(t.Context(), userID(t, alice), "Hello", "**hi**", nil); err != nil {
 		t.Fatal(err)
 	}
 	rec = app(t, h, "GET", "/api/user/notifications", "", "", "Authorization", bearer)

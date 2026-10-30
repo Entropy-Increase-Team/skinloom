@@ -20,6 +20,8 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	auditlog "github.com/Entropy-Increase-Team/skinloom/internal/audit"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 )
 
@@ -60,6 +62,9 @@ type Viewer struct {
 	SessionID string
 }
 
+// SetHooks sets the bus account events are published to (none before it is set).
+func (s *Service) SetHooks(b *hook.Bus) { s.hooks = b }
+
 // IsAdmin reports whether the viewer may use the admin API.
 func (v *Viewer) IsAdmin() bool {
 	return v != nil && (v.User.Role == user.RoleAdmin || v.User.Role == user.RoleSuperadmin)
@@ -84,8 +89,9 @@ type Service struct {
 	passwordChecks     *Limiter // wrong current passwords per user (profile changes)
 	emailChanges       *Limiter // email change attempts per user
 	setupDone          atomic.Bool
-	notify             func()                             // see SetJobNotifier
-	onDelete           func(context.Context, int64) error // see SetBeforeDelete
+	notify             func()                                          // see SetJobNotifier
+	hooks              *hook.Bus                                       // see SetHooks
+	onDelete           func(context.Context, *ent.Client, int64) error // see SetBeforeDelete
 }
 
 // accountCaptchaAt is the number of failures on one account, from all clients
@@ -243,6 +249,9 @@ func (s *Service) CompleteSetup(ctx context.Context, in SetupInput, meta Request
 		if sess, err = s.createSession(ctx, tx, u.ID, false, meta); err != nil {
 			return err
 		}
+		if err := hook.OnUserRegistered.Publish(ctx, s.hooks, tx, hook.UserEvent{UserID: u.ID, Method: "setup"}); err != nil {
+			return err
+		}
 		return audit(ctx, tx, &u.ID, "setup.complete", "user", strconv.FormatInt(u.ID, 10), meta.IP, nil)
 	})
 	if err != nil {
@@ -273,73 +282,114 @@ func (s *Service) CaptchaRequired(email, ip string, p LoginPolicy) bool {
 		s.accountLimit.Count(acct) >= accountCaptchaAt
 }
 
+// attempt is one password check, counted against the failure limits (see NewService)
+// before it runs. A failure leaves it counted; succeed and cancel take it back.
+type attempt struct {
+	s        *Service
+	ip, acct string
+}
+
+func (a *attempt) clientAcct() string { return a.ip + "|" + a.acct }
+
+// takeAttempt counts a password check from ip on acct, or refuses it with a
+// RateLimitError once a limit is reached. Counting first is what keeps a burst of
+// simultaneous requests within the limits (see Limiter.Take). lockAccount says
+// whether the account-wide limit refuses or, when a captcha answers attacks spread
+// over many clients instead, only counts.
+func (s *Service) takeAttempt(ip, acct string, lockAccount bool) (*attempt, error) {
+	a := &attempt{s: s, ip: ip, acct: acct}
+	var undo []func()
+	for _, c := range []struct {
+		l      *Limiter
+		key    string
+		refuse bool
+	}{{s.ipLimit, ip, true}, {s.clientAccountLimit, a.clientAcct(), true}, {s.accountLimit, acct, lockAccount}} {
+		if !c.refuse {
+			c.l.Fail(c.key)
+		} else if wait, blocked := c.l.Take(c.key); blocked {
+			for _, f := range undo {
+				f()
+			}
+			return nil, &RateLimitError{RetryAfter: wait}
+		}
+		undo = append(undo, func() { c.l.Release(c.key) })
+	}
+	return a, nil
+}
+
+// succeed: the password was right. Successes never count against the address or the
+// account; of the failures, only this client's on this account are forgiven, so the
+// account-wide count of a distributed attack keeps running.
+func (a *attempt) succeed() {
+	a.s.ipLimit.Release(a.ip)
+	a.s.accountLimit.Release(a.acct)
+	a.s.clientAccountLimit.Reset(a.clientAcct())
+}
+
+// cancel: the check did not happen (a database error) or does not count (a banned
+// account, answered only after the right password).
+func (a *attempt) cancel() {
+	a.s.ipLimit.Release(a.ip)
+	a.s.clientAccountLimit.Release(a.clientAcct())
+	a.s.accountLimit.Release(a.acct)
+}
+
 // Login checks an email and password. Every failure looks the same to the client,
 // and repeated failures are rate limited (see NewService).
 func (s *Service) Login(ctx context.Context, in LoginInput, p LoginPolicy, meta RequestMeta) (*ent.User, *NewSession, error) {
 	meta = meta.clipped()
 	acct, ip := NormalizeEmail(in.Email), ipKey(meta.IP)
-	clientAcct := ip + "|" + acct
-	limits := []struct {
-		l   *Limiter
-		key string
-	}{{s.ipLimit, ip}, {s.clientAccountLimit, clientAcct}, {s.accountLimit, acct}}
-	for _, c := range limits {
-		if c.l == s.accountLimit && p.CaptchaEnabled {
-			continue // a captcha, not a lockout, answers attacks spread over many clients
-		}
-		if wait, blocked := c.l.Blocked(c.key); blocked {
-			return nil, nil, &RateLimitError{RetryAfter: wait}
-		}
+	// Decided before this attempt is counted, so it asks after CaptchaAfter failures.
+	needCaptcha := !in.CaptchaSolved && s.CaptchaRequired(in.Email, meta.IP, p)
+	att, err := s.takeAttempt(ip, acct, !p.CaptchaEnabled)
+	if err != nil {
+		return nil, nil, err
 	}
-	if !in.CaptchaSolved && s.CaptchaRequired(in.Email, meta.IP, p) {
+	if needCaptcha {
+		att.cancel()
 		return nil, nil, ErrCaptchaRequired
-	}
-	fail := func() (*ent.User, *NewSession, error) {
-		for _, c := range limits {
-			c.l.Fail(c.key)
-		}
-		return nil, nil, ErrInvalidCredentials
 	}
 	password := in.Password
 	if utf8Len := len([]rune(password)); utf8Len == 0 || utf8Len > MaxPasswordLen {
-		return fail()
+		return nil, nil, ErrInvalidCredentials // the attempt stays counted
 	}
 
 	u, err := s.db.User.Query().Where(user.EmailNormalized(acct)).Only(ctx)
 	if ent.IsNotFound(err) {
 		s.hasher.burn(ctx, password)
-		return fail()
+		return nil, nil, ErrInvalidCredentials
 	}
 	if err != nil {
+		att.cancel()
 		return nil, nil, err
 	}
 	if !HasPassword(u) { // signs in through a provider only
 		s.hasher.burn(ctx, password)
-		return fail()
+		return nil, nil, ErrInvalidCredentials
 	}
 	ok, rehash, err := s.hasher.Verify(ctx, u.PasswordAlgo, u.PasswordHash, password)
 	if err != nil {
 		if ctx.Err() != nil {
+			att.cancel()
 			return nil, nil, ctx.Err()
 		}
 		s.log.Warn("stored password hash cannot be verified", "user", u.ID, "algo", u.PasswordAlgo, "err", err)
 	}
 	if !ok {
-		return fail()
+		return nil, nil, ErrInvalidCredentials
 	}
 	restore := false
 	if u.Status == user.StatusDeleted {
 		if u.DeletedAt == nil || !s.now().Before(u.DeletedAt.Add(DeleteGrace)) {
-			return fail() // gone for good, just not purged yet
+			return nil, nil, ErrInvalidCredentials // gone for good, just not purged yet
 		}
 		restore = true // signing in within the grace period cancels the deletion
 	}
 	if u.Status == user.StatusBanned {
+		att.cancel()
 		return nil, nil, ErrAccountDisabled
 	}
-	// Only this client's count is forgiven; the account-wide count of a distributed
-	// attack keeps running even if the real user signs in meanwhile.
-	s.clientAccountLimit.Reset(clientAcct)
+	att.succeed()
 
 	var newHash string
 	if rehash {
@@ -387,51 +437,42 @@ func (s *Service) Login(ctx context.Context, in LoginInput, p LoginPolicy, meta 
 func (s *Service) VerifyCredentials(ctx context.Context, email, password string, meta RequestMeta) (*ent.User, error) {
 	meta = meta.clipped()
 	acct, ip := NormalizeEmail(email), ipKey(meta.IP)
-	clientAcct := ip + "|" + acct
-	limits := []struct {
-		l   *Limiter
-		key string
-	}{{s.ipLimit, ip}, {s.clientAccountLimit, clientAcct}, {s.accountLimit, acct}}
-	for _, c := range limits {
-		if wait, blocked := c.l.Blocked(c.key); blocked {
-			return nil, &RateLimitError{RetryAfter: wait}
-		}
-	}
-	fail := func() (*ent.User, error) {
-		for _, c := range limits {
-			c.l.Fail(c.key)
-		}
-		return nil, ErrInvalidCredentials
+	att, err := s.takeAttempt(ip, acct, true)
+	if err != nil {
+		return nil, err
 	}
 	if n := len([]rune(password)); n == 0 || n > MaxPasswordLen {
-		return fail()
+		return nil, ErrInvalidCredentials
 	}
 	u, err := s.db.User.Query().Where(user.EmailNormalized(acct)).Only(ctx)
 	if ent.IsNotFound(err) {
 		s.hasher.burn(ctx, password)
-		return fail()
+		return nil, ErrInvalidCredentials
 	}
 	if err != nil {
+		att.cancel()
 		return nil, err
 	}
 	if !HasPassword(u) {
 		s.hasher.burn(ctx, password)
-		return fail()
+		return nil, ErrInvalidCredentials
 	}
 	ok, rehash, err := s.hasher.Verify(ctx, u.PasswordAlgo, u.PasswordHash, password)
 	if err != nil {
 		if ctx.Err() != nil {
+			att.cancel()
 			return nil, ctx.Err()
 		}
 		s.log.Warn("stored password hash cannot be verified", "user", u.ID, "algo", u.PasswordAlgo, "err", err)
 	}
 	if !ok || u.Status == user.StatusDeleted {
-		return fail()
+		return nil, ErrInvalidCredentials
 	}
 	if u.Status == user.StatusBanned {
+		att.cancel()
 		return nil, ErrAccountDisabled
 	}
-	s.clientAccountLimit.Reset(clientAcct)
+	att.succeed()
 	if rehash {
 		if h, err := s.hasher.Hash(ctx, password); err == nil {
 			_ = s.db.User.UpdateOneID(u.ID).SetPasswordHash(h).SetPasswordAlgo(AlgoArgon2id).Exec(ctx)
@@ -468,10 +509,9 @@ func (s *Service) Register(ctx context.Context, in RegisterInput, p RegisterPoli
 	// the few password hashing slots that sign-ins need too. PerIPPerDay = 0 means the
 	// site does not limit by address (e.g. everyone shares one), so neither does this.
 	if ip := ipKey(meta.IP); p.PerIPPerDay > 0 {
-		if wait, blocked := s.registerAttempts.Blocked(ip); blocked {
+		if wait, blocked := s.registerAttempts.Take(ip); blocked {
 			return nil, nil, &RateLimitError{RetryAfter: wait}
 		}
-		s.registerAttempts.Fail(ip)
 	}
 	// The answer for a taken address is explicit anyway; finding it out costs no hash.
 	if taken, err := s.db.User.Query().Where(user.EmailNormalized(NormalizeEmail(in.Email))).Exist(ctx); err != nil || taken {
@@ -514,6 +554,9 @@ func (s *Service) Register(ctx context.Context, in RegisterInput, p RegisterPoli
 			if err := s.sendVerification(ctx, tx, u, mc); err != nil {
 				return err
 			}
+		}
+		if err := hook.OnUserRegistered.Publish(ctx, s.hooks, tx, hook.UserEvent{UserID: u.ID, Method: "password"}); err != nil {
+			return err
 		}
 		return audit(ctx, tx, &u.ID, "auth.register", "user", strconv.FormatInt(u.ID, 10), meta.IP, nil)
 	})
@@ -633,16 +676,7 @@ func (s *Service) withTx(ctx context.Context, fn func(tx *ent.Client) error) err
 }
 
 func audit(ctx context.Context, tx *ent.Client, actor *int64, action, targetType, targetID, ip string, meta map[string]any) error {
-	c := tx.AuditLog.Create().
-		SetNillableActorID(actor).
-		SetAction(action).
-		SetTargetType(targetType).
-		SetTargetID(targetID).
-		SetIP(ip)
-	if meta != nil {
-		c.SetMeta(meta)
-	}
-	return c.Exec(ctx)
+	return auditlog.Write(ctx, tx, &auditlog.Entry{Actor: actor, Action: action, TargetType: targetType, TargetID: targetID, IP: ip, Meta: meta})
 }
 
 // ValidateNewAccount checks the fields of a new account, one FieldError per bad field.

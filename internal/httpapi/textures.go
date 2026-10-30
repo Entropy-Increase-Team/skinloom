@@ -203,10 +203,9 @@ func registerTextures(api huma.API, d Deps) {
 			return nil, err
 		}
 		key := strconv.FormatInt(v.User.ID, 10)
-		if wait, blocked := uploads.Blocked(key); blocked {
+		if wait, blocked := uploads.Take(key); blocked {
 			return nil, rateLimitError(&account.RateLimitError{RetryAfter: wait}, "too many uploads, try again later")
 		}
-		uploads.Fail(key)
 		form := in.RawBody.Data()
 		snap := d.Settings.Current()
 		p := texture.PolicyFrom(snap)

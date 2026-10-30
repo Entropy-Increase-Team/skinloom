@@ -11,6 +11,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/internal/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/player"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
@@ -131,9 +132,6 @@ func registerAdminPlayers(api huma.API, d Deps) {
 		return huma.Operation{OperationID: id, Method: method, Path: path, Summary: summary,
 			Tags: []string{"admin"}, Security: adminSecurity, DefaultStatus: status}
 	}
-	audit := func(ctx context.Context, a account.Actor, action, targetType string, id int64, meta map[string]any) {
-		adminAudit(ctx, d, a, action, targetType, id, meta)
-	}
 	managed := func(ctx context.Context, a account.Actor, id int64) (*ent.Player, error) {
 		return managedPlayer(ctx, d, a, id)
 	}
@@ -204,10 +202,10 @@ func registerAdminPlayers(api huma.API, d Deps) {
 			if err != nil {
 				return nil, adminPlayerError(err)
 			}
-			if _, err := d.Players.Wear(ctx, p.UserID, p.ID, in.Body.Skin, in.Body.Cape); err != nil {
+			rec := adminRecord(ctx, a, "admin.player_textures", "player", p.ID, map[string]any{"skin": in.Body.Skin, "cape": in.Body.Cape})
+			if _, err := d.Players.Wear(ctx, p.UserID, p.ID, in.Body.Skin, in.Body.Cape, rec); err != nil {
 				return nil, adminPlayerError(err)
 			}
-			audit(ctx, a, "admin.player_textures", "player", p.ID, map[string]any{"skin": in.Body.Skin, "cape": in.Body.Cape})
 			if p, err = d.Players.Get(ctx, p.ID); err != nil {
 				return nil, adminPlayerError(err)
 			}
@@ -225,10 +223,10 @@ func registerAdminPlayers(api huma.API, d Deps) {
 				return nil, adminPlayerError(err)
 			}
 			refund := score.RatesFrom(d.Settings.Current()).ReturnOnDelete
-			if _, err := d.Players.Delete(ctx, p.UserID, p.ID, refund); err != nil {
+			rec := adminRecord(ctx, a, "admin.player_deleted", "player", p.ID, map[string]any{"name": p.Name, "owner": p.UserID})
+			if _, err := d.Players.Delete(ctx, p.UserID, p.ID, refund, rec); err != nil {
 				return nil, adminPlayerError(err)
 			}
-			audit(ctx, a, "admin.player_deleted", "player", p.ID, map[string]any{"name": p.Name, "owner": p.UserID})
 			return nil, nil
 		})
 
@@ -260,7 +258,8 @@ func registerAdminPlayers(api huma.API, d Deps) {
 			if _, err := d.Accounts.MayManageOwned(ctx, a, in.ID); err != nil {
 				return nil, adminError(err)
 			}
-			item, err := d.Textures.GiveToCloset(ctx, in.ID, in.Body.TextureID)
+			rec := adminRecord(ctx, a, "admin.closet_added", "user", in.ID, map[string]any{"texture": in.Body.TextureID})
+			item, err := d.Textures.GiveToCloset(ctx, in.ID, in.Body.TextureID, rec)
 			if err != nil {
 				return nil, manageError(d, err)
 			}
@@ -268,7 +267,6 @@ func registerAdminPlayers(api huma.API, d Deps) {
 			if err != nil {
 				return nil, manageError(d, err)
 			}
-			audit(ctx, a, "admin.closet_added", "user", in.ID, map[string]any{"texture": in.Body.TextureID})
 			return &struct{ Body ClosetItemView }{ClosetItemView{ID: item.ID, Name: item.Name, AddedAt: item.CreatedAt, Texture: textureView(t)}}, nil
 		})
 
@@ -282,20 +280,20 @@ func registerAdminPlayers(api huma.API, d Deps) {
 				return nil, adminError(err)
 			}
 			refund := score.RatesFrom(d.Settings.Current()).ReturnOnDelete
-			n, err := d.Textures.Unfavorite(ctx, in.ID, in.TextureID, refund)
+			rec := adminRecord(ctx, a, "admin.closet_removed", "user", in.ID, map[string]any{"texture": in.TextureID})
+			n, err := d.Textures.Unfavorite(ctx, in.ID, in.TextureID, refund, rec)
 			if err != nil {
 				return nil, manageError(d, err)
 			}
-			audit(ctx, a, "admin.closet_removed", "user", in.ID, map[string]any{"texture": in.TextureID, "refunded": n})
 			return &struct{ Body Unfavorited }{Unfavorited{Refunded: n}}, nil
 		})
 }
 
-// adminAudit records an administrator's action (both APIs).
-func adminAudit(ctx context.Context, d Deps, a account.Actor, action, targetType string, id int64, meta map[string]any) {
-	if err := d.Accounts.Audit(ctx, actorIDOf(a), action, targetType, strconv.FormatInt(id, 10), requestInfo(ctx).client.ClientIP, meta); err != nil {
-		d.Log.Warn("audit", "action", action, "err", err)
-	}
+// adminRecord is the audit record of an administrator's action (both APIs), for the
+// service to write in the transaction of the change.
+func adminRecord(ctx context.Context, a account.Actor, action, targetType string, id int64, meta map[string]any) *audit.Entry {
+	return &audit.Entry{Actor: actorIDOf(a), Action: action, TargetType: targetType, TargetID: strconv.FormatInt(id, 10),
+		IP: requestInfo(ctx).client.ClientIP, Meta: meta}
 }
 
 // managedPlayer loads a player whose owner the actor may manage.
@@ -311,31 +309,16 @@ func managedPlayer(ctx context.Context, d Deps, a account.Actor, id int64) (*ent
 }
 
 // updatePlayerAsAdmin renames a player and/or gives it to another user the actor may
-// manage (account.ErrNotFound: no such user), and records it.
+// manage (account.ErrNotFound: no such user), in one transaction with its record.
 func updatePlayerAsAdmin(ctx context.Context, d Deps, a account.Actor, p *ent.Player, name *string, owner *int64) error {
 	if owner != nil && *owner != p.UserID {
 		if _, err := d.Accounts.MayManageOwned(ctx, a, *owner); err != nil {
 			return err
 		}
 	}
-	meta := map[string]any{}
-	if name != nil && *name != p.Name {
-		renamed, err := d.Players.Rename(ctx, p.UserID, p.ID, *name, player.PolicyFrom(d.Settings.Current()))
-		if err != nil {
-			return err
-		}
-		meta["name"] = []string{p.Name, renamed.Name}
-	}
-	if owner != nil && *owner != p.UserID {
-		if _, err := d.Players.Transfer(ctx, p.ID, *owner); err != nil {
-			return err
-		}
-		meta["owner"] = []int64{p.UserID, *owner}
-	}
-	if len(meta) > 0 {
-		adminAudit(ctx, d, a, "admin.player_updated", "player", p.ID, meta)
-	}
-	return nil
+	_, err := d.Players.Edit(ctx, p.ID, player.Change{Owner: p.UserID, Name: name, NewOwner: owner},
+		player.PolicyFrom(d.Settings.Current()), adminRecord(ctx, a, "admin.player_updated", "player", p.ID, map[string]any{}))
+	return err
 }
 
 // actorIDOf is who acts, for the audit log: nil for the admin token.

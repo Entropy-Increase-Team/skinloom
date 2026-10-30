@@ -32,14 +32,14 @@ func TestInbox(t *testing.T) {
 		alice := newUser(t, d, "alice@example.com", user.RoleUser, time.Now())
 		bob := newUser(t, d, "bob@example.com", user.RoleUser, time.Now())
 
-		if _, err := s.Send(ctx, alice, "  ", "x"); len(validate.FieldErrors(err)) != 1 {
+		if _, err := s.Send(ctx, alice, "  ", "x", nil); len(validate.FieldErrors(err)) != 1 {
 			t.Fatalf("empty title: %v", err)
 		}
-		if _, err := s.Send(ctx, alice, strings.Repeat("长", MaxTitle+1), strings.Repeat("x", MaxContent+1)); len(validate.FieldErrors(err)) != 2 {
+		if _, err := s.Send(ctx, alice, strings.Repeat("长", MaxTitle+1), strings.Repeat("x", MaxContent+1), nil); len(validate.FieldErrors(err)) != 2 {
 			t.Fatalf("too long: %v", err)
 		}
-		first, _ := s.Send(ctx, alice, "Hello", "**welcome**")
-		second, _ := s.Send(ctx, alice, "Again", "")
+		first, _ := s.Send(ctx, alice, "Hello", "**welcome**", nil)
+		second, _ := s.Send(ctx, alice, "Again", "", nil)
 		if n, err := s.Unread(ctx, alice); err != nil || n != 2 {
 			t.Fatalf("unread: %d, %v", n, err)
 		}
@@ -75,13 +75,13 @@ func TestAnnouncements(t *testing.T) {
 		old := newUser(t, d, "old@example.com", user.RoleUser, time.Now().Add(-time.Hour))
 		admin := newUser(t, d, "admin@example.com", user.RoleAdmin, time.Now().Add(-time.Hour))
 
-		if _, err := s.Announce(ctx, nil, "everyone", "x", ""); len(validate.FieldErrors(err)) != 1 {
+		if _, err := s.Announce(ctx, nil, "everyone", "x", "", nil); len(validate.FieldErrors(err)) != 1 {
 			t.Fatalf("bad audience: %v", err)
 		}
-		if _, err := s.Announce(ctx, &admin, AudienceAll, "Maintenance", "Tonight"); err != nil {
+		if _, err := s.Announce(ctx, &admin, AudienceAll, "Maintenance", "Tonight", nil); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := s.Announce(ctx, nil, AudienceUsers, "Users only", ""); err != nil {
+		if _, err := s.Announce(ctx, nil, AudienceUsers, "Users only", "", nil); err != nil {
 			t.Fatal(err)
 		}
 		late := newUser(t, d, "late@example.com", user.RoleUser, time.Now().Add(time.Second))
@@ -101,7 +101,7 @@ func TestAnnouncements(t *testing.T) {
 		if count(old) != 2 {
 			t.Fatal("delivered twice")
 		}
-		_, _ = s.Announce(ctx, nil, AudienceAll, "Third", "")
+		_, _ = s.Announce(ctx, nil, AudienceAll, "Third", "", nil)
 		var wg sync.WaitGroup
 		for range 10 {
 			wg.Go(func() {

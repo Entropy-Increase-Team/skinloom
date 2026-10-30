@@ -20,6 +20,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	tex "github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
@@ -40,7 +41,8 @@ type Service struct {
 	store    storage.Store
 	log      *slog.Logger
 	decoding chan struct{}
-	notify   func() // see SetJobNotifier
+	notify   func()    // see SetJobNotifier
+	hooks    *hook.Bus // see SetHooks
 }
 
 // NewService creates the service.
@@ -48,13 +50,18 @@ func NewService(db *ent.Client, store storage.Store, log *slog.Logger) *Service 
 	return &Service{db: db, store: store, log: log, decoding: make(chan struct{}, 4)}
 }
 
+// SetHooks sets the bus texture, closet and player events are published to (none
+// before it is set).
+func (s *Service) SetHooks(b *hook.Bus) { s.hooks = b }
+
 // Viewer is who is looking: 0 for a guest.
 type Viewer struct {
 	UserID int64
 	Admin  bool
 }
 
-func (v Viewer) mayView(t *ent.Texture) bool {
+// MayView reports whether the viewer may see t.
+func (v Viewer) MayView(t *ent.Texture) bool {
 	return t.Visibility == tex.VisibilityPublic || v.Admin || (v.UserID != 0 && t.UploaderID != nil && *t.UploaderID == v.UserID)
 }
 
@@ -166,7 +173,13 @@ func (s *Service) Upload(ctx context.Context, uploader int64, in UploadInput, p 
 		res.Texture = t
 		res.Balance, err = score.Apply(ctx, tx, score.Change{UserID: uploader, Delta: -cost,
 			Reason: score.ReasonTextureUpload, RefType: "texture", RefID: strconv.FormatInt(t.ID, 10)})
-		return err
+		if err != nil {
+			return err
+		}
+		if err := hook.OnTextureUploaded.Publish(ctx, s.hooks, tx, textureEvent(t)); err != nil {
+			return err
+		}
+		return hook.OnClosetAdded.Publish(ctx, s.hooks, tx, hook.ClosetEvent{UserID: uploader, TextureID: t.ID})
 	})
 	if errors.Is(err, errRaced) {
 		dup, err := s.duplicate(ctx, uploader, img.hash)
@@ -211,7 +224,7 @@ func (s *Service) Get(ctx context.Context, id int64, v Viewer) (*ent.Texture, er
 	if err != nil {
 		return nil, err
 	}
-	if !v.mayView(t) {
+	if !v.MayView(t) {
 		return nil, ErrPrivate
 	}
 	return t, nil

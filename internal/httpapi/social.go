@@ -154,10 +154,9 @@ func registerSocial(api huma.API, d Deps) {
 	start := func(ctx context.Context, provider string, userID *int64, next string, remember bool) (*socialRedirectOutput, error) {
 		ri := requestInfo(ctx)
 		client := account.ClientKey(ri.client.ClientIP)
-		if wait, blocked := socialStarts.Blocked(client); blocked {
+		if wait, blocked := socialStarts.Take(client); blocked {
 			return nil, rateLimitError(&account.RateLimitError{RetryAfter: wait}, "too many sign-ins started, try again later")
 		}
-		socialStarts.Fail(client)
 		redirect, cookie, err := d.Social.Start(ctx, social.PolicyFrom(d.Settings.Current()),
 			social.StartInput{Provider: provider, UserID: userID, Next: next, Remember: remember})
 		if err != nil {
