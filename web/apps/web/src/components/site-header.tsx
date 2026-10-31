@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 
 import { getBootstrap } from '@/lib/bootstrap'
+import { safeImageUrl } from '@/lib/safe-url'
 import { getViewer } from '@/lib/viewer'
 
 import { UserMenu } from './auth/user-menu'
@@ -15,12 +16,18 @@ export async function SiteHeader() {
   const [boot, viewer] = await Promise.all([getBootstrap(), getViewer()])
   const t = await getTranslations()
   const explore = [...(boot.menus.explore ?? [])].sort((a, b) => a.order - b.order)
+  const logo = safeImageUrl(boot.site.logo)
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <Logo className="size-6" />
+          {logo ? (
+            // An administrator's URL of any size and host: next/image would need each host configured.
+            <img src={logo} alt="" className="h-6 w-auto max-w-32 object-contain" />
+          ) : (
+            <Logo className="size-6" />
+          )}
           <span>{boot.site.name}</span>
         </Link>
         <nav className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -60,7 +67,9 @@ export async function SiteHeader() {
           {t.rich('setupPending', { code: (chunks) => <code className="font-mono">{chunks}</code> })}
         </div>
       )}
-      {viewer && !viewer.emailVerified && boot.auth.mail && <VerifyBanner email={viewer.email} />}
+      {viewer && !viewer.emailVerified && (boot.auth.mail || boot.auth.requireVerification) && (
+        <VerifyBanner email={viewer.email} required={boot.auth.requireVerification} canResend={boot.auth.mail} />
+      )}
     </header>
   )
 }

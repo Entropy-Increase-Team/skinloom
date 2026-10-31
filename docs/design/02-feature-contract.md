@@ -221,7 +221,7 @@ OAuth 客户端（`oauth_clients`）迁移：client_id 保留；secret 若在 BS
 | reports | reports | |
 | notifications | notifications | 只迁移未读 |
 | options | settings | 按 §4 映射 |
-| language_lines | translation_overrides | |
+| language_lines | 设置 `i18n.overrides` | 按语言与消息键（ADR 0031）；BS 的 group/key 换成 SkinLoom 的消息键，对不上的写进报告 |
 | oauth_clients | oauth_clients | 见 2.6 |
 | ygg_log | （可选）audit_log | 默认不迁移 |
 | 其它插件表 | — | 按插件逐个出转换器（邀请码、正版验证等） |

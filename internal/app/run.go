@@ -1,6 +1,7 @@
 package app
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/buildinfo"
@@ -37,7 +39,9 @@ type RunOptions struct {
 
 // Run starts the server and blocks until ctx is cancelled.
 func Run(ctx context.Context, o RunOptions) error {
-	core, err := OpenCore(ctx, o.Paths)
+	p := o.Paths
+	p.Serve = true
+	core, err := OpenCore(ctx, p)
 	if err != nil {
 		return err
 	}
@@ -63,11 +67,27 @@ func Run(ctx context.Context, o RunOptions) error {
 	go yggdrasilUpkeep(runCtx, core)
 
 	var gw *gateway.Gateway // created below; serves requests only after Serve starts
+	// The frontend this process runs (web.mode managed or dev), for /readyz: an
+	// external frontend has its own probes, and the backend stays ready without it.
+	var localWeb atomic.Pointer[string]
 	api, _ := httpapi.New(httpapi.Deps{
 		Log: log.With("component", "http"), DB: core.DB, Settings: core.Settings,
-		Themes: core.Themes, Broker: core.Broker, Accounts: core.Accounts, Captcha: core.Captcha, Mailer: core.Mailer, Textures: core.Textures, Players: core.Players, Reports: core.Reports, Renders: core.Renders, Notify: core.Notify, Yggdrasil: core.Yggdrasil, OAuth: core.OAuth, Social: core.Social,
+		Themes: core.Themes, Broker: core.Broker, Accounts: core.Accounts, Captcha: core.Captcha, Mailer: core.Mailer, Textures: core.Textures, Players: core.Players, Reports: core.Reports, Renders: core.Renders, Notify: core.Notify, Yggdrasil: core.Yggdrasil, OAuth: core.OAuth, Social: core.Social, CDN: core.CDN,
 		AdminToken: sec.AdminToken,
 		ClientInfo: func(r *http.Request) realip.Info { return gw.ClientInfo(r) },
+		Runtime:    httpapi.RuntimeInfo{Started: time.Now(), Role: cfg.Server.Role, Web: cfg.Web.Mode, Storage: cmp.Or(cfg.Storage.Driver, "local")},
+		WebReady: func() bool {
+			addr := localWeb.Load()
+			if addr == nil {
+				return true
+			}
+			c, err := net.DialTimeout("tcp", *addr, 500*time.Millisecond)
+			if err != nil {
+				return false
+			}
+			_ = c.Close()
+			return true
+		},
 	})
 
 	ln, err := net.Listen("tcp", cfg.Server.Listen)
@@ -111,7 +131,7 @@ func Run(ctx context.Context, o RunOptions) error {
 		if c.Server.Role != "all" {
 			return
 		}
-		applyWebConfig(runCtx, c, apiInternal, gw, web, log)
+		applyWebConfig(runCtx, c, apiInternal, gw, web, &localWeb, log)
 	}
 	applyWeb(cfg)
 	defer web.Stop()
@@ -192,10 +212,16 @@ func adjust(c config.Config, o RunOptions) config.Config {
 	return c
 }
 
-func applyWebConfig(ctx context.Context, c config.Config, apiInternal string, gw *gateway.Gateway, web *launcher.Web, log interface {
-	Info(string, ...any)
-	Warn(string, ...any)
-}) {
+func applyWebConfig(ctx context.Context, c config.Config, apiInternal string, gw *gateway.Gateway, web *launcher.Web,
+	localWeb *atomic.Pointer[string], log interface {
+		Info(string, ...any)
+		Warn(string, ...any)
+	}) {
+	localWeb.Store(nil) // set again below once a local frontend is started
+	started := func(port int) {
+		addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+		localWeb.Store(&addr)
+	}
 	switch c.Web.Mode {
 	case "off":
 		web.Stop()
@@ -221,6 +247,7 @@ func applyWebConfig(ctx context.Context, c config.Config, apiInternal string, gw
 		spec := launcher.Spec{Mode: "dev", DevDir: devDir, PackageManager: c.Web.PackageManager, Port: port, APIInternal: apiInternal}
 		gw.SetWeb(spec.Upstream(), "")
 		web.Start(ctx, spec)
+		started(port)
 	case "managed":
 		dir := c.Web.Dir
 		if dir == "" {
@@ -248,6 +275,7 @@ func applyWebConfig(ctx context.Context, c config.Config, apiInternal string, gw
 		spec := launcher.Spec{Mode: "managed", ServerDir: serverDir, Node: node, Port: port, APIInternal: apiInternal}
 		gw.SetWeb(spec.Upstream(), serverDir)
 		web.Start(ctx, spec)
+		started(port)
 	}
 }
 

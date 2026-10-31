@@ -28,6 +28,7 @@ spec:
         app.kubernetes.io/instance: skinloom-server
         app.kubernetes.io/name: skinloom-server
     spec:
+      enableServiceLinks: false # the injected SKINLOOM_* variables would read as config
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532 # distroless "nonroot"
@@ -63,6 +64,8 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+            - name: tmp # uploads larger than a few KiB are spooled to a temporary file
+              mountPath: /tmp
           startupProbe:
             httpGet: { path: /readyz, port: http }
             periodSeconds: 5
@@ -85,6 +88,8 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: skinloom-data
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

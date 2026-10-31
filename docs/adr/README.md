@@ -32,3 +32,9 @@
 | [0026](0026-transaction-lock-order.md) | 事务的加锁顺序（防死锁） | 已接受 |
 | [0027](0027-decide-under-lock.md) | 事务里的判断放在加锁之后，加锁层级扩展到角色与删号 | 已接受 |
 | [0028](0028-domain-events-and-audit-in-tx.md) | 领域事件经任务队列投递，审计记录与变更同事务 | 已接受 |
+| [0029](0029-m4-split-and-settings-center.md) | M4 的拆分；设置中心：声明式校验与只写的密钥 | 已接受 |
+| [0030](0030-appearance-blocks-and-custom-css.md) | 外观：主题切换、区块目录与自定义 CSS | 已接受 |
+| [0031](0031-text-overrides-and-system-status.md) | 翻译覆盖放在设置里；系统状态页 | 已接受 |
+| [0032](0032-cdn-purge-and-backup.md) | CDN 刷新跟随领域事件；backup / restore 命令 | 已接受 |
+| [0033](0033-system-service-helm-and-deploy-smoke.md) | 系统服务命令、Helm Chart 与部署冒烟测试 | 已接受 |
+| [0034](0034-m4-review-fixes.md) | M4 全量审查的修正：恢复先检查后写入、设置保存串行化、密钥跟随去处 | 已接受 |

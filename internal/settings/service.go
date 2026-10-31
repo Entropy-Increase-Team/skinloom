@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"slices"
 	"sort"
 	"strings"
@@ -176,12 +177,14 @@ func (s *Service) publish(next *Snapshot) bool {
 }
 
 // Set validates and stores changes in one transaction, bumps the config version and
-// publishes the new snapshot. A JSON null resets a key to its default. rec, if not
-// nil, is written to the audit log in the same transaction, with the keys changed.
+// publishes the new snapshot. A JSON null resets a key to its default. A setting with
+// secret parts (Def.Restore) gets the stored ones back where the edited value left
+// them redacted. rec, if not nil, is written to the audit log in the same transaction,
+// with the keys changed.
 func (s *Service) Set(ctx context.Context, actor *int64, changes map[string]json.RawMessage, rec *audit.Entry) (*Snapshot, error) {
 	verr := &ValidationError{Fields: map[string]string{}}
 	type change struct {
-		key   string
+		def   Def
 		value json.RawMessage
 		reset bool
 	}
@@ -193,7 +196,15 @@ func (s *Service) Set(ctx context.Context, actor *int64, changes map[string]json
 			continue
 		}
 		if strings.TrimSpace(string(raw)) == "null" {
-			list = append(list, change{key: key, reset: true})
+			list = append(list, change{def: d, reset: true})
+			continue
+		}
+		if d.Restore != nil { // checked in the transaction, once the stored secrets are back
+			if !json.Valid(raw) {
+				verr.Fields[key] = "not valid JSON"
+				continue
+			}
+			list = append(list, change{def: d, value: raw})
 			continue
 		}
 		v, err := d.validate(raw)
@@ -202,7 +213,20 @@ func (s *Service) Set(ctx context.Context, actor *int64, changes map[string]json
 			continue
 		}
 		canonical, _ := json.Marshal(v)
-		list = append(list, change{key: key, value: canonical})
+		list = append(list, change{def: d, value: canonical})
+	}
+	// A kept secret follows the server it was given for (Def.SentTo).
+	cur := s.Current()
+	for _, d := range s.reg.All() {
+		if _, given := changes[d.Key]; len(d.SentTo) == 0 || given || !cur.IsSet(d.Key) {
+			continue
+		}
+		for _, k := range d.SentTo {
+			if raw, ok := changes[k]; ok && !sameJSON(raw, cur.Raw(k)) {
+				verr.Fields[d.Key] = "give it again: " + k + " changes where it is sent"
+				break
+			}
+		}
 	}
 	if len(verr.Fields) > 0 {
 		return nil, verr
@@ -212,25 +236,37 @@ func (s *Service) Set(ctx context.Context, actor *int64, changes map[string]json
 	}
 	// Rows are written in key order: in map order, two saves of overlapping keys locked
 	// them in opposite orders and deadlocked (PostgreSQL, 8 saves at once: 130 of 200).
-	slices.SortFunc(list, func(a, b change) int { return strings.Compare(a.key, b.key) })
+	slices.SortFunc(list, func(a, b change) int { return strings.Compare(a.def.Key, b.def.Key) })
 	keys := make([]string, 0, len(list))
 	for _, c := range list {
-		keys = append(keys, c.key)
+		keys = append(keys, c.def.Key)
 	}
 
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		return nil, err
 	}
+	// The config version row is taken first, so saves run one at a time: their row
+	// locks cannot cross, and the first save of a key cannot leave restore's lock on a
+	// missing row as a gap lock that a concurrent first save deadlocks on (MySQL).
+	version, err := bumpVersion(ctx, tx.Client())
+	if err != nil {
+		return nil, rollback(tx, err)
+	}
 	for _, c := range list {
 		if c.reset {
-			if err := tx.Setting.DeleteOneID(c.key).Exec(ctx); err != nil && !ent.IsNotFound(err) {
+			if err := tx.Setting.DeleteOneID(c.def.Key).Exec(ctx); err != nil && !ent.IsNotFound(err) {
 				return nil, rollback(tx, err)
 			}
 			continue
 		}
+		if c.def.Restore != nil {
+			if c.value, err = restore(ctx, tx.Client(), c.def, c.value); err != nil {
+				return nil, rollback(tx, err)
+			}
+		}
 		err := tx.Setting.Create().
-			SetID(c.key).
+			SetID(c.def.Key).
 			SetValue(string(c.value)).
 			SetNillableUpdatedBy(actor).
 			SetUpdatedAt(time.Now()).
@@ -238,12 +274,8 @@ func (s *Service) Set(ctx context.Context, actor *int64, changes map[string]json
 			UpdateNewValues().
 			Exec(ctx)
 		if err != nil {
-			return nil, rollback(tx, fmt.Errorf("save %s: %w", c.key, err))
+			return nil, rollback(tx, fmt.Errorf("save %s: %w", c.def.Key, err))
 		}
-	}
-	version, err := bumpVersion(ctx, tx.Client())
-	if err != nil {
-		return nil, rollback(tx, err)
 	}
 	if err := audit.Write(ctx, tx.Client(), rec.With("keys", keys)); err != nil {
 		return nil, rollback(tx, err)
@@ -257,6 +289,38 @@ func (s *Service) Set(ctx context.Context, actor *int64, changes map[string]json
 	s.log.Info("settings updated", "keys", keys, "version", version)
 	s.announce(version, keys)
 	return s.Current(), nil
+}
+
+// restore completes an edited value of d with the stored secrets (Def.Restore) and
+// validates the result. The stored row is locked first: read before the lock, the
+// secret a concurrent save just stored could be written back over with the old one.
+func restore(ctx context.Context, tx *ent.Client, d Def, raw json.RawMessage) (json.RawMessage, error) {
+	if err := tx.Setting.Update().Where(setting.ID(d.Key)).SetUpdatedAt(time.Now()).Exec(ctx); err != nil {
+		return nil, fmt.Errorf("lock %s: %w", d.Key, err)
+	}
+	storedRaw, _ := json.Marshal(d.Default)
+	switch row, err := tx.Setting.Get(ctx, d.Key); {
+	case err == nil:
+		storedRaw = []byte(row.Value)
+	case !ent.IsNotFound(err):
+		return nil, fmt.Errorf("read %s: %w", d.Key, err)
+	}
+	var stored, edited any
+	if err := json.Unmarshal(storedRaw, &stored); err != nil {
+		return nil, fmt.Errorf("read %s: %w", d.Key, err)
+	}
+	if err := json.Unmarshal(raw, &edited); err != nil {
+		return nil, err
+	}
+	full, err := json.Marshal(d.Restore(stored, edited))
+	if err != nil {
+		return nil, err
+	}
+	v, err := d.validate(full)
+	if err != nil {
+		return nil, &ValidationError{Fields: map[string]string{d.Key: err.Error()}}
+	}
+	return json.Marshal(v)
 }
 
 // Touch bumps the config version without changing settings (themes and plugins use it
@@ -341,4 +405,13 @@ func rollback(tx *ent.Tx, err error) error {
 		return errors.Join(err, rerr)
 	}
 	return err
+}
+
+// sameJSON: a and b decode to the same value.
+func sameJSON(a, b json.RawMessage) bool {
+	var x, y any
+	if json.Unmarshal(a, &x) != nil || json.Unmarshal(b, &y) != nil {
+		return false
+	}
+	return reflect.DeepEqual(x, y)
 }

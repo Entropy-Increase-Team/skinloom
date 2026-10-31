@@ -10,6 +10,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 )
 
@@ -109,7 +110,7 @@ func (s *Service) RegisterExternal(ctx context.Context, in ExternalInput, p Regi
 		}
 		var err error
 		if u, err = c.Save(ctx); err != nil {
-			if ent.IsConstraintError(err) {
+			if db.IsConstraint(err) {
 				return &FieldError{Field: "email", Message: "already registered"}
 			}
 			return err

@@ -1,0 +1,11 @@
+apiVersion: v2
+name: skinloom
+description: SkinLoom (云织), an open-source, self-hosted Minecraft skin site
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://skinloom.cn
+sources:
+  - https://github.com/Entropy-Increase-Team/skinloom
+license: MIT
+keywords: [minecraft, skin, authlib-injector, yggdrasil]

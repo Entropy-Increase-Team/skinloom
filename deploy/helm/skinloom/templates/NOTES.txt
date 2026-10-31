@@ -1,0 +1,23 @@
+SkinLoom {{ .Chart.AppVersion }} is starting ({{ .Values.mode }}, {{ .Values.database.driver }}).
+
+1. The one-time link that creates the administrator is in the log of the first start:
+
+     kubectl -n {{ .Release.Namespace }} logs deploy/{{ include "skinloom.fullname" . }} | grep setup
+
+{{- if .Values.ingress.enabled }}
+
+2. Open https://{{ first .Values.ingress.hosts }}/ (replace the host in the link above with it),
+   then set site.url to that address in the admin panel.
+{{- else }}
+
+2. Without an ingress, reach it with:
+
+     kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "skinloom.fullname" . }} {{ .Values.service.port }}
+
+   and open http://127.0.0.1:{{ .Values.service.port }}/.
+{{- end }}
+{{- if not .Values.trustedProxies }}
+
+Behind an ingress controller, set trustedProxies to its pod network so client
+addresses (rate limits, registration limits, audit) are the visitors', not the ingress pods'.
+{{- end }}

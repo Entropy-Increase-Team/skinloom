@@ -1,26 +1,16 @@
 package captcha
 
 import (
-	"fmt"
-	"slices"
-
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
 )
-
-var providers = []string{None, Image, Turnstile, ReCAPTCHA, HCaptcha}
 
 // SettingDefs are the captcha settings. Site keys are public (the widget needs them);
 // secret keys never leave the server.
 func SettingDefs() []settings.Def {
 	defs := []settings.Def{{
 		Key: "captcha.provider", Type: settings.TypeString, Public: true, Default: Image,
-		Doc: "Captcha on registration and after failed logins: none | image (built in) | turnstile | recaptcha | hcaptcha.",
-		Validate: func(v any) error {
-			if !slices.Contains(providers, v.(string)) {
-				return fmt.Errorf("want one of %v", providers)
-			}
-			return nil
-		},
+		Enum: []any{None, Image, Turnstile, ReCAPTCHA, HCaptcha},
+		Doc:  "Captcha on registration and after failed logins: none | image (built in) | turnstile | recaptcha | hcaptcha.",
 	}}
 	for _, p := range []struct{ id, name string }{
 		{Turnstile, "Cloudflare Turnstile"}, {ReCAPTCHA, "Google reCAPTCHA v2"}, {HCaptcha, "hCaptcha"},
@@ -28,7 +18,7 @@ func SettingDefs() []settings.Def {
 		defs = append(defs,
 			settings.Def{Key: "captcha." + p.id + ".site_key", Type: settings.TypeString, Public: true, Default: "",
 				Doc: p.name + " site key (public)."},
-			settings.Def{Key: "captcha." + p.id + ".secret_key", Type: settings.TypeString, Default: "",
+			settings.Def{Key: "captcha." + p.id + ".secret_key", Type: settings.TypeString, Default: "", Secret: true,
 				Doc: p.name + " secret key (server only)."},
 		)
 	}

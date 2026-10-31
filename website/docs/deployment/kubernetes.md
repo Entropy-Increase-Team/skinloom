@@ -5,7 +5,10 @@ sidebar_position: 4
 
 # Kubernetes / k3s
 
-仓库的 [`deploy/kubernetes/`](https://github.com/Entropy-Increase-Team/skinloom/tree/main/deploy/kubernetes) 提供两套 Kustomize 清单（`kubectl apply -k` 直接可用，不需要另装工具）。在 k3s 上开箱即用：自带的 Traefik 作为 Ingress，local-path 提供存储。Helm Chart 在 M4 提供。
+有两种方式，在 k3s 上都开箱即用（自带的 Traefik 作为 Ingress，local-path 提供存储）：
+
+- **Helm Chart**（[`deploy/helm/skinloom`](https://github.com/Entropy-Increase-Team/skinloom/tree/main/deploy/helm/skinloom)）：参数化，推荐；
+- **Kustomize 清单**（[`deploy/kubernetes/`](https://github.com/Entropy-Increase-Team/skinloom/tree/main/deploy/kubernetes)）：`kubectl apply -k` 直接可用，不需要另装工具。
 
 | 目录 | 内容 |
 |---|---|
@@ -23,7 +26,39 @@ sudo k3s kubectl get nodes        # k3s 自带 kubectl；也可以把 /etc/ranch
 
 国内网络可以使用 k3s 的国内镜像安装脚本，参见 k3s 官方文档。
 
-## 单 Pod
+## Helm
+
+```bash
+git clone https://github.com/Entropy-Increase-Team/skinloom && cd skinloom
+helm install skinloom deploy/helm/skinloom -n skinloom --create-namespace   --set ingress.enabled=true --set 'ingress.hosts[0]=skins.example.com'   --set 'trustedProxies[0]=10.42.0.0/16'
+kubectl -n skinloom logs deploy/skinloom | grep setup   # 一次性安装链接
+```
+
+默认是单 Pod（`mode=allInOne`）加 SQLite 和 5 Gi 数据卷。还没有发布版本时加 `--set image.tag=edge` 使用主分支的镜像。常用参数（完整列表见 `values.yaml`）：
+
+| 参数 | 说明 |
+|---|---|
+| `mode` | `allInOne`：一个 Pod 跑前后端；`split`：前后端分开，前端可以扩容（带 PDB，可选 HPA `web.autoscaling.enabled`） |
+| `database.driver` / `database.existingSecret` | `postgres` 或 `mysql` 时，DSN 放在你创建的 Secret 里（键 `dsn`） |
+| `persistence.*` | 数据卷大小、StorageClass、已有的 PVC；卸载 Chart 时数据卷会保留 |
+| `ingress.*` | Ingress 类、域名、注解（如 cert-manager）、TLS |
+| `trustedProxies` | Ingress 控制器的 Pod 网段，k3s 是 `10.42.0.0/16` |
+| `server.extraEnv` | 其它配置，例如 S3 存储（`SKINLOOM_STORAGE__DRIVER=s3` 等，密钥用 `valueFrom.secretKeyRef`） |
+| `server.replicas` | 后端副本数：大于 1 时需要 PostgreSQL/MySQL，并且材质放在 S3（`persistence.enabled=false`）或使用 ReadWriteMany 卷 |
+
+前后端分离 + PostgreSQL 的例子：
+
+```bash
+kubectl create namespace skinloom
+kubectl -n skinloom create secret generic skinloom-db   --from-literal=dsn='postgres://skinloom:密码@db.example.com:5432/skinloom?sslmode=require'
+helm install skinloom deploy/helm/skinloom -n skinloom   --set mode=split --set database.driver=postgres --set database.existingSecret=skinloom-db
+```
+
+互相矛盾的参数（例如 SQLite 配多个后端副本）会在安装时直接报错并说明原因。升级：`helm upgrade skinloom deploy/helm/skinloom -n skinloom --reuse-values --set image.tag=<新版本>`。
+
+`helm uninstall` 会保留数据卷（PVC `<release>-skinloom-data`，也就是默认的 `skinloom-data`）。之后想用原来的数据重新安装，加 `--set persistence.existingClaim=skinloom-data`；不要数据了就手动 `kubectl -n skinloom delete pvc skinloom-data`。
+
+## Kustomize：单 Pod
 
 ```bash
 git clone https://github.com/Entropy-Increase-Team/skinloom && cd skinloom
@@ -42,7 +77,7 @@ kubectl -n skinloom port-forward svc/skinloom 17546:17546
 
 然后打开 <http://localhost:17546>（安装链接里的地址换成这个）。
 
-## 前后端分离 + PostgreSQL
+## Kustomize：前后端分离 + PostgreSQL
 
 ```bash
 kubectl create namespace skinloom
@@ -69,4 +104,4 @@ kubectl -n skinloom scale deploy/skinloom-web --replicas=3   # 扩容前端
 
 ## 现状与限制
 
-后端目前是单副本：配置、密钥与上传文件在 ReadWriteOnce 卷上，部署策略是 `Recreate`（升级时会有几秒中断）。多副本后端需要共享存储（S3 / RWX 卷）与跨副本限流，计划在 M2（存储）与 M4（Helm、HPA）实现。前端可以随意扩容。
+使用数据卷时后端是单副本：配置、密钥与上传文件在 ReadWriteOnce 卷上，部署策略是 `Recreate`（升级时会有几秒中断）。用 PostgreSQL/MySQL 并把材质放进 S3 后，可以用 Helm 的 `server.replicas` 运行多个后端副本；登录等限流按副本分别计数，每个副本的管理员令牌（`skinloom admin token`）也各不相同。前端可以随意扩容。

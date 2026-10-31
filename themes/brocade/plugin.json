@@ -1,0 +1,78 @@
+{
+  "$schema": "https://skinloom.cn/schema/plugin.v1.json",
+  "id": "brocade",
+  "kind": "theme",
+  "version": "0.1.0",
+  "name": { "zh-CN": "织锦", "en": "Brocade" },
+  "description": {
+    "zh-CN": "暖色的第二套内置主题：朱红与金色、分栏的登录页、更紧凑的皮肤库，首页展示最新材质与站点数据。",
+    "en": "A warm second built-in theme: vermilion and gold, split sign-in pages, a denser skin library, and a home page with the latest textures and site figures."
+  },
+  "license": "MIT",
+  "engines": { "skinloom": ">=0.1.0" },
+  "apiVersion": 1,
+  "theme": {
+    "tokens": {
+      "light": {
+        "background": "oklch(0.985 0.008 75)",
+        "foreground": "oklch(0.24 0.04 30)",
+        "card": "oklch(1 0 0)",
+        "card-foreground": "oklch(0.24 0.04 30)",
+        "popover": "oklch(1 0 0)",
+        "popover-foreground": "oklch(0.24 0.04 30)",
+        "primary": "oklch(0.52 0.17 28)",
+        "primary-foreground": "oklch(0.98 0.01 75)",
+        "secondary": "oklch(0.95 0.02 75)",
+        "secondary-foreground": "oklch(0.3 0.05 30)",
+        "muted": "oklch(0.95 0.015 75)",
+        "muted-foreground": "oklch(0.5 0.04 40)",
+        "accent": "oklch(0.92 0.05 85)",
+        "accent-foreground": "oklch(0.3 0.05 30)",
+        "destructive": "oklch(0.55 0.22 25)",
+        "border": "oklch(0.9 0.02 70)",
+        "input": "oklch(0.9 0.02 70)",
+        "ring": "oklch(0.52 0.17 28)",
+        "chart-1": "oklch(0.52 0.17 28)",
+        "radius": "0.5rem",
+        "brand-gradient": "linear-gradient(135deg, oklch(0.5 0.17 25), oklch(0.62 0.14 60))"
+      },
+      "dark": {
+        "background": "oklch(0.18 0.02 30)",
+        "foreground": "oklch(0.95 0.015 75)",
+        "card": "oklch(0.22 0.025 30)",
+        "card-foreground": "oklch(0.95 0.015 75)",
+        "popover": "oklch(0.22 0.025 30)",
+        "popover-foreground": "oklch(0.95 0.015 75)",
+        "primary": "oklch(0.7 0.15 45)",
+        "primary-foreground": "oklch(0.18 0.02 30)",
+        "secondary": "oklch(0.28 0.03 30)",
+        "secondary-foreground": "oklch(0.95 0.015 75)",
+        "muted": "oklch(0.28 0.03 30)",
+        "muted-foreground": "oklch(0.72 0.03 60)",
+        "accent": "oklch(0.32 0.05 50)",
+        "accent-foreground": "oklch(0.95 0.015 75)",
+        "destructive": "oklch(0.65 0.2 25)",
+        "border": "oklch(1 0 0 / 10%)",
+        "input": "oklch(1 0 0 / 14%)",
+        "ring": "oklch(0.7 0.15 45)",
+        "chart-1": "oklch(0.7 0.15 45)",
+        "brand-gradient": "linear-gradient(135deg, oklch(0.4 0.13 25), oklch(0.45 0.11 55))"
+      },
+      "fonts": {
+        "sans": "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+      },
+      "viewer": {
+        "background": "radial-gradient(circle at 50% 40%, oklch(0.8 0.1 70 / 30%), transparent 70%)"
+      }
+    },
+    "css": "theme.css",
+    "layout": { "auth": "split", "skinlib": "compact" },
+    "home": [
+      { "type": "hero", "props": { "primaryAction": "/skinlib", "secondaryAction": "/auth/register" } },
+      { "type": "announcement" },
+      { "type": "latest-textures", "props": { "limit": 12 } },
+      { "type": "stats" },
+      { "type": "launcher-guide" }
+    ]
+  }
+}

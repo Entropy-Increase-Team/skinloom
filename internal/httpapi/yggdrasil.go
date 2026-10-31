@@ -99,7 +99,7 @@ func mountYggdrasil(r chi.Router, d Deps) {
 				http.NotFound(w, r)
 				return
 			}
-			yggAnswer(w, d, nil, d.Yggdrasil.ResetTexture(r.Context(), bearer(r), chi.URLParam(r, "uuid"), kind))
+			yggAnswer(w, d, nil, d.Yggdrasil.ResetTexture(r.Context(), bearer(r), chi.URLParam(r, "uuid"), kind, yggPolicy(d)))
 		})
 		r.Get("/minecraftservices/publickeys", func(w http.ResponseWriter, r *http.Request) {
 			_, der, err := d.Yggdrasil.PublicKey(r.Context())
@@ -267,7 +267,7 @@ func yggTextureUpload(d Deps) http.HandlerFunc {
 		}
 		in := yggdrasil.Upload{Kind: kind, Slim: r.FormValue("model") == "slim",
 			Name: strings.TrimSuffix(header.Filename, ".png"), Data: data}
-		err = d.Yggdrasil.UploadTexture(r.Context(), bearer(r), chi.URLParam(r, "uuid"), in, tp, score.RatesFrom(snap))
+		err = d.Yggdrasil.UploadTexture(r.Context(), bearer(r), chi.URLParam(r, "uuid"), in, yggdrasil.PolicyFrom(snap), tp, score.RatesFrom(snap))
 		yggAnswer(w, d, nil, err)
 	}
 }

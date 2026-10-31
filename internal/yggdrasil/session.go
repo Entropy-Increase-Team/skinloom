@@ -238,8 +238,9 @@ func (s *Service) LookupName(ctx context.Context, name string) (*ProfileRef, err
 }
 
 // owned checks a Bearer token for the texture API: valid, and the player is its
-// user's. Blessing Skin accepted any valid token for any player.
-func (s *Service) owned(ctx context.Context, token, profileID string) (*found, *ent.Player, error) {
+// user's (Blessing Skin accepted any valid token for any player), and the account may
+// change textures: one that has to verify its email first may not.
+func (s *Service) owned(ctx context.Context, token, profileID string, pol Policy) (*found, *ent.Player, error) {
 	t, err := s.find(ctx, token, "", false)
 	if errors.Is(err, errInvalidToken) {
 		return nil, nil, errUnauthorized
@@ -261,6 +262,9 @@ func (s *Service) owned(ctx context.Context, token, profileID string) (*found, *
 	if p.UserID != t.user.ID {
 		return nil, nil, forbidden("Profile not owned by this token.")
 	}
+	if pol.RequireVerified && t.user.EmailVerifiedAt == nil {
+		return nil, nil, errUnverified
+	}
 	return t, p, nil
 }
 
@@ -275,8 +279,8 @@ type Upload struct {
 // UploadTexture uploads a texture for the token's own player and puts it on: a
 // private texture (as Blessing Skin made them), charged like any upload, or the same
 // image already in the library, added to the closet.
-func (s *Service) UploadTexture(ctx context.Context, token, profileID string, in Upload, tp texture.Policy, r score.Rates) error {
-	t, p, err := s.owned(ctx, token, profileID)
+func (s *Service) UploadTexture(ctx context.Context, token, profileID string, in Upload, pol Policy, tp texture.Policy, r score.Rates) error {
+	t, p, err := s.owned(ctx, token, profileID, pol)
 	if err != nil {
 		return err
 	}
@@ -317,8 +321,8 @@ func (s *Service) UploadTexture(ctx context.Context, token, profileID string, in
 }
 
 // ResetTexture takes the token's own player's skin or cape off.
-func (s *Service) ResetTexture(ctx context.Context, token, profileID, kind string) error {
-	t, p, err := s.owned(ctx, token, profileID)
+func (s *Service) ResetTexture(ctx context.Context, token, profileID, kind string, pol Policy) error {
+	t, p, err := s.owned(ctx, token, profileID, pol)
 	if err != nil {
 		return err
 	}

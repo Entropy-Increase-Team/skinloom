@@ -9,8 +9,11 @@ import type { LibraryFilter } from '@/lib/library'
 
 import { TextureCard } from './texture-card'
 
-/** The skin library grid: the first page comes from the server, later pages on demand. */
-export function TextureGrid({ initial, filter }: { initial: TexturePage; filter: LibraryFilter }) {
+/**
+ * The skin library grid: the first page comes from the server, later pages on demand.
+ * gridClass sets the density the theme picked (textureGridClass).
+ */
+export function TextureGrid({ initial, filter, gridClass }: { initial: TexturePage; filter: LibraryFilter; gridClass: string }) {
   const t = useTranslations('skinlib')
   const [items, setItems] = useState<TextureView[]>(initial.textures)
   const [next, setNext] = useState(initial.next)
@@ -42,7 +45,7 @@ export function TextureGrid({ initial, filter }: { initial: TexturePage; filter:
   }
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <div className={gridClass}>
         {items.map((x) => (
           <TextureCard key={x.id} texture={x} />
         ))}

@@ -4,23 +4,32 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/theme"
 )
 
 // SettingView is one setting as shown in the admin panel.
 type SettingView struct {
 	Key     string `json:"key"`
 	Type    string `json:"type"`
-	Value   any    `json:"value"`
+	Value   any    `json:"value" doc:"null for a secret setting; secret parts of other values are replaced by ********"`
 	Default any    `json:"default"`
 	IsSet   bool   `json:"isSet" doc:"false when the default is in effect"`
 	Public  bool   `json:"public"`
-	Doc     string `json:"doc"`
+	Secret  bool   `json:"secret" doc:"Write-only: the value is never sent back, leave the key out to keep it"`
+	// Superadmin settings put code into every page; other administrators see them read-only.
+	Superadmin bool   `json:"superadmin"`
+	Enum       []any  `json:"enum,omitempty" doc:"The allowed values"`
+	Min        *int64 `json:"min,omitempty"`
+	Max        *int64 `json:"max,omitempty"`
+	Doc        string `json:"doc"`
 }
 
 // SettingsList is the admin view of all settings.
@@ -45,7 +54,8 @@ type updateSettingsInput struct {
 	Body          map[string]any `doc:"Keys to change. A null value resets the key to its default."`
 }
 
-// ThemeView is one installed theme.
+// ThemeView is one installed theme, with what it brings before the administrator's
+// overrides: the appearance page shows these as the defaults.
 type ThemeView struct {
 	ID          string            `json:"id"`
 	Version     string            `json:"version"`
@@ -53,6 +63,13 @@ type ThemeView struct {
 	Description map[string]string `json:"description,omitempty"`
 	Source      string            `json:"source"`
 	Active      bool              `json:"active"`
+	Tokens      theme.Tokens      `json:"tokens"`
+	Layout      map[string]string `json:"layout"`
+	Home        []theme.Block     `json:"home" doc:"The theme's home page, used while home.blocks is null"`
+}
+
+type blockTypesOutput struct {
+	Body []theme.BlockType
 }
 
 type themesOutput struct {
@@ -87,6 +104,9 @@ func registerAdmin(api huma.API, d Deps) {
 	}, func(ctx context.Context, in *updateSettingsInput) (*settingsOutput, error) {
 		actor, err := checkAdmin(ctx, d, in.Authorization)
 		if err != nil {
+			return nil, err
+		}
+		if err := checkSuperadminKeys(ctx, d, in.Body); err != nil {
 			return nil, err
 		}
 		changes := make(map[string]json.RawMessage, len(in.Body))
@@ -127,11 +147,50 @@ func registerAdmin(api huma.API, d Deps) {
 		active := d.Settings.Current().String("theme.active")
 		var out []ThemeView
 		for _, t := range d.Themes.List() {
+			home := t.Theme.Home
+			if home == nil {
+				home = []theme.Block{}
+			}
 			out = append(out, ThemeView{ID: t.ID, Version: t.Version, Name: t.Name, Description: t.Description,
-				Source: t.Source, Active: t.ID == active})
+				Source: t.Source, Active: t.ID == active, Tokens: t.Theme.Tokens, Layout: t.Theme.Layout, Home: home})
 		}
 		return &themesOutput{Body: out}, nil
 	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "listBlockTypes",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/admin/blocks",
+		Summary:     "Block types home.blocks can use",
+		Description: "Each type with its properties; home.blocks is checked against these.",
+		Tags:        []string{"admin"},
+		Security:    adminSecurity,
+	}, func(ctx context.Context, in *adminAuth) (*blockTypesOutput, error) {
+		if _, err := checkAdmin(ctx, d, in.Authorization); err != nil {
+			return nil, err
+		}
+		return &blockTypesOutput{Body: theme.BlockTypes}, nil
+	})
+}
+
+// checkSuperadminKeys refuses an administrator who is not a super administrator to
+// change a Superadmin setting (custom CSS reaches every page, BS S16). The admin token
+// and the CLI belong to whoever runs the server and may.
+func checkSuperadminKeys(ctx context.Context, d Deps, body map[string]any) error {
+	v := requestInfo(ctx).viewer()
+	if v == nil || v.User.Role == user.RoleSuperadmin {
+		return nil
+	}
+	var details []error
+	for k := range body {
+		if def, ok := d.Settings.Registry().Def(k); ok && def.Superadmin {
+			details = append(details, &huma.ErrorDetail{Location: "body." + k, Message: "only super administrators change this"})
+		}
+	}
+	if len(details) > 0 {
+		return huma.Error403Forbidden("only super administrators change these settings", details...)
+	}
+	return nil
 }
 
 func settingsList(s *settings.Service) SettingsList {
@@ -140,10 +199,18 @@ func settingsList(s *settings.Service) SettingsList {
 	for _, def := range s.Registry().All() {
 		var value any
 		_ = json.Unmarshal(snap.Raw(def.Key), &value)
-		list.Settings = append(list.Settings, SettingView{
-			Key: def.Key, Type: string(def.Type), Value: value, Default: def.Default,
-			IsSet: snap.IsSet(def.Key), Public: def.Public, Doc: def.Doc,
-		})
+		v := SettingView{
+			Key: def.Key, Type: string(def.Type), Value: def.Shown(value), Default: def.Shown(def.Default),
+			IsSet: snap.IsSet(def.Key), Public: def.Public, Secret: def.Secret, Superadmin: def.Superadmin, Enum: def.Enum, Doc: def.Doc,
+		}
+		if r := def.Range; r != nil {
+			lo, hi := r.Min, r.Max
+			v.Min = &lo
+			if hi != math.MaxInt64 {
+				v.Max = &hi
+			}
+		}
+		list.Settings = append(list.Settings, v)
 	}
 	return list
 }

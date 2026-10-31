@@ -75,7 +75,27 @@ func Up(ctx context.Context, d *db.DB, dataDir string, log *slog.Logger) error {
 	return nil
 }
 
-// Status lists every migration and whether it has been applied.
+// Versions reports the newest applied migration and how many are not applied yet,
+// without the migration lock: Status takes it like Up does, so a status page or a
+// backup would wait for (and hold up) a node that is migrating.
+func Versions(ctx context.Context, d *db.DB) (applied int64, pending int, err error) {
+	p, err := provider(d)
+	if err != nil {
+		return 0, 0, err
+	}
+	if applied, err = p.GetDBVersion(ctx); err != nil {
+		return 0, 0, err
+	}
+	for _, s := range p.ListSources() {
+		if s.Version > applied {
+			pending++
+		}
+	}
+	return applied, pending, nil
+}
+
+// Status lists every migration and whether it has been applied. It takes the
+// migration lock; prefer Versions where the version is all that is needed.
 func Status(ctx context.Context, d *db.DB) ([]*goose.MigrationStatus, error) {
 	p, err := provider(d)
 	if err != nil {

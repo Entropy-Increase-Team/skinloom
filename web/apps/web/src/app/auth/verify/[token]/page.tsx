@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@skin
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 
+import { AuthShell } from '@/components/auth/auth-shell'
 import { VerifyEmail } from '@/components/auth/verify-email'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -13,7 +14,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
   const { token } = await params
   const t = await getTranslations('verify')
   return (
-    <div className="mx-auto flex max-w-md flex-col gap-6 px-4 py-12">
+    <AuthShell>
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">{t('title')}</CardTitle>
@@ -23,6 +24,6 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
           <VerifyEmail token={token} />
         </CardContent>
       </Card>
-    </div>
+    </AuthShell>
   )
 }

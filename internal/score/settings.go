@@ -1,31 +1,19 @@
 package score
 
 import (
-	"fmt"
-
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
 )
+
+// MaxRate bounds every score rate: a rate times the KB of the largest upload, or a
+// sum of awards, then stays far from int64 overflow (which would turn a cost into a
+// gain).
+const MaxRate = 1_000_000
 
 // SettingDefs are the score rates (Blessing Skin equivalents in docs/design/01 §5.5).
 // score.initial belongs to registration (internal/account).
 func SettingDefs() []settings.Def {
-	nonNegative := func(v any) error {
-		var negative bool
-		switch n := v.(type) {
-		case float64:
-			negative = n < 0
-		case int:
-			negative = n < 0
-		case int64:
-			negative = n < 0
-		}
-		if negative {
-			return fmt.Errorf("must be 0 or more")
-		}
-		return nil
-	}
 	def := func(key string, value int, doc string) settings.Def {
-		return settings.Def{Key: key, Type: settings.TypeInt, Public: true, Default: value, Validate: nonNegative, Doc: doc}
+		return settings.Def{Key: key, Type: settings.TypeInt, Public: true, Default: value, Range: settings.Between(0, MaxRate), Doc: doc}
 	}
 	return []settings.Def{
 		def("score.per_storage", 1, "Score per KB of a public upload. (BS score_per_storage)"),
@@ -37,14 +25,8 @@ func SettingDefs() []settings.Def {
 		def("score.sign_min", 10, "Smallest score a daily check-in gives. (BS sign_score)"),
 		def("score.sign_max", 100, "Largest score a daily check-in gives. (BS sign_score)"),
 		{
-			Key: "score.sign_gap_hours", Type: settings.TypeInt, Public: true, Default: 24,
+			Key: "score.sign_gap_hours", Type: settings.TypeInt, Public: true, Default: 24, Range: settings.Between(1, 8760),
 			Doc: "Hours between check-ins, when score.sign_daily is off. (BS sign_gap_time)",
-			Validate: func(v any) error {
-				if n, ok := v.(float64); ok && (n < 1 || n > 8760) {
-					return fmt.Errorf("must be 1 to 8760")
-				}
-				return nil
-			},
 		},
 		{
 			Key: "score.sign_daily", Type: settings.TypeBool, Public: true, Default: false,
@@ -55,7 +37,7 @@ func SettingDefs() []settings.Def {
 			Doc: "Deleting a player, taking a texture out of a closet or deleting a texture gives back what it cost (the amount actually paid). (BS return_score)",
 		},
 		{
-			Key: "score.reporter_modification", Type: settings.TypeInt, Public: true, Default: 0,
+			Key: "score.reporter_modification", Type: settings.TypeInt, Public: true, Default: 0, Range: settings.Between(-MaxRate, MaxRate),
 			Doc: "Score change for submitting a report: negative charges it (given back when the report is upheld), positive rewards it (taken back when it is rejected). (BS reporter_score_modification)",
 		},
 		def("score.reporter_reward", 0, "Score awarded when a report is upheld (the texture deleted or its uploader banned). (BS reporter_reward_score)"),

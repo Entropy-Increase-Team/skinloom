@@ -48,6 +48,7 @@ async function inspect(file: File): Promise<{ url: string; width: number; height
 export function UploadForm({ rules, score }: { rules: TextureRules; score: number }) {
   const t = useTranslations('upload')
   const tt = useTranslations('texture')
+  const tc = useTranslations('common')
   const router = useRouter()
   const [file, setFile] = useState<File | null>(null)
   const [picked, setPicked] = useState<{ url: string; width: number; height: number } | null>(null)
@@ -113,7 +114,8 @@ export function UploadForm({ rules, score }: { rules: TextureRules; score: numbe
     } catch (err) {
       const p = problemOf(err)
       setFields(p.fields)
-      if (p.status === 402) setError(t('errors.score'))
+      if (p.unverified) setError(tc('verifyFirst'))
+      else if (p.status === 402) setError(t('errors.score'))
       else if (Object.keys(p.fields).length === 0) setError(t('errors.failed'))
       setPending(false)
     }

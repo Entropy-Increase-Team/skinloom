@@ -1,0 +1,35 @@
+/* Brocade: extra styles on top of the token variables.
+   Everything here must only rely on the documented tokens (var(--primary), …). */
+
+.sl-hero {
+  background: var(--brand-gradient);
+}
+
+.sl-hero::after {
+  /* a lattice of small diamonds, as woven into brocade */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.16;
+  background-image:
+    linear-gradient(45deg, rgb(255 236 200 / 0.7) 25%, transparent 25%, transparent 75%, rgb(255 236 200 / 0.7) 75%),
+    linear-gradient(45deg, rgb(255 236 200 / 0.7) 25%, transparent 25%, transparent 75%, rgb(255 236 200 / 0.7) 75%);
+  background-position: 0 0, 9px 9px;
+  background-size: 18px 18px;
+  mask-image: linear-gradient(to bottom, black, transparent);
+}
+
+/* The same lattice on the panel beside the sign-in forms (layout auth: split). */
+.sl-auth-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.16;
+  background-image:
+    linear-gradient(45deg, rgb(255 236 200 / 0.7) 25%, transparent 25%, transparent 75%, rgb(255 236 200 / 0.7) 75%),
+    linear-gradient(45deg, rgb(255 236 200 / 0.7) 25%, transparent 25%, transparent 75%, rgb(255 236 200 / 0.7) 75%);
+  background-position: 0 0, 9px 9px;
+  background-size: 18px 18px;
+}

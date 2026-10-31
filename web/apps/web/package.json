@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@formatjs/icu-messageformat-parser": "^3.5.22",
     "@skinloom/api-client": "*",
     "@skinloom/ui": "*",
     "lucide-react": "^1.61.0",

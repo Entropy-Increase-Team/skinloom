@@ -116,7 +116,7 @@ kubectl apply -k deploy/kubernetes/split
 kubectl -n skinloom scale deploy/skinloom-web --replicas=3
 ```
 
-HTTPS: with cert-manager installed, uncomment `tls` and the annotation in `ingress.yaml`. The manifests trust the k3s pod network `10.42.0.0/16` as proxies (`SKINLOOM_SERVER__TRUSTED_PROXIES`) so client IPs and https are seen correctly; use your cluster's pod CIDR elsewhere. Pin versions with `images.newTag` in `kustomization.yaml`. The backend runs one replica for now; shared storage and a Helm chart come in M4.
+HTTPS: with cert-manager installed, uncomment `tls` and the annotation in `ingress.yaml`. The manifests trust the k3s pod network `10.42.0.0/16` as proxies (`SKINLOOM_SERVER__TRUSTED_PROXIES`) so client IPs and https are seen correctly; use your cluster's pod CIDR elsewhere. Pin versions with `images.newTag` in `kustomization.yaml`. A Helm chart is in `deploy/helm/skinloom` (`helm install skinloom deploy/helm/skinloom`): split frontend and backend, an external database, ingress and HPA as values; see "Kubernetes / k3s" on the docs site.
 
 ### Release bundle (binary)
 
@@ -124,29 +124,26 @@ Download your platform's archive from [Releases](https://github.com/Entropy-Incr
 
 Foreground (try it out): run `start.bat` (Windows), `start.command` (macOS) or `./start.sh` (Linux), then open <http://localhost:17546>.
 
-In the background (start at boot, restart on crash) with the files in `service/`:
-
-Linux (systemd), unpacked to `/opt/skinloom`:
+In the background (start at boot, no login needed, restart on crash), as a system service: systemd on Linux, launchd on macOS, a Windows service on Windows.
 
 ```bash
-sudo mkdir -p /opt/skinloom && sudo tar xzf skinloom-*-linux-amd64.tar.gz -C /opt/skinloom --strip-components=1
-sudo useradd --system --home /opt/skinloom --shell /usr/sbin/nologin skinloom
-sudo chown -R skinloom:skinloom /opt/skinloom
-sudo cp /opt/skinloom/service/skinloom.service /etc/systemd/system/
-sudo systemctl daemon-reload && sudo systemctl enable --now skinloom
-journalctl -u skinloom | grep setup
+# Linux, unpacked to /opt/skinloom
+sudo useradd --system --shell /usr/sbin/nologin skinloom   # the service runs as this user
+cd /opt/skinloom && sudo ./skinloom service install && sudo ./skinloom service start
+sudo grep setup data/logs/skinloom.log                      # one-time setup link
 ```
 
-macOS (launchd): replace `/Users/you/skinloom` in `service/cn.skinloom.plist` with your folder, then `cp service/cn.skinloom.plist ~/Library/LaunchAgents/ && launchctl load -w ~/Library/LaunchAgents/cn.skinloom.plist`.
-
-Windows (Task Scheduler), in an administrator PowerShell inside the folder:
+macOS: the same, `sudo ./skinloom service install && sudo ./skinloom service start`. Windows, in an administrator terminal inside the folder:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\service\install-task.ps1
-Select-String setup .\data\skinloom.log
+.\skinloom.exe service install
+.\skinloom.exe service start
+Select-String setup .\data\logs\skinloom.log
 ```
 
-Upgrade: stop, overwrite the files with the new version (keep `data/`), start.
+More: `skinloom service status | stop | restart | uninstall`.
+
+Upgrade: `sudo ./skinloom service stop`, overwrite the files with the new version (keep `data/`; on Linux then `sudo chown -R skinloom: data web/apps/web/.next`), `sudo ./skinloom service start`. Back up first with `skinloom backup`.
 
 ### Behind Nginx / Caddy (HTTPS)
 

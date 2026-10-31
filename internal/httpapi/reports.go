@@ -151,7 +151,7 @@ func registerReports(api huma.API, d Deps) {
 	huma.Register(api, huma.Operation{OperationID: "reportTexture", Method: http.MethodPost, Path: "/api/v1/textures/{id}/reports",
 		Summary: "Report a texture", Tags: []string{"reports"}, Security: sessionSecurity},
 		func(ctx context.Context, in *reportTextureInput) (*struct{ Body Reported }, error) {
-			v, err := signedIn(ctx)
+			v, err := verifiedViewer(ctx, d)
 			if err != nil {
 				return nil, err
 			}

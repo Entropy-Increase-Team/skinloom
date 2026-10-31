@@ -9,7 +9,8 @@
   "common": {
     "theme": "Toggle light/dark",
     "language": "Language",
-    "backHome": "Back to home"
+    "backHome": "Back to home",
+    "verifyFirst": "Verify your email address first: this site requires it for this."
   },
   "offline": "The backend is unreachable right now; showing default content.",
   "hero": {
@@ -226,7 +227,9 @@
     "resend": "Send the verification email again",
     "resent": "Sent, check your inbox.",
     "wait": "Just sent one, try again later",
-    "resendFailed": "Sending failed, click to retry"
+    "resendFailed": "Sending failed, click to retry",
+    "bannerRequired": "Your email {email} is not verified yet. This site requires it before you manage players, upload textures or report.",
+    "noMail": "This site has no mail set up yet; ask an administrator."
   },
   "profile": {
     "title": "Profile",
@@ -340,7 +343,11 @@
     "overview": "Overview",
     "players": "Players",
     "reports": "Reports",
-    "playersOf": "Players"
+    "playersOf": "Players",
+    "settings": "Settings",
+    "appearance": "Appearance",
+    "translations": "Translations",
+    "systemStatus": "System status"
   },
   "texture": {
     "private": "Private",
@@ -799,6 +806,644 @@
       "unlinkConfirm": "Unlink {provider}? You will no longer be able to sign in with it.",
       "keepLast": "This is your only way to sign in. Set a password before unlinking it.",
       "link": "Link {name}"
+    }
+  },
+  "adminSettings": {
+    "loading": "Loading settings…",
+    "intro": "Changes apply at once on every node and in every open page, without a restart. Each section saves on its own.",
+    "sectionsLabel": "Setting sections",
+    "sections": {
+      "site": {
+        "title": "Site",
+        "intro": "Name, address, time zone and announcement."
+      },
+      "auth": {
+        "title": "Accounts",
+        "intro": "Registration, email verification and captcha."
+      },
+      "social": {
+        "title": "Social sign-in",
+        "intro": "GitHub, Microsoft and any OpenID Connect provider."
+      },
+      "mail": {
+        "title": "Mail",
+        "intro": "Needed for email verification and password reset."
+      },
+      "score": {
+        "title": "Score",
+        "intro": "Prices and awards of uploads, closets, players and check-ins."
+      },
+      "texture": {
+        "title": "Textures",
+        "intro": "Upload limits and private textures."
+      },
+      "player": {
+        "title": "Players and game APIs",
+        "intro": "Player name rules and the APIs game clients load skins from."
+      },
+      "yggdrasil": {
+        "title": "Launcher sign-in",
+        "intro": "The Yggdrasil API that authlib-injector launchers use."
+      },
+      "oauth": {
+        "title": "Open platform",
+        "intro": "OAuth tokens of third-party applications."
+      },
+      "other": {
+        "title": "Other",
+        "intro": "Settings of other modules."
+      },
+      "branding": {
+        "title": "Branding and footer",
+        "intro": "Logo, tab icon, footer text and keywords for search engines."
+      },
+      "customCss": {
+        "title": "Custom CSS",
+        "intro": "Added after the theme's styles on every page; only super administrators may change it."
+      },
+      "cdn": {
+        "title": "CDN purging",
+        "intro": "When a player changes skin or name or is deleted, the CDN drops its cached profile and avatar, so games show the new skin at once. Texture files are named by their content and need no purging."
+      }
+    },
+    "locales": {
+      "zh-CN": "简体中文",
+      "en": "English"
+    },
+    "save": "Save",
+    "saved": "Saved and applied.",
+    "unsaved": "Unsaved changes",
+    "reset": "Reset to default",
+    "willReset": "Resets to the default when saved",
+    "clear": "Clear",
+    "willClear": "Cleared when saved",
+    "secretSet": "Set; leave empty to keep it",
+    "secretUnset": "Not set",
+    "secretClearing": "Cleared when saved",
+    "secretBadge": "Set",
+    "problems": {
+      "integer": "Enter a whole number",
+      "range": "Enter a whole number from {min} to {max}",
+      "atLeast": "Enter a whole number of at least {min}",
+      "choice": "Pick one from the list",
+      "json": "Not valid JSON"
+    },
+    "errors": {
+      "load": "Could not load the settings.",
+      "save": "Could not save; try again.",
+      "forbidden": "You may not change these settings."
+    },
+    "superadminOnly": "Super administrators only"
+  },
+  "settingKeys": {
+    "site": {
+      "name": {
+        "label": "Site name"
+      },
+      "description": {
+        "label": "Site description"
+      },
+      "url": {
+        "label": "Site URL"
+      },
+      "timezone": {
+        "label": "Time zone"
+      },
+      "announcement": {
+        "label": "Announcement"
+      },
+      "logo": {
+        "label": "Logo"
+      },
+      "favicon": {
+        "label": "Tab icon"
+      },
+      "copyright": {
+        "label": "Footer text"
+      }
+    },
+    "auth": {
+      "registration": {
+        "label": "Registration",
+        "options": {
+          "open": "Open",
+          "closed": "Closed"
+        }
+      },
+      "registrations_per_ip": {
+        "label": "Accounts per address per day"
+      },
+      "require_email_verification": {
+        "label": "Require a verified email"
+      },
+      "login_captcha_after": {
+        "label": "Captcha after failed logins"
+      },
+      "social": {
+        "providers": {
+          "label": "Sign-in providers"
+        }
+      }
+    },
+    "captcha": {
+      "provider": {
+        "label": "Captcha",
+        "options": {
+          "none": "None",
+          "image": "Built-in image captcha",
+          "turnstile": "Cloudflare Turnstile",
+          "recaptcha": "Google reCAPTCHA v2",
+          "hcaptcha": "hCaptcha"
+        }
+      },
+      "turnstile": {
+        "site_key": {
+          "label": "Turnstile site key"
+        },
+        "secret_key": {
+          "label": "Turnstile secret key"
+        }
+      },
+      "recaptcha": {
+        "site_key": {
+          "label": "reCAPTCHA site key"
+        },
+        "secret_key": {
+          "label": "reCAPTCHA secret key"
+        }
+      },
+      "hcaptcha": {
+        "site_key": {
+          "label": "hCaptcha site key"
+        },
+        "secret_key": {
+          "label": "hCaptcha secret key"
+        }
+      }
+    },
+    "mail": {
+      "driver": {
+        "label": "Delivery",
+        "options": {
+          "none": "Off",
+          "smtp": "SMTP",
+          "log": "Server log"
+        }
+      },
+      "from": {
+        "label": "Sender"
+      },
+      "smtp": {
+        "host": {
+          "label": "SMTP server"
+        },
+        "port": {
+          "label": "Port"
+        },
+        "username": {
+          "label": "User name"
+        },
+        "password": {
+          "label": "Password"
+        },
+        "encryption": {
+          "label": "Encryption",
+          "options": {
+            "tls": "TLS",
+            "starttls": "STARTTLS",
+            "none": "None"
+          }
+        }
+      }
+    },
+    "score": {
+      "initial": {
+        "label": "Score of a new account"
+      },
+      "per_storage": {
+        "label": "Score per KB, public"
+      },
+      "private_per_storage": {
+        "label": "Score per KB, private"
+      },
+      "per_closet_item": {
+        "label": "Score to add to a closet"
+      },
+      "award_per_texture": {
+        "label": "Award for a public upload"
+      },
+      "per_player": {
+        "label": "Score to create a player"
+      },
+      "award_per_like": {
+        "label": "Award when added to a closet"
+      },
+      "sign_min": {
+        "label": "Least check-in score"
+      },
+      "sign_max": {
+        "label": "Most check-in score"
+      },
+      "sign_gap_hours": {
+        "label": "Hours between check-ins"
+      },
+      "sign_daily": {
+        "label": "Check in once a day"
+      },
+      "return_on_delete": {
+        "label": "Give back on deletion"
+      },
+      "reporter_modification": {
+        "label": "Score change for a report"
+      },
+      "reporter_reward": {
+        "label": "Award for an upheld report"
+      }
+    },
+    "texture": {
+      "max_size_kb": {
+        "label": "Largest file (KB)"
+      },
+      "max_width": {
+        "label": "Widest texture (pixels)"
+      },
+      "name_regexp": {
+        "label": "Texture name rule"
+      },
+      "allow_download": {
+        "label": "Allow downloading originals"
+      },
+      "private_status": {
+        "label": "Status for private textures",
+        "options": {
+          "403": "403 Forbidden",
+          "404": "404 Not Found"
+        }
+      },
+      "content_policy": {
+        "label": "Content policy"
+      }
+    },
+    "player": {
+      "name_rule": {
+        "label": "Player name rule",
+        "options": {
+          "official": "Letters, digits and underscore",
+          "cjk": "Also Chinese characters",
+          "utf8": "Any printable characters but spaces",
+          "custom": "Custom regular expression"
+        }
+      },
+      "name_regexp": {
+        "label": "Custom player name rule"
+      },
+      "name_length_min": {
+        "label": "Shortest player name"
+      },
+      "name_length_max": {
+        "label": "Longest player name"
+      }
+    },
+    "delivery": {
+      "profile_cache_seconds": {
+        "label": "Profile cache time (seconds)"
+      },
+      "missing_player_status": {
+        "label": "Unknown players answer",
+        "options": {
+          "404": "404",
+          "204": "204, try the next skin site"
+        }
+      }
+    },
+    "yggdrasil": {
+      "uuid_algorithm": {
+        "label": "UUIDs of new players",
+        "options": {
+          "v3": "v3, from the name",
+          "v4": "v4, random"
+        }
+      },
+      "token_valid_seconds": {
+        "label": "Token lifetime (seconds)"
+      },
+      "token_refresh_seconds": {
+        "label": "Token refresh window (seconds)"
+      },
+      "tokens_per_user": {
+        "label": "Tokens per account"
+      },
+      "search_profile_max": {
+        "label": "Names per bulk lookup"
+      },
+      "skin_domains": {
+        "label": "Extra texture domains"
+      },
+      "enable_ali": {
+        "label": "Send the API location header"
+      }
+    },
+    "oauth": {
+      "access_token_ttl_seconds": {
+        "label": "Access token lifetime (seconds)"
+      },
+      "refresh_token_ttl_seconds": {
+        "label": "Refresh token lifetime (seconds)"
+      }
+    },
+    "seo": {
+      "keywords": {
+        "label": "Search keywords"
+      }
+    },
+    "theme": {
+      "custom_css": {
+        "label": "Custom CSS"
+      }
+    },
+    "cdn": {
+      "provider": {
+        "label": "CDN",
+        "options": {
+          "none": "Off",
+          "cloudflare": "Cloudflare",
+          "aliyun": "Alibaba Cloud CDN",
+          "tencent": "Tencent Cloud CDN",
+          "webhook": "Webhook"
+        }
+      },
+      "base_url": {
+        "label": "Site address on the CDN"
+      },
+      "cloudflare": {
+        "zone_id": {
+          "label": "Cloudflare zone ID"
+        },
+        "api_token": {
+          "label": "Cloudflare API token"
+        }
+      },
+      "aliyun": {
+        "access_key_id": {
+          "label": "Alibaba Cloud AccessKey ID"
+        },
+        "access_key_secret": {
+          "label": "Alibaba Cloud AccessKey secret"
+        }
+      },
+      "tencent": {
+        "secret_id": {
+          "label": "Tencent Cloud SecretId"
+        },
+        "secret_key": {
+          "label": "Tencent Cloud SecretKey"
+        }
+      },
+      "webhook": {
+        "url": {
+          "label": "Webhook URL"
+        },
+        "secret": {
+          "label": "Webhook signing secret"
+        }
+      }
+    }
+  },
+  "appearance": {
+    "loading": "Loading the appearance settings…",
+    "intro": "Changes reach every visitor as soon as they are saved, without a restart.",
+    "errors": {
+      "load": "Could not load the appearance settings."
+    },
+    "themes": {
+      "title": "Theme",
+      "intro": "Pick the theme of the site. Without a custom home page, the home page changes to the new theme's too.",
+      "active": "In use",
+      "activate": "Use",
+      "failed": "Could not switch the theme; try again."
+    },
+    "colors": {
+      "title": "Colours",
+      "intro": "Adjust colours and corner radius on top of the theme; leave a field empty for the theme's value. Adjustments also apply to themes used later.",
+      "light": "Light",
+      "dark": "Dark",
+      "tokens": {
+        "primary": "Primary",
+        "primary-foreground": "Text on primary",
+        "background": "Background",
+        "foreground": "Text",
+        "card": "Cards",
+        "muted": "Muted background",
+        "accent": "Accent background",
+        "border": "Borders",
+        "radius": "Corner radius"
+      },
+      "unsafe": "Some values contain semicolons, braces, angle brackets or comments, which cannot be saved.",
+      "save": "Save colours",
+      "clearAll": "Clear all",
+      "unsaved": "Unsaved changes",
+      "failed": "Could not save; try again."
+    },
+    "home": {
+      "title": "Home page",
+      "intro": "The home page is made of blocks, top to bottom.",
+      "usingTheme": "It is the home page of the theme “{theme}”.",
+      "custom": "It is a custom home page.",
+      "empty": "The home page has no blocks yet.",
+      "addType": "Block to add",
+      "add": "Add block",
+      "save": "Save home page",
+      "useTheme": "Use the theme's home page",
+      "unsaved": "Unsaved changes",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "remove": "Remove",
+      "unknownType": "There is no such block; remove it before saving.",
+      "default": "Default",
+      "linkHint": "A path on this site (like /skinlib) or an https:// address",
+      "addButton": "Add button",
+      "invalid": "The home page has a problem: {detail}",
+      "failed": "Could not save; try again."
+    },
+    "blockTypes": {
+      "hero": {
+        "name": "Hero",
+        "help": "The site's name, description and two buttons, with an optional background image."
+      },
+      "announcement": {
+        "name": "Announcement",
+        "help": "The site announcement; hidden when there is none."
+      },
+      "features": {
+        "name": "Features",
+        "help": "Four cards: uploads, players, launchers, self-hosting."
+      },
+      "stats": {
+        "name": "Site figures",
+        "help": "How many accounts, players and public textures there are."
+      },
+      "latest-textures": {
+        "name": "Latest textures",
+        "help": "Public textures uploaded most recently."
+      },
+      "popular-textures": {
+        "name": "Popular textures",
+        "help": "Public textures in the most closets."
+      },
+      "markdown": {
+        "name": "Text",
+        "help": "A piece of Markdown."
+      },
+      "image": {
+        "name": "Image",
+        "help": "An image, optionally a link."
+      },
+      "buttons": {
+        "name": "Buttons",
+        "help": "Up to 6 link buttons; the first is the primary one."
+      },
+      "launcher-guide": {
+        "name": "Launcher guide",
+        "help": "The launcher sign-in address and how to set it up."
+      }
+    },
+    "props": {
+      "title": "Title",
+      "subtitle": "Subtitle",
+      "background": "Background image",
+      "primaryAction": "First button links to",
+      "secondaryAction": "Second button links to",
+      "limit": "How many",
+      "category": "Kind",
+      "content": "Content",
+      "src": "Image address",
+      "alt": "Image description",
+      "href": "Link",
+      "items": "Buttons"
+    },
+    "options": {
+      "skin": "Skins",
+      "cape": "Capes"
+    }
+  },
+  "blocks": {
+    "latest": "Latest textures",
+    "popular": "Popular textures",
+    "more": "See more",
+    "stats": {
+      "title": "Site figures",
+      "users": "Accounts",
+      "players": "Players",
+      "textures": "Public textures"
+    }
+  },
+  "adminTranslations": {
+    "loading": "Loading…",
+    "intro": "Reword any text of the interface. Search by key or text, type the new wording in a language, or leave it empty for the original. Saving applies everywhere at once.",
+    "search": "Search",
+    "searchHint": "Key or text, like nav.skinlib",
+    "changedOnly": "Reworded only",
+    "count": "{count} reworded",
+    "changed": "Reworded",
+    "keep": "Empty keeps the original",
+    "none": "Nothing found.",
+    "more": "Show 40 more ({left} left)",
+    "save": "Save",
+    "saved": "Saved and applied.",
+    "unsaved": "Unsaved changes",
+    "fixFirst": "{count} to fix first",
+    "problems": {
+      "syntax": "This text is not well-formed: check that the braces pair up and each form is complete.",
+      "placeholders": "Keep the placeholders in braces and the tags of the original: the page fills them in."
+    },
+    "errors": {
+      "load": "Could not load.",
+      "save": "Could not save; try again.",
+      "invalid": "Not saved: {detail}"
+    },
+    "noDefault": "This language has no such text (the server's description is shown); a reworded one would not appear."
+  },
+  "adminStatus": {
+    "loading": "Reading the system status…",
+    "intro": "The state of this server. With several instances, their versions and start times may differ.",
+    "refresh": "Refresh",
+    "yes": "Yes",
+    "no": "No",
+    "errors": {
+      "load": "Could not read the system status."
+    },
+    "checks": {
+      "title": "Checks",
+      "database": {
+        "ok": "The database answers.",
+        "problem": "The database cannot be reached."
+      },
+      "migrations": {
+        "ok": "The database schema is up to date.",
+        "problem": "Some migrations have not run; restart the server."
+      },
+      "jobs_overdue": {
+        "ok": "Background jobs run on time.",
+        "problem": "Background jobs are over a minute late; see the server log."
+      },
+      "jobs_failed": {
+        "ok": "No background job failed in the last 7 days.",
+        "problem": "Background jobs failed after their retries in the last 7 days; see the server log."
+      },
+      "mail": {
+        "ok": "Mail is set up.",
+        "problem": "Mail is not set up: no email verification or password reset."
+      },
+      "site_url": {
+        "ok": "The site URL is set.",
+        "problem": "The site URL is not set: no mail links or social sign-in."
+      }
+    },
+    "server": {
+      "title": "Server",
+      "version": "Version",
+      "buildDate": "Built",
+      "runtime": "Runtime",
+      "mode": "Mode",
+      "web": "frontend",
+      "started": "Started"
+    },
+    "database": {
+      "title": "Database",
+      "engine": "Engine and version",
+      "migration": "Migration",
+      "pending": "Pending migrations",
+      "ping": "Ping"
+    },
+    "storage": {
+      "title": "Texture storage",
+      "driver": "Storage",
+      "drivers": {
+        "local": "Local directory",
+        "s3": "S3-compatible object storage"
+      },
+      "files": "Files",
+      "size": "Size"
+    },
+    "jobs": {
+      "title": "Background jobs",
+      "pending": "Waiting",
+      "overdue": "Late",
+      "oldest": "Latest since",
+      "failed": "Failed"
+    },
+    "mail": {
+      "title": "Mail",
+      "driver": "Delivery",
+      "ready": "Verification and reset work"
+    },
+    "config": {
+      "title": "Configuration",
+      "version": "Config version",
+      "theme": "Theme",
+      "changed": "Settings changed",
+      "plugins": "Plugins",
+      "pluginsLater": "The plugin platform comes in phase 2"
     }
   }
 }

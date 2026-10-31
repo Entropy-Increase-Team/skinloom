@@ -15,6 +15,8 @@ export const SERVER_TIMEOUT_MS = 5000
 
 /** RFC 9457 problem details returned by the API on errors. */
 export interface ApiProblem {
+  /** Problem type URI; set where the frontend reacts to one kind of refusal. */
+  type?: string
   title?: string
   status?: number
   detail?: string

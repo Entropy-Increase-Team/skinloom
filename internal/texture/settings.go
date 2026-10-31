@@ -12,11 +12,11 @@ import (
 func SettingDefs() []settings.Def {
 	return []settings.Def{
 		{
-			Key: "texture.max_size_kb", Type: settings.TypeInt, Public: true, Default: 1024, Validate: between(1, MaxUploadKB),
+			Key: "texture.max_size_kb", Type: settings.TypeInt, Public: true, Default: 1024, Range: settings.Between(1, MaxUploadKB),
 			Doc: fmt.Sprintf("Largest upload in KB, at most %d. (BS max_upload_file_size)", MaxUploadKB),
 		},
 		{
-			Key: "texture.max_width", Type: settings.TypeInt, Public: true, Default: MaxWidth, Validate: between(64, MaxWidth),
+			Key: "texture.max_width", Type: settings.TypeInt, Public: true, Default: MaxWidth, Range: settings.Between(64, MaxWidth),
 			Doc: fmt.Sprintf("Widest texture in pixels, at most %d. (BS max_texture_width)", MaxWidth),
 		},
 		{
@@ -32,41 +32,14 @@ func SettingDefs() []settings.Def {
 			Doc: "Whether /raw/{tid} serves the original file. (BS allow_downloading_texture)",
 		},
 		{
-			Key: "texture.private_status", Type: settings.TypeInt, Default: 403,
+			Key: "texture.private_status", Type: settings.TypeInt, Default: 403, Enum: []any{403, 404},
 			Doc: "Status for a private texture requested by someone else: 403, or 404 to hide that it exists. (BS status_code_for_private)",
-			Validate: func(v any) error {
-				if n := toInt(v); n != 403 && n != 404 {
-					return fmt.Errorf("want 403 or 404")
-				}
-				return nil
-			},
 		},
 		{
 			Key: "texture.content_policy", Type: settings.TypeLocalized, Public: true, Default: map[string]string{},
 			Doc: "Content policy shown on the upload page (Markdown). (BS content_policy)",
 		},
 	}
-}
-
-func between(lo, hi int64) func(any) error {
-	return func(v any) error {
-		if n := toInt(v); n < lo || n > hi {
-			return fmt.Errorf("must be %d to %d", lo, hi)
-		}
-		return nil
-	}
-}
-
-func toInt(v any) int64 {
-	switch n := v.(type) {
-	case float64:
-		return int64(n)
-	case int:
-		return int64(n)
-	case int64:
-		return n
-	}
-	return 0
 }
 
 // Policy is what uploads and downloads need from the settings.

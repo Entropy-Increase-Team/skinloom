@@ -185,10 +185,20 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - name: Kubernetes manifests render and match the API schemas
+      - uses: azure/setup-helm@v4
+      - name: Kubernetes manifests and the Helm chart render and match the API schemas
         run: |
           for v in all-in-one split; do kubectl kustomize deploy/kubernetes/$v > /tmp/k8s-$v.yaml; done
-          go run github.com/yannh/kubeconform/cmd/kubeconform@v0.8.0 -strict -summary /tmp/k8s-*.yaml
+          c=deploy/helm/skinloom
+          helm lint $c
+          helm template sk $c > /tmp/helm-default.yaml
+          helm template sk $c --set mode=split,database.driver=postgres,database.existingSecret=db,ingress.enabled=true,web.autoscaling.enabled=true > /tmp/helm-split.yaml
+          helm template sk $c --set mode=split,database.driver=postgres,database.existingSecret=db,server.replicas=3,persistence.enabled=false             --set 'server.extraEnv[0].name=SKINLOOM_STORAGE__DRIVER,server.extraEnv[0].value=s3' > /tmp/helm-scaled.yaml
+          # Settings that cannot work together are refused ("! cmd" would not stop the step).
+          for bad in server.replicas=2 persistence.enabled=false ingress.enabled=true,ingress.hosts=null; do
+            if helm template sk $c --set $bad >/dev/null 2>&1; then echo "::error::helm accepted $bad"; exit 1; fi
+          done
+          go run github.com/yannh/kubeconform/cmd/kubeconform@v0.8.0 -strict -summary /tmp/k8s-*.yaml /tmp/helm-*.yaml
       - name: Compose files are valid
         env:
           DB_PASSWORD: ci

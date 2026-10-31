@@ -6,5 +6,5 @@ import "embed"
 
 // Builtin holds every built-in theme directory.
 //
-//go:embed all:default
+//go:embed all:default all:brocade
 var Builtin embed.FS

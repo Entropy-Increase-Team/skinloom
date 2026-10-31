@@ -135,7 +135,7 @@ func registerPlayers(api huma.API, d Deps) {
 
 	huma.Register(api, op("createPlayer", http.MethodPost, "/api/v1/me/players", "Create a player", 0),
 		func(ctx context.Context, in *playerNameInput) (*struct{ Body PlayerCreated }, error) {
-			v, err := signedIn(ctx)
+			v, err := verifiedViewer(ctx, d)
 			if err != nil {
 				return nil, err
 			}
@@ -149,7 +149,7 @@ func registerPlayers(api huma.API, d Deps) {
 
 	huma.Register(api, op("renamePlayer", http.MethodPatch, "/api/v1/me/players/{id}", "Rename a player", 0),
 		func(ctx context.Context, in *renamePlayerInput) (*struct{ Body PlayerView }, error) {
-			v, err := signedIn(ctx)
+			v, err := verifiedViewer(ctx, d)
 			if err != nil {
 				return nil, err
 			}
@@ -162,7 +162,7 @@ func registerPlayers(api huma.API, d Deps) {
 
 	huma.Register(api, op("wearTextures", http.MethodPut, "/api/v1/me/players/{id}/textures", "Choose what a player wears", 0),
 		func(ctx context.Context, in *wearInput) (*struct{ Body PlayerView }, error) {
-			v, err := signedIn(ctx)
+			v, err := verifiedViewer(ctx, d)
 			if err != nil {
 				return nil, err
 			}
@@ -175,7 +175,7 @@ func registerPlayers(api huma.API, d Deps) {
 
 	huma.Register(api, op("deletePlayer", http.MethodDelete, "/api/v1/me/players/{id}", "Delete a player", 0),
 		func(ctx context.Context, in *playerIDInput) (*struct{ Body PlayerDeleted }, error) {
-			v, err := signedIn(ctx)
+			v, err := verifiedViewer(ctx, d)
 			if err != nil {
 				return nil, err
 			}

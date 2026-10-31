@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 
+import { AuthShell } from '@/components/auth/auth-shell'
 import { RegisterForm } from '@/components/auth/register-form'
 import { SocialButtons } from '@/components/auth/social-buttons'
 import { getBootstrap } from '@/lib/bootstrap'
@@ -21,7 +22,7 @@ export default async function RegisterPage() {
   const open = boot.auth.registration === 'open' && !boot.needsSetup
 
   return (
-    <div className="mx-auto flex max-w-md flex-col gap-6 px-4 py-12">
+    <AuthShell>
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">{t('title')}</CardTitle>
@@ -40,6 +41,6 @@ export default async function RegisterPage() {
           {t('signIn')}
         </Link>
       </p>
-    </div>
+    </AuthShell>
   )
 }

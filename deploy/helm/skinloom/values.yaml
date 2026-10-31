@@ -1,0 +1,86 @@
+# SkinLoom Helm chart. Every value has a working default: helm install skinloom ./skinloom
+# runs one pod with SQLite on a 5 GiB volume. See the docs site, "Kubernetes / k3s".
+
+# allInOne: one pod with backend and frontend (image "skinloom").
+# split: backend and frontend in their own Deployments (images "server" and "web");
+#        the frontend scales, the backend needs PostgreSQL or MySQL to scale.
+mode: allInOne
+
+image:
+  registry: ghcr.io/entropy-increase-team
+  tag: "" # default: the chart's appVersion
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+timezone: Asia/Shanghai
+
+# Address ranges whose X-Forwarded-* headers are believed: the pod network of your
+# ingress controller, e.g. [10.42.0.0/16] on k3s. Empty = trust no proxy (client
+# addresses are then the ingress pods').
+trustedProxies: []
+
+database:
+  driver: sqlite # sqlite | postgres | mysql
+  # postgres / mysql: the DSN comes from a Secret you create, e.g.
+  #   kubectl create secret generic skinloom-db --from-literal=dsn='postgres://skinloom:…@db:5432/skinloom?sslmode=disable'
+  existingSecret: ""
+  existingSecretKey: dsn
+
+# The data volume: config, secrets, the SQLite database and (local storage) textures.
+persistence:
+  enabled: true
+  size: 5Gi
+  storageClass: "" # "" = the cluster default
+  accessModes: [ReadWriteOnce]
+  existingClaim: ""
+
+server:
+  # More than 1 needs postgres or mysql, and a ReadWriteMany volume or textures in S3
+  # (extraEnv) with persistence disabled.
+  replicas: 1
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 1Gi }
+  # Extra environment, e.g. S3 storage:
+  #   - { name: SKINLOOM_STORAGE__DRIVER, value: s3 }
+  #   - { name: SKINLOOM_STORAGE__ENDPOINT, value: s3.example.com }
+  #   - { name: SKINLOOM_STORAGE__BUCKET, value: skins }
+  #   - { name: SKINLOOM_STORAGE__ACCESS_KEY, value: skinloom }
+  #   - name: SKINLOOM_STORAGE__SECRET_KEY
+  #     valueFrom: { secretKeyRef: { name: skinloom-s3, key: secret } }
+  extraEnv: []
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# split mode only.
+web:
+  replicas: 2
+  resources:
+    requests: { cpu: 100m, memory: 192Mi }
+    limits: { memory: 512Mi }
+  extraEnv: []
+  pdb:
+    enabled: true
+    minAvailable: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 80
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+service:
+  type: ClusterIP
+  port: 17546
+
+ingress:
+  enabled: false
+  className: "" # "" = the cluster default (Traefik on k3s)
+  annotations: {}
+  #   cert-manager.io/cluster-issuer: letsencrypt
+  hosts: [skins.example.com]
+  tls: []
+  #   - { hosts: [skins.example.com], secretName: skinloom-tls }

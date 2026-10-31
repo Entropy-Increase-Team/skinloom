@@ -22,27 +22,11 @@ const MaxNameLen = 32
 // SettingDefs are the player and profile delivery settings (Blessing Skin equivalents
 // in docs/design/02 §4).
 func SettingDefs() []settings.Def {
-	oneOf := func(want ...any) func(any) error {
-		return func(v any) error {
-			for _, w := range want {
-				if fmt.Sprint(v) == fmt.Sprint(w) {
-					return nil
-				}
-			}
-			return fmt.Errorf("want one of %v", want)
-		}
-	}
-	length := func(v any) error {
-		if n, ok := v.(float64); ok && (n < 1 || n > MaxNameLen) {
-			return fmt.Errorf("must be 1 to %d", MaxNameLen)
-		}
-		return nil
-	}
 	return []settings.Def{
 		{
 			Key: "player.name_rule", Type: settings.TypeString, Public: true, Default: RuleOfficial,
-			Validate: oneOf(RuleOfficial, RuleCJK, RuleUTF8, RuleCustom),
-			Doc:      "official: letters, digits and _ (Mojang's rule); cjk: also Chinese characters; utf8: any printable characters except spaces; custom: player.name_regexp. (BS player_name_rule)",
+			Enum: []any{RuleOfficial, RuleCJK, RuleUTF8, RuleCustom},
+			Doc:  "official: letters, digits and _ (Mojang's rule); cjk: also Chinese characters; utf8: any printable characters except spaces; custom: player.name_regexp. (BS player_name_rule)",
 		},
 		{
 			Key: "player.name_regexp", Type: settings.TypeString, Default: "",
@@ -52,26 +36,20 @@ func SettingDefs() []settings.Def {
 				return err
 			},
 		},
-		{Key: "player.name_length_min", Type: settings.TypeInt, Public: true, Default: 3, Validate: length,
+		{Key: "player.name_length_min", Type: settings.TypeInt, Public: true, Default: 3, Range: settings.Between(1, MaxNameLen),
 			Doc: "Shortest player name, in characters. (BS player_name_length_min)"},
-		{Key: "player.name_length_max", Type: settings.TypeInt, Public: true, Default: 16, Validate: length,
+		{Key: "player.name_length_max", Type: settings.TypeInt, Public: true, Default: 16, Range: settings.Between(1, MaxNameLen),
 			Doc: fmt.Sprintf("Longest player name, in characters, at most %d. (BS player_name_length_max)", MaxNameLen)},
 		{
-			Key: "yggdrasil.uuid_algorithm", Type: settings.TypeString, Default: "v3", Validate: oneOf("v3", "v4"),
+			Key: "yggdrasil.uuid_algorithm", Type: settings.TypeString, Default: "v3", Enum: []any{"v3", "v4"},
 			Doc: "UUIDs of new players. v3: derived from the name like offline-mode servers (a rename gives a new UUID); v4: random, kept on rename. (BS ygg_uuid_algorithm)",
 		},
 		{
-			Key: "delivery.profile_cache_seconds", Type: settings.TypeInt, Default: 60,
+			Key: "delivery.profile_cache_seconds", Type: settings.TypeInt, Default: 60, Range: settings.Between(0, 31536000),
 			Doc: "How long game clients and CDNs may cache /{player}.json and the other profile APIs. Blessing Skin's cache_expire_time defaulted to a year, which kept old skins in caches.",
-			Validate: func(v any) error {
-				if n, ok := v.(float64); ok && (n < 0 || n > 31536000) {
-					return fmt.Errorf("must be 0 to 31536000")
-				}
-				return nil
-			},
 		},
 		{
-			Key: "delivery.missing_player_status", Type: settings.TypeInt, Default: 404, Validate: oneOf(404, 204),
+			Key: "delivery.missing_player_status", Type: settings.TypeInt, Default: 404, Enum: []any{404, 204},
 			Doc: "Status of /{player}.json for a name nobody uses: 404, or 204 for clients that try the next skin site on it. (BS plugin 204-for-unexisted-players)",
 		},
 	}

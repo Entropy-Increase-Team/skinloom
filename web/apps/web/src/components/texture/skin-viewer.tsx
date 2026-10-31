@@ -5,7 +5,8 @@ import type { SkinViewer } from 'skinview3d'
 
 /**
  * A rotating 3D preview (skinview3d). Loaded in the browser only; a cape is shown on
- * its own, from behind.
+ * its own, from behind. The canvas is transparent: the theme's viewer.background token
+ * (--sl-viewer-background) is the backdrop.
  */
 export function SkinViewer3D({ hash, type, label }: { hash: string; type: 'steve' | 'alex' | 'cape'; label: string }) {
   const box = useRef<HTMLDivElement>(null)
@@ -48,7 +49,7 @@ export function SkinViewer3D({ hash, type, label }: { hash: string; type: 'steve
   }, [hash, type])
 
   return (
-    <div ref={box} className="relative h-full w-full" role="img" aria-label={label}>
+    <div ref={box} className="relative h-full w-full bg-(--sl-viewer-background,transparent)" role="img" aria-label={label}>
       {failed ? null : <canvas ref={canvas} className="block h-full w-full cursor-grab active:cursor-grabbing" />}
     </div>
   )

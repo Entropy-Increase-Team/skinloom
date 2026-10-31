@@ -140,22 +140,29 @@ for target in "${targets[@]}"; do
   fetch_node "$os" "$arch" "$stage/runtime/node"
   cp LICENSE NOTICE "$stage/"
   cp deploy/packaging/README.txt "$stage/README.txt"
-  mkdir -p "$stage/service"   # run in the background: systemd / launchd / Task Scheduler
   case "$os" in
-    windows) cp deploy/packaging/start.bat "$stage/" && cp deploy/service/install-task.ps1 "$stage/service/" ;;
-    darwin)  cp deploy/packaging/start.command "$stage/" && chmod +x "$stage/start.command" && cp deploy/service/cn.skinloom.plist "$stage/service/" ;;
-    *)       cp deploy/packaging/start.sh "$stage/" && chmod +x "$stage/start.sh" && cp deploy/service/skinloom.service "$stage/service/" ;;
+    # In the background: skinloom service install (systemd, launchd or a Windows service).
+    windows) cp deploy/packaging/start.bat "$stage/" ;;
+    darwin)  cp deploy/packaging/start.command "$stage/" && chmod +x "$stage/start.command" ;;
+    *)       cp deploy/packaging/start.sh "$stage/" && chmod +x "$stage/start.sh" ;;
   esac
 
   (
     cd "$BUILD/stage"
     if [ "$os" = windows ]; then
       rm -f "$DIST/$name.zip"
+      # zip, or the bsdtar of Windows 10+ (-a picks the format from .zip). Not
+      # Compress-Archive: Windows PowerShell writes "\" as the path separator, which
+      # unzip and macOS extract wrongly.
+      wintar="${SYSTEMROOT:-C:/Windows}/System32/tar.exe"
       if command -v zip >/dev/null; then zip -qr "$DIST/$name.zip" "$name"
+      elif [ -x "$wintar" ]; then "$wintar" -a -c -f "$(cygpath -w "$DIST/$name.zip")" "$name"
       else powershell.exe -NoProfile -Command "Compress-Archive -Path '$name' -DestinationPath '$(cygpath -w "$DIST/$name.zip" 2>/dev/null || echo "$DIST/$name.zip")'"; fi
       archive="$name.zip"
     else
-      tar -czf "$DIST/$name.tar.gz" "$name"
+      # Owned by root, not by the builder's uid: unpacked with sudo, the files would
+      # otherwise belong to whichever local account has that uid.
+      tar --owner=0 --group=0 --numeric-owner -czf "$DIST/$name.tar.gz" "$name"
       archive="$name.tar.gz"
     fi
     (cd "$DIST" && printf '%s  %s\n' "$(sha256 "$archive")" "$archive") >> "$DIST/checksums.txt.new"

@@ -15,6 +15,7 @@ spec:
         app.kubernetes.io/instance: skinloom-web
         app.kubernetes.io/name: skinloom-web
     spec:
+      enableServiceLinks: false # the injected SKINLOOM_* variables would read as config
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000 # "node" in the image

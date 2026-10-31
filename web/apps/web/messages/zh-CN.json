@@ -9,7 +9,8 @@
   "common": {
     "theme": "切换明暗",
     "language": "语言",
-    "backHome": "返回首页"
+    "backHome": "返回首页",
+    "verifyFirst": "请先验证邮箱：本站要求验证后才能进行这项操作。"
   },
   "offline": "暂时无法连接后端服务，页面显示的是默认内容。",
   "hero": {
@@ -226,7 +227,9 @@
     "resend": "重新发送验证邮件",
     "resent": "已发送，请查收邮件。",
     "wait": "刚刚发送过，请稍后再试",
-    "resendFailed": "发送失败，点此重试"
+    "resendFailed": "发送失败，点此重试",
+    "bannerRequired": "你的邮箱 {email} 还没有验证。本站要求验证后才能管理角色、上传材质和举报。",
+    "noMail": "本站还没有配置邮件，请联系管理员。"
   },
   "profile": {
     "title": "个人资料",
@@ -340,7 +343,11 @@
     "overview": "概览",
     "players": "角色",
     "reports": "举报",
-    "playersOf": "角色"
+    "playersOf": "角色",
+    "settings": "设置",
+    "appearance": "外观",
+    "translations": "翻译",
+    "systemStatus": "系统状态"
   },
   "texture": {
     "private": "私有",
@@ -799,6 +806,707 @@
       "unlinkConfirm": "解除绑定 {provider}？之后将不能再用它登录。",
       "keepLast": "这是你唯一的登录方式。请先设置密码再解除绑定。",
       "link": "绑定 {name}"
+    }
+  },
+  "adminSettings": {
+    "loading": "正在加载设置……",
+    "intro": "保存后立即在所有节点和已打开的页面生效，不用重启。每个分组单独保存。",
+    "sectionsLabel": "设置分组",
+    "sections": {
+      "site": {
+        "title": "站点",
+        "intro": "站点名称、地址、时区与公告。"
+      },
+      "auth": {
+        "title": "注册与登录",
+        "intro": "注册开关、邮箱验证与验证码。"
+      },
+      "social": {
+        "title": "第三方登录",
+        "intro": "GitHub、Microsoft 与任意 OpenID Connect 提供方。"
+      },
+      "mail": {
+        "title": "邮件",
+        "intro": "邮箱验证与找回密码都要用到。"
+      },
+      "score": {
+        "title": "积分",
+        "intro": "上传、收藏、角色与签到的价格和奖励。"
+      },
+      "texture": {
+        "title": "材质",
+        "intro": "上传限制与私有材质。"
+      },
+      "player": {
+        "title": "角色与游戏接口",
+        "intro": "角色名规则，以及游戏客户端读取皮肤的接口。"
+      },
+      "yggdrasil": {
+        "title": "外置登录",
+        "intro": "authlib-injector 启动器使用的 Yggdrasil 接口。"
+      },
+      "oauth": {
+        "title": "开放平台",
+        "intro": "第三方应用的 OAuth 令牌。"
+      },
+      "other": {
+        "title": "其它",
+        "intro": "其它模块的设置。"
+      },
+      "branding": {
+        "title": "站点标识与页脚",
+        "intro": "Logo、浏览器图标、页脚文字与搜索引擎关键词。"
+      },
+      "customCss": {
+        "title": "自定义 CSS",
+        "intro": "加在主题样式之后，对每个页面生效；只有超级管理员可以修改。"
+      },
+      "cdn": {
+        "title": "CDN 刷新",
+        "intro": "角色换了皮肤、改了名或被删除时，让 CDN 丢掉缓存的角色资料与头像，游戏里马上看到新皮肤。材质文件按内容命名，不需要刷新。"
+      }
+    },
+    "locales": {
+      "zh-CN": "简体中文",
+      "en": "English"
+    },
+    "save": "保存",
+    "saved": "已保存并生效。",
+    "unsaved": "有未保存的改动",
+    "reset": "恢复默认",
+    "willReset": "保存后恢复为默认值",
+    "clear": "清除",
+    "willClear": "保存后清除",
+    "secretSet": "已设置，留空则保持不变",
+    "secretUnset": "未设置",
+    "secretClearing": "保存后清除",
+    "secretBadge": "已设置",
+    "problems": {
+      "integer": "请输入整数",
+      "range": "请输入 {min} 到 {max} 之间的整数",
+      "atLeast": "请输入不小于 {min} 的整数",
+      "choice": "请从列表中选择",
+      "json": "不是有效的 JSON"
+    },
+    "errors": {
+      "load": "加载设置失败。",
+      "save": "保存失败，请重试。",
+      "forbidden": "你没有权限修改这些设置。"
+    },
+    "superadminOnly": "仅限超级管理员"
+  },
+  "settingKeys": {
+    "site": {
+      "name": {
+        "label": "站点名称",
+        "help": "显示在页头、页面标题和启动器信息里。"
+      },
+      "description": {
+        "label": "站点简介",
+        "help": "首页和搜索结果里的一句话介绍。"
+      },
+      "url": {
+        "label": "站点地址",
+        "help": "对外的完整地址，例如 https://skin.example.com。邮件里的链接只用它生成：不填时邮箱验证、找回密码与第三方登录都不可用。"
+      },
+      "timezone": {
+        "label": "时区",
+        "help": "IANA 时区名，例如 Asia/Shanghai 或 UTC：每日签到从几点算新的一天，后台概览按哪天统计。"
+      },
+      "announcement": {
+        "label": "站点公告",
+        "help": "显示在首页和用户仪表盘，支持 Markdown。"
+      },
+      "logo": {
+        "label": "Logo",
+        "help": "页头左上角的图片：图片地址或本站路径（如 /logo.png）；留空使用主题自带的标志。"
+      },
+      "favicon": {
+        "label": "浏览器图标",
+        "help": "浏览器标签页上的图标：图片地址或本站路径；留空使用内置图标。对应 BS 的 favicon_url。"
+      },
+      "copyright": {
+        "label": "页脚文字",
+        "help": "支持 Markdown；留空显示 © 年份与站点名称。对应 BS 的 copyright_text。"
+      }
+    },
+    "auth": {
+      "registration": {
+        "label": "注册",
+        "help": "关闭后只有管理员能创建账号。",
+        "options": {
+          "open": "开放注册",
+          "closed": "关闭注册"
+        }
+      },
+      "registrations_per_ip": {
+        "label": "每个地址每天可注册的账号数",
+        "help": "同一地址（IPv6 按 /64 计）24 小时内能注册的账号数；0 表示不限。对应 BS 的 regs_per_ip。"
+      },
+      "require_email_verification": {
+        "label": "要求验证邮箱",
+        "help": "开启后，未验证邮箱的账号不能管理角色、上传或修改材质、举报、创建 OAuth 应用与个人访问令牌，也不能在启动器登录。需要先配置好邮件与站点地址。对应 BS 的 require_verification。"
+      },
+      "login_captcha_after": {
+        "label": "登录失败几次后要求验证码",
+        "help": "同一客户端对同一账号登录失败达到这个次数后要求验证码；0 表示每次都要。不使用验证码时无效。"
+      },
+      "social": {
+        "providers": {
+          "label": "登录提供方",
+          "help": "JSON 列表，每个提供方一项，字段见文档“第三方登录”。在提供方登记的回调地址是：站点地址 + /api/v1/auth/social/提供方 id/callback；填写站点地址后才会出现在登录页。已保存的 clientSecret 显示为 ********，不改动就沿用原来的。"
+        }
+      }
+    },
+    "captcha": {
+      "provider": {
+        "label": "验证码",
+        "help": "用在注册页和多次登录失败之后。",
+        "options": {
+          "none": "不使用",
+          "image": "内置图形验证码",
+          "turnstile": "Cloudflare Turnstile",
+          "recaptcha": "Google reCAPTCHA v2",
+          "hcaptcha": "hCaptcha"
+        }
+      },
+      "turnstile": {
+        "site_key": {
+          "label": "Turnstile 站点密钥（Site Key）",
+          "help": "公开，前端组件要用它。"
+        },
+        "secret_key": {
+          "label": "Turnstile 私钥（Secret Key）",
+          "help": "只留在服务器上，保存后不再显示。"
+        }
+      },
+      "recaptcha": {
+        "site_key": {
+          "label": "reCAPTCHA 站点密钥（Site Key）",
+          "help": "公开，前端组件要用它。"
+        },
+        "secret_key": {
+          "label": "reCAPTCHA 私钥（Secret Key）",
+          "help": "只留在服务器上，保存后不再显示。"
+        }
+      },
+      "hcaptcha": {
+        "site_key": {
+          "label": "hCaptcha 站点密钥（Site Key）",
+          "help": "公开，前端组件要用它。"
+        },
+        "secret_key": {
+          "label": "hCaptcha 私钥（Secret Key）",
+          "help": "只留在服务器上，保存后不再显示。"
+        }
+      }
+    },
+    "mail": {
+      "driver": {
+        "label": "发送方式",
+        "help": "不发送时，邮箱验证与找回密码不可用；写入日志时邮件不会真的发出，内容写进服务器日志，用于调试。",
+        "options": {
+          "none": "不发送",
+          "smtp": "SMTP",
+          "log": "写入日志"
+        }
+      },
+      "from": {
+        "label": "发件人",
+        "help": "发件地址，例如 noreply@skin.example.com，也可以带上名称。"
+      },
+      "smtp": {
+        "host": {
+          "label": "SMTP 服务器",
+          "help": "例如 smtp.qq.com。"
+        },
+        "port": {
+          "label": "端口",
+          "help": "TLS 一般用 465，STARTTLS 一般用 587。"
+        },
+        "username": {
+          "label": "用户名",
+          "help": "通常是邮箱地址。"
+        },
+        "password": {
+          "label": "密码",
+          "help": "SMTP 密码或授权码，只留在服务器上，保存后不再显示。"
+        },
+        "encryption": {
+          "label": "加密方式",
+          "help": "不加密只适合同一台机器上的邮件中继。",
+          "options": {
+            "tls": "TLS（连接即加密）",
+            "starttls": "STARTTLS（连接后升级）",
+            "none": "不加密"
+          }
+        }
+      }
+    },
+    "score": {
+      "initial": {
+        "label": "新账号的初始积分",
+        "help": "对应 BS 的 user_initial_score。"
+      },
+      "per_storage": {
+        "label": "公开材质每 KB 的积分",
+        "help": "上传公开材质时，每 KB（不足 1 KB 按 1 KB）扣的积分。"
+      },
+      "private_per_storage": {
+        "label": "私有材质每 KB 的积分",
+        "help": "上传私有材质或改为私有时按这个价格计算。"
+      },
+      "per_closet_item": {
+        "label": "收藏一个材质的积分",
+        "help": "加入衣柜时扣的积分，上传自己的材质也算一次。"
+      },
+      "award_per_texture": {
+        "label": "上传公开材质的奖励",
+        "help": "只有公开材质能得到。"
+      },
+      "per_player": {
+        "label": "创建角色的积分"
+      },
+      "award_per_like": {
+        "label": "材质被收藏的奖励",
+        "help": "别人把材质加入衣柜时，上传者得到的积分。"
+      },
+      "sign_min": {
+        "label": "签到最少得分"
+      },
+      "sign_max": {
+        "label": "签到最多得分"
+      },
+      "sign_gap_hours": {
+        "label": "签到间隔（小时）",
+        "help": "关闭“每天签到一次”时，两次签到之间至少隔多少小时。"
+      },
+      "sign_daily": {
+        "label": "每天签到一次",
+        "help": "按站点时区的零点开始新的一天，不再按间隔小时计算。对应 BS 的 sign_after_zero。"
+      },
+      "return_on_delete": {
+        "label": "删除时返还积分",
+        "help": "删除角色、移出衣柜或删除材质时，退还当时实际花费的积分。"
+      },
+      "reporter_modification": {
+        "label": "提交举报的积分变化",
+        "help": "负数：提交时收取，举报成立后退还；正数：提交时奖励，被驳回时收回。"
+      },
+      "reporter_reward": {
+        "label": "举报成立的奖励",
+        "help": "材质被删除或上传者被封禁时给举报人的积分。"
+      }
+    },
+    "texture": {
+      "max_size_kb": {
+        "label": "最大文件大小（KB）"
+      },
+      "max_width": {
+        "label": "最大宽度（像素）"
+      },
+      "name_regexp": {
+        "label": "材质名称规则",
+        "help": "名称必须匹配的正则表达式（Go RE2 语法）；留空表示不限。"
+      },
+      "allow_download": {
+        "label": "允许下载原图",
+        "help": "关闭后 /raw 不再提供原文件。"
+      },
+      "private_status": {
+        "label": "他人请求私有材质时的状态码",
+        "options": {
+          "403": "403：禁止访问",
+          "404": "404：隐藏它的存在"
+        }
+      },
+      "content_policy": {
+        "label": "内容规范",
+        "help": "显示在上传页，支持 Markdown。"
+      }
+    },
+    "player": {
+      "name_rule": {
+        "label": "角色名规则",
+        "options": {
+          "official": "字母、数字与下划线（Mojang 的规则）",
+          "cjk": "另外允许中文",
+          "utf8": "除空格外的任意可打印字符",
+          "custom": "自定义正则表达式"
+        }
+      },
+      "name_regexp": {
+        "label": "自定义角色名规则",
+        "help": "角色名规则为“自定义正则表达式”时使用（Go RE2 语法）。"
+      },
+      "name_length_min": {
+        "label": "角色名最短长度"
+      },
+      "name_length_max": {
+        "label": "角色名最长长度"
+      }
+    },
+    "delivery": {
+      "profile_cache_seconds": {
+        "label": "角色资料的缓存时间（秒）",
+        "help": "游戏客户端与 CDN 可以把角色 JSON 等接口缓存多久。BS 默认缓存一年，换了皮肤很久都看不到。"
+      },
+      "missing_player_status": {
+        "label": "不存在的角色返回",
+        "options": {
+          "404": "404",
+          "204": "204：让客户端去试下一个皮肤站"
+        }
+      }
+    },
+    "yggdrasil": {
+      "uuid_algorithm": {
+        "label": "新角色的 UUID",
+        "options": {
+          "v3": "v3：按名字生成，与离线服务器一致，改名会变",
+          "v4": "v4：随机生成，改名不变"
+        }
+      },
+      "token_valid_seconds": {
+        "label": "令牌有效期（秒）",
+        "help": "启动器登录得到的令牌有效多久，默认 3 天。"
+      },
+      "token_refresh_seconds": {
+        "label": "令牌可刷新期限（秒）",
+        "help": "过期的令牌从签发起多久之内还能刷新，默认 7 天。"
+      },
+      "tokens_per_user": {
+        "label": "每个账号的令牌数",
+        "help": "超过后再次登录会注销最早的令牌。"
+      },
+      "search_profile_max": {
+        "label": "批量查询角色的上限",
+        "help": "一次按名字批量查询角色时最多几个名字。"
+      },
+      "skin_domains": {
+        "label": "额外的材质域名",
+        "help": "材质还可能来自的域名，用逗号分隔；站点本身与存储的公开地址总会列出。"
+      },
+      "enable_ali": {
+        "label": "发送 API 地址提示头",
+        "help": "每个页面都带上 X-Authlib-Injector-API-Location，启动器只填站点地址就能找到接口。"
+      }
+    },
+    "oauth": {
+      "access_token_ttl_seconds": {
+        "label": "访问令牌有效期（秒）",
+        "help": "应用的访问令牌有效多久，默认 1 天，之后用刷新令牌换新的。"
+      },
+      "refresh_token_ttl_seconds": {
+        "label": "刷新令牌有效期（秒）",
+        "help": "没有使用的刷新令牌保持有效多久，默认 30 天；每次刷新都会换一个新的。"
+      }
+    },
+    "seo": {
+      "keywords": {
+        "label": "搜索关键词",
+        "help": "给搜索引擎的关键词（meta keywords），用逗号分隔；页面描述使用站点简介。对应 BS 的 meta_keywords。"
+      }
+    },
+    "theme": {
+      "custom_css": {
+        "label": "自定义 CSS",
+        "help": "作为单独的样式表加载，排在主题样式之后，最多 64 KB。只有超级管理员可以修改。对应 BS 的 custom_css。"
+      }
+    },
+    "cdn": {
+      "provider": {
+        "label": "CDN 服务商",
+        "help": "选择站点前面的 CDN。Webhook 会把要刷新的地址 POST 到你指定的地址，可以接入其它 CDN。",
+        "options": {
+          "none": "不刷新",
+          "cloudflare": "Cloudflare",
+          "aliyun": "阿里云 CDN",
+          "tencent": "腾讯云 CDN",
+          "webhook": "Webhook"
+        }
+      },
+      "base_url": {
+        "label": "CDN 上的站点地址",
+        "help": "CDN 对外提供站点的地址，例如 https://skin.example.com；留空使用站点地址。"
+      },
+      "cloudflare": {
+        "zone_id": {
+          "label": "Cloudflare 区域 ID",
+          "help": "在域名的概述页面可以找到 Zone ID。"
+        },
+        "api_token": {
+          "label": "Cloudflare API 令牌",
+          "help": "需要“区域 → 缓存清除”权限，保存后不再显示。"
+        }
+      },
+      "aliyun": {
+        "access_key_id": {
+          "label": "阿里云 AccessKey ID",
+          "help": "建议用只授权了 cdn:RefreshObjectCaches 的 RAM 用户。"
+        },
+        "access_key_secret": {
+          "label": "阿里云 AccessKey Secret",
+          "help": "保存后不再显示。"
+        }
+      },
+      "tencent": {
+        "secret_id": {
+          "label": "腾讯云 SecretId",
+          "help": "建议用只授权了 cdn:PurgeUrlsCache 的子账号。"
+        },
+        "secret_key": {
+          "label": "腾讯云 SecretKey",
+          "help": "保存后不再显示。"
+        }
+      },
+      "webhook": {
+        "url": {
+          "label": "Webhook 地址",
+          "help": "接收 POST 请求，内容为要刷新的地址列表 urls 和触发它的事件 event。"
+        },
+        "secret": {
+          "label": "Webhook 签名密钥",
+          "help": "设置后请求带 X-SkinLoom-Signature 头：sha256= 加上请求正文的 HMAC-SHA256；保存后不再显示。"
+        }
+      }
+    }
+  },
+  "appearance": {
+    "loading": "正在加载外观设置……",
+    "intro": "保存后立即对所有访客生效，不用重启。",
+    "errors": {
+      "load": "加载外观设置失败。"
+    },
+    "themes": {
+      "title": "主题",
+      "intro": "选择站点使用的主题。没有自定义首页时，首页也会换成新主题自带的。",
+      "active": "使用中",
+      "activate": "启用",
+      "failed": "切换主题失败，请重试。"
+    },
+    "colors": {
+      "title": "颜色",
+      "intro": "在当前主题之上调整颜色与圆角，留空就用主题的值。调整对之后启用的其它主题同样生效。",
+      "light": "亮色",
+      "dark": "暗色",
+      "tokens": {
+        "primary": "主色",
+        "primary-foreground": "主色上的文字",
+        "background": "背景",
+        "foreground": "文字",
+        "card": "卡片",
+        "muted": "弱化背景",
+        "accent": "强调背景",
+        "border": "边框",
+        "radius": "圆角"
+      },
+      "unsafe": "有的值含有分号、花括号、尖括号或注释，不能保存。",
+      "save": "保存颜色",
+      "clearAll": "全部清除",
+      "unsaved": "有未保存的改动",
+      "failed": "保存失败，请重试。"
+    },
+    "home": {
+      "title": "首页",
+      "intro": "首页由区块从上到下组成。",
+      "usingTheme": "现在使用的是主题“{theme}”自带的首页。",
+      "custom": "现在使用的是自定义的首页。",
+      "empty": "首页还没有区块。",
+      "addType": "要添加的区块",
+      "add": "添加区块",
+      "save": "保存首页",
+      "useTheme": "改用主题自带的首页",
+      "unsaved": "有未保存的改动",
+      "moveUp": "上移",
+      "moveDown": "下移",
+      "remove": "删除",
+      "unknownType": "没有这种区块，保存前请删除它。",
+      "default": "默认",
+      "linkHint": "本站路径（如 /skinlib）或 https:// 地址",
+      "addButton": "添加按钮",
+      "invalid": "首页有问题：{detail}",
+      "failed": "保存失败，请重试。"
+    },
+    "blockTypes": {
+      "hero": {
+        "name": "大标题",
+        "help": "站点名称、简介和两个按钮，可以设置背景图。"
+      },
+      "announcement": {
+        "name": "公告",
+        "help": "显示站点公告；没有公告时不显示。"
+      },
+      "features": {
+        "name": "功能介绍",
+        "help": "上传、角色、启动器与自托管四张卡片。"
+      },
+      "stats": {
+        "name": "站点数据",
+        "help": "用户、角色和公开材质的数量。"
+      },
+      "latest-textures": {
+        "name": "最新材质",
+        "help": "最近上传的公开材质。"
+      },
+      "popular-textures": {
+        "name": "热门材质",
+        "help": "收藏最多的公开材质。"
+      },
+      "markdown": {
+        "name": "文字",
+        "help": "一段 Markdown 文字。"
+      },
+      "image": {
+        "name": "图片",
+        "help": "一张图片，可以加链接。"
+      },
+      "buttons": {
+        "name": "按钮组",
+        "help": "最多 6 个链接按钮，第一个是主按钮。"
+      },
+      "launcher-guide": {
+        "name": "启动器配置引导",
+        "help": "外置登录的接口地址与配置方法。"
+      }
+    },
+    "props": {
+      "title": "标题",
+      "subtitle": "副标题",
+      "background": "背景图",
+      "primaryAction": "第一个按钮的链接",
+      "secondaryAction": "第二个按钮的链接",
+      "limit": "数量",
+      "category": "类型",
+      "content": "内容",
+      "src": "图片地址",
+      "alt": "图片说明",
+      "href": "链接",
+      "items": "按钮"
+    },
+    "options": {
+      "skin": "皮肤",
+      "cape": "披风"
+    }
+  },
+  "blocks": {
+    "latest": "最新材质",
+    "popular": "热门材质",
+    "more": "查看更多",
+    "stats": {
+      "title": "站点数据",
+      "users": "用户",
+      "players": "角色",
+      "textures": "公开材质"
+    }
+  },
+  "adminTranslations": {
+    "loading": "正在加载……",
+    "intro": "改写界面上的任何文字。按键名或文字搜索，在对应语言下填入新的说法，留空就用原文。保存后所有页面立即生效。",
+    "search": "搜索",
+    "searchHint": "键名或文字，如 nav.skinlib、皮肤库",
+    "changedOnly": "只看已改写的",
+    "count": "已改写 {count} 条",
+    "changed": "已改写",
+    "keep": "留空使用原文",
+    "none": "没有找到。",
+    "more": "再显示 40 条（还有 {left} 条）",
+    "save": "保存",
+    "saved": "已保存并生效。",
+    "unsaved": "有未保存的改动",
+    "fixFirst": "有 {count} 处需要先改正",
+    "problems": {
+      "syntax": "格式不对：请检查花括号是否成对、每种写法是否完整。",
+      "placeholders": "要保留原文里花括号中的占位符和标签，页面会把它们换成实际内容。"
+    },
+    "errors": {
+      "load": "加载失败。",
+      "save": "保存失败，请重试。",
+      "invalid": "保存被拒绝：{detail}"
+    },
+    "noDefault": "该语言没有这条文字（显示的是服务器提供的说明），改了也不会显示。"
+  },
+  "adminStatus": {
+    "loading": "正在读取系统状态……",
+    "intro": "这台服务器现在的状态。多实例部署时，各实例的版本与启动时间可能不同。",
+    "refresh": "刷新",
+    "yes": "是",
+    "no": "否",
+    "errors": {
+      "load": "读取系统状态失败。"
+    },
+    "checks": {
+      "title": "检查结果",
+      "database": {
+        "ok": "数据库连接正常。",
+        "problem": "连不上数据库。"
+      },
+      "migrations": {
+        "ok": "数据库结构是最新的。",
+        "problem": "有数据库迁移没有执行，请重启服务。"
+      },
+      "jobs_overdue": {
+        "ok": "后台任务按时执行。",
+        "problem": "有后台任务超过一分钟没有执行，检查服务日志。"
+      },
+      "jobs_failed": {
+        "ok": "最近 7 天没有失败的后台任务。",
+        "problem": "最近 7 天有后台任务重试后仍然失败，检查服务日志。"
+      },
+      "mail": {
+        "ok": "邮件已配置。",
+        "problem": "没有配置邮件：邮箱验证与找回密码不可用。"
+      },
+      "site_url": {
+        "ok": "已设置站点地址。",
+        "problem": "没有设置站点地址：邮件链接与第三方登录不可用。"
+      }
+    },
+    "server": {
+      "title": "服务端",
+      "version": "版本",
+      "buildDate": "构建时间",
+      "runtime": "运行环境",
+      "mode": "运行方式",
+      "web": "前端",
+      "started": "启动时间"
+    },
+    "database": {
+      "title": "数据库",
+      "engine": "类型与版本",
+      "migration": "迁移版本",
+      "pending": "未执行的迁移",
+      "ping": "响应时间"
+    },
+    "storage": {
+      "title": "材质存储",
+      "driver": "存储方式",
+      "drivers": {
+        "local": "本地目录",
+        "s3": "S3 兼容对象存储"
+      },
+      "files": "文件数",
+      "size": "占用空间"
+    },
+    "jobs": {
+      "title": "后台任务",
+      "pending": "等待中",
+      "overdue": "已超时",
+      "oldest": "最早超时的任务",
+      "failed": "已失败"
+    },
+    "mail": {
+      "title": "邮件",
+      "driver": "发送方式",
+      "ready": "验证与找回密码可用"
+    },
+    "config": {
+      "title": "配置",
+      "version": "配置版本",
+      "theme": "当前主题",
+      "changed": "改过的设置",
+      "plugins": "插件",
+      "pluginsLater": "插件平台在第二阶段提供"
     }
   }
 }

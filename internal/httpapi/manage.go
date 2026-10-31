@@ -153,7 +153,7 @@ func registerManage(api huma.API, d Deps) {
 
 	huma.Register(api, op("updateTexture", http.MethodPatch, "/api/v1/textures/{id}", "Change a texture (its uploader or an administrator)", "textures", 0),
 		func(ctx context.Context, in *updateTextureInput) (*struct{ Body TextureView }, error) {
-			v, err := signedIn(ctx)
+			v, err := verifiedViewer(ctx, d)
 			if err != nil {
 				return nil, err
 			}
@@ -171,7 +171,7 @@ func registerManage(api huma.API, d Deps) {
 
 	huma.Register(api, op("deleteTexture", http.MethodDelete, "/api/v1/textures/{id}", "Delete a texture (its uploader or an administrator)", "textures", http.StatusNoContent),
 		func(ctx context.Context, in *textureIDInput) (*struct{}, error) {
-			v, err := signedIn(ctx)
+			v, err := verifiedViewer(ctx, d)
 			if err != nil {
 				return nil, err
 			}

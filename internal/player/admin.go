@@ -13,6 +13,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
 )
 
@@ -191,7 +192,7 @@ func (s *Service) Edit(ctx context.Context, id int64, c Change, p Policy, rec *a
 				rec = rec.With("owner", []int64{cur.UserID, *c.NewOwner})
 			}
 			pl, err := upd.Save(ctx)
-			if ent.IsConstraintError(err) {
+			if db.IsConstraint(err) {
 				return errNameTaken
 			}
 			if err != nil {

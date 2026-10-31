@@ -130,3 +130,11 @@
     @apply border px-2 py-1;
   }
 }
+
+/* Theme hooks with a base look; a theme's CSS may restyle them (docs: theme standard). */
+@layer components {
+  /* The panel beside the forms of the "split" auth layout. */
+  .sl-auth-panel {
+    background: var(--brand-gradient);
+  }
+}

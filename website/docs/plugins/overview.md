@@ -20,9 +20,9 @@ sidebar_position: 1
 
 | 部分 | 状态 |
 |---|---|
-| Hook 总线（Guard / Filter / Event，按贡献者原子替换） | 已就位，目前只有 `settings.changed@1` 一个公开事件 |
-| 主题包标准 | 已就位：内置默认主题按标准编写（`themes/default/plugin.json`） |
-| 主题 token 覆盖、首页区块编排 | 已就位：设置 `theme.overrides`、`home.blocks` |
+| Hook 总线（Guard / Filter / Event，按贡献者原子替换） | 事件已就位：用户、角色、材质、衣柜、举报共 15 个领域事件，经任务队列投递（ADR 0028）；Guard 与 Filter 随插件运行时提供 |
+| 主题包标准 | 已就位：两套内置主题（`themes/default`、`themes/brocade`）按标准编写，见[外观与主题](../getting-started/appearance.md) |
+| 主题 token 覆盖、首页区块编排 | 已就位：后台外观页；区块目录 `GET /api/v1/admin/blocks`，插件区块将用同一套属性定义 |
 | 前端插槽 | 页面已声明插槽位置（如 `site.footer`），挂载插件组件要等运行时上线 |
 | 设计系统 `@skinloom/ui` | 已有 Button、Card、Badge，将随功能扩充 |
 | JS 沙箱、SDK、CLI、插件包、市场 | 第二阶段 |

@@ -16,6 +16,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: '/admin/players', label: t('players') },
     { href: '/admin/reports', label: t('reports') },
     { href: '/admin/audit', label: t('audit') },
+    { href: '/admin/appearance', label: t('appearance') },
+    { href: '/admin/translations', label: t('translations') },
+    { href: '/admin/settings', label: t('settings') },
+    { href: '/admin/status', label: t('systemStatus') },
   ]
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">

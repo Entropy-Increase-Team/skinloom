@@ -6,12 +6,15 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
+import { problemOf } from '@/lib/problem'
+
 /** Puts a texture from the closet on one of the viewer's players (texture page). */
 export function WearOnPlayer({ textureId, kind }: { textureId: number; kind: 'skin' | 'cape' }) {
   const t = useTranslations('player')
+  const tc = useTranslations('common')
   const [players, setPlayers] = useState<PlayerView[] | null>(null)
   const [chosen, setChosen] = useState<number>(0)
-  const [state, setState] = useState<'idle' | 'pending' | 'done' | 'failed'>('idle')
+  const [state, setState] = useState<'idle' | 'pending' | 'done' | 'failed' | 'unverified'>('idle')
 
   useEffect(() => {
     listPlayers()
@@ -56,8 +59,8 @@ export function WearOnPlayer({ textureId, kind }: { textureId: number; kind: 'sk
             try {
               await wearTextures(chosen, kind === 'skin' ? { skin: textureId } : { cape: textureId })
               setState('done')
-            } catch {
-              setState('failed')
+            } catch (err) {
+              setState(problemOf(err).unverified ? 'unverified' : 'failed')
             }
           }}
         >
@@ -66,6 +69,7 @@ export function WearOnPlayer({ textureId, kind }: { textureId: number; kind: 'sk
       </div>
       {state === 'done' && <p className="text-xs text-muted-foreground">{t('worn')}</p>}
       {state === 'failed' && <p className="text-xs text-destructive">{t('errors.failed')}</p>}
+      {state === 'unverified' && <p className="text-xs text-destructive">{tc('verifyFirst')}</p>}
     </div>
   )
 }

@@ -3,8 +3,11 @@ package settings
 import (
 	"fmt"
 	"net/url"
+	"regexp"
+	"strings"
 	"time"
 	_ "time/tzdata" // time zone names resolve without a system database (Windows, minimal images)
+	"unicode/utf8"
 )
 
 // coreDefs are the settings available from M0. Later modules add their own
@@ -44,6 +47,32 @@ func coreDefs() []Def {
 			Doc: "Announcement shown on the home page and dashboard (Markdown).",
 		},
 		{
+			Key: "site.logo", Type: TypeString, Public: true, Default: "", Validate: validImageOrEmpty,
+			Doc: "Logo in the header: an image URL or a path on this site; empty = the theme's mark.",
+		},
+		{
+			Key: "site.favicon", Type: TypeString, Public: true, Default: "", Validate: validImageOrEmpty,
+			Doc: "Browser tab icon: an image URL or a path on this site; empty = the built-in one. (BS favicon_url)",
+		},
+		{
+			Key: "site.copyright", Type: TypeLocalized, Public: true, Default: map[string]string{},
+			Doc: "Footer text (Markdown); empty = © year and the site name. (BS copyright_text)",
+		},
+		{
+			Key: "seo.keywords", Type: TypeLocalized, Public: true, Default: map[string]string{},
+			Doc: "Comma-separated keywords for search engines (meta keywords). The description is site.description. (BS meta_keywords)",
+		},
+		{
+			Key: "theme.custom_css", Type: TypeText, Default: "", Superadmin: true,
+			Doc: fmt.Sprintf("CSS added after the theme's on every page, at most %d KB; served as its own stylesheet. Super administrators only. (BS custom_css)", MaxCustomCSS/1024),
+			Validate: func(v any) error {
+				if len(v.(string)) > MaxCustomCSS {
+					return fmt.Errorf("at most %d KB", MaxCustomCSS/1024)
+				}
+				return nil
+			},
+		},
+		{
 			Key: "theme.active", Type: TypeString, Public: true, Default: "default",
 			Doc: "ID of the active theme.",
 		},
@@ -58,29 +87,91 @@ func coreDefs() []Def {
 			},
 		},
 		{
+			Key: "i18n.overrides", Type: TypeJSON, Default: map[string]any{}, Validate: validateOverrides,
+			Doc: `The administrator's wording of interface texts: {"zh-CN": {"nav.skinlib": "…"}, "en": {…}}, by message key. ` +
+				`Texts keep the default's {placeholders}. (BS language_lines)`,
+		},
+		{
+			// Checked against the block catalog by the theme module (theme.ValidateHome).
 			Key: "home.blocks", Type: TypeJSON, Public: true, Default: nil,
-			Doc: `Home page blocks, e.g. [{"type": "hero"}, {"type": "launcher-guide"}]. null = use the theme's default layout.`,
-			Validate: func(v any) error {
-				if v == nil {
-					return nil
-				}
-				list, ok := v.([]any)
-				if !ok {
-					return fmt.Errorf("want a list of blocks or null")
-				}
-				for i, b := range list {
-					m, ok := b.(map[string]any)
-					if !ok {
-						return fmt.Errorf("block %d: want an object", i)
-					}
-					if t, _ := m["type"].(string); t == "" {
-						return fmt.Errorf("block %d: missing type", i)
-					}
-				}
-				return nil
-			},
+			Doc: `Home page blocks, e.g. [{"type": "hero"}, {"type": "latest-textures", "props": {"limit": 8}}]. null = the theme's own.`,
 		},
 	}
+}
+
+// MaxCustomCSS is the largest theme.custom_css, in bytes.
+const MaxCustomCSS = 64 * 1024
+
+// Limits of i18n.overrides.
+const (
+	MaxTextOverrides = 3000
+	maxOverrideKey   = 200
+	maxOverrideText  = 2000
+)
+
+var (
+	overrideLocale = regexp.MustCompile(`^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$`)
+	overrideKey    = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_-]*(\.[A-Za-z0-9_-]+)*$`)
+)
+
+// validateOverrides checks i18n.overrides: {locale: {message key: text}}. Braces must
+// pair up, so an override cannot break the message format of the texts around it;
+// that its placeholders match the default's is up to the admin panel, which knows them.
+func validateOverrides(v any) error {
+	m, ok := v.(map[string]any)
+	if !ok {
+		return fmt.Errorf(`want {"zh-CN": {"message.key": "text"}, …}`)
+	}
+	n := 0
+	for locale, texts := range m {
+		if !overrideLocale.MatchString(locale) {
+			return fmt.Errorf("%q is not a language code like zh-CN", locale)
+		}
+		tm, ok := texts.(map[string]any)
+		if !ok {
+			return fmt.Errorf("%s: want an object of texts by message key", locale)
+		}
+		for key, t := range tm {
+			s, ok := t.(string)
+			switch {
+			case len(key) > maxOverrideKey || !overrideKey.MatchString(key):
+				return fmt.Errorf("%s: %q is not a message key like nav.skinlib", locale, key)
+			case !ok || utf8.RuneCountInString(s) > maxOverrideText:
+				return fmt.Errorf("%s.%s: want text of at most %d characters", locale, key, maxOverrideText)
+			case !balancedBraces(s):
+				return fmt.Errorf("%s.%s: { and } do not pair up", locale, key)
+			}
+			n++
+		}
+	}
+	if n > MaxTextOverrides {
+		return fmt.Errorf("at most %d texts", MaxTextOverrides)
+	}
+	return nil
+}
+
+func balancedBraces(s string) bool {
+	depth := 0
+	for _, r := range s {
+		switch r {
+		case '{':
+			depth++
+		case '}':
+			if depth--; depth < 0 {
+				return false
+			}
+		}
+	}
+	return depth == 0
+}
+
+// validImageOrEmpty accepts an http(s) URL, a path on this site (/…, not //…) or "".
+func validImageOrEmpty(v any) error {
+	s := v.(string)
+	if s == "" || (strings.HasPrefix(s, "/") && !strings.HasPrefix(s, "//") && !strings.ContainsAny(s, " \\")) {
+		return nil
+	}
+	return validURLOrEmpty(v)
 }
 
 func validURLOrEmpty(v any) error {

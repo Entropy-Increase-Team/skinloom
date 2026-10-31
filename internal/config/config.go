@@ -104,6 +104,9 @@ type Web struct {
 type Log struct {
 	Level  string `koanf:"level"`  // debug | info | warn | error. Hot.
 	Format string `koanf:"format"` // text | json. Hot.
+	// File also writes the log there (relative to the data dir); empty = the console
+	// only. A background service with no file set logs to logs/skinloom.log. Cold.
+	File string `koanf:"file"`
 }
 
 // Defaults is what a fresh install runs with: zero external dependencies.
@@ -238,6 +241,7 @@ var coldKeys = map[string]bool{
 	"database.max_open_conns": true,
 	"storage.driver":          true,
 	"storage.path":            true,
+	"log.file":                true,
 }
 
 // Diff lists the dotted keys whose values differ between a and b.
@@ -307,4 +311,5 @@ package_manager = "auto"  # [hot] dev mode only: auto (bun, then pnpm, then npm)
 [log]
 level = "info"            # [hot] debug | info | warn | error
 format = "text"           # [hot] text | json
+file = ""                 # [cold] also write the log to this file, relative to the data dir
 `

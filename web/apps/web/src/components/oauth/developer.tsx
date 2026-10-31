@@ -69,6 +69,7 @@ function useDate() {
 /** Field errors of a failed request, and a general message for anything else. */
 function useFailure() {
   const t = useTranslations('oauth')
+  const tc = useTranslations('common')
   const [error, setError] = useState<string | null>(null)
   const [fields, setFields] = useState<Record<string, string>>({})
   return {
@@ -81,7 +82,7 @@ function useFailure() {
     fail: (err: unknown) => {
       const p = problemOf(err)
       setFields(p.fields)
-      setError(p.status === 422 ? null : t('failed'))
+      setError(p.unverified ? tc('verifyFirst') : p.status === 422 ? null : t('failed'))
     },
   }
 }

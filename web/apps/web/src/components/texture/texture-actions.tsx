@@ -49,6 +49,7 @@ export function FavoriteButton({ texture, rates }: { texture: TextureDetail; rat
 /** The uploader's (or an administrator's) controls: rename, type, visibility, delete. */
 export function OwnerControls({ texture, rates, charged }: { texture: TextureDetail; rates: ScoreRates; charged: boolean }) {
   const t = useTranslations('texture')
+  const tc = useTranslations('common')
   const router = useRouter()
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -65,15 +66,17 @@ export function OwnerControls({ texture, rates, charged }: { texture: TextureDet
     } catch (err) {
       const p = problemOf(err)
       setError(
-        p.status === 402
-          ? t('errors.score')
-          : p.status === 409
-            ? t('errors.duplicate')
-            : p.fields.type
-              ? t('errors.shape')
-              : p.fields.name
-                ? t('errors.name')
-                : t('errors.failed'),
+        p.unverified
+          ? tc('verifyFirst')
+          : p.status === 402
+            ? t('errors.score')
+            : p.status === 409
+              ? t('errors.duplicate')
+              : p.fields.type
+                ? t('errors.shape')
+                : p.fields.name
+                  ? t('errors.name')
+                  : t('errors.failed'),
       )
     } finally {
       setPending(false)

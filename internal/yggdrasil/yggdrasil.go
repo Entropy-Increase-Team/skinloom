@@ -49,6 +49,7 @@ var (
 	errInvalidToken       = forbidden("Invalid token.")
 	errInvalidCredentials = forbidden("Invalid credentials. Invalid username or password.")
 	errBanned             = forbidden("Your account has been banned.")
+	errUnverified         = forbidden("Verify your email address on the website first.")
 	errUnauthorized       = &Error{http.StatusUnauthorized, "UnauthorizedException", "Invalid token."}
 )
 
@@ -60,26 +61,20 @@ type Policy struct {
 	SearchMax     int           // names per bulk profile lookup
 	SkinDomains   []string      // extra domains textures may come from
 	EnableALI     bool          // send X-Authlib-Injector-API-Location
+	// RequireVerified: only accounts with a verified email sign in (account.VerificationRequired).
+	RequireVerified bool
 }
 
 // SettingDefs are the yggdrasil.* settings (yggdrasil.uuid_algorithm belongs to players).
 func SettingDefs() []settings.Def {
-	between := func(lo, hi float64) func(any) error {
-		return func(v any) error {
-			if n, ok := v.(float64); ok && (n < lo || n > hi) {
-				return fmt.Errorf("must be %g to %g", lo, hi)
-			}
-			return nil
-		}
-	}
 	return []settings.Def{
-		{Key: "yggdrasil.token_valid_seconds", Type: settings.TypeInt, Default: 259200, Validate: between(60, 31536000),
+		{Key: "yggdrasil.token_valid_seconds", Type: settings.TypeInt, Default: 259200, Range: settings.Between(60, 31536000),
 			Doc: "How long a launcher's access token is valid (3 days). (BS ygg_token_expire_1)"},
-		{Key: "yggdrasil.token_refresh_seconds", Type: settings.TypeInt, Default: 604800, Validate: between(60, 31536000),
+		{Key: "yggdrasil.token_refresh_seconds", Type: settings.TypeInt, Default: 604800, Range: settings.Between(60, 31536000),
 			Doc: "How long an expired access token can still be refreshed (7 days from issue). (BS ygg_token_expire_2)"},
-		{Key: "yggdrasil.tokens_per_user", Type: settings.TypeInt, Default: 10, Validate: between(1, 100),
+		{Key: "yggdrasil.tokens_per_user", Type: settings.TypeInt, Default: 10, Range: settings.Between(1, 100),
 			Doc: "Launcher tokens a user may hold; logging in again revokes the oldest. (BS ygg_tokens_limit)"},
-		{Key: "yggdrasil.search_profile_max", Type: settings.TypeInt, Default: 5, Validate: between(1, 100),
+		{Key: "yggdrasil.search_profile_max", Type: settings.TypeInt, Default: 5, Range: settings.Between(1, 100),
 			Doc: "Most names in one bulk profile lookup (POST /api/yggdrasil/api/profiles/minecraft). (BS ygg_search_profile_max)"},
 		{Key: "yggdrasil.skin_domains", Type: settings.TypeString, Default: "",
 			Doc: "Extra domains textures are served from, comma-separated (the site and storage.public_url are always listed). (BS ygg_skin_domain)"},
@@ -96,6 +91,8 @@ func PolicyFrom(s *settings.Snapshot) Policy {
 		TokensPerUser: settings.Decode[int](s, "yggdrasil.tokens_per_user"),
 		SearchMax:     settings.Decode[int](s, "yggdrasil.search_profile_max"),
 		EnableALI:     settings.Decode[bool](s, "yggdrasil.enable_ali"),
+
+		RequireVerified: account.VerificationRequired(s),
 	}
 	p.TokenRefresh = max(p.TokenRefresh, p.TokenValid)
 	for _, d := range strings.Split(s.String("yggdrasil.skin_domains"), ",") {

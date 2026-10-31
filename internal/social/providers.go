@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net"
 	"net/url"
 	"regexp"
@@ -64,12 +65,84 @@ func SettingDefs() []settings.Def {
 		Key: "auth.social.providers", Type: settings.TypeJSON, Default: []any{},
 		Doc: `Sign-in providers, a list of {"id", "type": "github" | "microsoft" | "oidc", "clientId", "clientSecret", ` +
 			`"name"?, "issuer" (oidc), "tenant"? (microsoft), "scopes"? (oidc)}. The callback URL to register with the provider is ` +
-			`<site.url>/api/v1/auth/social/<id>/callback; providers show up once site.url is set. Secrets stay on the server.`,
+			`<site.url>/api/v1/auth/social/<id>/callback; providers show up once site.url is set. Secrets stay on the server: ` +
+			`a saved clientSecret shows as ` + settings.Redacted + `, and leaving it so keeps it.`,
 		Validate: func(v any) error {
 			_, err := parseProviders(v)
 			return err
 		},
+		Redact:  redactSecrets,
+		Restore: restoreSecrets,
 	}}
+}
+
+// redactSecrets replaces each provider's saved client secret with settings.Redacted.
+func redactSecrets(v any) any {
+	list, ok := v.([]any)
+	if !ok {
+		return v
+	}
+	out := make([]any, len(list))
+	for i, item := range list {
+		m, _ := item.(map[string]any)
+		if s, _ := m["clientSecret"].(string); s == "" {
+			out[i] = item
+			continue
+		}
+		c := maps.Clone(m)
+		c["clientSecret"] = settings.Redacted
+		out[i] = c
+	}
+	return out
+}
+
+// restoreSecrets puts the saved secret back into each edited provider whose secret was
+// left redacted, matched by id, but only while the secret still goes where it went:
+// a provider with a new id, type, issuer or tenant gets none, so an edit cannot send
+// the saved secret to a token endpoint of the editor's choosing.
+func restoreSecrets(stored, edited any) any {
+	saved := map[string]map[string]any{}
+	list, _ := stored.([]any)
+	for _, item := range list {
+		m, _ := item.(map[string]any)
+		id, _ := m["id"].(string)
+		saved[id] = m
+	}
+	list, ok := edited.([]any)
+	if !ok {
+		return edited
+	}
+	out := make([]any, len(list))
+	for i, item := range list {
+		m, _ := item.(map[string]any)
+		if s, _ := m["clientSecret"].(string); s != settings.Redacted {
+			out[i] = item
+			continue
+		}
+		c := maps.Clone(m)
+		id, _ := m["id"].(string)
+		old := saved[id]
+		secret, _ := old["clientSecret"].(string)
+		if secret != "" && sameEndpoint(old, m) {
+			c["clientSecret"] = secret
+		} else {
+			delete(c, "clientSecret")
+		}
+		out[i] = c
+	}
+	return out
+}
+
+// sameEndpoint: a and b send their secret to the same identity provider.
+func sameEndpoint(a, b map[string]any) bool {
+	for _, k := range []string{"type", "issuer", "tenant"} {
+		x, _ := a[k].(string)
+		y, _ := b[k].(string)
+		if x != y {
+			return false
+		}
+	}
+	return true
 }
 
 func parseProviders(v any) ([]ProviderConfig, error) {

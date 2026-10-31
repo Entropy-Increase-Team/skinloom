@@ -58,18 +58,10 @@ type Policy struct {
 
 // SettingDefs are the oauth.* settings.
 func SettingDefs() []settings.Def {
-	between := func(lo, hi float64) func(any) error {
-		return func(v any) error {
-			if n, ok := v.(float64); ok && (n < lo || n > hi) {
-				return fmt.Errorf("must be %g to %g", lo, hi)
-			}
-			return nil
-		}
-	}
 	return []settings.Def{
-		{Key: "oauth.access_token_ttl_seconds", Type: settings.TypeInt, Default: 86400, Validate: between(300, 31536000),
+		{Key: "oauth.access_token_ttl_seconds", Type: settings.TypeInt, Default: 86400, Range: settings.Between(300, 31536000),
 			Doc: "How long an application's access token is valid (1 day); it then uses its refresh token. (Blessing Skin: 1 year)"},
-		{Key: "oauth.refresh_token_ttl_seconds", Type: settings.TypeInt, Default: 2592000, Validate: between(3600, 31536000),
+		{Key: "oauth.refresh_token_ttl_seconds", Type: settings.TypeInt, Default: 2592000, Range: settings.Between(3600, 31536000),
 			Doc: "How long an unused refresh token stays valid (30 days); each refresh starts a new one."},
 	}
 }

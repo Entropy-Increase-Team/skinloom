@@ -16,6 +16,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 )
 
 // DeleteGrace is how long a deleted account can still be restored by signing in.
@@ -143,7 +144,7 @@ func (s *Service) ChangeEmail(ctx context.Context, v *Viewer, password, email st
 		}
 		var err error
 		if u, err = upd.Save(ctx); err != nil {
-			if ent.IsConstraintError(err) {
+			if db.IsConstraint(err) {
 				return &FieldError{Field: "email", Message: "already registered"}
 			}
 			return err

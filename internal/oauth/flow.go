@@ -18,6 +18,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 )
 
 // Error is an OAuth error (RFC 6749 §4.1.2.1, §5.2).
@@ -203,7 +204,7 @@ func (s *Service) recordGrant(ctx context.Context, userID int64, p *Prepared) er
 		switch {
 		case ent.IsNotFound(err):
 			err = s.db.OAuthGrant.Create().SetUserID(userID).SetClientID(p.Client.ID).SetScopes(p.Scopes).Exec(ctx)
-			if ent.IsConstraintError(err) {
+			if db.IsConstraint(err) {
 				continue // allowed in another tab at the same moment: add to that one
 			}
 			return err

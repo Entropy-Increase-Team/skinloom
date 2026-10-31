@@ -15,6 +15,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
+	"github.com/Entropy-Increase-Team/skinloom/internal/cdn"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
 	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
@@ -59,10 +60,12 @@ func newTestDeps(t *testing.T) Deps {
 	}
 	reg := settings.NewRegistry()
 	if err := reg.Register(slices.Concat(account.SettingDefs(), captcha.SettingDefs(), mail.SettingDefs(),
-		score.SettingDefs(), texture.SettingDefs(), player.SettingDefs(), yggdrasil.SettingDefs(), oauth.SettingDefs(), social.SettingDefs())...); err != nil {
+		score.SettingDefs(), texture.SettingDefs(), player.SettingDefs(), yggdrasil.SettingDefs(), oauth.SettingDefs(), social.SettingDefs(), cdn.SettingDefs())...); err != nil {
 		t.Fatal(err)
 	}
 	reg.SetValidator("theme.active", themeReg.ValidateActive)
+	reg.SetValidator("theme.overrides", theme.ValidateOverrides)
+	reg.SetValidator("home.blocks", theme.ValidateHome)
 	svc := settings.NewService(reg, database.Ent, broker, bus, log)
 	if err := svc.Load(ctx); err != nil {
 		t.Fatal(err)
@@ -79,6 +82,10 @@ func newTestDeps(t *testing.T) Deps {
 	deps.Yggdrasil = yggdrasil.NewService(database.Ent, deps.Accounts, deps.Players, textures, log)
 	deps.OAuth = oauth.NewService(database.Ent, log)
 	deps.Social = social.NewService(database.Ent, deps.Accounts, log)
+	deps.CDN = cdn.NewService(bus, svc, log)
+	if err := deps.CDN.Start(); err != nil {
+		t.Fatal(err)
+	}
 	deps.Yggdrasil.KeyBits = 1024 // 4096 takes seconds to generate
 	return deps
 }

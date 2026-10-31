@@ -19,6 +19,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/buildinfo"
 	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
+	"github.com/Entropy-Increase-Team/skinloom/internal/cdn"
 	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
 	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
 	"github.com/Entropy-Increase-Team/skinloom/internal/oauth"
@@ -54,6 +55,7 @@ type Deps struct {
 	Yggdrasil *yggdrasil.Service
 	OAuth     *oauth.Service
 	Social    *social.Service
+	CDN       *cdn.Service
 	// ClientInfo resolves the client address and public host behind trusted proxies
 	// (the gateway's live resolver). Nil = trust no proxy.
 	ClientInfo func(*http.Request) realip.Info
@@ -63,6 +65,19 @@ type Deps struct {
 	// MaxEventStreams caps concurrent /events connections (0 = default 5000), so a
 	// flood of idle SSE clients cannot exhaust memory and file descriptors.
 	MaxEventStreams int
+	// Runtime describes this process for the system status page.
+	Runtime RuntimeInfo
+	// WebReady reports whether the frontend this process runs answers; /readyz waits for
+	// it, so a probe does not send visitors to a site whose pages still fail. Nil = ready.
+	WebReady func() bool
+}
+
+// RuntimeInfo is how this process was started.
+type RuntimeInfo struct {
+	Started time.Time
+	Role    string // server.role
+	Web     string // web.mode
+	Storage string // storage.driver
 }
 
 const defaultMaxEventStreams = 5000
@@ -113,6 +128,8 @@ func New(d Deps) (http.Handler, huma.API) {
 	registerYggdrasilAccount(api, d)
 	registerOAuthAccount(api, d)
 	registerSocial(api, d)
+	registerStatus(api, d)
+	registerCDN(api, d)
 	mountFiles(r, d)
 	mountGame(r, d)
 	mountRender(r, d)
@@ -129,6 +146,10 @@ func New(d Deps) (http.Handler, huma.API) {
 			http.Error(w, "database unavailable", http.StatusServiceUnavailable)
 			return
 		}
+		if d.WebReady != nil && !d.WebReady() {
+			http.Error(w, "frontend starting", http.StatusServiceUnavailable)
+			return
+		}
 		_, _ = w.Write([]byte("ready"))
 	})
 	r.Get("/events", serveEvents(d))
@@ -137,6 +158,7 @@ func New(d Deps) (http.Handler, huma.API) {
 		http.Redirect(w, req, "/user/profile", http.StatusFound)
 	})
 	if d.Themes != nil {
+		r.Handle("/themes-assets/_custom/*", theme.CustomCSSHandler(func() string { return d.Settings.Current().String("theme.custom_css") }))
 		r.Handle("/themes-assets/*", d.Themes.AssetHandler())
 	}
 	return r, api

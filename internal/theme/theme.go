@@ -2,21 +2,42 @@
 package theme
 
 import (
+	"cmp"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"maps"
 	"net/http"
 	"path"
+	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
 )
 
 // DefaultID is the built-in fallback theme.
 const DefaultID = "default"
+
+// Layouts are the layout variants a theme may choose (docs/design/05 §6.1 ③), the
+// default first. The other areas the standard names (site navigation, the user area)
+// have a single layout so far and are not listed; keys not listed here are ignored.
+var Layouts = map[string][]string{
+	"auth":    {"card", "split"},
+	"skinlib": {"comfortable", "compact"},
+}
+
+var (
+	idPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,31}$`) // "_custom" is taken by CustomCSSURL
+	tokenName = regexp.MustCompile(`^[a-z0-9-]{1,64}$`)
+)
 
 // Tokens are CSS custom property values, keyed by token name without the leading "--".
 type Tokens struct {
@@ -109,12 +130,28 @@ func load(files fs.FS, source string) (*Theme, error) {
 	if m.Kind != "theme" {
 		return nil, fmt.Errorf("kind is %q, want theme", m.Kind)
 	}
-	if m.ID == "" || m.Version == "" {
-		return nil, fmt.Errorf("id and version are required")
+	if !idPattern.MatchString(m.ID) || m.Version == "" {
+		return nil, fmt.Errorf("id (1 to 32 lowercase letters, digits or dashes) and version are required")
 	}
 	if m.Theme.CSS != "" {
 		if _, err := fs.Stat(files, m.Theme.CSS); err != nil {
 			return nil, fmt.Errorf("css file %q: %w", m.Theme.CSS, err)
+		}
+	}
+	for area, v := range m.Theme.Layout {
+		if options, ok := Layouts[area]; ok && !slices.Contains(options, v) {
+			return nil, fmt.Errorf("layout %s: %q is not one of %v", area, v, options)
+		}
+	}
+	if err := ValidateBlocks(m.Theme.Home); err != nil {
+		return nil, fmt.Errorf("home: %w", err)
+	}
+	for group, tokens := range map[string]map[string]string{"light": m.Theme.Tokens.Light, "dark": m.Theme.Tokens.Dark,
+		"fonts": m.Theme.Tokens.Fonts, "viewer": m.Theme.Tokens.Viewer} {
+		for name, v := range tokens {
+			if !tokenName.MatchString(name) || !safeTokenValue(v) {
+				return nil, fmt.Errorf("token %s.%s: want a CSS value without ; { } < > or comments", group, name)
+			}
 		}
 	}
 	return &Theme{Manifest: m, Source: source, files: files}, nil
@@ -156,6 +193,34 @@ func (r *Registry) ValidateActive(v any) error {
 	return nil
 }
 
+var tokenGroups = []string{"light", "dark", "fonts", "viewer"}
+
+// ValidateOverrides is the validator of theme.overrides: {"light" | "dark" | "fonts" |
+// "viewer": {token: CSS value}}. Unsafe values were dropped on render before; refusing
+// them on save tells the administrator.
+func ValidateOverrides(v any) error {
+	m, ok := v.(map[string]any)
+	if !ok {
+		return errors.New("want an object")
+	}
+	for group, tokens := range m {
+		if !slices.Contains(tokenGroups, group) {
+			return fmt.Errorf("unknown group %q, want one of %v", group, tokenGroups)
+		}
+		tm, ok := tokens.(map[string]any)
+		if !ok {
+			return fmt.Errorf("%s: want an object of token values", group)
+		}
+		for name, value := range tm {
+			s, ok := value.(string)
+			if !ok || !tokenName.MatchString(name) || utf8.RuneCountInString(s) > 200 || !safeTokenValue(s) {
+				return fmt.Errorf("%s.%s: want a CSS value without ; { } < > or comments", group, name)
+			}
+		}
+	}
+	return nil
+}
+
 // Resolve applies the active theme, admin token overrides and the home layout.
 func (r *Registry) Resolve(s *settings.Snapshot) ResolvedTheme {
 	t, ok := r.Get(s.String("theme.active"))
@@ -188,14 +253,49 @@ func (r *Registry) Resolve(s *settings.Snapshot) ResolvedTheme {
 	if t.Theme.CSS != "" {
 		css = append(css, AssetURL(t, t.Theme.CSS))
 	}
+	if custom := s.String("theme.custom_css"); custom != "" {
+		css = append(css, CustomCSSURL(custom)) // after the theme's, so it wins
+	}
+	layout := make(map[string]string, len(Layouts))
+	for area, options := range Layouts {
+		layout[area] = cmp.Or(t.Theme.Layout[area], options[0])
+	}
 	return ResolvedTheme{
 		ID:      t.ID,
 		Version: t.Version,
 		Tokens:  tokens,
 		CSS:     css,
-		Layout:  maps.Clone(t.Theme.Layout),
+		Layout:  layout,
 		Home:    home,
 	}
+}
+
+// CustomCSSURL is where theme.custom_css is served: named by its content, so it can be
+// cached forever and a change reaches every page at once.
+func CustomCSSURL(css string) string {
+	sum := sha256.Sum256([]byte(css))
+	return "/themes-assets/_custom/" + hex.EncodeToString(sum[:8]) + ".css"
+}
+
+// CustomCSSHandler serves theme.custom_css (current returns it) at CustomCSSURL. A
+// stylesheet of its own, not a <style> in the page, so nothing in it can end the
+// element and inject HTML.
+func CustomCSSHandler(current func() string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		css := current()
+		if css == "" {
+			http.NotFound(w, req)
+			return
+		}
+		w.Header().Set("Content-Type", "text/css; charset=utf-8")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		if req.URL.Path == CustomCSSURL(css) {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		} else {
+			w.Header().Set("Cache-Control", "no-cache") // a page from before the last change
+		}
+		_, _ = io.WriteString(w, css)
+	})
 }
 
 func merge(base, over map[string]string) map[string]string {
@@ -213,9 +313,38 @@ func merge(base, over map[string]string) map[string]string {
 	return base
 }
 
-// safeTokenValue keeps admin overrides from breaking out of the CSS declaration.
+// safeTokenValue keeps a token value inside its CSS declaration. All tokens are written
+// on one line, so a value must neither end the declaration (; { } < >, a comment) nor
+// run past it into the next ones (an unterminated string, an unclosed bracket, a
+// trailing escape, a line break).
 func safeTokenValue(v string) bool {
-	return !strings.ContainsAny(v, ";{}<>") && !strings.Contains(v, "/*")
+	if strings.ContainsAny(v, ";{}<>\n\r\f") || strings.Contains(v, "/*") {
+		return false
+	}
+	var quote rune
+	depth, escaped := 0, false
+	for _, c := range v {
+		switch {
+		case escaped:
+			escaped = false
+		case c == '\\':
+			escaped = true
+		case quote != 0:
+			if c == quote {
+				quote = 0
+			}
+		case c == '"' || c == '\'':
+			quote = c
+		case c == '(':
+			depth++
+		case c == ')':
+			if depth == 0 {
+				return false
+			}
+			depth--
+		}
+	}
+	return !escaped && quote == 0 && depth == 0
 }
 
 // AssetURL is the public URL of a theme file; the version in the path makes it cacheable forever.

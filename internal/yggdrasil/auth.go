@@ -179,6 +179,9 @@ func (s *Service) Authenticate(ctx context.Context, in AuthRequest, p Policy, me
 	if err != nil {
 		return nil, err
 	}
+	if p.RequireVerified && u.EmailVerifiedAt == nil { // as Blessing Skin's yggdrasil-api plugin
+		return nil, errUnverified
+	}
 	refs, players, err := s.profilesOf(ctx, u.ID)
 	if err != nil {
 		return nil, err
@@ -278,6 +281,11 @@ func (s *Service) Refresh(ctx context.Context, in RefreshRequest, p Policy) (*Au
 	t, err := s.find(ctx, in.AccessToken, in.ClientToken, true)
 	if err != nil {
 		return nil, err
+	}
+	// A refresh issues a new refresh window: without this check a token taken before
+	// verification was required (or before the email changed) would never run out.
+	if p.RequireVerified && t.user.EmailVerifiedAt == nil {
+		return nil, errUnverified
 	}
 	refs, players, err := s.profilesOf(ctx, t.user.ID)
 	if err != nil {

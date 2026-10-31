@@ -76,6 +76,7 @@ function useRuleHint(rules: PlayerRules) {
 
 function CreatePlayer({ rules, score, onCreated }: { rules: PlayerRules; score: number; onCreated: (c: PlayerCreated) => void }) {
   const t = useTranslations('player')
+  const tc = useTranslations('common')
   const hint = useRuleHint(rules)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -92,7 +93,15 @@ function CreatePlayer({ rules, score, onCreated }: { rules: PlayerRules; score: 
     } catch (err) {
       const p = problemOf(err)
       setError(
-        p.status === 402 ? t('errors.score') : p.fields.name === 'already taken' ? t('errors.taken') : p.fields.name ? t('errors.name') : t('errors.failed'),
+        p.unverified
+          ? tc('verifyFirst')
+          : p.status === 402
+            ? t('errors.score')
+            : p.fields.name === 'already taken'
+              ? t('errors.taken')
+              : p.fields.name
+                ? t('errors.name')
+                : t('errors.failed'),
       )
     } finally {
       setPending(false)
@@ -130,6 +139,7 @@ function PlayerCard({
   onDeleted: (refunded: number) => void
 }) {
   const t = useTranslations('player')
+  const tc = useTranslations('common')
   const hint = useRuleHint(rules)
   const [renaming, setRenaming] = useState(false)
   const [picking, setPicking] = useState<'skin' | 'cape' | null>(null)
@@ -141,8 +151,8 @@ function PlayerCard({
     try {
       onChange((await wearTextures(player.id, body)).data as PlayerView)
       setPicking(null)
-    } catch {
-      setError(t('errors.failed'))
+    } catch (err) {
+      setError(problemOf(err).unverified ? tc('verifyFirst') : t('errors.failed'))
     }
   }
 
@@ -155,7 +165,15 @@ function PlayerCard({
       setRenaming(false)
     } catch (err) {
       const p = problemOf(err)
-      setError(p.fields.name === 'already taken' ? t('errors.taken') : p.fields.name ? `${t('errors.name')} ${hint}` : t('errors.failed'))
+      setError(
+        p.unverified
+          ? tc('verifyFirst')
+          : p.fields.name === 'already taken'
+            ? t('errors.taken')
+            : p.fields.name
+              ? `${t('errors.name')} ${hint}`
+              : t('errors.failed'),
+      )
     }
   }
 
@@ -163,8 +181,8 @@ function PlayerCard({
     if (!window.confirm(t('deleteConfirm', { name: player.name }))) return
     try {
       onDeleted(((await deletePlayer(player.id)).data as PlayerDeleted).refunded)
-    } catch {
-      setError(t('errors.failed'))
+    } catch (err) {
+      setError(problemOf(err).unverified ? tc('verifyFirst') : t('errors.failed'))
     }
   }
 

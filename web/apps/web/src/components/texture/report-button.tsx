@@ -15,6 +15,7 @@ const MAX_REASON = 500
 /** Report a texture to the administrators, with what it costs or earns. */
 export function ReportButton({ textureId, rates }: { textureId: number; rates: ScoreRates }) {
   const t = useTranslations('texture.report')
+  const tc = useTranslations('common')
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState('')
   const [pending, setPending] = useState(false)
@@ -30,11 +31,19 @@ export function ReportButton({ textureId, rates }: { textureId: number; rates: S
       await reportTexture(textureId, { reason: reason.trim() })
       setSent(true)
     } catch (err) {
-      const status = problemOf(err).status
+      const { status, unverified } = problemOf(err)
       if (status === 409) setSent(true) // reported already: same outcome for the user
       else
         setError(
-          status === 402 ? t('errors.score') : status === 403 ? t('errors.own') : status === 429 ? t('errors.tooMany') : t('errors.failed'),
+          unverified
+            ? tc('verifyFirst')
+            : status === 402
+              ? t('errors.score')
+              : status === 403
+                ? t('errors.own')
+                : status === 429
+                  ? t('errors.tooMany')
+                  : t('errors.failed'),
         )
     } finally {
       setPending(false)

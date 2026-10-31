@@ -357,6 +357,7 @@ export interface AuthInfo {
   captcha: CaptchaInfo;
   mail: boolean;
   registration: AuthInfoRegistration;
+  requireVerification: boolean;
   social: SocialProviderInfo[];
 }
 
@@ -395,6 +396,32 @@ export interface Block {
   type: string;
 }
 
+export type PropType = typeof PropType[keyof typeof PropType];
+
+
+export const PropType = {
+  text: 'text',
+  markdown: 'markdown',
+  link: 'link',
+  image: 'image',
+  number: 'number',
+  choice: 'choice',
+  buttons: 'buttons',
+} as const;
+
+export interface Prop {
+  max?: number;
+  min?: number;
+  name: string;
+  options?: string[];
+  type: PropType;
+}
+
+export interface BlockType {
+  props: Prop[];
+  type: string;
+}
+
 export interface MenuItem {
   href: string;
   icon?: string;
@@ -408,6 +435,8 @@ export interface MenuItem {
  * Keyed by area: explore, user, admin
  */
 export type BootstrapMenus = {[key: string]: MenuItem[]};
+
+export type BootstrapMessages = {[key: string]: string};
 
 export interface LocaleInfo {
   code: string;
@@ -430,7 +459,14 @@ export interface SiteInfo {
   /** Markdown */
   announcement: string;
   announcementHtml: string;
+  copyrightHtml: string;
   description: string;
+  /** Tab icon URL; empty = the built-in one */
+  favicon: string;
+  /** meta keywords */
+  keywords: string;
+  /** Header logo URL; empty = the theme's mark */
+  logo: string;
   name: string;
   /** Canonical public URL; empty when not configured */
   url: string;
@@ -470,6 +506,7 @@ export interface Bootstrap {
   locales: LocaleInfo[];
   /** Keyed by area: explore, user, admin */
   menus: BootstrapMenus;
+  messages: BootstrapMessages;
   needsSetup: boolean;
   plugins: PluginFrontend[];
   server: ServerInfo;
@@ -522,6 +559,14 @@ export interface ClosetPage {
   next: number;
 }
 
+export interface ConfigStatus {
+  /** Settings changed from their defaults */
+  changed: number;
+  theme: string;
+  /** Config version */
+  version: number;
+}
+
 export interface CreateClientInputBody {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
@@ -571,6 +616,25 @@ export interface Dashboard {
   sign: SignInfo;
   storageBytes: number;
   uploads: number;
+}
+
+export type DatabaseStatusDialect = typeof DatabaseStatusDialect[keyof typeof DatabaseStatusDialect];
+
+
+export const DatabaseStatusDialect = {
+  sqlite: 'sqlite',
+  mysql: 'mysql',
+  postgres: 'postgres',
+} as const;
+
+export interface DatabaseStatus {
+  dialect: DatabaseStatusDialect;
+  /** Latest migration applied */
+  migration: number;
+  /** Migrations not applied (normally 0: they run at startup) */
+  pending: number;
+  pingMillis: number;
+  version: string;
 }
 
 export interface DeleteMeInputBody {
@@ -634,6 +698,15 @@ export interface ForgotInputBody {
   email: string;
 }
 
+export interface JobsStatus {
+  /** Given up after the last retry, kept for 7 days */
+  failed: number;
+  oldestOverdue?: string;
+  /** Pending for over a minute past their time */
+  overdue: number;
+  pending: number;
+}
+
 export interface LoginInputBody {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
@@ -645,6 +718,12 @@ export interface LoginInputBody {
   password: string;
   /** Keep the session for 30 days instead of until the browser closes */
   remember?: boolean;
+}
+
+export interface MailStatus {
+  driver: string;
+  /** Mail is set up and site.url is set: verification and password reset work */
+  ready: boolean;
 }
 
 export interface MailTestInputBody {
@@ -817,6 +896,24 @@ export interface PlayerRules {
   nameRule: PlayerRulesNameRule;
   /** Deleting a player gives back what it cost */
   refund: boolean;
+}
+
+export interface PurgeInputBody {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /**
+     * Player names whose cached profiles and avatars to purge
+     * @minItems 1
+     * @maxItems 50
+     */
+  players: string[];
+}
+
+export interface PurgeResult {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** URLs the CDN was asked to drop */
+  urls: number;
 }
 
 export interface RegisterInputBody {
@@ -1005,6 +1102,20 @@ export interface SentNotification {
   kind: SentNotificationKind;
 }
 
+export interface ServerStatus {
+  arch: string;
+  buildDate?: string;
+  commit?: string;
+  go: string;
+  os: string;
+  /** server.role */
+  role: string;
+  startedAt: string;
+  version: string;
+  /** web.mode */
+  web: string;
+}
+
 export interface SessionView {
   createdAt: string;
   /** The session making this request */
@@ -1028,11 +1139,19 @@ export interface SetAvatarInputBody {
 export interface SettingView {
   default: unknown;
   doc: string;
+  /** The allowed values */
+  enum?: unknown[];
   /** false when the default is in effect */
   isSet: boolean;
   key: string;
+  max?: number;
+  min?: number;
   public: boolean;
+  /** Write-only: the value is never sent back, leave the key out to keep it */
+  secret: boolean;
+  superadmin: boolean;
   type: string;
+  /** null for a secret setting; secret parts of other values are replaced by ******** */
   value: unknown;
 }
 
@@ -1079,6 +1198,16 @@ export interface SignResult {
   /** When the next check-in is possible */
   nextAt: string;
   score: number;
+}
+
+export interface SiteStats {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  players: number;
+  /** Public textures */
+  textures: number;
+  /** Accounts that are not deleted */
+  users: number;
 }
 
 export interface SocialLinkView {
@@ -1156,6 +1285,59 @@ export interface SocialStartInputBody {
   remember?: boolean;
 }
 
+export type StatusCheckId = typeof StatusCheckId[keyof typeof StatusCheckId];
+
+
+export const StatusCheckId = {
+  database: 'database',
+  migrations: 'migrations',
+  jobs_overdue: 'jobs_overdue',
+  jobs_failed: 'jobs_failed',
+  mail: 'mail',
+  site_url: 'site_url',
+} as const;
+
+export type StatusCheckLevel = typeof StatusCheckLevel[keyof typeof StatusCheckLevel];
+
+
+export const StatusCheckLevel = {
+  ok: 'ok',
+  warn: 'warn',
+  error: 'error',
+} as const;
+
+export interface StatusCheck {
+  id: StatusCheckId;
+  level: StatusCheckLevel;
+}
+
+export type StorageStatusDriver = typeof StorageStatusDriver[keyof typeof StorageStatusDriver];
+
+
+export const StorageStatusDriver = {
+  local: 'local',
+  s3: 's3',
+} as const;
+
+export interface StorageStatus {
+  bytes: number;
+  driver: StorageStatusDriver;
+  files: number;
+}
+
+export interface SystemStatus {
+  /** A URL to the JSON Schema for this object. */
+  readonly $schema?: string;
+  /** Things worth a look; level ok when nothing is wrong */
+  checks: StatusCheck[];
+  config: ConfigStatus;
+  database: DatabaseStatus;
+  jobs: JobsStatus;
+  mail: MailStatus;
+  server: ServerStatus;
+  storage: StorageStatus;
+}
+
 /**
  * steve and alex are skins (classic and slim arms)
  */
@@ -1214,14 +1396,20 @@ export interface TextureRules {
 
 export type ThemeViewDescription = {[key: string]: string};
 
+export type ThemeViewLayout = {[key: string]: string};
+
 export type ThemeViewName = {[key: string]: string};
 
 export interface ThemeView {
   active: boolean;
   description?: ThemeViewDescription;
+  /** The theme's home page, used while home.blocks is null */
+  home: Block[];
   id: string;
+  layout: ThemeViewLayout;
   name: ThemeViewName;
   source: string;
+  tokens: Tokens;
   version: string;
 }
 
@@ -1746,6 +1934,108 @@ export const listAudit = async (params?: ListAuditParams, options?: Parameters<t
     method: 'GET'
 
 
+  }
+);}
+
+
+
+export type listBlockTypesResponse200 = {
+  data: BlockType[]
+  status: 200
+}
+
+export type listBlockTypesResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listBlockTypesResponseSuccess = (listBlockTypesResponse200) & {
+  headers: Headers;
+};
+export type listBlockTypesResponseError = (listBlockTypesResponseDefault) & {
+  headers: Headers;
+};
+
+export type listBlockTypesResponse = (listBlockTypesResponseSuccess | listBlockTypesResponseError)
+
+export const getListBlockTypesUrl = () => {
+
+
+
+
+  return `/api/v1/admin/blocks`
+}
+
+/**
+ * Each type with its properties; home.blocks is checked against these.
+ * @summary Block types home.blocks can use
+ */
+export const listBlockTypes = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listBlockTypesResponse> => {
+
+  return apiFetch<listBlockTypesResponse>(getListBlockTypesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type purgeCDNResponse200 = {
+  data: PurgeResult
+  status: 200
+}
+
+export type purgeCDNResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type purgeCDNResponseSuccess = (purgeCDNResponse200) & {
+  headers: Headers;
+};
+export type purgeCDNResponseError = (purgeCDNResponseDefault) & {
+  headers: Headers;
+};
+
+export type purgeCDNResponse = (purgeCDNResponseSuccess | purgeCDNResponseError)
+
+export const getPurgeCDNUrl = () => {
+
+
+
+
+  return `/api/v1/admin/cdn/purge`
+}
+
+/**
+ * Asks the configured CDN to drop the cached profiles and avatars of these players, as a player change does on its own. Also a way to check the CDN settings: 409 when none is configured, 502 with the provider's answer when it refuses.
+ * @summary Purge players from the CDN
+ */
+export const purgeCDN = async (purgeInputBody: NonReadonly<PurgeInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<purgeCDNResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<purgeCDNResponse>(getPurgeCDNUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(purgeInputBody)
   }
 );}
 
@@ -2324,6 +2614,50 @@ return apiFetch<updateSettingsResponse>(getUpdateSettingsUrl(),
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateSettingsBody)
+  }
+);}
+
+
+
+export type getSystemStatusResponse200 = {
+  data: SystemStatus
+  status: 200
+}
+
+export type getSystemStatusResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getSystemStatusResponseSuccess = (getSystemStatusResponse200) & {
+  headers: Headers;
+};
+export type getSystemStatusResponseError = (getSystemStatusResponseDefault) & {
+  headers: Headers;
+};
+
+export type getSystemStatusResponse = (getSystemStatusResponseSuccess | getSystemStatusResponseError)
+
+export const getGetSystemStatusUrl = () => {
+
+
+
+
+  return `/api/v1/admin/status`
+}
+
+/**
+ * Version, runtime, database, storage, job queue and mail of this node, with findings worth a look.
+ * @summary System status
+ */
+export const getSystemStatus = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getSystemStatusResponse> => {
+
+  return apiFetch<getSystemStatusResponse>(getGetSystemStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
   }
 );}
 
@@ -5611,6 +5945,50 @@ export const getGetBootstrapUrl = (params?: GetBootstrapParams,) => {
 export const getBootstrap = async (params?: GetBootstrapParams, options?: Parameters<typeof apiFetch>[1]): Promise<getBootstrapResponse> => {
 
   return apiFetch<getBootstrapResponse>(getGetBootstrapUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getSiteStatsResponse200 = {
+  data: SiteStats
+  status: 200
+}
+
+export type getSiteStatsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getSiteStatsResponseSuccess = (getSiteStatsResponse200) & {
+  headers: Headers;
+};
+export type getSiteStatsResponseError = (getSiteStatsResponseDefault) & {
+  headers: Headers;
+};
+
+export type getSiteStatsResponse = (getSiteStatsResponseSuccess | getSiteStatsResponseError)
+
+export const getGetSiteStatsUrl = () => {
+
+
+
+
+  return `/api/v1/site/stats`
+}
+
+/**
+ * Accounts, players and public textures, for the home page's stats block; up to a minute old.
+ * @summary Site totals
+ */
+export const getSiteStats = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getSiteStatsResponse> => {
+
+  return apiFetch<getSiteStatsResponse>(getGetSiteStatsUrl(),
   {
     ...options,
     method: 'GET'

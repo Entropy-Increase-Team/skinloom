@@ -49,6 +49,7 @@ var bsMessages = map[string][2]string{
 	"unauthenticated":   {"Unauthenticated.", "Unauthenticated."},
 	"scope":             {"Invalid scope(s) provided.", "Invalid scope(s) provided."},
 	"banned":            {"你的账号已被封禁。", "Your account has been banned."},
+	"unverified":        {"你必须验证邮箱后才能进行此操作。", "You should verify your email address first."},
 	"throttled":         {"Too Many Attempts.", "Too Many Attempts."},
 	"invalid":           {"提交的数据有误。", "The given data was invalid."},
 	"notFound":          {"没有找到。", "Not found."},
@@ -249,6 +250,18 @@ func bsRoute(d Deps, scopes []string, fn bsHandler) http.HandlerFunc {
 	}
 }
 
+// bsVerified refuses with 403 when the site requires a verified email address and the
+// token's user has not verified theirs (account.CheckVerified).
+func bsVerified(d Deps, fn bsHandler) bsHandler {
+	return func(w http.ResponseWriter, r *http.Request, p *oauth.Principal, locale string) {
+		if err := account.CheckVerified(d.Settings.Current(), p.User); err != nil {
+			bsFail(w, http.StatusForbidden, bsText(locale, "unverified"))
+			return
+		}
+		fn(w, r, p, locale)
+	}
+}
+
 func bsServerError(w http.ResponseWriter, d Deps, err error) {
 	d.Log.Error("resource api", "err", err)
 	bsFail(w, http.StatusInternalServerError, "Server Error")
@@ -385,7 +398,7 @@ func mountBSAPI(r chi.Router, d Deps) {
 			bsWrite(w, http.StatusOK, out)
 		}))
 
-		r.Post("/api/players", bsRoute(d, oneOf("Player.ReadWrite"), func(w http.ResponseWriter, req *http.Request, p *oauth.Principal, locale string) {
+		r.Post("/api/players", bsRoute(d, oneOf("Player.ReadWrite"), bsVerified(d, func(w http.ResponseWriter, req *http.Request, p *oauth.Principal, locale string) {
 			in := readBSInput(w, req)
 			name := in.str("name")
 			if name == "" {
@@ -404,7 +417,7 @@ func mountBSAPI(r chi.Router, d Deps) {
 			default:
 				bsResult(w, 0, bsText(locale, "player.added", "name", pl.Name), bsPlayer(pl, loc()))
 			}
-		}))
+		})))
 
 		// ownPlayer loads {pid}: 404 if there is none, 403 if it is someone else's.
 		ownPlayer := func(w http.ResponseWriter, req *http.Request, p *oauth.Principal, locale string) *ent.Player {
@@ -426,7 +439,7 @@ func mountBSAPI(r chi.Router, d Deps) {
 			return nil
 		}
 
-		r.Delete("/api/players/{pid}", bsRoute(d, oneOf("Player.ReadWrite"), func(w http.ResponseWriter, req *http.Request, p *oauth.Principal, locale string) {
+		r.Delete("/api/players/{pid}", bsRoute(d, oneOf("Player.ReadWrite"), bsVerified(d, func(w http.ResponseWriter, req *http.Request, p *oauth.Principal, locale string) {
 			pl := ownPlayer(w, req, p, locale)
 			if pl == nil {
 				return
@@ -436,9 +449,9 @@ func mountBSAPI(r chi.Router, d Deps) {
 				return
 			}
 			bsResult(w, 0, bsText(locale, "player.deleted", "name", pl.Name), nil)
-		}))
+		})))
 
-		r.Put("/api/players/{pid}/name", bsRoute(d, oneOf("Player.ReadWrite"), func(w http.ResponseWriter, req *http.Request, p *oauth.Principal, locale string) {
+		r.Put("/api/players/{pid}/name", bsRoute(d, oneOf("Player.ReadWrite"), bsVerified(d, func(w http.ResponseWriter, req *http.Request, p *oauth.Principal, locale string) {
 			pl := ownPlayer(w, req, p, locale)
 			if pl == nil {
 				return
@@ -457,9 +470,9 @@ func mountBSAPI(r chi.Router, d Deps) {
 			default:
 				bsResult(w, 0, bsText(locale, "player.renamed", "old", pl.Name, "new", renamed.Name), bsPlayer(renamed, loc()))
 			}
-		}))
+		})))
 
-		r.Put("/api/players/{pid}/textures", bsRoute(d, oneOf("Player.ReadWrite"), func(w http.ResponseWriter, req *http.Request, p *oauth.Principal, locale string) {
+		r.Put("/api/players/{pid}/textures", bsRoute(d, oneOf("Player.ReadWrite"), bsVerified(d, func(w http.ResponseWriter, req *http.Request, p *oauth.Principal, locale string) {
 			pl := ownPlayer(w, req, p, locale)
 			if pl == nil {
 				return
@@ -486,9 +499,9 @@ func mountBSAPI(r chi.Router, d Deps) {
 				return
 			}
 			bsResult(w, 0, bsText(locale, "player.set", "name", worn.Name), bsPlayer(worn, loc()))
-		}))
+		})))
 
-		r.Delete("/api/players/{pid}/textures", bsRoute(d, oneOf("Player.ReadWrite"), func(w http.ResponseWriter, req *http.Request, p *oauth.Principal, locale string) {
+		r.Delete("/api/players/{pid}/textures", bsRoute(d, oneOf("Player.ReadWrite"), bsVerified(d, func(w http.ResponseWriter, req *http.Request, p *oauth.Principal, locale string) {
 			pl := ownPlayer(w, req, p, locale)
 			if pl == nil {
 				return
@@ -508,7 +521,7 @@ func mountBSAPI(r chi.Router, d Deps) {
 				return
 			}
 			bsResult(w, 0, bsText(locale, "player.cleared", "name", cleared.Name), bsPlayer(cleared, loc()))
-		}))
+		})))
 
 		r.Get("/api/closet", bsRoute(d, oneOf("Closet.Read"), func(w http.ResponseWriter, req *http.Request, p *oauth.Principal, _ string) {
 			q := req.URL.Query()

@@ -22,6 +22,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	auditlog "github.com/Entropy-Increase-Team/skinloom/internal/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 )
 
@@ -218,7 +219,7 @@ func (s *Service) CompleteSetup(ctx context.Context, in SetupInput, meta Request
 			return ErrInvalidToken
 		}
 		if err := tx.SystemState.Create().SetID(setupKey).SetIntValue(1).Exec(ctx); err != nil {
-			if ent.IsConstraintError(err) {
+			if db.IsConstraint(err) {
 				return ErrSetupDone
 			}
 			return err
@@ -235,7 +236,7 @@ func (s *Service) CompleteSetup(ctx context.Context, in SetupInput, meta Request
 			SetLastLoginAt(now).
 			Save(ctx)
 		if err != nil {
-			if ent.IsConstraintError(err) {
+			if db.IsConstraint(err) {
 				return &FieldError{Field: "email", Message: "already registered"}
 			}
 			return err
@@ -537,7 +538,7 @@ func (s *Service) Register(ctx context.Context, in RegisterInput, p RegisterPoli
 			SetLastLoginAt(s.now()).
 			Save(ctx)
 		if err != nil {
-			if ent.IsConstraintError(err) {
+			if db.IsConstraint(err) {
 				return &FieldError{Field: "email", Message: "already registered"}
 			}
 			return err

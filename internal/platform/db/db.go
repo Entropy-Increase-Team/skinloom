@@ -44,6 +44,20 @@ type DB struct {
 	Ent     *ent.Client
 }
 
+// ServerVersion asks the database for its version, for the system status page.
+func (d *DB) ServerVersion(ctx context.Context) (string, error) {
+	q := map[Dialect]string{SQLite: `SELECT sqlite_version()`, MySQL: `SELECT version()`, Postgres: `SHOW server_version`}[d.Dialect]
+	var v string
+	err := d.SQL.QueryRowContext(ctx, q).Scan(&v)
+	return v, err
+}
+
+// IsSQLite reports whether driver names SQLite the way Open accepts it.
+func IsSQLite(driver string) bool {
+	d := Dialect(strings.ToLower(driver))
+	return d == SQLite || d == "sqlite3"
+}
+
 // Open connects and pings the database.
 func Open(ctx context.Context, o Options) (*DB, error) {
 	var (
@@ -102,6 +116,20 @@ func (db *DB) Close() error { return db.Ent.Close() }
 // all: without it every ON DELETE CASCADE / SET NULL in the schema silently does
 // nothing.
 var sqlitePragmas = []string{"busy_timeout(10000)", "journal_mode(WAL)", "foreign_keys(1)", "synchronous(NORMAL)"}
+
+// SQLitePath is the database file a SQLite DSN names, found the way Open finds it: a
+// plain relative path is in dataDir, a DSN with parameters is used as written.
+func SQLitePath(dsn, dataDir string) string {
+	if dsn == "" {
+		dsn = "skinloom.db"
+	}
+	base, _, hasQuery := strings.Cut(dsn, "?")
+	path := strings.TrimPrefix(base, "file:")
+	if !hasQuery && !filepath.IsAbs(path) {
+		path = filepath.Join(dataDir, path)
+	}
+	return filepath.Clean(path)
+}
 
 // sqliteDSN turns a plain path into a DSN with the pragmas SkinLoom relies on. A value
 // that already has a query keeps its path and its own parameters, and gets every

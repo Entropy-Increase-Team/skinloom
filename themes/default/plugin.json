@@ -61,7 +61,7 @@
       }
     },
     "css": "theme.css",
-    "layout": { "site": "topnav", "auth": "card", "user": "sidebar", "skinlib": "comfortable" },
+    "layout": { "auth": "card", "skinlib": "comfortable" },
     "home": [
       { "type": "hero", "props": { "primaryAction": "/skinlib", "secondaryAction": "/auth/register" } },
       { "type": "announcement" },

@@ -3,10 +3,12 @@
 package app
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -15,6 +17,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
+	"github.com/Entropy-Increase-Team/skinloom/internal/cdn"
 	"github.com/Entropy-Increase-Team/skinloom/internal/config"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/jobs"
@@ -42,6 +45,12 @@ import (
 type Paths struct {
 	DataDir    string
 	ConfigPath string // empty = <DataDir>/config.toml
+	// LogFile is used when the config sets no log.file (a background service, whose
+	// console nobody reads); relative to DataDir.
+	LogFile string
+	// Serve is set by the process that serves the site: only it writes (and rotates)
+	// the log file. A CLI command run next to it logs to the console.
+	Serve bool
 }
 
 // Resolve fills defaults and makes paths absolute.
@@ -84,8 +93,11 @@ type Core struct {
 	Yggdrasil *yggdrasil.Service
 	OAuth     *oauth.Service
 	Social    *social.Service
+	CDN       *cdn.Service
 	// FreshConfig is true when this start wrote the default config file.
 	FreshConfig bool
+
+	logFile *os.File // nil without log.file
 }
 
 // OpenCore loads config, connects and migrates the database and loads settings and themes.
@@ -106,7 +118,26 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 	if err != nil {
 		return nil, err
 	}
-	logCtl, log := logging.New(os.Stderr, cfg.Log.Level, cfg.Log.Format)
+	var (
+		out     io.Writer = os.Stderr
+		logFile *os.File
+	)
+	if name := cmp.Or(cfg.Log.File, p.LogFile); name != "" && p.Serve {
+		if !filepath.IsAbs(name) {
+			name = filepath.Join(p.DataDir, name)
+		}
+		if logFile, err = logging.OpenFile(name); err != nil {
+			return nil, fmt.Errorf("open log file: %w", err)
+		}
+		out = logging.Tee(logFile, os.Stderr)
+	}
+	opened := false
+	defer func() { // every error return below
+		if !opened && logFile != nil {
+			logFile.Close()
+		}
+	}()
+	logCtl, log := logging.New(out, cfg.Log.Level, cfg.Log.Format)
 
 	database, err := db.Open(ctx, db.Options{
 		Driver: cfg.Database.Driver, DSN: cfg.Database.DSN, DataDir: p.DataDir, MaxOpenConns: cfg.Database.MaxOpenConns,
@@ -133,19 +164,21 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 	}
 	reg := settings.NewRegistry()
 	defs := slices.Concat(account.SettingDefs(), captcha.SettingDefs(), mail.SettingDefs(),
-		score.SettingDefs(), texture.SettingDefs(), player.SettingDefs(), yggdrasil.SettingDefs(), oauth.SettingDefs(), social.SettingDefs())
+		score.SettingDefs(), texture.SettingDefs(), player.SettingDefs(), yggdrasil.SettingDefs(), oauth.SettingDefs(), social.SettingDefs(), cdn.SettingDefs())
 	if err := reg.Register(defs...); err != nil {
 		database.Close()
 		return nil, err
 	}
 	reg.SetValidator("theme.active", themeReg.ValidateActive)
+	reg.SetValidator("theme.overrides", theme.ValidateOverrides)
+	reg.SetValidator("home.blocks", theme.ValidateHome)
 	svc := settings.NewService(reg, database.Ent, broker, bus, log.With("component", "settings"))
 	if err := svc.Load(ctx); err != nil {
 		database.Close()
 		return nil, err
 	}
 	c := &Core{
-		Paths: p, Config: cfg, LogCtl: logCtl, Log: log, DB: database,
+		Paths: p, Config: cfg, LogCtl: logCtl, Log: log, logFile: logFile, DB: database,
 		Broker: broker, Bus: bus, Settings: svc, Themes: themeReg, FreshConfig: fresh,
 		Accounts: account.NewService(database.Ent, log.With("component", "account")),
 		Captcha:  captcha.NewService(captcha.Options{Log: log.With("component", "captcha")}),
@@ -171,6 +204,12 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 	c.Textures.SetHooks(bus)
 	c.Players.SetHooks(bus)
 	c.Reports.SetHooks(bus)
+	c.CDN = cdn.NewService(bus, svc, log.With("component", "cdn"))
+	if err := c.CDN.Start(); err != nil {
+		database.Close()
+		return nil, err
+	}
+	opened = true
 	return c, nil
 }
 
@@ -205,6 +244,9 @@ func (c *Core) SetupLink(ctx context.Context, base string) (string, error) {
 func (c *Core) Close(ctx context.Context) {
 	c.Bus.Close(ctx)
 	_ = c.DB.Close()
+	if c.logFile != nil {
+		_ = c.logFile.Close()
+	}
 }
 
 // openStore opens the texture store the config names.

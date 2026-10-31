@@ -198,7 +198,7 @@ func registerTextures(api huma.API, d Deps) {
 		// Huma's default of 5 seconds is too short for a few MB on a slow connection.
 		BodyReadTimeout: 2 * time.Minute,
 	}, func(ctx context.Context, in *uploadInput) (*struct{ Body UploadView }, error) {
-		v, err := signedIn(ctx)
+		v, err := verifiedViewer(ctx, d)
 		if err != nil {
 			return nil, err
 		}

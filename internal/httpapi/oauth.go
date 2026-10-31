@@ -402,7 +402,7 @@ func registerOAuthAccount(api huma.API, d Deps) {
 
 	huma.Register(api, op("createOAuthClient", http.MethodPost, "/api/v1/me/oauth/clients", "Register an application", http.StatusCreated),
 		func(ctx context.Context, in *createClientInput) (*struct{ Body OAuthClientSecret }, error) {
-			v, err := signedIn(ctx)
+			v, err := verifiedViewer(ctx, d)
 			if err != nil {
 				return nil, err
 			}
@@ -415,7 +415,7 @@ func registerOAuthAccount(api huma.API, d Deps) {
 
 	huma.Register(api, op("updateOAuthClient", http.MethodPatch, "/api/v1/me/oauth/clients/{id}", "Rename an application or change its redirect URIs", 0),
 		func(ctx context.Context, in *updateClientInput) (*struct{ Body OAuthClientView }, error) {
-			v, err := signedIn(ctx)
+			v, err := verifiedViewer(ctx, d)
 			if err != nil {
 				return nil, err
 			}
@@ -428,7 +428,7 @@ func registerOAuthAccount(api huma.API, d Deps) {
 
 	huma.Register(api, op("resetOAuthClientSecret", http.MethodPost, "/api/v1/me/oauth/clients/{id}/secret", "Give an application a new secret", 0),
 		func(ctx context.Context, in *clientIDInput) (*struct{ Body OAuthClientSecret }, error) {
-			v, err := signedIn(ctx)
+			v, err := verifiedViewer(ctx, d)
 			if err != nil {
 				return nil, err
 			}
@@ -504,7 +504,7 @@ func registerOAuthAccount(api huma.API, d Deps) {
 
 	huma.Register(api, op("createPersonalToken", http.MethodPost, "/api/v1/me/tokens", "Create a personal access token", http.StatusCreated),
 		func(ctx context.Context, in *createTokenInput) (*struct{ Body NewPersonalToken }, error) {
-			v, err := signedIn(ctx)
+			v, err := verifiedViewer(ctx, d)
 			if err != nil {
 				return nil, err
 			}

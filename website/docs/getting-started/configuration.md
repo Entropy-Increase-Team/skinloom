@@ -101,6 +101,14 @@ SKINLOOM_SERVER__LISTEN=:9000
 
 ## 站点设置
 
+最直接的方式是后台的 **设置** 页（`/admin/settings`）。设置按分组排列（站点、注册与登录、第三方登录、邮件、积分、材质、角色与游戏接口、外置登录、开放平台），每组单独保存，保存后立即生效：
+
+- 选项类的设置是下拉框，数字有上下限，填错时页面直接提示，不会保存；多语言的设置每种语言一个输入框。
+- **密钥只写不读**：SMTP 密码和验证码私钥保存后不会再显示，后台只显示"已设置"。不填就保持原样，点"清除"才会删掉。第三方登录提供方里已保存的 `clientSecret` 显示为 `********`，保持不变就沿用原来的；改了提供方的 `id` 则要重新填写。命令行 `skinloom settings get` 在服务器本机运行，仍会输出密钥。
+- 主题、颜色、首页区块、Logo 与页脚等在后台的 **外观** 页（`/admin/appearance`）修改，见[外观与主题](./appearance.md)。
+
+也可以用命令行：
+
 ```bash
 skinloom settings get                                   # 列出全部设置（* 表示改过）
 skinloom settings set site.name '{"zh-CN":"我的皮肤站","en":"My Skins"}'
@@ -117,11 +125,17 @@ skinloom settings set site.name null                    # 恢复默认
 | `site.name` / `site.description` / `site.announcement` | — | 站点名称、简介、公告（多语言对象） |
 | `site.url` | 空 | 站点公开地址，如 `https://skins.example.com`。邮件里的链接（验证邮箱、重置密码）只用它生成，没有设置时这两项功能不可用 |
 | `site.timezone` | `Asia/Shanghai` | 站点时区（IANA 名称，如 `Europe/Berlin`），决定每日签到在哪个零点刷新 |
-| `theme.active` / `theme.overrides` / `home.blocks` | `default` | 当前主题、主题 token 覆盖、首页区块 |
+| `site.logo` / `site.favicon` | 空 | 页头 Logo 与浏览器图标：图片地址或本站路径（如 `/logo.png`），空表示用内置的 |
+| `site.copyright` | — | 页脚文字（多语言，Markdown），空表示"© 年份 站点名" |
+| `seo.keywords` | — | 给搜索引擎的关键词（多语言，逗号分隔） |
+| `theme.active` / `theme.overrides` / `home.blocks` | `default` | 当前主题、主题 token 覆盖、首页区块，见[外观与主题](./appearance.md) |
+| `i18n.overrides` | `{}` | 改写的界面文字，按语言与消息键，见[翻译与系统状态](./admin-tools.md) |
+| `theme.custom_css` | 空 | 自定义 CSS，加在主题样式之后（最多 64 KB）。只有超级管理员、管理员令牌和命令行能修改 |
 | `auth.registration` | `open` | `open` 开放注册；`closed` 关闭注册 |
 | `auth.registrations_per_ip` | `3` | 同一地址（IPv6 按 /64）24 小时内最多注册几个账号，`0` 不限 |
 | `auth.social.providers` | `[]` | 第三方登录的提供方（GitHub、Microsoft、OpenID Connect），见[第三方登录](./social-login.md) |
 | `auth.login_captcha_after` | `3` | 同一客户端对同一账号登录失败几次后要求验证码，`0` 每次都要 |
+| `auth.require_email_verification` | `false` | 开启后，没有验证邮箱的账号不能管理角色、上传或修改材质、举报、创建 OAuth 应用与个人访问令牌，也不能在启动器登录（衣柜与浏览不受影响）。需要先配置好邮件与 `site.url` |
 | `score.initial` | `1000` | 新账号的初始积分 |
 | `score.per_storage` / `score.private_per_storage` | `1` / `10` | 上传公开 / 私有材质每 KB 消耗的积分 |
 | `score.per_closet_item` | `0` | 每个衣柜条目消耗的积分（上传的材质也会进衣柜） |
@@ -154,10 +168,12 @@ skinloom settings set site.name null                    # 恢复默认
 | `delivery.profile_cache_seconds` | `60` | 游戏客户端与 CDN 可以缓存角色数据（`/{角色名}.json` 等）多少秒 |
 | `delivery.missing_player_status` | `404` | 不存在的角色在 CustomSkinLoader 接口返回的状态码：`404` 或 `204` |
 | `captcha.provider` | `image` | `none` / `image`（内置图形验证码）/ `turnstile` / `recaptcha` / `hcaptcha` |
-| `captcha.<turnstile\|recaptcha\|hcaptcha>.site_key` / `.secret_key` | 空 | 第三方验证码的站点密钥（公开）与服务端密钥（不会发给浏览器） |
+| `captcha.<turnstile\|recaptcha\|hcaptcha>.site_key` / `.secret_key` | 空 | 第三方验证码的站点密钥（公开）与服务端密钥（不会发给浏览器，也不会在后台再次显示） |
 | `mail.driver` | `none` | `none` 不发邮件（无法验证邮箱、找回密码）/ `smtp` / `log`（写进服务端日志，开发用） |
 | `mail.from` | 空 | 发件人，如 `云织 <noreply@skins.example.com>` |
-| `mail.smtp.host` / `.port` / `.username` / `.password` | 空 / `465` | SMTP 服务器与账号（很多邮箱要用"授权码"而不是登录密码） |
+| `mail.smtp.host` / `.port` / `.username` / `.password` | 空 / `465` | SMTP 服务器与账号（很多邮箱要用"授权码"而不是登录密码；密码保存后不再显示） |
 | `mail.smtp.encryption` | `tls` | `tls`（465 端口）/ `starttls`（587）/ `none`（仅限本机中继） |
+| `cdn.provider` | `none` | CDN 刷新：`none` / `cloudflare` / `aliyun` / `tencent` / `webhook`，凭据见 `cdn.*`，详见[备份、恢复与 CDN](../deployment/backup-and-cdn.md) |
+| `cdn.base_url` | 空 | CDN 对外的站点地址，空表示用 `site.url` |
 
 账号、验证码与邮件的详细说明见 [账号与用户管理](accounts.md)。

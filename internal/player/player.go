@@ -26,6 +26,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
@@ -156,7 +157,7 @@ func (s *Service) Create(ctx context.Context, userID int64, name string, p Polic
 		created, err = tx.Player.Create().
 			SetUserID(userID).SetName(name).SetNameLower(Key(name)).SetUUID(newUUID(name, p)).
 			Save(ctx)
-		if ent.IsConstraintError(err) {
+		if db.IsConstraint(err) {
 			return errNameTaken
 		}
 		if err != nil {

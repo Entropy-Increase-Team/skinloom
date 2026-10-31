@@ -9,6 +9,7 @@
       "name": "@skinloom/web",
       "version": "0.0.0",
       "dependencies": {
+        "@formatjs/icu-messageformat-parser": "^3.5.22",
         "@skinloom/api-client": "*",
         "@skinloom/ui": "*",
         "lucide-react": "^1.61.0",

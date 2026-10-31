@@ -60,6 +60,25 @@ func signedIn(ctx context.Context) (*account.Viewer, error) {
 	return nil, huma.Error401Unauthorized("not signed in")
 }
 
+// ProblemEmailNotVerified is the problem type (RFC 9457) of a refusal because the site
+// requires a verified email address, so the frontend can ask the user to verify instead
+// of showing what else a 403 means there.
+const ProblemEmailNotVerified = "tag:skinloom.cn,2026:email-not-verified"
+
+// verifiedViewer returns the viewer, or a 403 of type ProblemEmailNotVerified when the
+// site requires a verified email address and theirs is not (account.CheckVerified).
+func verifiedViewer(ctx context.Context, d Deps) (*account.Viewer, error) {
+	v, err := signedIn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := account.CheckVerified(d.Settings.Current(), v.User); err != nil {
+		return nil, &huma.ErrorModel{Type: ProblemEmailNotVerified, Status: http.StatusForbidden,
+			Title: http.StatusText(http.StatusForbidden), Detail: err.Error()}
+	}
+	return v, nil
+}
+
 func registerMe(api huma.API, d Deps) {
 	op := func(id, method, path, summary string, status int) huma.Operation {
 		return huma.Operation{OperationID: id, Method: method, Path: path, Summary: summary,

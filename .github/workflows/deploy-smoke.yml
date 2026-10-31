@@ -1,0 +1,132 @@
+# Deploys SkinLoom from scratch the ways the docs describe and runs deploy/smoke/smoke.sh
+# against each: the Compose files, the Helm chart on a kind cluster, and a Linux release
+# bundle. Images are built from this commit, never pulled.
+name: Deploy smoke
+
+on:
+  push:
+    branches: [main]
+    paths: [deploy/**, cmd/**, internal/**, migrations/**, themes/**, web/**, go.mod, go.sum, .github/workflows/deploy-smoke.yml]
+  pull_request:
+    paths: [deploy/**, cmd/**, internal/**, migrations/**, themes/**, web/**, go.mod, go.sum, .github/workflows/deploy-smoke.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compose:
+    name: Compose (${{ matrix.variant }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [minimal, standard, postgres]
+    env:
+      SKINLOOM_VERSION: ci # not a published tag: compose builds the images from this commit
+      DB_PASSWORD: smoke-db-password
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build and start
+        run: |
+          f=deploy/compose/${{ matrix.variant }}/compose.yaml
+          docker compose -f $f build # the :ci images exist only here; the databases are pulled
+          docker compose -f $f up -d
+      - name: Smoke test
+        run: |
+          f=deploy/compose/${{ matrix.variant }}/compose.yaml
+          bash deploy/smoke/smoke.sh http://127.0.0.1:17546 "docker compose -f $f logs"
+      - name: Logs
+        if: failure()
+        run: docker compose -f deploy/compose/${{ matrix.variant }}/compose.yaml logs --tail 200
+      - run: docker compose -f deploy/compose/${{ matrix.variant }}/compose.yaml down -v
+        if: always()
+
+  helm:
+    name: Helm on kind (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: all-in-one, SQLite
+            values: ""
+            images: skinloom:all-in-one
+          - name: split, PostgreSQL
+            values: --set mode=split --set database.driver=postgres --set database.existingSecret=skinloom-db
+            images: server:server web:web
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build images
+        run: |
+          for i in ${{ matrix.images }}; do
+            docker build -t ghcr.io/entropy-increase-team/${i%%:*}:ci -f deploy/docker/${i#*:}.Dockerfile .
+          done
+      - uses: helm/kind-action@v1
+        with:
+          cluster_name: skinloom
+      - uses: azure/setup-helm@v4
+      - name: Load images
+        run: for i in ${{ matrix.images }}; do kind load docker-image ghcr.io/entropy-increase-team/${i%%:*}:ci --name skinloom; done
+      - name: PostgreSQL (split only)
+        if: contains(matrix.values, 'postgres')
+        run: |
+          kubectl create secret generic skinloom-db --from-literal=password=smoke-db-password \
+            --from-literal=dsn='postgres://skinloom:smoke-db-password@skinloom-postgres:5432/skinloom?sslmode=disable'
+          kubectl apply -f deploy/kubernetes/split/postgres.yaml
+          kubectl rollout status statefulset/skinloom-postgres --timeout=5m
+      - name: Install the chart
+        run: helm install skinloom deploy/helm/skinloom --set image.tag=ci --set image.pullPolicy=Never ${{ matrix.values }} --wait --timeout 10m
+      - name: Smoke test
+        run: |
+          kubectl port-forward svc/skinloom 17546:17546 >/dev/null 2>&1 &
+          sleep 3
+          bash deploy/smoke/smoke.sh http://127.0.0.1:17546 "kubectl logs deploy/skinloom"
+      - name: Cluster state
+        if: failure()
+        run: kubectl get all; kubectl describe pods | tail -n 120; kubectl logs deploy/skinloom --tail 200
+
+  bundle:
+    name: Release bundle (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Build the bundle
+        run: |
+          (cd web && bun install --frozen-lockfile)
+          VERSION=0.0.0-smoke bash deploy/packaging/package.sh linux/amd64
+      - name: Unpack and start like the docs say
+        run: |
+          mkdir -p /tmp/skinloom && tar -xzf dist/skinloom-0.0.0-smoke-linux-amd64.tar.gz -C /tmp/skinloom --strip-components=1
+          cd /tmp/skinloom && nohup ./start.sh > /tmp/skinloom.log 2>&1 &
+      - name: Smoke test
+        run: bash deploy/smoke/smoke.sh http://127.0.0.1:17546 "cat /tmp/skinloom.log"
+      - name: Background service (systemd)
+        run: |
+          pkill -f 'skinloom up' || true
+          for _ in $(seq 1 30); do pgrep -f 'skinloom up' >/dev/null || break; sleep 1; done # let it finish shutting down
+          if pgrep -f 'skinloom up' >/dev/null; then echo "::error::skinloom up is still running"; exit 1; fi
+          sudo useradd --system --shell /usr/sbin/nologin skinloom
+          sudo mkdir -p /opt && sudo mv /tmp/skinloom /opt/skinloom && sudo rm -rf /opt/skinloom/data
+          cd /opt/skinloom && sudo ./skinloom service install && sudo ./skinloom service start
+          for _ in $(seq 1 60); do curl -sf http://127.0.0.1:17546/readyz >/dev/null && break; sleep 2; done
+          [ "$(sudo ./skinloom service status)" = "running" ]
+          bash $GITHUB_WORKSPACE/deploy/smoke/smoke.sh http://127.0.0.1:17546 "sudo cat /opt/skinloom/data/logs/skinloom.log"
+          sudo ./skinloom service stop && sudo ./skinloom service uninstall
+      - name: Logs
+        if: failure()
+        run: cat /tmp/skinloom.log || true; sudo journalctl -u SkinLoom --no-pager | tail -n 100 || true; sudo cat /opt/skinloom/data/logs/skinloom.log | tail -n 100 || true

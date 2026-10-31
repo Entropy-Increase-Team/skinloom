@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@skin
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 
+import { AuthShell } from '@/components/auth/auth-shell'
 import { ResetForm } from '@/components/auth/reset-form'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -14,7 +15,7 @@ export default async function ResetPage({ params }: { params: Promise<{ token: s
   const { token } = await params
   const t = await getTranslations('reset')
   return (
-    <div className="mx-auto flex max-w-md flex-col gap-6 px-4 py-12">
+    <AuthShell>
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">{t('title')}</CardTitle>
@@ -24,6 +25,6 @@ export default async function ResetPage({ params }: { params: Promise<{ token: s
           <ResetForm token={token} />
         </CardContent>
       </Card>
-    </div>
+    </AuthShell>
   )
 }

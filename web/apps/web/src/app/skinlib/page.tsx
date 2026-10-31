@@ -6,7 +6,9 @@ import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 
 import { TextureGrid } from '@/components/texture/texture-grid'
+import { getBootstrap } from '@/lib/bootstrap'
 import { filterHref, type LibraryFilter, parseFilter, SORTS } from '@/lib/library'
+import { layoutOf, textureGridClass } from '@/lib/theme'
 import { getViewer } from '@/lib/viewer'
 import { asVisitor } from '@/lib/visitor'
 
@@ -37,7 +39,7 @@ async function firstPage(f: LibraryFilter): Promise<TexturePage | null> {
 
 export default async function SkinLibraryPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const filter = parseFilter(await searchParams)
-  const [page, viewer, t] = await Promise.all([firstPage(filter), getViewer(), getTranslations('skinlib')])
+  const [page, viewer, t, boot] = await Promise.all([firstPage(filter), getViewer(), getTranslations('skinlib'), getBootstrap()])
 
   const pill = (active: boolean) =>
     `rounded-full px-3 py-1 text-sm transition-colors ${active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`
@@ -84,7 +86,7 @@ export default async function SkinLibraryPage({ searchParams }: { searchParams: 
 
       {page ? (
         // Keyed by the filter, so changing it starts the list over.
-        <TextureGrid key={filterHref(filter)} initial={page} filter={filter} />
+        <TextureGrid key={filterHref(filter)} initial={page} filter={filter} gridClass={textureGridClass(layoutOf(boot.theme.layout, 'skinlib'))} />
       ) : (
         <p className="py-16 text-center text-muted-foreground">{t('loadFailed')}</p>
       )}

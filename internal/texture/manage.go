@@ -20,6 +20,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/jobs"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 )
@@ -96,7 +97,7 @@ func (s *Service) Favorite(ctx context.Context, v Viewer, id int64, name string,
 			return err
 		}
 		item, err = tx.ClosetItem.Create().SetUserID(v.UserID).SetTextureID(id).SetName(name).Save(ctx)
-		if ent.IsConstraintError(err) {
+		if db.IsConstraint(err) {
 			return ErrInCloset
 		}
 		if err != nil {
@@ -275,7 +276,7 @@ func (s *Service) GiveToCloset(ctx context.Context, userID, id int64, rec *audit
 			return err
 		}
 		item, err = tx.ClosetItem.Create().SetUserID(userID).SetTextureID(id).SetName(t.Name).Save(ctx)
-		if ent.IsConstraintError(err) {
+		if db.IsConstraint(err) {
 			return ErrInCloset
 		}
 		if err != nil {

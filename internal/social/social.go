@@ -23,6 +23,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/socialflow"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/internal/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 )
 
 // How long a sign-in may take at the provider, and how long a new account may wait
@@ -291,8 +292,8 @@ func (s *Service) link(ctx context.Context, userID int64, provider string, id *I
 	return s.audit(ctx, userID, "account.social_linked", provider, meta)
 }
 
-func (s *Service) createLink(ctx context.Context, db *ent.Client, userID int64, provider string, id *Identity) error {
-	err := db.SocialAccount.Create().
+func (s *Service) createLink(ctx context.Context, client *ent.Client, userID int64, provider string, id *Identity) error {
+	err := client.SocialAccount.Create().
 		SetProvider(provider).
 		SetSubject(id.Subject).
 		SetUserID(userID).
@@ -301,7 +302,7 @@ func (s *Service) createLink(ctx context.Context, db *ent.Client, userID int64, 
 		SetCreatedAt(s.now()).
 		SetLastUsedAt(s.now()).
 		Exec(ctx)
-	if ent.IsConstraintError(err) {
+	if db.IsConstraint(err) {
 		return ErrLinkedElsewhere // a second tab won the race
 	}
 	return err

@@ -165,7 +165,7 @@ kubectl -n skinloom scale deploy/skinloom-web --replicas=3        # 扩容前端
 - **可信代理**：清单把 k3s 的 Pod 网段 `10.42.0.0/16` 设为可信代理（`SKINLOOM_SERVER__TRUSTED_PROXIES`），这样才能拿到真实客户端 IP 与 https 协议；其它集群请改成自己的 Pod 网段。
 - **固定版本**：改 `kustomization.yaml` 里 `images` 的 `newTag`。
 - **已有数据库**：在 `split/kustomization.yaml` 里去掉 `postgres.yaml`，把 `server.yaml` 里的 `SKINLOOM_DATABASE__DSN` 指向它。
-- 后端目前是单副本（配置与上传文件在 ReadWriteOnce 卷上）；共享存储与 Helm Chart 在 M4 提供。
+- **Helm**：`helm install skinloom deploy/helm/skinloom` 也能部署，参数化更方便（前后端分离、外部数据库、Ingress、HPA），见文档站"Kubernetes / k3s"。
 
 ### 方式四：发行包（二进制）
 
@@ -173,39 +173,26 @@ kubectl -n skinloom scale deploy/skinloom-web --replicas=3        # 扩容前端
 
 **前台运行**（试用，关掉窗口即停止）：Windows 双击 `start.bat`，macOS 双击 `start.command`，Linux 运行 `./start.sh`，然后打开 <http://localhost:17546>。
 
-**后台常驻**（开机自启、崩溃自动重启），包里的 `service/` 目录有对应平台的配置：
-
-**Linux（systemd）**，以解压到 `/opt/skinloom` 为例：
+**后台常驻**（开机自启、无需登录、崩溃自动重启）：注册为系统服务，Linux 用 systemd，macOS 用 launchd，Windows 是真正的 Windows 服务。
 
 ```bash
-sudo mkdir -p /opt/skinloom && sudo tar xzf skinloom-*-linux-amd64.tar.gz -C /opt/skinloom --strip-components=1
-sudo useradd --system --home /opt/skinloom --shell /usr/sbin/nologin skinloom
-sudo chown -R skinloom:skinloom /opt/skinloom
-sudo cp /opt/skinloom/service/skinloom.service /etc/systemd/system/
-sudo systemctl daemon-reload && sudo systemctl enable --now skinloom
-journalctl -u skinloom | grep setup        # 一次性安装链接
+# Linux，以解压到 /opt/skinloom 为例
+sudo useradd --system --shell /usr/sbin/nologin skinloom   # 服务以这个用户运行
+cd /opt/skinloom && sudo ./skinloom service install && sudo ./skinloom service start
+sudo grep setup data/logs/skinloom.log                      # 一次性安装链接
 ```
 
-单元文件开启了 systemd 的沙箱选项（只读系统、只能写 `data/` 与前端缓存目录）。解压到别处时，把文件里的 `/opt/skinloom` 全部替换掉。
-
-**macOS（launchd）**：把 `service/cn.skinloom.plist` 里的 `/Users/you/skinloom` 换成你的解压目录，然后：
-
-```bash
-cp service/cn.skinloom.plist ~/Library/LaunchAgents/
-launchctl load -w ~/Library/LaunchAgents/cn.skinloom.plist
-grep setup data/skinloom.log
-```
-
-**Windows（任务计划程序）**：在**管理员** PowerShell 里进入解压目录：
+macOS 同样是 `sudo ./skinloom service install && sudo ./skinloom service start`。Windows 在**管理员**终端里进入解压目录：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\service\install-task.ps1
-Select-String setup .\data\skinloom.log
+.\skinloom.exe service install
+.\skinloom.exe service start
+Select-String setup .\data\logs\skinloom.log
 ```
 
-它注册一个开机启动、以 LOCAL SERVICE 身份运行、失败自动重启的计划任务（只给 `data\` 与前端缓存目录写权限）。卸载：同一命令加 `-Uninstall`。
+其它命令：`skinloom service status | stop | restart | uninstall`。Linux 的单元开启了 systemd 沙箱（系统只读、只能写 `data/` 与前端缓存），Windows 服务以低权限的 LOCAL SERVICE 运行。
 
-**升级**：停止服务 → 用新版本的文件覆盖（保留 `data/`）→ 启动。
+**升级**：`sudo ./skinloom service stop` → 用新版本的文件覆盖（保留 `data/`；Linux 再 `sudo chown -R skinloom: data web/apps/web/.next`）→ `sudo ./skinloom service start`。备份用 `skinloom backup`。
 
 ### 放在 Nginx / Caddy 后面（HTTPS）
 

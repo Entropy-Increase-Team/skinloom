@@ -7,6 +7,7 @@ import { Providers } from '@/components/providers'
 import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
 import { getBootstrap } from '@/lib/bootstrap'
+import { safeImageUrl } from '@/lib/safe-url'
 import { themeStyle } from '@/lib/theme'
 
 import './globals.css'
@@ -19,11 +20,14 @@ export async function generateMetadata(): Promise<Metadata> {
   } catch {
     metadataBase = undefined
   }
+  const favicon = safeImageUrl(boot.site.favicon)
   return {
     title: { default: boot.site.name, template: `%s · ${boot.site.name}` },
     description: boot.site.description,
+    keywords: boot.site.keywords || undefined,
     generator: 'SkinLoom',
     metadataBase,
+    ...(favicon ? { icons: { icon: favicon } } : {}),
   }
 }
 
@@ -41,7 +45,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className="min-h-screen antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <Providers bootstrap={boot}>
+          {/* The home page renders its blocks itself; in the client bootstrap they would
+              ride along with every page. */}
+          <Providers bootstrap={{ ...boot, theme: { ...boot.theme, home: [] } }}>
             <div className="flex min-h-screen flex-col">
               <SiteHeader />
               <main className="flex-1">{children}</main>

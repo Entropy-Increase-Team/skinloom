@@ -1,0 +1,154 @@
+{{- include "skinloom.validate" . -}}
+{{- $split := eq .Values.mode "split" -}}
+{{- $name := include "skinloom.fullname" . -}}
+# The backend: API, game protocols and the single public entry point. In allInOne it
+# also runs the frontend; in split it proxies page requests to the web Service.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "skinloom.labels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+spec:
+  replicas: {{ .Values.server.replicas }}
+  {{- if and .Values.persistence.enabled (or .Values.persistence.existingClaim (has "ReadWriteOnce" .Values.persistence.accessModes)) }}
+  strategy:
+    type: Recreate # the data volume is mounted by one pod at a time
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "skinloom.selector" (dict "root" . "component" "server") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "skinloom.selector" (dict "root" . "component" "server") | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false # the injected SKINLOOM_* variables would read as config
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- /* distroless "nonroot" in the server image, "node" in the all-in-one */}}
+        {{- include "skinloom.podSecurity" (dict "uid" (ternary 65532 1000 $split)) | nindent 8 }}
+      containers:
+        - name: server
+          image: {{ include "skinloom.image" (dict "root" . "name" (ternary "server" "skinloom" $split)) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["up"]
+          ports:
+            - name: http
+              containerPort: 17546
+          env:
+            - name: TZ
+              value: {{ .Values.timezone | quote }}
+            - name: SKINLOOM_DATABASE__DRIVER
+              value: {{ .Values.database.driver }}
+            {{- if ne .Values.database.driver "sqlite" }}
+            - name: SKINLOOM_DATABASE__DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.existingSecret }}
+                  key: {{ .Values.database.existingSecretKey }}
+            {{- end }}
+            {{- if $split }}
+            - name: SKINLOOM_WEB__MODE
+              value: external
+            - name: SKINLOOM_WEB__URL
+              value: http://{{ $name }}-web:17547
+            {{- end }}
+            {{- with .Values.trustedProxies }}
+            - name: SKINLOOM_SERVER__TRUSTED_PROXIES
+              value: {{ join "," . | quote }}
+            {{- end }}
+            {{- with .Values.server.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            {{- if $split }}
+            - name: tmp # uploads larger than a few KiB are spooled to a temporary file
+              mountPath: /tmp
+            {{- end }}
+          startupProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+            failureThreshold: 60 # migrations, the database coming up, the first frontend start
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.server.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            {{- if $split }}
+            readOnlyRootFilesystem: true
+            {{- end }}
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (printf "%s-data" $name) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- if $split }}
+        - name: tmp
+          emptyDir: {}
+        {{- end }}
+      {{- with .Values.server.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "skinloom.labels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "skinloom.selector" (dict "root" . "component" "server") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http
+{{- if and .Values.persistence.enabled (not .Values.persistence.existingClaim) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name }}-data
+  labels:
+    {{- include "skinloom.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep # uninstalling the chart keeps the data
+spec:
+  accessModes:
+    {{- toYaml .Values.persistence.accessModes | nindent 4 }}
+  {{- with .Values.persistence.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size }}
+{{- end }}

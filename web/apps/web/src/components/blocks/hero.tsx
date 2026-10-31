@@ -6,12 +6,10 @@ import { getBootstrap } from '@/lib/bootstrap'
 import { safeHref, safeImageUrl } from '@/lib/safe-url'
 import { getViewer } from '@/lib/viewer'
 
-function str(v: unknown): string | undefined {
-  return typeof v === 'string' && v !== '' ? v : undefined
-}
+import { type Props, str } from './props'
 
 /** props: title, subtitle, background (image URL), primaryAction, secondaryAction (paths). */
-export async function HeroBlock({ props }: { props: Record<string, unknown> }) {
+export async function HeroBlock({ props }: { props: Props }) {
   const [boot, viewer] = await Promise.all([getBootstrap(), getViewer()])
   const t = await getTranslations('hero')
   const background = safeImageUrl(props.background)

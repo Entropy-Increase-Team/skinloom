@@ -15,6 +15,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 )
 
@@ -274,7 +275,7 @@ func (s *Service) AdminUpdateUser(ctx context.Context, a Actor, id int64, up Adm
 		}
 		var err error
 		if u, err = upd.Save(ctx); err != nil {
-			if ent.IsConstraintError(err) {
+			if db.IsConstraint(err) {
 				return &FieldError{Field: "email", Message: "already registered"}
 			}
 			return err

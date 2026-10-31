@@ -50,7 +50,11 @@ export function VerifyEmail({ token }: { token: string }) {
 }
 
 /** Shown to signed-in users whose address is not verified yet. */
-export function VerifyBanner({ email }: { email: string }) {
+/**
+ * Reminds a signed-in user to verify their address. When the site requires it, it says
+ * what is blocked until then; without working mail there is nothing to resend.
+ */
+export function VerifyBanner({ email, required, canResend }: { email: string; required: boolean; canResend: boolean }) {
   const t = useTranslations('verify')
   const [state, setState] = useState<'idle' | 'pending' | 'sent' | 'wait' | 'failed'>('idle')
   async function resend() {
@@ -64,8 +68,10 @@ export function VerifyBanner({ email }: { email: string }) {
   }
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-amber-500/15 px-4 py-2 text-sm">
-      <span>{t('banner', { email })}</span>
-      {state === 'sent' ? (
+      <span>{t(required ? 'bannerRequired' : 'banner', { email })}</span>
+      {!canResend ? (
+        <span className="text-muted-foreground">{t('noMail')}</span>
+      ) : state === 'sent' ? (
         <span className="text-muted-foreground">{t('resent')}</span>
       ) : (
         <Button variant="link" size="sm" className="h-auto p-0" onClick={resend} disabled={state === 'pending'}>

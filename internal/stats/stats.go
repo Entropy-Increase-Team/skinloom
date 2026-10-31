@@ -1,5 +1,6 @@
-// Package stats computes the figures of the admin overview. Everything is counted in
-// the database (Blessing Skin loaded a month of rows into PHP to draw its chart).
+// Package stats computes the figures of the admin overview and the home page's totals.
+// Everything is counted in the database (Blessing Skin loaded a month of rows into PHP
+// to draw its chart).
 package stats
 
 import (
@@ -33,6 +34,42 @@ type Overview struct {
 	Days                                                  []Day // oldest first
 }
 
+// Totals are the public figures of the home page's stats block.
+type Totals struct {
+	Users, Players, PublicTextures int
+}
+
+// CountTotals counts accounts that are not deleted, players and public textures.
+func CountTotals(ctx context.Context, db *ent.Client) (Totals, error) {
+	var (
+		t   Totals
+		err error
+	)
+	if t.Users, err = db.User.Query().Where(user.StatusNEQ(user.StatusDeleted)).Count(ctx); err != nil {
+		return t, err
+	}
+	if t.Players, err = db.Player.Query().Count(ctx); err != nil {
+		return t, err
+	}
+	t.PublicTextures, err = db.Texture.Query().Where(tex.VisibilityEQ(tex.VisibilityPublic)).Count(ctx)
+	return t, err
+}
+
+// Storage counts the stored files (equal images share one) and their total size.
+func Storage(ctx context.Context, db *ent.Client) (files int, bytes int64, err error) {
+	var rows []struct {
+		Count int           `json:"count"`
+		Sum   sql.NullInt64 `json:"sum"`
+	}
+	if err := db.Blob.Query().Aggregate(ent.Count(), ent.Sum(blob.FieldSize)).Scan(ctx, &rows); err != nil {
+		return 0, 0, err
+	}
+	if len(rows) == 1 {
+		files, bytes = rows[0].Count, rows[0].Sum.Int64
+	}
+	return files, bytes, nil
+}
+
 // Compute counts everything for the overview. Each day of the chart is two range
 // counts on indexed created_at columns, with day boundaries taken in loc, so the
 // queries are the same on every database and daylight saving time is handled. The
@@ -64,15 +101,8 @@ func Compute(ctx context.Context, db *ent.Client, now time.Time, loc *time.Locat
 			return nil, err
 		}
 	}
-	var files []struct {
-		Count int           `json:"count"`
-		Sum   sql.NullInt64 `json:"sum"`
-	}
-	if err := db.Blob.Query().Aggregate(ent.Count(), ent.Sum(blob.FieldSize)).Scan(ctx, &files); err != nil {
+	if o.Files, o.StorageBytes, err = Storage(ctx, db); err != nil {
 		return nil, err
-	}
-	if len(files) == 1 {
-		o.Files, o.StorageBytes = files[0].Count, files[0].Sum.Int64
 	}
 
 	local := now.In(loc)

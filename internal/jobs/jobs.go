@@ -36,6 +36,43 @@ const (
 	keepDone  = 7 * 24 * time.Hour
 )
 
+// Backlog is how late a pending job may be before Counts reports it as overdue: the
+// worker polls every few seconds and runs a batch at a time.
+const Backlog = time.Minute
+
+// QueueCounts is the state of the queue, for the system status page.
+type QueueCounts struct {
+	Pending int // waiting, including retries scheduled later
+	Overdue int // pending for more than Backlog past their time
+	Failed  int // gave up, kept for keepDone
+	// OldestOverdue is when the longest-waiting overdue job was due.
+	OldestOverdue *time.Time
+}
+
+// Counts reads the queue's state at now.
+func Counts(ctx context.Context, c *ent.Client, now time.Time) (QueueCounts, error) {
+	var (
+		q   QueueCounts
+		err error
+	)
+	if q.Pending, err = c.Job.Query().Where(job.StatusEQ(job.StatusPending)).Count(ctx); err != nil {
+		return q, err
+	}
+	overdue := c.Job.Query().Where(job.StatusEQ(job.StatusPending), job.RunAtLT(now.Add(-Backlog)))
+	if q.Overdue, err = overdue.Clone().Count(ctx); err != nil {
+		return q, err
+	}
+	if q.Overdue > 0 {
+		oldest, err := overdue.Order(ent.Asc(job.FieldRunAt)).First(ctx)
+		if err != nil {
+			return q, err
+		}
+		q.OldestOverdue = &oldest.RunAt
+	}
+	q.Failed, err = c.Job.Query().Where(job.StatusEQ(job.StatusFailed)).Count(ctx)
+	return q, err
+}
+
 // Enqueue adds a job. Pass a transaction's client to make it part of that transaction.
 func Enqueue(ctx context.Context, c *ent.Client, kind string, payload any) error {
 	return EnqueueAt(ctx, c, kind, payload, time.Time{})

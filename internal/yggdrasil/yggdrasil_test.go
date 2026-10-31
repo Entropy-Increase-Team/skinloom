@@ -139,6 +139,18 @@ func TestAuthenticate(t *testing.T) {
 			t.Fatalf("tokens kept: %d", n)
 		}
 
+		// A site that requires a verified email lets no unverified account sign in, as
+		// Blessing Skin's yggdrasil-api plugin.
+		strict := policy
+		strict.RequireVerified = true
+		if _, err := f.s.Authenticate(ctx, AuthRequest{Username: "Steve", Password: "password-1"}, strict, meta); !isErr(err, errUnverified) {
+			t.Fatalf("unverified: %v", err)
+		}
+		f.db.User.UpdateOneID(alice).SetEmailVerifiedAt(f.now).ExecX(ctx)
+		if _, err := f.s.Authenticate(ctx, AuthRequest{Username: "Steve", Password: "password-1"}, strict, meta); err != nil {
+			t.Fatalf("verified: %v", err)
+		}
+
 		f.db.User.UpdateOneID(alice).SetStatus(user.StatusBanned).ExecX(ctx)
 		if _, err := f.s.Authenticate(ctx, AuthRequest{Username: "Steve", Password: "password-1"}, policy, meta); !isErr(err, errBanned) {
 			t.Fatalf("banned: %v", err)
@@ -280,7 +292,7 @@ func TestJoinAndProfiles(t *testing.T) {
 		a := f.login(t, "alice@example.com")
 
 		// A skin through the texture API, then the profile shows it.
-		if err := f.s.UploadTexture(ctx, a.AccessToken, steve.UUID, Upload{Kind: "skin", Slim: true, Name: "mine", Data: pngOf(t, 64, 64)}, uploads, score.Rates{}); err != nil {
+		if err := f.s.UploadTexture(ctx, a.AccessToken, steve.UUID, Upload{Kind: "skin", Slim: true, Name: "mine", Data: pngOf(t, 64, 64)}, policy, uploads, score.Rates{}); err != nil {
 			t.Fatal(err)
 		}
 		p, err := f.s.ProfileByUUID(ctx, strings.ToUpper(steve.UUID[:8])+"-"+steve.UUID[8:12]+"-"+steve.UUID[12:16]+"-"+steve.UUID[16:20]+"-"+steve.UUID[20:], "https://skins.example.com", false)
@@ -369,7 +381,7 @@ func TestTransferredPlayerLeavesTokens(t *testing.T) {
 		if err := f.s.Join(ctx, a.AccessToken, steve.UUID, "server-1", ""); !isErr(err, errInvalidToken) {
 			t.Fatalf("join with the old owner's token: %v", err)
 		}
-		if err := f.s.UploadTexture(ctx, a.AccessToken, steve.UUID, Upload{Kind: "skin", Data: pngOf(t, 64, 64)}, uploads, score.Rates{}); !isErr(err, forbidden("Profile not owned by this token.")) {
+		if err := f.s.UploadTexture(ctx, a.AccessToken, steve.UUID, Upload{Kind: "skin", Data: pngOf(t, 64, 64)}, policy, uploads, score.Rates{}); !isErr(err, forbidden("Profile not owned by this token.")) {
 			t.Fatalf("upload with the old owner's token: %v", err)
 		}
 		r, err := f.s.Refresh(ctx, RefreshRequest{AccessToken: a.AccessToken, ClientToken: a.ClientToken}, policy)
@@ -391,20 +403,20 @@ func TestTextureAPI(t *testing.T) {
 		skin := Upload{Kind: "skin", Data: pngOf(t, 64, 64)}
 
 		// Blessing Skin let any valid token change any player's textures.
-		if err := f.s.UploadTexture(ctx, a.AccessToken, bobby.UUID, skin, uploads, score.Rates{}); err == nil || !strings.Contains(err.Error(), "not owned") {
+		if err := f.s.UploadTexture(ctx, a.AccessToken, bobby.UUID, skin, policy, uploads, score.Rates{}); err == nil || !strings.Contains(err.Error(), "not owned") {
 			t.Fatalf("someone else's player: %v", err)
 		}
-		if err := f.s.ResetTexture(ctx, a.AccessToken, bobby.UUID, "skin"); err == nil {
+		if err := f.s.ResetTexture(ctx, a.AccessToken, bobby.UUID, "skin", policy); err == nil {
 			t.Fatal("reset someone else's")
 		}
 		var e *Error
-		if err := f.s.UploadTexture(ctx, "bogus", steve.UUID, skin, uploads, score.Rates{}); !errors.As(err, &e) || e.Status != 401 {
+		if err := f.s.UploadTexture(ctx, "bogus", steve.UUID, skin, policy, uploads, score.Rates{}); !errors.As(err, &e) || e.Status != 401 {
 			t.Fatalf("bad token: %v", err)
 		}
-		if err := f.s.UploadTexture(ctx, a.AccessToken, steve.UUID, Upload{Kind: "cape", Data: pngOf(t, 64, 64)}, uploads, score.Rates{}); !errors.As(err, &e) || e.Status != 400 {
+		if err := f.s.UploadTexture(ctx, a.AccessToken, steve.UUID, Upload{Kind: "cape", Data: pngOf(t, 64, 64)}, policy, uploads, score.Rates{}); !errors.As(err, &e) || e.Status != 400 {
 			t.Fatalf("a square cape: %v", err)
 		}
-		if err := f.s.UploadTexture(ctx, a.AccessToken, steve.UUID, skin, uploads, score.Rates{}); err != nil {
+		if err := f.s.UploadTexture(ctx, a.AccessToken, steve.UUID, skin, policy, uploads, score.Rates{}); err != nil {
 			t.Fatal(err)
 		}
 		p := f.db.Player.GetX(ctx, steve.ID)
@@ -414,19 +426,19 @@ func TestTextureAPI(t *testing.T) {
 		if tx := f.db.Texture.GetX(ctx, *p.SkinID); tx.Visibility != "private" || tx.Name != "Steve skin" {
 			t.Fatalf("texture: %+v", tx)
 		}
-		if err := f.s.ResetTexture(ctx, a.AccessToken, steve.UUID, "skin"); err != nil || f.db.Player.GetX(ctx, steve.ID).SkinID != nil {
+		if err := f.s.ResetTexture(ctx, a.AccessToken, steve.UUID, "skin", policy); err != nil || f.db.Player.GetX(ctx, steve.ID).SkinID != nil {
 			t.Fatalf("reset: %v", err)
 		}
 
 		// Charged like any private upload: a cape alice can afford, then one she cannot.
 		before := f.db.User.GetX(ctx, alice).Score
-		if err := f.s.UploadTexture(ctx, a.AccessToken, steve.UUID, Upload{Kind: "cape", Data: pngOf(t, 64, 32)}, uploads, score.Rates{PrivatePerStorage: 1}); err != nil {
+		if err := f.s.UploadTexture(ctx, a.AccessToken, steve.UUID, Upload{Kind: "cape", Data: pngOf(t, 64, 32)}, policy, uploads, score.Rates{PrivatePerStorage: 1}); err != nil {
 			t.Fatal(err)
 		}
 		if after := f.db.User.GetX(ctx, alice).Score; after >= before {
 			t.Fatalf("score %d → %d", before, after)
 		}
-		if err := f.s.UploadTexture(ctx, a.AccessToken, steve.UUID, Upload{Kind: "cape", Data: pngOf(t, 128, 64)}, uploads, score.Rates{PrivatePerStorage: 1_000_000}); !isErr(err, forbidden("Not enough score.")) {
+		if err := f.s.UploadTexture(ctx, a.AccessToken, steve.UUID, Upload{Kind: "cape", Data: pngOf(t, 128, 64)}, policy, uploads, score.Rates{PrivatePerStorage: 1_000_000}); !isErr(err, forbidden("Not enough score.")) {
 			t.Fatalf("not enough score: %v", err)
 		}
 	})

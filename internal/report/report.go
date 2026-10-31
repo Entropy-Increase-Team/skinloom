@@ -19,6 +19,7 @@ import (
 	entreport "github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
@@ -105,7 +106,7 @@ func (s *Service) Submit(ctx context.Context, v texture.Viewer, textureID int64,
 		}
 		rep, err = tx.Report.Create().SetTextureID(t.ID).SetNillableUploaderID(t.UploaderID).
 			SetReporterID(v.UserID).SetReason(reason).Save(ctx)
-		if ent.IsConstraintError(err) {
+		if db.IsConstraint(err) {
 			return ErrDuplicate
 		}
 		if err != nil {

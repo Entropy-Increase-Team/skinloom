@@ -21,6 +21,7 @@ import (
 	tex "github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
@@ -161,7 +162,7 @@ func (s *Service) Upload(ctx context.Context, uploader int64, in UploadInput, p 
 			SetName(name).SetType(typ).SetHash(img.hash).SetSize(int64(len(img.png))).
 			SetUploaderID(uploader).SetVisibility(visibility).SetLikes(1). // in the uploader's closet
 			Save(ctx)
-		if ent.IsConstraintError(err) {
+		if db.IsConstraint(err) {
 			return errRaced // the same image, uploaded concurrently (unique uploader_id, hash)
 		}
 		if err != nil {
