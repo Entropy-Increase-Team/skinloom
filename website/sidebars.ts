@@ -7,7 +7,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: '部署',
-      items: ['deployment/overview', 'deployment/compose', 'deployment/docker', 'deployment/kubernetes', 'deployment/binary', 'deployment/reverse-proxy', 'deployment/backup-and-cdn'],
+      items: ['deployment/overview', 'deployment/compose', 'deployment/docker', 'deployment/kubernetes', 'deployment/binary', 'deployment/reverse-proxy', 'deployment/backup-and-cdn', 'deployment/from-blessing-skin'],
     },
     'acknowledgements',
   ],

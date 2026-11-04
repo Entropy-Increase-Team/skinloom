@@ -38,3 +38,4 @@
 | [0032](0032-cdn-purge-and-backup.md) | CDN 刷新跟随领域事件；backup / restore 命令 | 已接受 |
 | [0033](0033-system-service-helm-and-deploy-smoke.md) | 系统服务命令、Helm Chart 与部署冒烟测试 | 已接受 |
 | [0034](0034-m4-review-fixes.md) | M4 全量审查的修正：恢复先检查后写入、设置保存串行化、密钥跟随去处 | 已接受 |
+| [0035](0035-m5-split-and-bs-importer.md) | M5 的拆分；BS 导入器（核心数据） | 已接受 |
