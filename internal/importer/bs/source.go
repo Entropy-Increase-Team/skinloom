@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -189,5 +188,3 @@ func (s Source) table(name string) string {
 	}
 	return `"` + s.Prefix + name + `"`
 }
-
-var errNoTable = errors.New("table not found")
