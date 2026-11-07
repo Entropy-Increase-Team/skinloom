@@ -93,17 +93,21 @@ var Locales = []LocaleInfo{
 	{Code: "en", Name: "English"},
 }
 
+// docsPath is the API reference, a page whose viewer comes from a CDN. Huma gives it a
+// Content-Security-Policy of its own instead of the backend's.
+const docsPath = "/api/docs"
+
 // New returns the HTTP handler and the Huma API (whose OpenAPI document can be exported).
 func New(d Deps) (http.Handler, huma.API) {
 	r := chi.NewRouter()
-	r.Use(httpx.WithSecurityHeaders, middleware.RequestID, middleware.Recoverer, requestLog(d.Log),
+	r.Use(httpx.WithSecurityHeaders, httpx.WithBackendPolicy(docsPath), middleware.RequestID, middleware.Recoverer, requestLog(d.Log),
 		withRequestInfo(d), csrfGuard(d))
 
 	cfg := huma.DefaultConfig("SkinLoom API", buildinfo.Version)
 	cfg.Info.Description = "SkinLoom (云织) REST API. Game protocols (CSL/USM/Legacy/Yggdrasil) are documented separately."
 	cfg.Info.License = &huma.License{Name: "MIT", URL: "https://opensource.org/licenses/MIT"}
 	cfg.OpenAPIPath = "/api/openapi"
-	cfg.DocsPath = "/api/docs"
+	cfg.DocsPath = docsPath
 	cfg.SchemasPath = "/api/schemas"
 	cfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
 		"session": {Type: "apiKey", In: "cookie", Name: SessionCookie,
@@ -158,7 +162,9 @@ func New(d Deps) (http.Handler, huma.API) {
 		http.Redirect(w, req, "/user/profile", http.StatusFound)
 	})
 	if d.Themes != nil {
-		r.Handle("/themes-assets/_custom/*", theme.CustomCSSHandler(func() string { return d.Settings.Current().String("theme.custom_css") }))
+		r.Handle("/themes-assets/_custom/*", theme.CustomHandler(
+			func() string { return d.Settings.Current().String("theme.custom_css") },
+			func() string { return d.Settings.Current().String("theme.custom_js") }))
 		r.Handle("/themes-assets/*", d.Themes.AssetHandler())
 	}
 	return r, api

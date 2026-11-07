@@ -260,6 +260,9 @@ func (s *Service) DeleteAccount(ctx context.Context, v *Viewer, password string,
 		if err := tx.User.UpdateOneID(v.User.ID).SetStatus(user.StatusDeleted).SetDeletedAt(now).Exec(ctx); err != nil {
 			return err
 		}
+		if err := s.announcePlayers(ctx, tx, v.User.ID, hook.OnPlayerUpdated); err != nil { // now 404
+			return err
+		}
 		if err := revokeSessions(ctx, tx, v.User.ID, now); err != nil {
 			return err
 		}
@@ -287,9 +290,12 @@ func (s *Service) PurgeDeleted(ctx context.Context) (int, error) {
 			if err := s.beforeDelete(ctx, tx, id); err != nil {
 				return err
 			}
+			if err := s.announcePlayers(ctx, tx, id, hook.OnPlayerDeleted); err != nil {
+				return err
+			}
 			n, err := tx.User.Delete().Where(append(expired, user.ID(id))...).Exec(ctx)
 			if err == nil && n == 0 {
-				return errRestored
+				return errRestored // the rollback takes the events back too
 			}
 			if err != nil {
 				return err

@@ -40,6 +40,14 @@ const testToken = "0123456789abcdef0123456789abcdef"
 
 func newTestDeps(t *testing.T) Deps {
 	t.Helper()
+	d, _ := newTestDepsDir(t)
+	return d
+}
+
+// newTestDepsDir is newTestDeps that also returns the data directory (the texture
+// files are in its textures/).
+func newTestDepsDir(t *testing.T) (Deps, string) {
+	t.Helper()
 	ctx := context.Background()
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	dir := t.TempDir()
@@ -87,7 +95,7 @@ func newTestDeps(t *testing.T) Deps {
 		t.Fatal(err)
 	}
 	deps.Yggdrasil.KeyBits = 1024 // 4096 takes seconds to generate
-	return deps
+	return deps, dir
 }
 
 func do(t *testing.T, h http.Handler, method, path, auth, body string) *httptest.ResponseRecorder {

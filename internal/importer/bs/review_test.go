@@ -100,7 +100,7 @@ func TestReviewSharedTextureDirAlteredFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tg := Target{DB: d, Store: store, StoreDir: f.src.TexturesDir, Locales: []string{"zh-CN", "en"}}
+	tg := Target{DB: d, Store: store, StoreDir: f.src.TexturesDir, Locales: []string{"zh-CN", "en"}, Settings: testRegistry(t)}
 	if _, err := Run(ctx, f.src, tg, Options{}); err != nil {
 		t.Fatal(err)
 	}

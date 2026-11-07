@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -12,12 +13,16 @@ import (
 	entsql "entgo.io/ent/dialect/sql"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
 	"github.com/Entropy-Increase-Team/skinloom/ent/report"
+	"github.com/Entropy-Increase-Team/skinloom/ent/setting"
+	"github.com/Entropy-Increase-Team/skinloom/ent/sitesecret"
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/player"
+	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
 )
 
 // ErrNotEmpty refuses an import into a site that already has accounts or textures.
@@ -112,6 +117,27 @@ func write(ctx context.Context, d *db.DB, p *planned, dryRun bool, now time.Time
 	if err != nil {
 		return err
 	}
+	err = insert(ctx, "oauth_clients", p.Clients, func(cl tClient) *ent.OAuthClientCreate {
+		return c.OAuthClient.Create().SetID(cl.ID).SetUserID(cl.UserID).SetName(cl.Name).SetNillableSecretHash(cl.SecretHash).
+			SetRedirectUris(cl.RedirectURIs).SetCreatedAt(cl.CreatedAt).SetUpdatedAt(now)
+	}, func(b []*ent.OAuthClientCreate) error { return c.OAuthClient.CreateBulk(b...).Exec(ctx) })
+	if err != nil {
+		return err
+	}
+	if err := writeSettings(ctx, c, p.Settings, now); err != nil {
+		return err
+	}
+	if p.SigningKey != "" {
+		// A site started before the import made its own key already: BS's replaces it
+		// (the value is immutable, so the row is replaced).
+		_, err := c.SiteSecret.Delete().Where(sitesecret.ID(signingKeyName)).Exec(ctx)
+		if err == nil {
+			err = c.SiteSecret.Create().SetID(signingKeyName).SetValue(p.SigningKey).SetCreatedAt(now).Exec(ctx)
+		}
+		if err != nil {
+			return fmt.Errorf("write the Yggdrasil signing key: %w", err)
+		}
+	}
 	if p.Superadmins > 0 {
 		// A site whose setup was completed and its accounts then deleted has the row
 		// already; an upsert that does nothing reports that differently per dialect.
@@ -143,6 +169,29 @@ func entDialect(d db.Dialect) string {
 		return dialect.Postgres
 	}
 	return dialect.SQLite
+}
+
+// writeSettings replaces the imported settings. The config version is taken before the
+// setting rows, the order the settings service locks them in (ADR 0026), and is
+// bumped so a running node would load the new values.
+func writeSettings(ctx context.Context, c *ent.Client, values map[string]json.RawMessage, now time.Time) error {
+	if len(values) == 0 {
+		return nil
+	}
+	n, err := c.SystemState.Update().Where(systemstate.ID(settings.ConfigVersionKey)).AddIntValue(1).SetUpdatedAt(now).Save(ctx)
+	if err == nil && n == 0 {
+		err = c.SystemState.Create().SetID(settings.ConfigVersionKey).SetIntValue(1).SetUpdatedAt(now).Exec(ctx)
+	}
+	if err != nil {
+		return fmt.Errorf("bump the config version: %w", err)
+	}
+	keys := sortedKeys(values)
+	if _, err := c.Setting.Delete().Where(setting.IDIn(keys...)).Exec(ctx); err != nil {
+		return fmt.Errorf("write settings: %w", err)
+	}
+	return insert(ctx, "settings", keys, func(k string) *ent.SettingCreate {
+		return c.Setting.Create().SetID(k).SetValue(string(values[k])).SetUpdatedAt(now)
+	}, func(b []*ent.SettingCreate) error { return c.Setting.CreateBulk(b...).Exec(ctx) })
 }
 
 // checkEmpty refuses a site that already has accounts or textures.
@@ -182,7 +231,7 @@ func resetSequences(ctx context.Context, tx *sql.Tx, d db.Dialect) error {
 	if d != db.Postgres {
 		return nil
 	}
-	for _, t := range []string{user.Table, texture.Table, "players", report.Table} {
+	for _, t := range []string{user.Table, texture.Table, "players", report.Table, oauthclient.Table} {
 		q := fmt.Sprintf(`SELECT setval(pg_get_serial_sequence('%[1]s', 'id'), (SELECT COALESCE(MAX(id), 0) + 1 FROM "%[1]s"), false)`, t)
 		if _, err := tx.ExecContext(ctx, q); err != nil {
 			return fmt.Errorf("move the ID sequence of %s on: %w", t, err)

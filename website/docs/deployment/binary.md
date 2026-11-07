@@ -68,7 +68,7 @@ sudo grep setup data/logs/skinloom.log
 Select-String setup .\data\logs\skinloom.log
 ```
 
-服务名为 `SkinLoom`，在"服务"管理工具里也能看到。它以 LOCAL SERVICE（低权限的内置账户）运行，安装时只给它 `data\` 与前端缓存目录的写权限；设置为延迟自动启动，失败后 5 秒重启。
+服务名为 `SkinLoom`，在"服务"管理工具里也能看到。它以 LOCAL SERVICE（低权限的内置账户）运行，安装时只给它 `data\` 与前端缓存目录的写权限；设置为延迟自动启动，失败后 5 秒重启。密钥、日志和备份只有服务账户、SYSTEM 与 Administrators 能读，所以查看日志、运行 `skinloom` 的其它命令也要在管理员终端里。
 
 ### 常用命令
 

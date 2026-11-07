@@ -29,7 +29,7 @@ pg_dump -Fc -d skinloom > skinloom.dump
 mysqldump --single-transaction skinloom > skinloom.sql
 ```
 
-备份文件含有密钥和全部账号数据（SQLite 时），权限是 0600，请和数据目录一样妥善保管。
+备份文件含有密钥和全部账号数据（SQLite 时），权限是 0600，请和数据目录一样妥善保管。在 Windows 上，`data/backups`、`data/secrets`、备份文件和日志文件只允许运行 SkinLoom 的账户、SYSTEM 和 Administrators 访问，不继承上级目录的权限。
 
 ### 定时备份
 
@@ -44,7 +44,7 @@ systemd timer、macOS launchd、Windows 计划任务同理：运行 `skinloom ba
 
 ## 恢复
 
-先**停止站点**，再恢复到数据目录：
+先**停止站点**，再恢复到数据目录。运行中的站点占用着数据目录（`data/skinloom.lock`），这时恢复会直接拒绝，加 `--force` 也一样：
 
 ```bash
 skinloom restore data/backups/skinloom-20261031-040000.tar.gz --data /opt/skinloom/data
@@ -68,7 +68,7 @@ skinloom restore data/backups/skinloom-20261031-040000.tar.gz --data /opt/skinlo
 | 腾讯云 CDN | 授权了 `cdn:PurgeUrlsCache` 的子账号的 SecretId / SecretKey |
 | Webhook | 一个接收 POST 的地址，可以对接其它 CDN |
 
-之后角色创建、改名、换装或被删除时，SkinLoom 会刷新这个角色的 6 个地址（CustomSkinLoader、UniSkinMod、旧版 PNG 与头像）。刷新失败会自动重试。材质文件按内容命名，永远不需要刷新。
+之后角色创建、改名、换装或被删除，以及它的主人被封禁、解封、注销、恢复或删除时，SkinLoom 会刷新这个角色的 6 个地址（CustomSkinLoader、UniSkinMod、旧版 PNG 与头像）。刷新失败会自动重试。材质文件按内容命名，永远不需要刷新。
 
 "CDN 上的站点地址"留空时使用站点地址 `site.url`。
 

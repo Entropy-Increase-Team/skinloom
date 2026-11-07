@@ -312,12 +312,32 @@ const (
 	WebP = "webp"
 )
 
+// WebPMaxPixels is the largest picture served as WebP: the pure-Go encoder takes about
+// 15 ms for 256×256 but 55 ms for 512×512, against PNG's 6 to 15 ms, and a render that
+// misses the cache should take under 50 ms (design 04 §5.4). Larger pictures, rarely
+// asked for, are PNG (about twice the bytes).
+const WebPMaxPixels = 300 * 300
+
+// Format is the format to encode a w×h picture in when the client takes WebP.
+func Format(webp bool, w, h int) string {
+	if webp && w*h <= WebPMaxPixels {
+		return WebP
+	}
+	return PNG
+}
+
 // Encode encodes img as PNG or (lossless) WebP.
 func Encode(img image.Image, format string) ([]byte, error) {
 	var buf bytes.Buffer
 	var err error
 	if format == WebP {
-		err = nativewebp.Encode(&buf, img, nil)
+		// The fastest level is also the smallest above about 128×128 for nearest-neighbour
+		// pixel art (long runs of one colour); below, the default is a little smaller.
+		lvl := nativewebp.DefaultCompression
+		if b := img.Bounds(); b.Dx()*b.Dy() > 128*128 {
+			lvl = nativewebp.BestSpeed
+		}
+		err = nativewebp.Encode(&buf, img, &nativewebp.Options{CompressionLevel: lvl})
 	} else {
 		err = (&png.Encoder{CompressionLevel: png.BestSpeed}).Encode(&buf, img)
 	}

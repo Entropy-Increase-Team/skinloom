@@ -150,6 +150,16 @@ func (d Def) Shown(v any) any {
 	return v
 }
 
+// Canonical checks raw against the definition, as saving it would, and returns the
+// value as it is stored. The BS importer writes settings with it.
+func (d Def) Canonical(raw json.RawMessage) (json.RawMessage, error) {
+	v, err := d.validate(raw)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(v)
+}
+
 // validate decodes raw and checks it against the definition.
 func (d Def) validate(raw json.RawMessage) (any, error) {
 	var v any

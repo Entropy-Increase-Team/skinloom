@@ -6,6 +6,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/fsperm"
 )
 
 // RotateAt is the size beyond which OpenFile starts a new file, keeping the old one
@@ -25,7 +27,17 @@ func OpenFile(path string) (*os.File, error) {
 	} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, err
 	}
-	return os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o640)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o640)
+	if err != nil {
+		return nil, err
+	}
+	// The log holds the one-time setup link; on Windows the file would take its
+	// folder's permissions instead of the mode.
+	if err := fsperm.Private(path); err != nil {
+		f.Close()
+		return nil, err
+	}
+	return f, nil
 }
 
 // Tee writes to the file first, then to the console: io.MultiWriter stops at the

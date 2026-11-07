@@ -1,0 +1,54 @@
+name: Load test
+
+# Design 04 §5.4 targets, on a seeded site of a million textures (ADR 0038). Started by
+# hand before a release: a shared runner is noisy, so the numbers are a check that
+# nothing regressed by an order of magnitude, not a measurement to quote.
+on:
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: Length of each steady scenario
+        default: 60s
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    name: k6 (${{ matrix.driver }})
+    strategy:
+      fail-fast: false
+      matrix:
+        driver: [sqlite, postgres]
+    runs-on: ubuntu-latest
+    # Seeding a million textures takes minutes; a server that never gets ready must not
+    # hold the runner for the default six hours.
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: pass
+          POSTGRES_DB: bench
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: "1.8.2"
+      - name: Seed, start and load
+        env:
+          DRIVER: ${{ matrix.driver }}
+          DSN: ${{ matrix.driver == 'postgres' && 'postgres://postgres:pass@127.0.0.1:5432/bench?sslmode=disable' || '' }}
+          DURATION: ${{ inputs.duration }}
+        run: bash bench/run.sh
+      - if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: bench-${{ matrix.driver }}
+          path: bench-out/

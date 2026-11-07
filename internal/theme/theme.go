@@ -76,12 +76,14 @@ type Theme struct {
 	files  fs.FS
 }
 
-// ResolvedTheme is what the frontend needs to render with the active theme.
+// ResolvedTheme is what the frontend needs to render with the active theme. JS lists
+// the scripts pages load with their CSP nonce (theme.custom_js).
 type ResolvedTheme struct {
 	ID      string            `json:"id"`
 	Version string            `json:"version"`
 	Tokens  Tokens            `json:"tokens"`
 	CSS     []string          `json:"css"`
+	JS      []string          `json:"js"`
 	Layout  map[string]string `json:"layout"`
 	Home    []Block           `json:"home"`
 }
@@ -228,7 +230,7 @@ func (r *Registry) Resolve(s *settings.Snapshot) ResolvedTheme {
 		t, _ = r.Get(DefaultID)
 	}
 	if t == nil {
-		return ResolvedTheme{ID: "none", Tokens: Tokens{Light: map[string]string{}, Dark: map[string]string{}}}
+		return ResolvedTheme{ID: "none", Tokens: Tokens{Light: map[string]string{}, Dark: map[string]string{}}, JS: []string{}}
 	}
 	tokens := Tokens{
 		Light:  maps.Clone(t.Theme.Tokens.Light),
@@ -256,6 +258,10 @@ func (r *Registry) Resolve(s *settings.Snapshot) ResolvedTheme {
 	if custom := s.String("theme.custom_css"); custom != "" {
 		css = append(css, CustomCSSURL(custom)) // after the theme's, so it wins
 	}
+	js := []string{}
+	if custom := s.String("theme.custom_js"); custom != "" {
+		js = append(js, CustomJSURL(custom))
+	}
 	layout := make(map[string]string, len(Layouts))
 	for area, options := range Layouts {
 		layout[area] = cmp.Or(t.Theme.Layout[area], options[0])
@@ -265,6 +271,7 @@ func (r *Registry) Resolve(s *settings.Snapshot) ResolvedTheme {
 		Version: t.Version,
 		Tokens:  tokens,
 		CSS:     css,
+		JS:      js,
 		Layout:  layout,
 		Home:    home,
 	}
@@ -272,29 +279,43 @@ func (r *Registry) Resolve(s *settings.Snapshot) ResolvedTheme {
 
 // CustomCSSURL is where theme.custom_css is served: named by its content, so it can be
 // cached forever and a change reaches every page at once.
-func CustomCSSURL(css string) string {
-	sum := sha256.Sum256([]byte(css))
-	return "/themes-assets/_custom/" + hex.EncodeToString(sum[:8]) + ".css"
+func CustomCSSURL(css string) string { return customURL(css, ".css") }
+
+// CustomJSURL is where theme.custom_js is served, named like CustomCSSURL.
+func CustomJSURL(js string) string { return customURL(js, ".js") }
+
+func customURL(content, ext string) string {
+	sum := sha256.Sum256([]byte(content))
+	return "/themes-assets/_custom/" + hex.EncodeToString(sum[:8]) + ext
 }
 
-// CustomCSSHandler serves theme.custom_css (current returns it) at CustomCSSURL. A
-// stylesheet of its own, not a <style> in the page, so nothing in it can end the
-// element and inject HTML.
-func CustomCSSHandler(current func() string) http.Handler {
+// CustomHandler serves theme.custom_css and theme.custom_js (css and js return the
+// current values) at CustomCSSURL and CustomJSURL. Files of their own, not a <style> or
+// <script> in the page: nothing in them can end the element and inject HTML, and the
+// script runs only where a page loads it with its nonce.
+func CustomHandler(css, js func() string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		css := current()
-		if css == "" {
+		var content, url, typ string
+		switch path.Ext(req.URL.Path) {
+		case ".css":
+			content = css()
+			url, typ = CustomCSSURL(content), "text/css; charset=utf-8"
+		case ".js":
+			content = js()
+			url, typ = CustomJSURL(content), "text/javascript; charset=utf-8"
+		}
+		if content == "" {
 			http.NotFound(w, req)
 			return
 		}
-		w.Header().Set("Content-Type", "text/css; charset=utf-8")
+		w.Header().Set("Content-Type", typ)
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		if req.URL.Path == CustomCSSURL(css) {
+		if req.URL.Path == url {
 			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		} else {
 			w.Header().Set("Cache-Control", "no-cache") // a page from before the last change
 		}
-		_, _ = io.WriteString(w, css)
+		_, _ = io.WriteString(w, content)
 	})
 }
 

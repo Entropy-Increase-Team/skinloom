@@ -55,6 +55,7 @@ type texturesPayload struct {
 	Timestamp         int64                 `json:"timestamp"`
 	ProfileID         string                `json:"profileId"`
 	ProfileName       string                `json:"profileName"`
+	IsPublic          bool                  `json:"isPublic"` // always true, as yggdrasil-api writes it
 	SignatureRequired bool                  `json:"signatureRequired,omitempty"`
 	Textures          map[string]textureRef `json:"textures"`
 }
@@ -88,7 +89,7 @@ func byUUID(id string) func(*ent.PlayerQuery) {
 // profile serializes a player. base is the site URL textures are under.
 func (s *Service) profile(ctx context.Context, p *ent.Player, base string, signed bool) (*Profile, error) {
 	payload := texturesPayload{Timestamp: p.UpdatedAt.UnixMilli(), ProfileID: p.UUID, ProfileName: p.Name,
-		SignatureRequired: signed, Textures: map[string]textureRef{}}
+		IsPublic: true, SignatureRequired: signed, Textures: map[string]textureRef{}}
 	if t := p.Edges.Skin; t != nil {
 		ref := textureRef{URL: base + "/textures/" + t.Hash}
 		if t.Type == tex.TypeAlex {

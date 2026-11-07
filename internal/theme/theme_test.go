@@ -112,28 +112,47 @@ func cmpOr(a, b string) string {
 	return b
 }
 
-func TestResolveAddsCustomCSS(t *testing.T) {
+func TestResolveAddsCustomCSSAndJS(t *testing.T) {
 	r := builtin(t)
-	css := "body { outline: 1px solid red }"
-	got := r.Resolve(snapshotWith(t, map[string]string{"theme.custom_css": mustJSON(t, css)}))
+	css, js := "body { outline: 1px solid red }", "console.log('hi')"
+	got := r.Resolve(snapshotWith(t, map[string]string{"theme.custom_css": mustJSON(t, css), "theme.custom_js": mustJSON(t, js)}))
 	if n := len(got.CSS); n != 2 || got.CSS[1] != CustomCSSURL(css) {
 		t.Fatalf("css %v", got.CSS)
 	}
-
-	h := CustomCSSHandler(func() string { return css })
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, CustomCSSURL(css), nil))
-	if rec.Code != http.StatusOK || rec.Body.String() != css || rec.Header().Get("Content-Type") != "text/css; charset=utf-8" ||
-		rec.Header().Get("Cache-Control") != "public, max-age=31536000, immutable" {
-		t.Fatalf("current: %d %q %v", rec.Code, rec.Body, rec.Header())
+	if len(got.JS) != 1 || got.JS[0] != CustomJSURL(js) {
+		t.Fatalf("js %v", got.JS)
 	}
-	rec = httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, CustomCSSURL("old"), nil))
-	if rec.Code != http.StatusOK || rec.Header().Get("Cache-Control") != "no-cache" {
+	if got := r.Resolve(snapshotWith(t, nil)); got.JS == nil || len(got.JS) != 0 {
+		t.Fatalf("no custom js: %#v", got.JS) // an empty array for the frontend, not null
+	}
+
+	h := CustomHandler(func() string { return css }, func() string { return js })
+	for _, c := range []struct{ url, body, typ string }{
+		{CustomCSSURL(css), css, "text/css; charset=utf-8"},
+		{CustomJSURL(js), js, "text/javascript; charset=utf-8"},
+	} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, c.url, nil))
+		if rec.Code != http.StatusOK || rec.Body.String() != c.body || rec.Header().Get("Content-Type") != c.typ ||
+			rec.Header().Get("X-Content-Type-Options") != "nosniff" ||
+			rec.Header().Get("Cache-Control") != "public, max-age=31536000, immutable" {
+			t.Fatalf("current %s: %d %q %v", c.url, rec.Code, rec.Body, rec.Header())
+		}
+	}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, CustomJSURL("old"), nil))
+	if rec.Code != http.StatusOK || rec.Body.String() != js || rec.Header().Get("Cache-Control") != "no-cache" {
 		t.Fatalf("stale name: %d %v", rec.Code, rec.Header())
 	}
+	for _, u := range []string{"/themes-assets/_custom/x.html", "/themes-assets/_custom/x"} {
+		rec = httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, u, nil))
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("%s: %d", u, rec.Code)
+		}
+	}
 	rec = httptest.NewRecorder()
-	CustomCSSHandler(func() string { return "" }).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, CustomCSSURL(css), nil))
+	CustomHandler(func() string { return css }, func() string { return "" }).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, CustomJSURL(js), nil))
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("none: %d", rec.Code)
 	}

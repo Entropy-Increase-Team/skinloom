@@ -126,6 +126,14 @@ func checkName(name string) (string, error) {
 	return name, nil
 }
 
+// CheckRedirects validates redirect URIs as registering an application does, and
+// HashSecret is how a client secret is stored: the BS importer brings applications
+// over with both.
+func CheckRedirects(list []string) ([]string, error) { return checkRedirects(list) }
+
+// HashSecret returns the stored form of a client secret.
+func HashSecret(secret string) string { return hash(secret) }
+
 // checkRedirects validates redirect URIs: absolute, no fragment, not a scheme that
 // runs in the browser. Plain http and app schemes are allowed, as Blessing Skin did,
 // for development and native applications.

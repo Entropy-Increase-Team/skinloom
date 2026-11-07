@@ -37,6 +37,16 @@ type Source struct {
 	// Location is the time zone BS wrote its datetimes in (config/app.php, Asia/Shanghai
 	// unless the site changed it).
 	Location *time.Location
+	// Mail is BS's mail configuration, which lives in .env; nil without --env.
+	Mail *Mail
+}
+
+// Mail is the MAIL_* part of BS's .env, as Laravel reads it.
+type Mail struct {
+	Mailer, Host, Port, Username, Password, Encryption string
+	FromAddress, FromName                              string
+	// HostSet: MAIL_HOST is in .env (Laravel's default host is a placeholder).
+	HostSet bool
 }
 
 // Method is a BS password method (PWD_METHOD's values) with its salt.
@@ -73,6 +83,13 @@ func FromEnv(path string) (Source, error) {
 			}
 			s.Transition = append(s.Transition, Method{Name: strings.TrimSpace(m), Salt: salt})
 		}
+	}
+	_, hostSet := env["MAIL_HOST"]
+	s.Mail = &Mail{
+		Mailer: strings.ToLower(cmp.Or(env["MAIL_MAILER"], env["MAIL_DRIVER"], "smtp")), Host: env["MAIL_HOST"],
+		Port: cmp.Or(env["MAIL_PORT"], "587"), Username: env["MAIL_USERNAME"], Password: env["MAIL_PASSWORD"],
+		Encryption: strings.ToLower(env["MAIL_ENCRYPTION"]), FromAddress: env["MAIL_FROM_ADDRESS"],
+		FromName: env["MAIL_FROM_NAME"], HostSet: hostSet && env["MAIL_HOST"] != "",
 	}
 	if s.TexturesDir == "" {
 		s.TexturesDir = filepath.Join(root, "storage", "textures")
@@ -179,6 +196,14 @@ func (s Source) begin(ctx context.Context, pool *sql.DB) (*sql.Tx, error) {
 		return pool.BeginTx(ctx, nil) // the connection itself is read-only
 	}
 	return pool.BeginTx(ctx, &sql.TxOptions{ReadOnly: true, Isolation: sql.LevelRepeatableRead})
+}
+
+// col quotes a column name that is a reserved word (language_lines.group, .key).
+func (s Source) col(name string) string {
+	if s.Driver == "mysql" {
+		return "`" + name + "`"
+	}
+	return `"` + name + `"`
 }
 
 // table is the quoted name of a BS table.

@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/backup"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/datalock"
 	"github.com/Entropy-Increase-Team/skinloom/internal/secrets"
 )
 
@@ -72,6 +73,15 @@ func TestBackupRestore(t *testing.T) {
 	if _, err := Restore(ctx, dst, path, false); !errors.Is(err, backup.ErrExists) {
 		t.Fatalf("restore over an install: %v", err)
 	}
+	// A site running with the directory holds it: even --force is refused.
+	running, err := lockDataDir(dst, datalock.Shared)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Restore(ctx, dst, path, true); err == nil || !strings.Contains(err.Error(), "stop it first") {
+		t.Fatalf("restore under a running site: %v", err)
+	}
+	running.Release()
 	if _, err := Restore(ctx, dst, path, true); err != nil {
 		t.Fatalf("--force: %v", err)
 	}

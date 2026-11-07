@@ -12,7 +12,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"slices"
+	"runtime"
 	"strings"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/account"
@@ -31,8 +31,8 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/pubsub"
 	"github.com/Entropy-Increase-Team/skinloom/internal/render"
 	"github.com/Entropy-Increase-Team/skinloom/internal/report"
-	"github.com/Entropy-Increase-Team/skinloom/internal/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/sitesettings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/social"
 	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
 	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
@@ -162,16 +162,11 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 		database.Close()
 		return nil, err
 	}
-	reg := settings.NewRegistry()
-	defs := slices.Concat(account.SettingDefs(), captcha.SettingDefs(), mail.SettingDefs(),
-		score.SettingDefs(), texture.SettingDefs(), player.SettingDefs(), yggdrasil.SettingDefs(), oauth.SettingDefs(), social.SettingDefs(), cdn.SettingDefs())
-	if err := reg.Register(defs...); err != nil {
+	reg, err := sitesettings.Registry(themeReg)
+	if err != nil {
 		database.Close()
 		return nil, err
 	}
-	reg.SetValidator("theme.active", themeReg.ValidateActive)
-	reg.SetValidator("theme.overrides", theme.ValidateOverrides)
-	reg.SetValidator("home.blocks", theme.ValidateHome)
 	svc := settings.NewService(reg, database.Ent, broker, bus, log.With("component", "settings"))
 	if err := svc.Load(ctx); err != nil {
 		database.Close()
@@ -188,7 +183,8 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 		Players:  player.NewService(database.Ent, log.With("component", "player")),
 	}
 	c.Reports = report.NewService(database.Ent, c.Textures, log.With("component", "report"))
-	c.Renders = render.NewService(4, 64<<20) // 4 renders at once, 64 MiB of results
+	// Rendering is CPU-bound: one render per core at most, 64 MiB of results.
+	c.Renders = render.NewService(runtime.GOMAXPROCS(0), 64<<20)
 	c.Notify = notify.NewService(database.Ent, log.With("component", "notify"))
 	c.Yggdrasil = yggdrasil.NewService(database.Ent, c.Accounts, c.Players, c.Textures, log.With("component", "yggdrasil"))
 	c.OAuth = oauth.NewService(database.Ent, log.With("component", "oauth"))

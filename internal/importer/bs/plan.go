@@ -12,6 +12,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/player"
+	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
 )
 
@@ -78,7 +79,12 @@ type planned struct {
 	Closet        []tCloset
 	Reports       []tReport
 	Notifications []tNotification
-	Superadmins   int
+	Clients       []tClient
+	// Settings are the setting rows to write (key → JSON value), SigningKey the
+	// Yggdrasil key as PKCS #8 PEM ("" to let SkinLoom make one).
+	Settings    map[string]json.RawMessage
+	SigningKey  string
+	Superadmins int
 }
 
 type planOptions struct {
@@ -92,6 +98,9 @@ type planOptions struct {
 	// the browser".
 	Locales []string
 	Now     time.Time
+	// Settings checks the settings an import writes; Mail is BS's mail configuration.
+	Settings *settings.Registry
+	Mail     *Mail
 }
 
 // Lengths the SkinLoom schema allows, in characters.
@@ -503,6 +512,14 @@ func plan(d *sourceData, files map[string]fileInfo, o planOptions, r *Report) *p
 	if p.Superadmins == 0 && len(p.Users) > 0 {
 		r.add(Warning, "users", 0, "no super administrator (permission 2): open the setup page after the import to create one")
 	}
+	p.Clients = planClients(d, userExists, at, r)
+	p.SigningKey = planSigningKey(d, r)
+	planPlugins(d, r)
+	planTables(d, r)
+	if o.Settings != nil { // Run always has it; unit tests of the rows may leave it out
+		p.Settings = planSettings(d, o, r)
+	}
+
 	for _, m := range d.Missing {
 		r.add(Warning, m, 0, "table not found: nothing imported from it (fine if the site never had it)")
 	}

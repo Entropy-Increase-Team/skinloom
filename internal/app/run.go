@@ -19,6 +19,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/gateway"
 	"github.com/Entropy-Increase-Team/skinloom/internal/httpapi"
 	"github.com/Entropy-Increase-Team/skinloom/internal/launcher"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/datalock"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/realip"
 	"github.com/Entropy-Increase-Team/skinloom/internal/secrets"
 	"github.com/Entropy-Increase-Team/skinloom/internal/yggdrasil"
@@ -41,6 +42,15 @@ type RunOptions struct {
 func Run(ctx context.Context, o RunOptions) error {
 	p := o.Paths
 	p.Serve = true
+	// Held while the site runs, so skinloom restore refuses to replace its files.
+	lk, err := lockDataDir(p, datalock.Shared)
+	if errors.Is(err, datalock.ErrInUse) {
+		return errors.New("a restore is running on this data directory: start the site after it has finished")
+	}
+	if err != nil {
+		return err
+	}
+	defer lk.Release()
 	core, err := OpenCore(ctx, p)
 	if err != nil {
 		return err

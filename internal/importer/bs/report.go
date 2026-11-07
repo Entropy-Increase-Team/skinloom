@@ -34,6 +34,9 @@ type Entry struct {
 	Table    string // the BS table
 	ID       string // the BS row (uid, pid, tid...), empty for a whole table
 	Message  string
+	// LeftBehind: data that stays in BS (a plugin's, a table SkinLoom has no place
+	// for). The report lists these first, and the command prints them in full.
+	LeftBehind bool
 }
 
 // Report is the outcome of an import or a dry run.
@@ -58,6 +61,22 @@ func (r *Report) add(sev Severity, table string, id int64, format string, args .
 	r.Entries = append(r.Entries, Entry{Severity: sev, Table: table, ID: s, Message: fmt.Sprintf(format, args...)})
 }
 
+// leave records data that stays in BS (Entry.LeftBehind).
+func (r *Report) leave(sev Severity, table string, format string, args ...any) {
+	r.Entries = append(r.Entries, Entry{Severity: sev, Table: table, Message: fmt.Sprintf(format, args...), LeftBehind: true})
+}
+
+// LeftBehind returns the entries about data that stays in BS.
+func (r *Report) LeftBehind() []Entry {
+	var out []Entry
+	for _, e := range r.Entries {
+		if e.LeftBehind {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
 // Count returns the number of entries of a severity.
 func (r *Report) Count(sev Severity) int {
 	n := 0
@@ -73,7 +92,7 @@ func (r *Report) Count(sev Severity) int {
 func (r *Report) Blocked() bool { return r.Count(Blocking) > 0 }
 
 // tables lists the imported tables in the order they are written.
-var tables = []string{"users", "blobs", "textures", "players", "closet_items", "reports", "notifications"}
+var tables = []string{"users", "blobs", "textures", "players", "closet_items", "reports", "notifications", "oauth_clients", "settings"}
 
 // WriteText writes the report for people: a summary, then every entry grouped by
 // severity, in the order found.
@@ -102,7 +121,13 @@ func (r *Report) WriteText(w io.Writer) error {
 	}
 	p("  texture files  %d checked, %d copied\n", r.Files, r.FilesCopied)
 	p("\n  blocking %d, warnings %d, fixed %d, dropped %d\n", r.Count(Blocking), r.Count(Warning), r.Count(Fixed), r.Count(Dropped))
-	entries := slices.Clone(r.Entries)
+	if left := r.LeftBehind(); len(left) > 0 {
+		p("\nLEFT IN BLESSING SKIN (not imported: check before switching)\n")
+		for _, e := range left {
+			p("  %s: %s\n", e.Table, e.Message)
+		}
+	}
+	entries := slices.DeleteFunc(slices.Clone(r.Entries), func(e Entry) bool { return e.LeftBehind })
 	slices.SortStableFunc(entries, func(a, b Entry) int { return int(a.Severity) - int(b.Severity) })
 	last := Severity(-1)
 	for _, e := range entries {

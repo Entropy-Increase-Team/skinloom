@@ -493,6 +493,7 @@ export interface ResolvedTheme {
   css: string[];
   home: Block[];
   id: string;
+  js: string[];
   layout: ResolvedThemeLayout;
   tokens: Tokens;
   version: string;

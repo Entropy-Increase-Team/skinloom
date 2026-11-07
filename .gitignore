@@ -36,3 +36,7 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 *.log
+
+# load test (bench/run.sh)
+/bench-data/
+/bench-out/

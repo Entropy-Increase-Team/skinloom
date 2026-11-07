@@ -1,0 +1,525 @@
+### GET /api/yggdrasil/
+200 OK
+Content-Type: application/json;charset=utf-8
+Cache-Control: no-store
+{
+  "meta": {
+    "feature.non_email_login": true,
+    "implementationName": "SkinLoom",
+    "implementationVersion": "<version>",
+    "links": {
+      "homepage": "https://skins.example.com/",
+      "register": "https://skins.example.com/auth/register"
+    },
+    "serverName": "云织"
+  },
+  "signaturePublickey": "<RSA public key, 1024 bits>",
+  "skinDomains": [
+    "skins.example.com"
+  ]
+}
+
+## CustomSkinLoader (02 §2.1)
+
+### GET /Steve.json
+200 OK
+Content-Type: application/json
+Cache-Control: public, max-age=60
+Last-Modified: <date>
+{
+  "cape": "b628ec79c7e284a69f7cab1c04a7fbb6a905fec57ee54cd11e79e739e1c688f0",
+  "skins": {
+    "default": "bdc462ccee14cd11c681a3ba8202c7cdb58c0a62fb28b6ea93d2ddba36d82124"
+  },
+  "username": "Steve"
+}
+
+### GET /csl/steve.json
+200 OK
+Content-Type: application/json
+Cache-Control: public, max-age=60
+Last-Modified: <date>
+{
+  "cape": "b628ec79c7e284a69f7cab1c04a7fbb6a905fec57ee54cd11e79e739e1c688f0",
+  "skins": {
+    "default": "bdc462ccee14cd11c681a3ba8202c7cdb58c0a62fb28b6ea93d2ddba36d82124"
+  },
+  "username": "Steve"
+}
+
+### GET /Alex.json
+200 OK
+Content-Type: application/json
+Cache-Control: public, max-age=60
+Last-Modified: <date>
+{
+  "cape": null,
+  "skins": {
+    "slim": "3dfcdf3eb7587d0be86d6c663220505fe0c1279a8d6e623a2e63d37c2cfebaeb"
+  },
+  "username": "Alex"
+}
+
+### GET /Naked.json
+200 OK
+Content-Type: application/json
+Cache-Control: public, max-age=60
+Last-Modified: <date>
+{
+  "cape": null,
+  "skins": {
+    "default": null
+  },
+  "username": "Naked"
+}
+
+### GET /Hidden.json
+200 OK
+Content-Type: application/json
+Cache-Control: public, max-age=60
+Last-Modified: <date>
+{
+  "cape": null,
+  "skins": {
+    "default": "9226ef7459b5b84549c357c81a3af43aa6781a74f39205777b3f461d63cfc60e"
+  },
+  "username": "Hidden"
+}
+
+### GET /Banned.json
+403 Forbidden
+Content-Type: text/plain;charset=utf-8
+the owner of this player is banned
+
+### GET /Nobody.json
+404 Not Found
+Content-Type: text/plain;charset=utf-8
+player not found
+
+## UniSkinMod (02 §2.2)
+
+### GET /usm/Steve.json
+200 OK
+Content-Type: application/json
+Cache-Control: public, max-age=60
+Last-Modified: <date>
+{
+  "cape": "b628ec79c7e284a69f7cab1c04a7fbb6a905fec57ee54cd11e79e739e1c688f0",
+  "last_update": "<time>",
+  "model_preference": [
+    "default"
+  ],
+  "player_name": "Steve",
+  "skins": {
+    "default": "bdc462ccee14cd11c681a3ba8202c7cdb58c0a62fb28b6ea93d2ddba36d82124"
+  }
+}
+
+### GET /usm/alex.json
+200 OK
+Content-Type: application/json
+Cache-Control: public, max-age=60
+Last-Modified: <date>
+{
+  "cape": null,
+  "last_update": "<time>",
+  "model_preference": [
+    "slim"
+  ],
+  "player_name": "Alex",
+  "skins": {
+    "slim": "3dfcdf3eb7587d0be86d6c663220505fe0c1279a8d6e623a2e63d37c2cfebaeb"
+  }
+}
+
+### GET /usm/Naked.json
+200 OK
+Content-Type: application/json
+Cache-Control: public, max-age=60
+Last-Modified: <date>
+{
+  "cape": null,
+  "last_update": "<time>",
+  "model_preference": [
+    "default"
+  ],
+  "player_name": "Naked",
+  "skins": {
+    "default": null
+  }
+}
+
+### GET /usm/Banned.json
+403 Forbidden
+Content-Type: text/plain;charset=utf-8
+the owner of this player is banned
+
+### GET /usm/Nobody.json
+404 Not Found
+Content-Type: application/json
+{
+  "errno": 1,
+  "msg": "Player not found."
+}
+
+## Legacy (02 §2.3)
+
+### GET /skin/Steve.png
+200 OK
+Content-Type: image/png
+Cache-Control: public, max-age=60
+Last-Modified: <date>
+<PNG 64x64, sha256 bdc462ccee14cd11c681a3ba8202c7cdb58c0a62fb28b6ea93d2ddba36d82124>
+
+### GET /cape/Steve.png
+200 OK
+Content-Type: image/png
+Cache-Control: public, max-age=60
+Last-Modified: <date>
+<PNG 64x32, sha256 b628ec79c7e284a69f7cab1c04a7fbb6a905fec57ee54cd11e79e739e1c688f0>
+
+### GET /cape/Alex.png
+404 Not Found
+Content-Type: text/plain;charset=utf-8
+texture not found
+
+### GET /skin/Naked.png
+404 Not Found
+Content-Type: text/plain;charset=utf-8
+texture not found
+
+### GET /skin/Banned.png
+403 Forbidden
+Content-Type: text/plain;charset=utf-8
+the owner of this player is banned
+
+### GET /skin/Nobody.png
+404 Not Found
+Content-Type: text/plain;charset=utf-8
+player not found
+
+## Texture files (02 §2.1)
+
+### GET /textures/bdc462ccee14cd11c681a3ba8202c7cdb58c0a62fb28b6ea93d2ddba36d82124
+200 OK
+Content-Type: image/png
+Cache-Control: public, max-age=31536000, immutable
+ETag: "bdc462ccee14cd11c681a3ba8202c7cdb58c0a62fb28b6ea93d2ddba36d82124"
+Last-Modified: <date>
+<PNG 64x64, sha256 bdc462ccee14cd11c681a3ba8202c7cdb58c0a62fb28b6ea93d2ddba36d82124>
+
+### GET /csl/textures/3dfcdf3eb7587d0be86d6c663220505fe0c1279a8d6e623a2e63d37c2cfebaeb
+200 OK
+Content-Type: image/png
+Cache-Control: public, max-age=31536000, immutable
+ETag: "3dfcdf3eb7587d0be86d6c663220505fe0c1279a8d6e623a2e63d37c2cfebaeb"
+Last-Modified: <date>
+<PNG 64x64, sha256 3dfcdf3eb7587d0be86d6c663220505fe0c1279a8d6e623a2e63d37c2cfebaeb>
+
+### GET /usm/textures/b628ec79c7e284a69f7cab1c04a7fbb6a905fec57ee54cd11e79e739e1c688f0
+200 OK
+Content-Type: image/png
+Cache-Control: public, max-age=31536000, immutable
+ETag: "b628ec79c7e284a69f7cab1c04a7fbb6a905fec57ee54cd11e79e739e1c688f0"
+Last-Modified: <date>
+<PNG 64x32, sha256 b628ec79c7e284a69f7cab1c04a7fbb6a905fec57ee54cd11e79e739e1c688f0>
+
+### GET /textures/0000000000000000000000000000000000000000000000000000000000000000
+404 Not Found
+Content-Type: text/plain;charset=utf-8
+404 page not found
+
+### GET /raw/1
+200 OK
+Content-Type: image/png
+Cache-Control: public, max-age=300
+ETag: "bdc462ccee14cd11c681a3ba8202c7cdb58c0a62fb28b6ea93d2ddba36d82124"
+Last-Modified: <date>
+<PNG 64x64, sha256 bdc462ccee14cd11c681a3ba8202c7cdb58c0a62fb28b6ea93d2ddba36d82124>
+
+### GET /raw/999
+404 Not Found
+Content-Type: text/plain;charset=utf-8
+404 page not found
+
+## Yggdrasil (02 §2.4)
+
+### POST /api/yggdrasil/api/profiles/minecraft ["Steve","alex","Nobody","Banned"]
+200 OK
+Content-Type: application/json;charset=utf-8
+Cache-Control: no-store
+[
+  {
+    "id": "36532b5ec4423dbba24cc7e55d0f979a",
+    "name": "Alex"
+  },
+  {
+    "id": "5627dd98e6be3c21b8a8e92344183641",
+    "name": "Steve"
+  }
+]
+
+### GET /api/yggdrasil/api/users/profiles/minecraft/steve
+200 OK
+Content-Type: application/json;charset=utf-8
+Cache-Control: no-store
+{
+  "id": "5627dd98e6be3c21b8a8e92344183641",
+  "name": "Steve"
+}
+
+### GET /api/yggdrasil/api/users/profiles/minecraft/Nobody
+204 No Content
+Cache-Control: no-store
+
+### GET /api/yggdrasil/sessionserver/session/minecraft/profile/5627dd98e6be3c21b8a8e92344183641
+200 OK
+Content-Type: application/json;charset=utf-8
+Cache-Control: no-store
+{
+  "id": "5627dd98e6be3c21b8a8e92344183641",
+  "name": "Steve",
+  "properties": [
+    {
+      "name": "textures",
+      "value": {
+        "base64 JSON": {
+          "isPublic": true,
+          "profileId": "5627dd98e6be3c21b8a8e92344183641",
+          "profileName": "Steve",
+          "textures": {
+            "CAPE": {
+              "url": "https://skins.example.com/textures/b628ec79c7e284a69f7cab1c04a7fbb6a905fec57ee54cd11e79e739e1c688f0"
+            },
+            "SKIN": {
+              "url": "https://skins.example.com/textures/bdc462ccee14cd11c681a3ba8202c7cdb58c0a62fb28b6ea93d2ddba36d82124"
+            }
+          },
+          "timestamp": "<time>"
+        }
+      }
+    },
+    {
+      "name": "uploadableTextures",
+      "value": "skin,cape"
+    }
+  ]
+}
+
+### GET /api/yggdrasil/sessionserver/session/minecraft/profile/5627dd98e6be3c21b8a8e92344183641?unsigned=false
+200 OK
+Content-Type: application/json;charset=utf-8
+Cache-Control: no-store
+{
+  "id": "5627dd98e6be3c21b8a8e92344183641",
+  "name": "Steve",
+  "properties": [
+    {
+      "name": "textures",
+      "signature": "<signature valid>",
+      "value": {
+        "base64 JSON": {
+          "isPublic": true,
+          "profileId": "5627dd98e6be3c21b8a8e92344183641",
+          "profileName": "Steve",
+          "signatureRequired": true,
+          "textures": {
+            "CAPE": {
+              "url": "https://skins.example.com/textures/b628ec79c7e284a69f7cab1c04a7fbb6a905fec57ee54cd11e79e739e1c688f0"
+            },
+            "SKIN": {
+              "url": "https://skins.example.com/textures/bdc462ccee14cd11c681a3ba8202c7cdb58c0a62fb28b6ea93d2ddba36d82124"
+            }
+          },
+          "timestamp": "<time>"
+        }
+      }
+    },
+    {
+      "name": "uploadableTextures",
+      "signature": "<signature valid>",
+      "value": "skin,cape"
+    }
+  ]
+}
+
+### GET /api/yggdrasil/sessionserver/session/minecraft/profile/ffffffffffffffffffffffffffffffff
+204 No Content
+Cache-Control: no-store
+
+### GET /api/yggdrasil/minecraftservices/publickeys
+200 OK
+Content-Type: application/json;charset=utf-8
+Cache-Control: no-store
+{
+  "playerCertificateKeys": [
+    {
+      "publicKey": "<RSA public key, 1024 bits>"
+    }
+  ],
+  "profilePropertyKeys": [
+    {
+      "publicKey": "<RSA public key, 1024 bits>"
+    }
+  ]
+}
+
+### POST /api/yggdrasil/authserver/authenticate {"username":"alice@example.com","password":"wrong-pass"}
+403 Forbidden
+Content-Type: application/json;charset=utf-8
+Cache-Control: no-store
+{
+  "error": "ForbiddenOperationException",
+  "errorMessage": "Invalid credentials. Invalid username or password."
+}
+
+### POST /api/yggdrasil/authserver/authenticate {"username":"alice@example.com","password":"user-pass-1","clientToken":"golden","requestUser":true}
+200 OK
+Content-Type: application/json;charset=utf-8
+Cache-Control: no-store
+{
+  "accessToken": "<token>",
+  "availableProfiles": [
+    {
+      "id": "5627dd98e6be3c21b8a8e92344183641",
+      "name": "Steve"
+    },
+    {
+      "id": "36532b5ec4423dbba24cc7e55d0f979a",
+      "name": "Alex"
+    },
+    {
+      "id": "a696bc99c2ba3e0097bd32e6e2d43dee",
+      "name": "Naked"
+    },
+    {
+      "id": "9ecd72ef5fa13ba59cbc23230e20190f",
+      "name": "Hidden"
+    }
+  ],
+  "clientToken": "golden",
+  "user": {
+    "id": "edabafbb61ad51d69fd8e976c892a731",
+    "properties": []
+  }
+}
+
+### POST /api/yggdrasil/authserver/authenticate {"username":"steve","password":"user-pass-1","clientToken":"golden","agent":{"name":"Minecraft","version":1}}
+200 OK
+Content-Type: application/json;charset=utf-8
+Cache-Control: no-store
+{
+  "accessToken": "<token>",
+  "availableProfiles": [
+    {
+      "id": "5627dd98e6be3c21b8a8e92344183641",
+      "name": "Steve"
+    },
+    {
+      "id": "36532b5ec4423dbba24cc7e55d0f979a",
+      "name": "Alex"
+    },
+    {
+      "id": "a696bc99c2ba3e0097bd32e6e2d43dee",
+      "name": "Naked"
+    },
+    {
+      "id": "9ecd72ef5fa13ba59cbc23230e20190f",
+      "name": "Hidden"
+    }
+  ],
+  "clientToken": "golden",
+  "selectedProfile": {
+    "id": "5627dd98e6be3c21b8a8e92344183641",
+    "name": "Steve"
+  }
+}
+
+### POST /api/yggdrasil/authserver/validate {"accessToken":"<token>","clientToken":"golden"}
+204 No Content
+Cache-Control: no-store
+
+### POST /api/yggdrasil/sessionserver/session/minecraft/join {"accessToken":"<token>","selectedProfile":"5627dd98e6be3c21b8a8e92344183641","serverId":"golden-server"}
+204 No Content
+Cache-Control: no-store
+
+### GET /api/yggdrasil/sessionserver/session/minecraft/hasJoined?username=Steve&serverId=golden-server
+200 OK
+Content-Type: application/json;charset=utf-8
+Cache-Control: no-store
+{
+  "id": "5627dd98e6be3c21b8a8e92344183641",
+  "name": "Steve",
+  "properties": [
+    {
+      "name": "textures",
+      "signature": "<signature valid>",
+      "value": {
+        "base64 JSON": {
+          "isPublic": true,
+          "profileId": "5627dd98e6be3c21b8a8e92344183641",
+          "profileName": "Steve",
+          "signatureRequired": true,
+          "textures": {
+            "CAPE": {
+              "url": "https://skins.example.com/textures/b628ec79c7e284a69f7cab1c04a7fbb6a905fec57ee54cd11e79e739e1c688f0"
+            },
+            "SKIN": {
+              "url": "https://skins.example.com/textures/bdc462ccee14cd11c681a3ba8202c7cdb58c0a62fb28b6ea93d2ddba36d82124"
+            }
+          },
+          "timestamp": "<time>"
+        }
+      }
+    },
+    {
+      "name": "uploadableTextures",
+      "signature": "<signature valid>",
+      "value": "skin,cape"
+    }
+  ]
+}
+
+### GET /api/yggdrasil/sessionserver/session/minecraft/hasJoined?username=Steve&serverId=another-server
+204 No Content
+Cache-Control: no-store
+
+### GET /api/yggdrasil/sessionserver/session/minecraft/hasJoined?username=Alex&serverId=golden-server
+204 No Content
+Cache-Control: no-store
+
+### POST /api/yggdrasil/authserver/invalidate {"accessToken":"<token>","clientToken":"golden"}
+204 No Content
+Cache-Control: no-store
+
+### POST /api/yggdrasil/authserver/validate {"accessToken":"<token>"}
+403 Forbidden
+Content-Type: application/json;charset=utf-8
+Cache-Control: no-store
+{
+  "error": "ForbiddenOperationException",
+  "errorMessage": "Invalid token."
+}
+
+### POST /api/yggdrasil/authserver/refresh {"accessToken":"<token>","clientToken":"golden"}
+403 Forbidden
+Content-Type: application/json;charset=utf-8
+Cache-Control: no-store
+{
+  "error": "ForbiddenOperationException",
+  "errorMessage": "Invalid token."
+}
+
+### POST /api/yggdrasil/authserver/signout {"username":"STEVE","password":"user-pass-1"}
+204 No Content
+Cache-Control: no-store
+
+### POST /api/yggdrasil/authserver/authenticate {"username":"bob@example.com","password":"user-pass-1"}
+403 Forbidden
+Content-Type: application/json;charset=utf-8
+Cache-Control: no-store
+{
+  "error": "ForbiddenOperationException",
+  "errorMessage": "Your account has been banned."
+}
+

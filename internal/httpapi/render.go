@@ -20,6 +20,7 @@ import (
 	tex "github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/internal/player"
 	"github.com/Entropy-Increase-Team/skinloom/internal/render"
+	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
 	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
 )
 
@@ -151,17 +152,16 @@ func shortCache(d Deps) string {
 	return fmt.Sprintf("public, max-age=%d", player.DeliveryFrom(d.Settings.Current()).CacheSeconds)
 }
 
-// imageFormat is WebP, as Blessing Skin served, unless ?png is given or the client
-// lists the image types it takes and WebP is not among them.
-func imageFormat(r *http.Request) string {
+// imageFormat is WebP, as Blessing Skin served, unless ?png is given, the client lists
+// the image types it takes and WebP is not among them, or the w×h picture is too large
+// to encode as WebP quickly (render.WebPMaxPixels).
+func imageFormat(r *http.Request, w, h int) string {
 	if r.URL.Query().Has("png") {
 		return render.PNG
 	}
 	a := r.Header.Get("Accept")
-	if a == "" || strings.Contains(a, "image/webp") || strings.Contains(a, "image/*") || strings.Contains(a, "*/*") {
-		return render.WebP
-	}
-	return render.PNG
+	webp := a == "" || strings.Contains(a, "image/webp") || strings.Contains(a, "image/*") || strings.Contains(a, "*/*")
+	return render.Format(webp, w, h)
 }
 
 // serveAvatar renders the head of the skin with this hash ("" = the placeholder).
@@ -173,9 +173,12 @@ func serveAvatar(w http.ResponseWriter, r *http.Request, d Deps, hash, cache str
 	}
 	size = render.Snap(size, render.AvatarSizes, 100)
 	cube := q.Has("3d")
-	format := imageFormat(r)
+	format := imageFormat(r, size, size)
 	key := fmt.Sprintf("avatar:%s:%t:%d:%s", hash, cube, size, format)
-	serveImage(w, r, d, key, format, cache, func() (image.Image, error) {
+	// The texture's file is missing (an imported site often has such rows): the
+	// placeholder, as Blessing Skin shows, for a short while: the file may come back.
+	missing := func() { serveAvatar(w, r, d, "", shortCache(d)) }
+	serveImage(w, r, d, key, format, cache, missing, func() (image.Image, error) {
 		skin := render.Placeholder()
 		if hash != "" {
 			img, err := decodeFile(r, d, hash)
@@ -198,11 +201,12 @@ func servePreview(w http.ResponseWriter, r *http.Request, d Deps, t *ent.Texture
 		height, _ = strconv.Atoi(s)
 	}
 	height = render.Snap(height, render.PreviewHeights, 200)
-	format := imageFormat(r)
+	format := imageFormat(r, height*9/8, height) // a skin preview is 36 by 32 skin pixels; a cape's is narrower
 	// The key holds the type: a texture's image never changes, but its type can (an
 	// Alex skin is drawn with slim arms), so the hash alone is not enough.
 	key := fmt.Sprintf("preview:%s:%s:%d:%s", t.Hash, t.Type, height, format)
-	serveImage(w, r, d, key, format, cache, func() (image.Image, error) {
+	missing := func() { http.NotFound(w, r) } // as Blessing Skin when the file is gone
+	serveImage(w, r, d, key, format, cache, missing, func() (image.Image, error) {
 		img, err := decodeFile(r, d, t.Hash)
 		if err != nil {
 			return nil, err
@@ -228,7 +232,9 @@ func decodeFile(r *http.Request, d Deps, hash string) (image.Image, error) {
 // answered before anything is rendered. It is a digest of the key: the key names the
 // file, and a private texture's hash must not appear in a public answer (an avatar
 // may show the head of its owner's private skin; /textures/{hash} serves any file).
-func serveImage(w http.ResponseWriter, r *http.Request, d Deps, key, format, cache string, draw func() (image.Image, error)) {
+// missing answers instead when the texture's file is not in storage; nothing is cached
+// under key then, so the real render appears once the file is put back.
+func serveImage(w http.ResponseWriter, r *http.Request, d Deps, key, format, cache string, missing func(), draw func() (image.Image, error)) {
 	sum := sha256.Sum256([]byte(key))
 	etag := `"` + hex.EncodeToString(sum[:16]) + `"`
 	validators := func() {
@@ -249,6 +255,10 @@ func serveImage(w http.ResponseWriter, r *http.Request, d Deps, key, format, cac
 		}
 		return render.Encode(img, format)
 	})
+	if errors.Is(err, storage.ErrNotFound) {
+		missing()
+		return
+	}
 	if err != nil {
 		renderFailed(w, d, err) // without the cache headers: a failure is not kept
 		return

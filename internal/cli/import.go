@@ -13,11 +13,12 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/app"
 	"github.com/Entropy-Increase-Team/skinloom/internal/importer/bs"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/fsperm"
 )
 
 func importCmd(paths *app.Paths) *cobra.Command {
 	cmd := &cobra.Command{Use: "import", Short: "Import another site's data into a new SkinLoom site"}
-	cmd.AddCommand(importBSCmd(paths))
+	cmd.AddCommand(importBSCmd(paths), importCompareCmd())
 	return cmd
 }
 
@@ -29,7 +30,7 @@ func importBSCmd(paths *app.Paths) *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "bs",
-		Short: "Import a Blessing Skin site (accounts, players, textures, closets, reports)",
+		Short: "Import a Blessing Skin site (accounts, players, textures, settings, applications)",
 		Long: `Reads a Blessing Skin site and writes it into this SkinLoom install, which must be new:
 no accounts or textures yet. The import brings BS's administrators along, so skip the
 setup page. The BS database is only read; run with --dry-run first, fix what the report
@@ -37,7 +38,9 @@ lists as BLOCKING in BS, then run without it. Stop the SkinLoom site while impor
 
 Passwords, player names and UUIDs, texture IDs and files stay the same, so skin links,
 launchers and game servers keep working. Sessions and launcher tokens are not imported:
-everyone signs in once more. Settings come in a later version.
+everyone signs in once more. Site settings, mail settings (from .env), renamed terms
+such as the score's name, OAuth applications and the Yggdrasil signing key come along;
+the report lists every option and text SkinLoom has no place for.
 
 The database, table prefix, password method and texture directory are read from BS's
 .env (--env); the flags override single values. Keep secrets off the command line:
@@ -154,14 +157,24 @@ func writeReport(paths *app.Paths, r *bs.Report, dryRun bool, path *string) erro
 		return err
 	}
 	// The report names accounts and email addresses: readable by the owner only, also
-	// when --report names a file that already exists (WriteFile keeps its mode).
-	if err := os.WriteFile(*path, text.Bytes(), 0o600); err != nil {
+	// when --report names a file that already exists (WriteFile keeps its mode), and
+	// restricted while still empty, so its text is never readable under the folder's
+	// permissions (Windows ignores the mode: fsperm).
+	if err := os.WriteFile(*path, nil, 0o600); err != nil {
 		return err
 	}
 	if err := os.Chmod(*path, 0o600); err != nil {
 		return err
 	}
-	printHead(text.Bytes(), 40)
+	if err := fsperm.Private(*path); err != nil {
+		return err
+	}
+	if err := os.WriteFile(*path, text.Bytes(), 0o600); err != nil {
+		return err
+	}
+	// The head holds the summary and the data left in BS (listed right after it), which
+	// is shown whole however long: it is what to check before switching.
+	printHead(text.Bytes(), 40+len(r.LeftBehind()))
 	fmt.Printf("\nfull report: %s\n", *path)
 	return nil
 }

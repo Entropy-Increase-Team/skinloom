@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/httpx"
 	"github.com/Entropy-Increase-Team/skinloom/internal/theme"
 )
 
@@ -59,6 +60,68 @@ func TestCustomCSSIsForSuperadmins(t *testing.T) {
 			t.Fatalf("custom css view %+v", s)
 		}
 	}
+}
+
+// Custom JS (ADR 0039) is like custom CSS: super administrators only, a file of its own
+// named by its content, listed in the bootstrap for the pages to load with their nonce.
+func TestCustomJSIsForSuperadmins(t *testing.T) {
+	d := newTestDeps(t)
+	setSettings(t, d, `{"captcha.provider": "none"}`)
+	h, _ := New(d)
+	owner := &browser{t: t, h: h}
+	setupSite(t, d, owner)
+	admin := registerUser(t, h, "mod@example.com")
+	if err := d.DB.Ent.User.Update().Where(user.EmailNormalized("mod@example.com")).SetRole(user.RoleAdmin).Exec(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+
+	var b Bootstrap
+	_ = json.Unmarshal(do(t, h, "GET", "/api/v1/site/bootstrap", "", "").Body.Bytes(), &b)
+	if b.Theme.JS == nil || len(b.Theme.JS) != 0 {
+		t.Fatalf("no custom js yet: %#v", b.Theme.JS)
+	}
+	const js = `document.body.dataset.custom = "</script>"`
+	body := `{"theme.custom_js": ` + strconvQuote(js) + `}`
+	if rec := admin.do("PATCH", "/api/v1/admin/settings", body); rec.Code != http.StatusForbidden {
+		t.Fatalf("admin: %d %s", rec.Code, rec.Body)
+	}
+	if rec := owner.do("PATCH", "/api/v1/admin/settings", `{"theme.custom_js": "`+strings.Repeat("x", 64*1024+1)+`"}`); rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("too long: %d", rec.Code)
+	}
+	if rec := owner.do("PATCH", "/api/v1/admin/settings", body); rec.Code != http.StatusOK {
+		t.Fatalf("super administrator: %d %s", rec.Code, rec.Body)
+	}
+	_ = json.Unmarshal(do(t, h, "GET", "/api/v1/site/bootstrap", "", "").Body.Bytes(), &b)
+	if len(b.Theme.JS) != 1 || b.Theme.JS[0] != theme.CustomJSURL(js) {
+		t.Fatalf("bootstrap js %v", b.Theme.JS)
+	}
+	rec := do(t, h, "GET", b.Theme.JS[0], "", "")
+	if rec.Code != http.StatusOK || rec.Body.String() != js || rec.Header().Get("Content-Type") != "text/javascript; charset=utf-8" ||
+		rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatalf("script: %d %q %v", rec.Code, rec.Body, rec.Header())
+	}
+}
+
+// The backend's answers are not pages: they carry a policy that runs and loads nothing
+// (ADR 0039), except the API reference, which loads its viewer from a CDN.
+func TestBackendContentSecurityPolicy(t *testing.T) {
+	d := newTestDeps(t)
+	h, _ := New(d)
+	for _, p := range []string{"/api/v1/site/bootstrap", "/api/yggdrasil", "/csl/nobody.json", "/avatar/player/nobody", "/api/openapi.json"} {
+		if got := do(t, h, "GET", p, "", "").Header().Get("Content-Security-Policy"); got != httpx.BackendPolicy {
+			t.Errorf("%s: %q", p, got)
+		}
+	}
+	// Huma gives the reference a policy of its own; a second one would be enforced too.
+	if rec := do(t, h, "GET", docsPath, "", ""); rec.Code != http.StatusOK || len(rec.Header().Values("Content-Security-Policy")) != 1 ||
+		!strings.Contains(rec.Header().Get("Content-Security-Policy"), "https://unpkg.com/") {
+		t.Errorf("%s: %d %q", docsPath, rec.Code, rec.Header().Values("Content-Security-Policy"))
+	}
+}
+
+func strconvQuote(s string) string {
+	b, _ := json.Marshal(s)
+	return string(b)
 }
 
 func TestAppearanceAPI(t *testing.T) {

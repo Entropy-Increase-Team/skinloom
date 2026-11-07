@@ -52,6 +52,9 @@ func (s *Service) SignIn(ctx context.Context, u *ent.User, remember bool, method
 			if err := audit(ctx, tx, &u.ID, "account.restored", "user", id, meta.IP, nil); err != nil {
 				return err
 			}
+			if err := s.announcePlayers(ctx, tx, u.ID, hook.OnPlayerUpdated); err != nil {
+				return err
+			}
 		}
 		return audit(ctx, tx, &u.ID, "auth.login", "user", id, meta.IP, map[string]any{"method": method})
 	})

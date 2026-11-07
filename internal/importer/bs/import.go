@@ -1,6 +1,7 @@
-// Package bs imports a Blessing Skin site (design 02 §5, 04 §10): accounts with their
-// passwords, players with their UUIDs, textures with their files, closets, reports and
-// unread notifications. The BS database is only read. Everything is written in one
+// Package bs imports a Blessing Skin site (design 02 §4, §5, 04 §10): accounts with
+// their passwords, players with their UUIDs, textures with their files, closets,
+// reports, unread notifications, OAuth applications, settings, reworded terms and the
+// Yggdrasil signing key. The BS database is only read. Everything is written in one
 // transaction into an empty SkinLoom site, so a dry run is the real import rolled back
 // and a failed import can simply be run again.
 package bs
@@ -8,10 +9,12 @@ package bs
 import (
 	"cmp"
 	"context"
+	"errors"
 	"os"
 	"time"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
+	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
 )
 
@@ -23,6 +26,9 @@ type Target struct {
 	// directory itself (mounted or copied into place), files are not copied again.
 	StoreDir string
 	Locales  []string
+	// Settings is the site's settings registry: imported settings are checked against
+	// it as the admin panel would.
+	Settings *settings.Registry
 }
 
 // Options control one run.
@@ -42,6 +48,9 @@ func Run(ctx context.Context, src Source, t Target, o Options) (*Report, error) 
 	}
 	if src.Location == nil {
 		src.Location = shanghai
+	}
+	if t.Settings == nil {
+		return nil, errors.New("bs: Target.Settings is required")
 	}
 	if err := checkEmpty(ctx, t.DB); err != nil { // before reading or copying anything
 		return nil, err
@@ -76,12 +85,13 @@ func Run(ctx context.Context, src Source, t Target, o Options) (*Report, error) 
 	now := time.Now()
 	r := &Report{DryRun: o.DryRun, Files: len(hashes), Imported: map[string]int{}}
 	p := plan(data, files, planOptions{Location: src.Location, PasswordMethod: src.PasswordMethod, Salt: src.Salt,
-		Transition: src.Transition, Locales: t.Locales, Now: now}, r)
+		Transition: src.Transition, Locales: t.Locales, Now: now, Settings: t.Settings, Mail: src.Mail}, r)
 	if r.Blocked() {
 		return r, nil
 	}
 	for name, n := range map[string]int{"users": len(p.Users), "blobs": len(p.Blobs), "textures": len(p.Textures), "players": len(p.Players),
-		"closet_items": len(p.Closet), "reports": len(p.Reports), "notifications": len(p.Notifications)} {
+		"closet_items": len(p.Closet), "reports": len(p.Reports), "notifications": len(p.Notifications),
+		"oauth_clients": len(p.Clients), "settings": len(p.Settings)} {
 		r.Imported[name] = n
 	}
 	r.Superadmins = p.Superadmins

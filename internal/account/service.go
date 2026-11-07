@@ -421,6 +421,9 @@ func (s *Service) Login(ctx context.Context, in LoginInput, p LoginPolicy, meta 
 			if err := audit(ctx, tx, &u.ID, "account.restored", "user", strconv.FormatInt(u.ID, 10), meta.IP, nil); err != nil {
 				return err
 			}
+			if err := s.announcePlayers(ctx, tx, u.ID, hook.OnPlayerUpdated); err != nil {
+				return err
+			}
 		}
 		return audit(ctx, tx, &u.ID, "auth.login", "user", strconv.FormatInt(u.ID, 10), meta.IP, nil)
 	})

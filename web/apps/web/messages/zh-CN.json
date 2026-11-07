@@ -861,6 +861,10 @@
         "title": "自定义 CSS",
         "intro": "加在主题样式之后，对每个页面生效；只有超级管理员可以修改。"
       },
+      "customJs": {
+        "title": "自定义 JavaScript",
+        "intro": "对每个页面、每位访客生效；只有超级管理员可以修改。站内切换页面不会重新加载，所以脚本在打开网站时运行一次。"
+      },
       "cdn": {
         "title": "CDN 刷新",
         "intro": "角色换了皮肤、改了名或被删除时，让 CDN 丢掉缓存的角色资料与头像，游戏里马上看到新皮肤。材质文件按内容命名，不需要刷新。"
@@ -1212,6 +1216,10 @@
       "custom_css": {
         "label": "自定义 CSS",
         "help": "作为单独的样式表加载，排在主题样式之后，最多 64 KB。只有超级管理员可以修改。对应 BS 的 custom_css。"
+      },
+      "custom_js": {
+        "label": "自定义 JavaScript",
+        "help": "页面解析完后作为单独的脚本加载，最多 64 KB，可以再加载其他脚本。如果它让网站无法使用，在服务器上运行 skinloom settings set theme.custom_js null 清空。对应 BS 的 custom_js。"
       }
     },
     "cdn": {

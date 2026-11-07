@@ -18,6 +18,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/config"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/fsperm"
 	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
 )
 
@@ -118,6 +119,15 @@ func Restore(ctx context.Context, r io.Reader, t Target) (Result, error) {
 		}
 		if configData != nil {
 			if err := os.Rename(staged, t.ConfigPath); err != nil {
+				return err
+			}
+		}
+		if len(secrets) > 0 {
+			dir := filepath.Join(t.DataDir, "secrets")
+			if err := os.MkdirAll(dir, 0o700); err != nil {
+				return err
+			}
+			if err := fsperm.Private(dir); err != nil {
 				return err
 			}
 		}

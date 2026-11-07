@@ -1,0 +1,60 @@
+Imported.
+
+  users          3
+  blobs          5
+  textures       5
+  players        4
+  closet_items   3
+  reports        2
+  notifications  3
+  oauth_clients  1
+  settings       8
+  texture files  5 checked, 4 copied
+
+  blocking 0, warnings 9, fixed 16, dropped 15
+
+WARNING
+  users 3: password hash in an unknown format: if the user cannot sign in, they reset the password by email
+  textures 5: file missing (6c12e0672dc85c33136cb2d0eb0b8f531503fb7a050575f42507f0529e215497): imported without a file, it answers 404 as it did in BS; put the file into SkinLoom's texture directory under this name
+  oauth_clients 3: redirect URI "data:text/html" left out: redirectUris: scheme not allowed: data:text/html
+  oauth_clients 3: redirect URI "x" left out: redirectUris: not an absolute URL: x
+  options: ygg_private_key: not a PEM key; SkinLoom makes a new key, and game servers using authlib-injector must restart once after the switch
+  options: recaptcha_sitekey/recaptcha_secretkey: only one is set, which left BS's captcha unusable; SkinLoom uses its image captcha until both keys are set
+  options: sign_gap_time: "0" cannot be used as score.sign_gap_hours (must be 1 to 8760): SkinLoom's default is kept
+  options: custom_js: SkinLoom switches pages without reloading, so the script runs once when the site is opened, not on every page; code that changes a page has to watch for navigation
+  .env: mail settings are in BS's .env: give it with --env to import them, or set mail up in the site settings
+
+FIXED
+  users 2: no nickname: set to "bob"
+  textures 2: user 1 uploaded the same file as texture 1: merged into it
+  textures 4: uploader 42 no longer exists: shown as a deleted account
+  textures 6: the file 676a53e9dbf4e76645d94fb2f840b0d1a5058f0cacea39a9ddb7ae32143d540b does not match its name (changed after upload): stored as e7e179ecd1474435ec7d81afb00b8c0af3c412fe99ba680d97bffc78aae05bd3
+  users 3: avatar texture 99 is gone or a cape: cleared
+  players 2: name "steve" is taken by player 1 (names are not case-sensitive): renamed to "steve_2", the owner is notified
+  players 3: texture 99 is gone: cleared
+  players 3: texture 1 (steve) is in the wrong slot: cleared
+  players 5: name "ThisNameIsWayTooLongForSkinLoom_1234567" is longer than 32 characters: renamed to "ThisNameIsWayTooLongForSkinLoom_", the owner is notified
+  players 2: UUID 0123456789abcdef0123456789abcdef also belongs to player 1: a new one is given
+  oauth_clients 2: no name: named "Application 2"
+  plugins: yggdrasil-api: SkinLoom serves the Yggdrasil API itself: player UUIDs and the signing key came along
+  options: sign_gap_time = "a day" is not a whole number: taken as 0, as BS did
+  options: max_texture_width = 4096: SkinLoom allows 64 to 2048 pixels, set to 2048
+  language_lines 1: general.cape (en) = "Cloak": used for player.cape, adminPlayers.cape, texture.types.cape; longer texts that mention the term keep the default wording
+  language_lines 1: general.cape (zh_CN) = "斗篷": used for player.cape, adminPlayers.cape, texture.types.cape; longer texts that mention the term keep the default wording
+
+DROPPED
+  textures 7: unknown type "elytra"
+  players 4: owner 77 no longer exists
+  uuid: 2 rows were not used: their player was deleted or renamed, or its UUID went to an earlier player
+  user_closet 1: texture 2 is in the closet twice: kept once
+  user_closet 2: texture 1 is in the closet twice: kept once
+  user_closet: 2 rows name a user or texture that no longer exists
+  reports 2: user 2 already reported texture 4 (report 1)
+  oauth_clients 1: Passport's personal access client: SkinLoom makes personal tokens without one
+  oauth_clients 3: "Bad" has no usable redirect URI
+  options: site_name_ko_KR: SkinLoom has no ko_KR interface yet
+  options: register_with_player_name: SkinLoom's registration does not ask for a player name; new users add one in the user center
+  options: meta_extras = "<meta name=\"x\">": SkinLoom does not insert raw HTML into the page head; analytics and verification tags come with plugins
+  options: navbar_color = "pink": BS's layout options do not apply to SkinLoom's themes; colors are theme tokens
+  language_lines 2: skinlib.upload.button = "上传吧": SkinLoom's texts are new and this one has no counterpart; reword it on the translations page if it is still wanted
+  language_lines 3: general.skin: the text is not a JSON object of languages

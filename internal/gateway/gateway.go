@@ -217,6 +217,7 @@ func placeholder(w http.ResponseWriter, status int, reason string) {
 	h := w.Header()
 	h.Set("Content-Type", "text/html; charset=utf-8")
 	h.Set("Cache-Control", "no-store")
+	h.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'self'")
 	httpx.SecurityHeaders(h)
 	w.WriteHeader(status)
 	_ = placeholderTmpl.Execute(w, reason)

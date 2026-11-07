@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { NextIntlClientProvider } from 'next-intl'
+import { headers } from 'next/headers'
 import { getLocale, getMessages } from 'next-intl/server'
 
 import { LiveRefresh } from '@/components/live-refresh'
@@ -35,6 +36,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const boot = await getBootstrap()
   const locale = await getLocale()
   const messages = await getMessages()
+  // Set by src/proxy.ts with the page's Content-Security-Policy (ADR 0039).
+  const nonce = (await headers()).get('x-nonce') ?? undefined
   return (
     <html lang={locale} suppressHydrationWarning data-sl-theme={boot.theme.id}>
       <head>
@@ -42,12 +45,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {boot.theme.css.map((href) => (
           <link key={href} rel="stylesheet" href={href} />
         ))}
+        {/* Custom JS (theme.custom_js): a file of its own, run once the page is parsed. */}
+        {(boot.theme.js ?? []).map((src) => (
+          <script key={src} src={src} nonce={nonce} defer />
+        ))}
       </head>
       <body className="min-h-screen antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
           {/* The home page renders its blocks itself; in the client bootstrap they would
               ride along with every page. */}
-          <Providers bootstrap={{ ...boot, theme: { ...boot.theme, home: [] } }}>
+          <Providers bootstrap={{ ...boot, theme: { ...boot.theme, home: [] } }} nonce={nonce}>
             <div className="flex min-h-screen flex-col">
               <SiteHeader />
               <main className="flex-1">{children}</main>

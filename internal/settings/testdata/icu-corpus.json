@@ -1,0 +1,10090 @@
+[
+ {
+  "text": "",
+  "ok": true
+ },
+ {
+  "text": "Hello",
+  "ok": true
+ },
+ {
+  "text": "Hello {name}",
+  "ok": true
+ },
+ {
+  "text": "{name}",
+  "ok": true
+ },
+ {
+  "text": "{ name }",
+  "ok": true
+ },
+ {
+  "text": "{}",
+  "ok": false
+ },
+ {
+  "text": "{",
+  "ok": false
+ },
+ {
+  "text": "}",
+  "ok": true
+ },
+ {
+  "text": "a } b",
+  "ok": true
+ },
+ {
+  "text": "{name",
+  "ok": false
+ },
+ {
+  "text": "{name,}",
+  "ok": false
+ },
+ {
+  "text": "{name, }",
+  "ok": false
+ },
+ {
+  "text": "{n, number}",
+  "ok": true
+ },
+ {
+  "text": "{n, number, integer}",
+  "ok": true
+ },
+ {
+  "text": "{n, number, }",
+  "ok": false
+ },
+ {
+  "text": "{n,number,percent}",
+  "ok": true
+ },
+ {
+  "text": "{n, number, ::currency/CNY}",
+  "ok": true
+ },
+ {
+  "text": "{n, number, ::}",
+  "ok": false
+ },
+ {
+  "text": "{n, number, ::currency/}",
+  "ok": false
+ },
+ {
+  "text": "{d, date, short}",
+  "ok": true
+ },
+ {
+  "text": "{d, date, ::yyyyMMdd}",
+  "ok": true
+ },
+ {
+  "text": "{d, date, ::}",
+  "ok": false
+ },
+ {
+  "text": "{t, time}",
+  "ok": true
+ },
+ {
+  "text": "{n, plural, one {# item} other {# items}}",
+  "ok": true
+ },
+ {
+  "text": "{n, plural, one {x}}",
+  "ok": false
+ },
+ {
+  "text": "{n, plural, =0 {none} other {#}}",
+  "ok": true
+ },
+ {
+  "text": "{n, plural, offset:1 one {a} other {b}}",
+  "ok": true
+ },
+ {
+  "text": "{n, plural, offset:x other {b}}",
+  "ok": false
+ },
+ {
+  "text": "{n, plural, offset 1 other {b}}",
+  "ok": false
+ },
+ {
+  "text": "{n, plural other {b}}",
+  "ok": false
+ },
+ {
+  "text": "{n, plural, other {a} other {b}}",
+  "ok": false
+ },
+ {
+  "text": "{n, plural, =1 {a} =1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{n, plural, =x {a} other {b}}",
+  "ok": false
+ },
+ {
+  "text": "{n, plural, other {a}",
+  "ok": false
+ },
+ {
+  "text": "{n, plural, other {a}} tail",
+  "ok": true
+ },
+ {
+  "text": "{n, plural, other a}",
+  "ok": false
+ },
+ {
+  "text": "{n, plural,}",
+  "ok": false
+ },
+ {
+  "text": "{n, plural, other {{m} #}}",
+  "ok": true
+ },
+ {
+  "text": "{n, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}",
+  "ok": true
+ },
+ {
+  "text": "{g, select, male {he} female {she} other {they}}",
+  "ok": true
+ },
+ {
+  "text": "{g, select, male {he}}",
+  "ok": false
+ },
+ {
+  "text": "{g, select, =1 {x} other {y}}",
+  "ok": false
+ },
+ {
+  "text": "{g, select, a {{n, plural, other {# x}}} other {z}}",
+  "ok": true
+ },
+ {
+  "text": "{g, select, a {#} other {#}}",
+  "ok": true
+ },
+ {
+  "text": "{n, foo}",
+  "ok": false
+ },
+ {
+  "text": "{n, Number}",
+  "ok": false
+ },
+ {
+  "text": "{a-b}",
+  "ok": false
+ },
+ {
+  "text": "{a_b}",
+  "ok": true
+ },
+ {
+  "text": "{名字}",
+  "ok": true
+ },
+ {
+  "text": "{名字。}",
+  "ok": false
+ },
+ {
+  "text": "{a b}",
+  "ok": false
+ },
+ {
+  "text": "{0}",
+  "ok": true
+ },
+ {
+  "text": "It''s",
+  "ok": true
+ },
+ {
+  "text": "'{name}'",
+  "ok": true
+ },
+ {
+  "text": "'{'name}",
+  "ok": true
+ },
+ {
+  "text": "'{name}",
+  "ok": true
+ },
+ {
+  "text": "'#'",
+  "ok": true
+ },
+ {
+  "text": "{n, plural, other {'#' is #}}",
+  "ok": true
+ },
+ {
+  "text": "a 'b' c",
+  "ok": true
+ },
+ {
+  "text": "''{x}''",
+  "ok": true
+ },
+ {
+  "text": "<b>bold</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>bold",
+  "ok": false
+ },
+ {
+  "text": "bold</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>a</i>",
+  "ok": false
+ },
+ {
+  "text": "<b/>",
+  "ok": true
+ },
+ {
+  "text": "<b />",
+  "ok": true
+ },
+ {
+  "text": "< b>",
+  "ok": true
+ },
+ {
+  "text": "<1>",
+  "ok": true
+ },
+ {
+  "text": "a < b",
+  "ok": true
+ },
+ {
+  "text": "a <",
+  "ok": true
+ },
+ {
+  "text": "<",
+  "ok": true
+ },
+ {
+  "text": "a > b",
+  "ok": true
+ },
+ {
+  "text": "<b>x</b >",
+  "ok": true
+ },
+ {
+  "text": "<b>x</ b>",
+  "ok": false
+ },
+ {
+  "text": "<b>x</",
+  "ok": false
+ },
+ {
+  "text": "<b>{n, plural, other {<i>#</i>}}</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>{n, plural, other {x</b>}}",
+  "ok": false
+ },
+ {
+  "text": "<link>Docs</link> and <strong>more</strong>",
+  "ok": true
+ },
+ {
+  "text": "<a-b.c_1>x</a-b.c_1>",
+  "ok": true
+ },
+ {
+  "text": "<B>x</B>",
+  "ok": true
+ },
+ {
+  "text": "<b>x</B>",
+  "ok": false
+ },
+ {
+  "text": "'<b>'",
+  "ok": true
+ },
+ {
+  "text": "'<b>x</b>'",
+  "ok": true
+ },
+ {
+  "text": "{n, number, {a}}",
+  "ok": true
+ },
+ {
+  "text": "{n, number, 'x}",
+  "ok": false
+ },
+ {
+  "text": "{n, number, 'a'}",
+  "ok": true
+ },
+ {
+  "text": "{n, plural, one {a} other {b}} {m, select, x {y} other {z}}",
+  "ok": true
+ },
+ {
+  "text": "A {a} and {b, plural, one {{c}} other {#}}",
+  "ok": true
+ },
+ {
+  "text": "{a}{b}",
+  "ok": true
+ },
+ {
+  "text": "{{a}}",
+  "ok": false
+ },
+ {
+  "text": " {a}",
+  "ok": true
+ },
+ {
+  "text": "{ a}",
+  "ok": false
+ },
+ {
+  "text": "{a }",
+  "ok": false
+ },
+ {
+  "text": "{　a}",
+  "ok": false
+ },
+ {
+  "text": "{a　}",
+  "ok": false
+ },
+ {
+  "text": "{n,\tplural,\tother\t{x}}",
+  "ok": true
+ },
+ {
+  "text": "{n, plural, one{a}other{b}}",
+  "ok": true
+ },
+ {
+  "text": "other' #1  //",
+  "ok": true
+ },
+ {
+  "text": "#}n<=",
+  "ok": true
+ },
+ {
+  "text": ",selectnumber{,n=plural{",
+  "ok": false
+ },
+ {
+  "text": "'one==a ={plural",
+  "ok": false
+ },
+ {
+  "text": "#",
+  "ok": true
+ },
+ {
+  "text": "xb#{number'a'/",
+  "ok": false
+ },
+ {
+  "text": "oneselect<}nother:b:",
+  "ok": true
+ },
+ {
+  "text": "#/one,,",
+  "ok": true
+ },
+ {
+  "text": "number plural<otherb}pluralselect",
+  "ok": false
+ },
+ {
+  "text": "/1oneone,",
+  "ok": true
+ },
+ {
+  "text": "number",
+  "ok": true
+ },
+ {
+  "text": ",",
+  "ok": true
+ },
+ {
+  "text": "1 /plural<{#a#",
+  "ok": false
+ },
+ {
+  "text": "n",
+  "ok": true
+ },
+ {
+  "text": "#x,:'",
+  "ok": true
+ },
+ {
+  "text": "numberx}'/",
+  "ok": true
+ },
+ {
+  "text": ",:{n ",
+  "ok": false
+ },
+ {
+  "text": ":number#other:",
+  "ok": true
+ },
+ {
+  "text": ",1select<,",
+  "ok": true
+ },
+ {
+  "text": "=one otherotheroneother{a",
+  "ok": false
+ },
+ {
+  "text": "'",
+  "ok": true
+ },
+ {
+  "text": "'>pluralone=",
+  "ok": true
+ },
+ {
+  "text": "11n'numberother1/n",
+  "ok": true
+ },
+ {
+  "text": "=plural1==",
+  "ok": true
+ },
+ {
+  "text": "other#b>1>::plural",
+  "ok": true
+ },
+ {
+  "text": "/",
+  "ok": true
+ },
+ {
+  "text": "x1,plural> ab/",
+  "ok": true
+ },
+ {
+  "text": "b<aplural</<x<",
+  "ok": false
+ },
+ {
+  "text": "{plural/1plural",
+  "ok": false
+ },
+ {
+  "text": "xn,{selectnumber ax",
+  "ok": false
+ },
+ {
+  "text": "select",
+  "ok": true
+ },
+ {
+  "text": " n<//=<>/",
+  "ok": false
+ },
+ {
+  "text": "plural",
+  "ok": true
+ },
+ {
+  "text": "'onex}1plural}bother",
+  "ok": true
+ },
+ {
+  "text": "#','n",
+  "ok": true
+ },
+ {
+  "text": ">1=:{",
+  "ok": false
+ },
+ {
+  "text": "x",
+  "ok": true
+ },
+ {
+  "text": "b}one>/",
+  "ok": true
+ },
+ {
+  "text": ",none}b",
+  "ok": true
+ },
+ {
+  "text": "b,one>,anumberone1",
+  "ok": true
+ },
+ {
+  "text": "'one{plural/#>bother",
+  "ok": false
+ },
+ {
+  "text": "none{>,{>:select",
+  "ok": false
+ },
+ {
+  "text": "{1,}a",
+  "ok": false
+ },
+ {
+  "text": "=plural{/ ",
+  "ok": false
+ },
+ {
+  "text": "other#x#:",
+  "ok": true
+ },
+ {
+  "text": "bpluralselect,:",
+  "ok": true
+ },
+ {
+  "text": "b",
+  "ok": true
+ },
+ {
+  "text": ">oneother,number",
+  "ok": true
+ },
+ {
+  "text": "1:one=one",
+  "ok": true
+ },
+ {
+  "text": "#n,nn1selectoneb",
+  "ok": true
+ },
+ {
+  "text": "otherselectpluralselect,<1a>",
+  "ok": true
+ },
+ {
+  "text": "number,1{an>{}",
+  "ok": false
+ },
+ {
+  "text": "a>/:#='n'",
+  "ok": true
+ },
+ {
+  "text": "1{bplural ',1}",
+  "ok": false
+ },
+ {
+  "text": " <none><<x'",
+  "ok": false
+ },
+ {
+  "text": "'number #numbernumber' a",
+  "ok": true
+ },
+ {
+  "text": "=selectoneplural}one:a ",
+  "ok": true
+ },
+ {
+  "text": "oneonex{: bother/",
+  "ok": false
+ },
+ {
+  "text": "1nx: >#/1",
+  "ok": true
+ },
+ {
+  "text": "other}'}:",
+  "ok": true
+ },
+ {
+  "text": "a",
+  "ok": true
+ },
+ {
+  "text": ">",
+  "ok": true
+ },
+ {
+  "text": "<select/>b",
+  "ok": true
+ },
+ {
+  "text": "}other:/{select,=,",
+  "ok": false
+ },
+ {
+  "text": "/number/1select,:number=",
+  "ok": true
+ },
+ {
+  "text": ",'/#a",
+  "ok": true
+ },
+ {
+  "text": " ",
+  "ok": true
+ },
+ {
+  "text": "#x}1/>: number",
+  "ok": true
+ },
+ {
+  "text": "n,oneselect:",
+  "ok": true
+ },
+ {
+  "text": "one",
+  "ok": true
+ },
+ {
+  "text": "other{/,#b''/",
+  "ok": false
+ },
+ {
+  "text": ">:#}>nnnumber'",
+  "ok": true
+ },
+ {
+  "text": "}<'>one",
+  "ok": true
+ },
+ {
+  "text": "annumber,,",
+  "ok": true
+ },
+ {
+  "text": "#number/{x",
+  "ok": false
+ },
+ {
+  "text": "}{x,>,/>#",
+  "ok": false
+ },
+ {
+  "text": " b#/#",
+  "ok": true
+ },
+ {
+  "text": " plural'',",
+  "ok": true
+ },
+ {
+  "text": "numberxpluraloneother",
+  "ok": true
+ },
+ {
+  "text": ":",
+  "ok": true
+ },
+ {
+  "text": "b}selectone#",
+  "ok": true
+ },
+ {
+  "text": "a<aone>",
+  "ok": false
+ },
+ {
+  "text": "other=selectothernumber}<selecta",
+  "ok": false
+ },
+ {
+  "text": "=",
+  "ok": true
+ },
+ {
+  "text": "one>{/{",
+  "ok": false
+ },
+ {
+  "text": "<: ,{1one,/",
+  "ok": false
+ },
+ {
+  "text": "1",
+  "ok": true
+ },
+ {
+  "text": "one{number:'",
+  "ok": false
+ },
+ {
+  "text": "other",
+  "ok": true
+ },
+ {
+  "text": " #numbernumber=",
+  "ok": true
+ },
+ {
+  "text": "=other{:other",
+  "ok": false
+ },
+ {
+  "text": ",:/oneselect",
+  "ok": true
+ },
+ {
+  "text": ">#<}=",
+  "ok": true
+ },
+ {
+  "text": "<nnumber{number",
+  "ok": false
+ },
+ {
+  "text": "xn'='",
+  "ok": true
+ },
+ {
+  "text": "xxbplural1 otherbselect",
+  "ok": true
+ },
+ {
+  "text": "'1bn,nplural=one",
+  "ok": true
+ },
+ {
+  "text": "one: select,/< b",
+  "ok": true
+ },
+ {
+  "text": "/oneotherbselectxxx/",
+  "ok": true
+ },
+ {
+  "text": "1n1one#",
+  "ok": true
+ },
+ {
+  "text": "one:one pluralx#<}",
+  "ok": true
+ },
+ {
+  "text": "b/none,",
+  "ok": true
+ },
+ {
+  "text": " number1one>",
+  "ok": true
+ },
+ {
+  "text": "xx<{><>,1",
+  "ok": false
+ },
+ {
+  "text": "1,{',}othernplural",
+  "ok": false
+ },
+ {
+  "text": " :<}select/#}/",
+  "ok": true
+ },
+ {
+  "text": "}select>x=",
+  "ok": true
+ },
+ {
+  "text": "{pluralother other'/}=",
+  "ok": false
+ },
+ {
+  "text": ">one{1x",
+  "ok": false
+ },
+ {
+  "text": "other{1/n",
+  "ok": false
+ },
+ {
+  "text": "xselectbnumberx>}# ",
+  "ok": true
+ },
+ {
+  "text": "select>b<otherone=1other",
+  "ok": false
+ },
+ {
+  "text": ", plural>onexone=a",
+  "ok": true
+ },
+ {
+  "text": "}/<}#select:'other",
+  "ok": true
+ },
+ {
+  "text": "=,'{one",
+  "ok": true
+ },
+ {
+  "text": "otherselect,numbera,onenumber:",
+  "ok": true
+ },
+ {
+  "text": "a{aa:aonebb",
+  "ok": false
+ },
+ {
+  "text": "'}plural1}",
+  "ok": true
+ },
+ {
+  "text": "{1other>/{#<select",
+  "ok": false
+ },
+ {
+  "text": ":onea/select",
+  "ok": true
+ },
+ {
+  "text": "<numbernumbera>,xbx",
+  "ok": false
+ },
+ {
+  "text": ",select/plurala",
+  "ok": true
+ },
+ {
+  "text": "{#'x>number{<other",
+  "ok": false
+ },
+ {
+  "text": "< /=#,}  ",
+  "ok": true
+ },
+ {
+  "text": " <'>1=a, ",
+  "ok": true
+ },
+ {
+  "text": "'1=}:",
+  "ok": true
+ },
+ {
+  "text": "/#'one<",
+  "ok": true
+ },
+ {
+  "text": "nn<nbother11:",
+  "ok": false
+ },
+ {
+  "text": "a}'a/{n#x",
+  "ok": false
+ },
+ {
+  "text": "#>#/a11other1",
+  "ok": true
+ },
+ {
+  "text": "other } one",
+  "ok": true
+ },
+ {
+  "text": "{/select#'",
+  "ok": false
+ },
+ {
+  "text": "1=a}>nnumberx/",
+  "ok": true
+ },
+ {
+  "text": " /1b1select,:}",
+  "ok": true
+ },
+ {
+  "text": "{select#selectone",
+  "ok": false
+ },
+ {
+  "text": "#'#}=",
+  "ok": true
+ },
+ {
+  "text": "a>=otherx>,pluralnumber",
+  "ok": true
+ },
+ {
+  "text": ",}=:one {}:",
+  "ok": false
+ },
+ {
+  "text": "=n:selectn/<=n",
+  "ok": true
+ },
+ {
+  "text": "select''<number",
+  "ok": false
+ },
+ {
+  "text": "=:aonen",
+  "ok": true
+ },
+ {
+  "text": ",1/numberother",
+  "ok": true
+ },
+ {
+  "text": ">1x'1",
+  "ok": true
+ },
+ {
+  "text": "otherb>pluralselect",
+  "ok": true
+ },
+ {
+  "text": "/}':b",
+  "ok": true
+ },
+ {
+  "text": "<=<=plural",
+  "ok": true
+ },
+ {
+  "text": "b#n {>a#b",
+  "ok": false
+ },
+ {
+  "text": "}a:number/b#'=",
+  "ok": true
+ },
+ {
+  "text": "selecta< aselectselectothera",
+  "ok": true
+ },
+ {
+  "text": "{pluralnba",
+  "ok": false
+ },
+ {
+  "text": ":b=noneplural numbern",
+  "ok": true
+ },
+ {
+  "text": ":x:,n}{other#",
+  "ok": false
+ },
+ {
+  "text": "/='}/",
+  "ok": true
+ },
+ {
+  "text": "numberbplural:{number<pluralother",
+  "ok": false
+ },
+ {
+  "text": ",'one>a",
+  "ok": true
+ },
+ {
+  "text": "::b#bpluralother<#",
+  "ok": true
+ },
+ {
+  "text": "1,}othera",
+  "ok": true
+ },
+ {
+  "text": "numbera =n#{{n",
+  "ok": false
+ },
+ {
+  "text": "#,<one ",
+  "ok": false
+ },
+ {
+  "text": " >a#:",
+  "ok": true
+ },
+ {
+  "text": "1bselect>xonex=x",
+  "ok": true
+ },
+ {
+  "text": "#nselectb}b:select{",
+  "ok": false
+ },
+ {
+  "text": "{}</=n= <",
+  "ok": false
+ },
+ {
+  "text": "oneone,b,",
+  "ok": true
+ },
+ {
+  "text": "a,bselect}number><{",
+  "ok": false
+ },
+ {
+  "text": "other1other}<}{=x",
+  "ok": false
+ },
+ {
+  "text": "<=pluralx,{aselect1",
+  "ok": false
+ },
+ {
+  "text": ">selectplural}bnoneother,",
+  "ok": true
+ },
+ {
+  "text": "1,=b:1n '",
+  "ok": true
+ },
+ {
+  "text": "',n{ {}bother",
+  "ok": false
+ },
+ {
+  "text": "select:number{x>selectplural'",
+  "ok": false
+ },
+ {
+  "text": "n/1,=nx{=",
+  "ok": false
+ },
+ {
+  "text": "==''}>/otherselect",
+  "ok": true
+ },
+ {
+  "text": "}plural>:plural",
+  "ok": true
+ },
+ {
+  "text": "n/#1///aa",
+  "ok": true
+ },
+ {
+  "text": ":oneaselectone{<aplural",
+  "ok": false
+ },
+ {
+  "text": "otherbotherother{",
+  "ok": false
+ },
+ {
+  "text": ",onenumberplural1otherone#number",
+  "ok": true
+ },
+ {
+  "text": "oneba< ",
+  "ok": true
+ },
+ {
+  "text": "a<b1': otherone",
+  "ok": false
+ },
+ {
+  "text": "otherb}}>=pluralaplural",
+  "ok": true
+ },
+ {
+  "text": "/n/#1",
+  "ok": true
+ },
+ {
+  "text": "#other{aplural",
+  "ok": false
+ },
+ {
+  "text": "==b::",
+  "ok": true
+ },
+ {
+  "text": "x:a}=aa,1",
+  "ok": true
+ },
+ {
+  "text": ">>a:number>selectnx",
+  "ok": true
+ },
+ {
+  "text": ">selecta/,selectnnn",
+  "ok": true
+ },
+ {
+  "text": "onen, apluralnumber1=",
+  "ok": true
+ },
+ {
+  "text": ":#pluralother:<plural,b",
+  "ok": false
+ },
+ {
+  "text": ">>xpluralxnumber>,a",
+  "ok": true
+ },
+ {
+  "text": ":plural'xnnumber<1/",
+  "ok": true
+ },
+ {
+  "text": "number11/n=,#number",
+  "ok": true
+ },
+ {
+  "text": "<a,<select1//n",
+  "ok": false
+ },
+ {
+  "text": "{'select,number=other<one",
+  "ok": false
+ },
+ {
+  "text": "x}=a<",
+  "ok": true
+ },
+ {
+  "text": "//number}#",
+  "ok": true
+ },
+ {
+  "text": "#}:one/a/>:",
+  "ok": true
+ },
+ {
+  "text": "=x:{>",
+  "ok": false
+ },
+ {
+  "text": ":{select#/",
+  "ok": false
+ },
+ {
+  "text": "> }'::nplurala",
+  "ok": true
+ },
+ {
+  "text": "#'{=1pluralother#,",
+  "ok": true
+ },
+ {
+  "text": "<=plural'#",
+  "ok": true
+ },
+ {
+  "text": "}>1=>",
+  "ok": true
+ },
+ {
+  "text": "selectoneselect<:",
+  "ok": true
+ },
+ {
+  "text": "<>#<numberothern=n",
+  "ok": false
+ },
+ {
+  "text": ">}x:#numberoneselectn",
+  "ok": true
+ },
+ {
+  "text": "n1selectothern",
+  "ok": true
+ },
+ {
+  "text": "/>=ba",
+  "ok": true
+ },
+ {
+  "text": "oneplural}{:othern:a",
+  "ok": false
+ },
+ {
+  "text": "x<x/number/}/b",
+  "ok": false
+ },
+ {
+  "text": ">numberonenumber{",
+  "ok": false
+ },
+ {
+  "text": "one<,plural}'select {",
+  "ok": false
+ },
+ {
+  "text": "one:none<{'other,",
+  "ok": false
+ },
+ {
+  "text": " #select'pluralotherbone}",
+  "ok": true
+ },
+ {
+  "text": "select<otherone,{number=x",
+  "ok": false
+ },
+ {
+  "text": ">{selectone}>,::",
+  "ok": true
+ },
+ {
+  "text": "xotherselectn'aselect#1",
+  "ok": true
+ },
+ {
+  "text": "}:pluralplural#",
+  "ok": true
+ },
+ {
+  "text": "n/'  ",
+  "ok": true
+ },
+ {
+  "text": "b>n,number numberone#",
+  "ok": true
+ },
+ {
+  "text": "}}={1/>bother",
+  "ok": false
+ },
+ {
+  "text": "xnumberplural a",
+  "ok": true
+ },
+ {
+  "text": "'</otherx",
+  "ok": true
+ },
+ {
+  "text": "b: one#",
+  "ok": true
+ },
+ {
+  "text": "number#{{{",
+  "ok": false
+ },
+ {
+  "text": "b'1:}",
+  "ok": true
+ },
+ {
+  "text": "pluralpluralbselect<aplural/ ",
+  "ok": false
+ },
+ {
+  "text": "<number<:/",
+  "ok": false
+ },
+ {
+  "text": "nbnumberselectn",
+  "ok": true
+ },
+ {
+  "text": "anx: ",
+  "ok": true
+ },
+ {
+  "text": "=x:11",
+  "ok": true
+ },
+ {
+  "text": ":1othera=",
+  "ok": true
+ },
+ {
+  "text": "  #{n<=numbera",
+  "ok": false
+ },
+ {
+  "text": "<<,{a",
+  "ok": false
+ },
+ {
+  "text": ":/:>n>bx<",
+  "ok": true
+ },
+ {
+  "text": "x=aother'",
+  "ok": true
+ },
+ {
+  "text": "plural{/ >number :x",
+  "ok": false
+ },
+ {
+  "text": "}}=other<",
+  "ok": true
+ },
+ {
+  "text": "x'1<b",
+  "ok": false
+ },
+ {
+  "text": "one}other/number",
+  "ok": true
+ },
+ {
+  "text": "/n>other'oneaoneother",
+  "ok": true
+ },
+ {
+  "text": "nonenother/:}:=",
+  "ok": true
+ },
+ {
+  "text": "number<x>{one#n<",
+  "ok": false
+ },
+ {
+  "text": "{axb}",
+  "ok": true
+ },
+ {
+  "text": "=/>,#select>}'",
+  "ok": true
+ },
+ {
+  "text": "> <:n",
+  "ok": true
+ },
+ {
+  "text": "/},}aselect'n/",
+  "ok": true
+ },
+ {
+  "text": "plural }a<ax=other",
+  "ok": false
+ },
+ {
+  "text": "selecta>'n<'numberx",
+  "ok": true
+ },
+ {
+  "text": "{>one>{",
+  "ok": false
+ },
+ {
+  "text": ":><othern",
+  "ok": false
+ },
+ {
+  "text": ",/number1other",
+  "ok": true
+ },
+ {
+  "text": "#<select>selectnapluraln",
+  "ok": false
+ },
+ {
+  "text": ">}a:one",
+  "ok": true
+ },
+ {
+  "text": "//bother<>plural{{",
+  "ok": false
+ },
+ {
+  "text": ":n:other#other##one",
+  "ok": true
+ },
+ {
+  "text": "{<{1<",
+  "ok": false
+ },
+ {
+  "text": "}/'one/",
+  "ok": true
+ },
+ {
+  "text": "number#}x#",
+  "ok": true
+ },
+ {
+  "text": "}11<one",
+  "ok": false
+ },
+ {
+  "text": "=>boneselect",
+  "ok": true
+ },
+ {
+  "text": ": pluralaplural",
+  "ok": true
+ },
+ {
+  "text": "otherselect plural<",
+  "ok": true
+ },
+ {
+  "text": ":<#==>n1other",
+  "ok": true
+ },
+ {
+  "text": "1one}onen=plural:,",
+  "ok": true
+ },
+ {
+  "text": "'select,=x",
+  "ok": true
+ },
+ {
+  "text": "b='<'number>1:",
+  "ok": true
+ },
+ {
+  "text": "numbera{bother,otherother}",
+  "ok": false
+ },
+ {
+  "text": "othern1{number",
+  "ok": false
+ },
+ {
+  "text": "< =number<",
+  "ok": true
+ },
+ {
+  "text": "one /<}",
+  "ok": true
+ },
+ {
+  "text": "plural1bselect=",
+  "ok": true
+ },
+ {
+  "text": "1/na1",
+  "ok": true
+ },
+ {
+  "text": "{ one<>",
+  "ok": false
+ },
+ {
+  "text": "//{ pluralnumber<select'",
+  "ok": false
+ },
+ {
+  "text": "bnumber',select",
+  "ok": true
+ },
+ {
+  "text": "=/ b<,<oneplural",
+  "ok": false
+ },
+ {
+  "text": "}1:#/",
+  "ok": true
+ },
+ {
+  "text": "othernumberx:'",
+  "ok": true
+ },
+ {
+  "text": "select}<n'",
+  "ok": false
+ },
+ {
+  "text": ",pluralplural/n,:#'",
+  "ok": true
+ },
+ {
+  "text": "number'' other'numbernumber,",
+  "ok": true
+ },
+ {
+  "text": "xxplural<=",
+  "ok": true
+ },
+ {
+  "text": ">,{'numbera/x{",
+  "ok": false
+ },
+ {
+  "text": "{/{#:",
+  "ok": false
+ },
+ {
+  "text": "b>oneabother#aother",
+  "ok": true
+ },
+ {
+  "text": ":}nxother=,<select",
+  "ok": false
+ },
+ {
+  "text": ">#'#{othern'>",
+  "ok": false
+ },
+ {
+  "text": "oneother/>,",
+  "ok": true
+ },
+ {
+  "text": "numberother#number{",
+  "ok": false
+ },
+ {
+  "text": "other:other,selectone#b>",
+  "ok": true
+ },
+ {
+  "text": "other<#an",
+  "ok": true
+ },
+ {
+  "text": "number#/other}",
+  "ok": true
+ },
+ {
+  "text": "<x<b>select:select}",
+  "ok": false
+ },
+ {
+  "text": "<x1=1x1plural>",
+  "ok": false
+ },
+ {
+  "text": "#{plural'numberother#, ",
+  "ok": false
+ },
+ {
+  "text": ",nonen,n{x,",
+  "ok": false
+ },
+ {
+  "text": "{plural<a<",
+  "ok": false
+ },
+ {
+  "text": "bone'n}",
+  "ok": true
+ },
+ {
+  "text": " baone}<n=:",
+  "ok": false
+ },
+ {
+  "text": "bnumbern#<",
+  "ok": true
+ },
+ {
+  "text": ",,oneother'",
+  "ok": true
+ },
+ {
+  "text": "na'other}b'pluralplural",
+  "ok": true
+ },
+ {
+  "text": "1> :plural",
+  "ok": true
+ },
+ {
+  "text": "=numberonenplural",
+  "ok": true
+ },
+ {
+  "text": ":,x<n",
+  "ok": false
+ },
+ {
+  "text": "/:1n}",
+  "ok": true
+ },
+ {
+  "text": "{>n<}/xselectb",
+  "ok": false
+ },
+ {
+  "text": ",x }b",
+  "ok": true
+ },
+ {
+  "text": "one,bother,",
+  "ok": true
+ },
+ {
+  "text": ">< }a",
+  "ok": true
+ },
+ {
+  "text": "selectnumber'},",
+  "ok": true
+ },
+ {
+  "text": ">one,numberb:'one<",
+  "ok": true
+ },
+ {
+  "text": "''#{n=nnumber1",
+  "ok": false
+ },
+ {
+  "text": "x'number1number'pluralxplural",
+  "ok": true
+ },
+ {
+  "text": "/'>one1{pluralb#",
+  "ok": true
+ },
+ {
+  "text": "select11,plural",
+  "ok": true
+ },
+ {
+  "text": "number'otherax",
+  "ok": true
+ },
+ {
+  "text": "'{/pluralx}bx ",
+  "ok": true
+ },
+ {
+  "text": "xselect##>",
+  "ok": true
+ },
+ {
+  "text": " n 'a'>#'",
+  "ok": true
+ },
+ {
+  "text": "plural{:'plural",
+  "ok": false
+ },
+ {
+  "text": "number#1,,b:{>",
+  "ok": false
+ },
+ {
+  "text": " b>{x",
+  "ok": false
+ },
+ {
+  "text": "x1b',:onexselect",
+  "ok": true
+ },
+ {
+  "text": "#:,b'",
+  "ok": true
+ },
+ {
+  "text": "=select#'b{1b/",
+  "ok": false
+ },
+ {
+  "text": ",>}select1",
+  "ok": true
+ },
+ {
+  "text": "{=,numberpluralb=,one",
+  "ok": false
+ },
+ {
+  "text": " a=':",
+  "ok": true
+ },
+ {
+  "text": "number=,othernumber pluraln{",
+  "ok": false
+ },
+ {
+  "text": ",a=xx",
+  "ok": true
+ },
+ {
+  "text": "<one,=:b}otherother",
+  "ok": false
+ },
+ {
+  "text": "',one>xxn1=",
+  "ok": true
+ },
+ {
+  "text": "}} select/'1pluralx",
+  "ok": true
+ },
+ {
+  "text": "n<'b,",
+  "ok": true
+ },
+ {
+  "text": ",' number,",
+  "ok": true
+ },
+ {
+  "text": "b,selectnumber#b<<number",
+  "ok": false
+ },
+ {
+  "text": "one#/1 x#<b",
+  "ok": false
+ },
+ {
+  "text": "otheraplural<b>1n#",
+  "ok": false
+ },
+ {
+  "text": "n:{ n",
+  "ok": false
+ },
+ {
+  "text": "{n/xothernumber1number}",
+  "ok": false
+ },
+ {
+  "text": ":>onepluralbx one:",
+  "ok": true
+ },
+ {
+  "text": "n,other<selectselect<=n",
+  "ok": false
+ },
+ {
+  "text": "{>axother",
+  "ok": false
+ },
+ {
+  "text": "n#'1 <> n",
+  "ok": true
+ },
+ {
+  "text": "select,<#number}plural{b",
+  "ok": false
+ },
+ {
+  "text": "one<bnb'/a1",
+  "ok": false
+ },
+ {
+  "text": " a{}other=b/x",
+  "ok": false
+ },
+ {
+  "text": "selecta,<1",
+  "ok": true
+ },
+ {
+  "text": "1{}other<number1//",
+  "ok": false
+ },
+ {
+  "text": "1>::,",
+  "ok": true
+ },
+ {
+  "text": ",#b/=",
+  "ok": true
+ },
+ {
+  "text": ",b#othera#1/ ",
+  "ok": true
+ },
+ {
+  "text": "=plural'/number",
+  "ok": true
+ },
+ {
+  "text": ">11plurala",
+  "ok": true
+ },
+ {
+  "text": "a,a/pluralplural>}one",
+  "ok": true
+ },
+ {
+  "text": "=,a'n/<#}",
+  "ok": true
+ },
+ {
+  "text": "nbaselect,/'=select",
+  "ok": true
+ },
+ {
+  "text": "x }#}xb other",
+  "ok": true
+ },
+ {
+  "text": "<number{a}numberxbselect",
+  "ok": false
+ },
+ {
+  "text": ">  other=",
+  "ok": true
+ },
+ {
+  "text": ", ===",
+  "ok": true
+ },
+ {
+  "text": "onebotherother/",
+  "ok": true
+ },
+ {
+  "text": ":{number<select>select=number",
+  "ok": false
+ },
+ {
+  "text": "#}one>1/x}1",
+  "ok": true
+ },
+ {
+  "text": " otherx> ",
+  "ok": true
+ },
+ {
+  "text": "other}{<select1numberothern",
+  "ok": false
+ },
+ {
+  "text": "/11select/'x}one",
+  "ok": true
+ },
+ {
+  "text": "< number1 number={one",
+  "ok": false
+ },
+ {
+  "text": "1number:{n}a#}",
+  "ok": true
+ },
+ {
+  "text": "selectanumber' ",
+  "ok": true
+ },
+ {
+  "text": "numbera,}select",
+  "ok": true
+ },
+ {
+  "text": ",{1onexboneother'",
+  "ok": false
+ },
+ {
+  "text": "/oneselectselecta",
+  "ok": true
+ },
+ {
+  "text": "{<other/,",
+  "ok": false
+ },
+ {
+  "text": "selectselect'/'",
+  "ok": true
+ },
+ {
+  "text": "other{{xn:{numberplural",
+  "ok": false
+ },
+ {
+  "text": ">pluralselect,plural=pluraln,",
+  "ok": true
+ },
+ {
+  "text": ">onen{/x<< ",
+  "ok": false
+ },
+ {
+  "text": "oneplural#<a:{1select",
+  "ok": false
+ },
+ {
+  "text": "selectb#}=",
+  "ok": true
+ },
+ {
+  "text": "oneselect<xaone#'=",
+  "ok": false
+ },
+ {
+  "text": "#<a,x",
+  "ok": false
+ },
+ {
+  "text": "numbernx{:",
+  "ok": false
+ },
+ {
+  "text": "a'#select,#<select}",
+  "ok": false
+ },
+ {
+  "text": "selectnbnumberb",
+  "ok": true
+ },
+ {
+  "text": "a:#{number",
+  "ok": false
+ },
+ {
+  "text": "nnumberx/othern1//",
+  "ok": true
+ },
+ {
+  "text": "selectplural}otherplural",
+  "ok": true
+ },
+ {
+  "text": "=/plural/selectnumber//1",
+  "ok": true
+ },
+ {
+  "text": "{xaselect/",
+  "ok": false
+ },
+ {
+  "text": "'bpluralonex",
+  "ok": true
+ },
+ {
+  "text": "=,'}/{#>=",
+  "ok": true
+ },
+ {
+  "text": "other1,{1",
+  "ok": false
+ },
+ {
+  "text": "b>a='",
+  "ok": true
+ },
+ {
+  "text": "other>1other1",
+  "ok": true
+ },
+ {
+  "text": "#a/{#",
+  "ok": false
+ },
+ {
+  "text": "}b'=>n,>b",
+  "ok": true
+ },
+ {
+  "text": " plural selectn",
+  "ok": true
+ },
+ {
+  "text": "number'plural#b",
+  "ok": true
+ },
+ {
+  "text": "/plural>n}=:}n",
+  "ok": true
+ },
+ {
+  "text": "b#/}plural",
+  "ok": true
+ },
+ {
+  "text": ",:,<select",
+  "ok": false
+ },
+ {
+  "text": ">xnumberone'numberother:,",
+  "ok": true
+ },
+ {
+  "text": "=number=other,",
+  "ok": true
+ },
+ {
+  "text": "1/x#x{n<plural",
+  "ok": false
+ },
+ {
+  "text": "//oneaone",
+  "ok": true
+ },
+ {
+  "text": "select1}aselect>other',1",
+  "ok": true
+ },
+ {
+  "text": "'#one>'",
+  "ok": true
+ },
+ {
+  "text": ">}b,1#<',",
+  "ok": true
+ },
+ {
+  "text": "{#'}plural",
+  "ok": false
+ },
+ {
+  "text": "select'}x:",
+  "ok": true
+ },
+ {
+  "text": "banumberother#",
+  "ok": true
+ },
+ {
+  "text": "plural{aplural<",
+  "ok": false
+ },
+ {
+  "text": "n'>:a",
+  "ok": true
+ },
+ {
+  "text": ", :b#select/otherother",
+  "ok": true
+ },
+ {
+  "text": "apluralxbx",
+  "ok": true
+ },
+ {
+  "text": ":selectselectb1=aplural<",
+  "ok": true
+ },
+ {
+  "text": "othernumberselect:1>/=#",
+  "ok": true
+ },
+ {
+  "text": "select/==:,,'other",
+  "ok": true
+ },
+ {
+  "text": "select/'other#",
+  "ok": true
+ },
+ {
+  "text": ">1}bx>pluralselect<",
+  "ok": true
+ },
+ {
+  "text": ":noneother}",
+  "ok": true
+ },
+ {
+  "text": "<plural=nother:noneb",
+  "ok": false
+ },
+ {
+  "text": "/}other bb1</",
+  "ok": false
+ },
+ {
+  "text": "'1:><'b#number",
+  "ok": true
+ },
+ {
+  "text": "'>x :numberb#{",
+  "ok": true
+ },
+ {
+  "text": "<n}oneplural #other ",
+  "ok": false
+ },
+ {
+  "text": ",/numberselect<",
+  "ok": true
+ },
+ {
+  "text": "''// '=1}",
+  "ok": true
+ },
+ {
+  "text": ":,one1'",
+  "ok": true
+ },
+ {
+  "text": "b=}=1",
+  "ok": true
+ },
+ {
+  "text": ">#x<=b} one",
+  "ok": true
+ },
+ {
+  "text": ",<{b}",
+  "ok": true
+ },
+ {
+  "text": "numberplural,,bnumber :#",
+  "ok": true
+ },
+ {
+  "text": "bone#>,other<pluralplural",
+  "ok": false
+ },
+ {
+  "text": "selectnumber/<other",
+  "ok": false
+ },
+ {
+  "text": "n>abonennumberplural1",
+  "ok": true
+ },
+ {
+  "text": "plural}}>n",
+  "ok": true
+ },
+ {
+  "text": ">#other=:{>'a",
+  "ok": false
+ },
+ {
+  "text": ">#:x1",
+  "ok": true
+ },
+ {
+  "text": "select>#other{{numberselect>",
+  "ok": false
+ },
+ {
+  "text": "select/}selectnxx1,",
+  "ok": true
+ },
+ {
+  "text": "1{xnumber{",
+  "ok": false
+ },
+ {
+  "text": "number=x>other1x{=",
+  "ok": false
+ },
+ {
+  "text": "}1  =a/aa",
+  "ok": true
+ },
+ {
+  "text": "numberxa=: pluralx=",
+  "ok": true
+ },
+ {
+  "text": "{n <1",
+  "ok": false
+ },
+ {
+  "text": "<a#>number:select#}",
+  "ok": false
+ },
+ {
+  "text": "x1/selectselect",
+  "ok": true
+ },
+ {
+  "text": "select=1/b,n:x",
+  "ok": true
+ },
+ {
+  "text": "select1,1plurala=}1",
+  "ok": true
+ },
+ {
+  "text": "<1=a a1/n",
+  "ok": true
+ },
+ {
+  "text": "select'/< ",
+  "ok": true
+ },
+ {
+  "text": " 'number>select",
+  "ok": true
+ },
+ {
+  "text": "otherselectselect/=",
+  "ok": true
+ },
+ {
+  "text": "other<nn#",
+  "ok": false
+ },
+ {
+  "text": "x<> other",
+  "ok": true
+ },
+ {
+  "text": "other'>pluralplural",
+  "ok": true
+ },
+ {
+  "text": "'na:number",
+  "ok": true
+ },
+ {
+  "text": "number{=nselect",
+  "ok": false
+ },
+ {
+  "text": "<#=1number{#other>",
+  "ok": false
+ },
+ {
+  "text": "}={1onepluralb=n",
+  "ok": false
+ },
+ {
+  "text": "1other'numberother",
+  "ok": true
+ },
+ {
+  "text": " selecta>>pluralotherselecta",
+  "ok": true
+ },
+ {
+  "text": "onea >select<,>{",
+  "ok": false
+ },
+ {
+  "text": "select   other",
+  "ok": true
+ },
+ {
+  "text": "one{>oneplural",
+  "ok": false
+ },
+ {
+  "text": ":,numberoneoneselect{plural'",
+  "ok": false
+ },
+ {
+  "text": "number/,=}",
+  "ok": true
+ },
+ {
+  "text": "'<>selectx",
+  "ok": true
+ },
+ {
+  "text": "/one>other1",
+  "ok": true
+ },
+ {
+  "text": "select=number/#/aa/",
+  "ok": true
+ },
+ {
+  "text": "anumberpluralother}",
+  "ok": true
+ },
+ {
+  "text": "1'<other'",
+  "ok": true
+ },
+ {
+  "text": "#ax{xbbnumberone",
+  "ok": false
+ },
+ {
+  "text": "otherothernanumber,{number'",
+  "ok": false
+ },
+ {
+  "text": "}>}a</,one<",
+  "ok": false
+ },
+ {
+  "text": ",/plural#>",
+  "ok": true
+ },
+ {
+  "text": "onebplural/x'bselect>",
+  "ok": true
+ },
+ {
+  "text": "n>oneaotherbb{x",
+  "ok": false
+ },
+ {
+  "text": "a{#b'onen select",
+  "ok": false
+ },
+ {
+  "text": "<one,}numberxaothern",
+  "ok": false
+ },
+ {
+  "text": "x xpluralx",
+  "ok": true
+ },
+ {
+  "text": "/numberother##<ax,",
+  "ok": false
+ },
+ {
+  "text": "a:{aother",
+  "ok": false
+ },
+ {
+  "text": "one/plural> ",
+  "ok": true
+ },
+ {
+  "text": "#'/{{",
+  "ok": false
+ },
+ {
+  "text": " =anumberplural",
+  "ok": true
+ },
+ {
+  "text": "one/1,number",
+  "ok": true
+ },
+ {
+  "text": "}:,#other/, {",
+  "ok": false
+ },
+ {
+  "text": ":xplural{ 'abn",
+  "ok": false
+ },
+ {
+  "text": " ,1b ",
+  "ok": true
+ },
+ {
+  "text": ">>b>=nother 1",
+  "ok": true
+ },
+ {
+  "text": " xselectselect<",
+  "ok": true
+ },
+ {
+  "text": "number,plural=select,nb:",
+  "ok": true
+ },
+ {
+  "text": "=}/'/<xpluraln",
+  "ok": false
+ },
+ {
+  "text": "'x/,other",
+  "ok": true
+ },
+ {
+  "text": "'select:n{",
+  "ok": false
+ },
+ {
+  "text": "=x/1plural",
+  "ok": true
+ },
+ {
+  "text": "one<b:'",
+  "ok": false
+ },
+ {
+  "text": "#{nplural>",
+  "ok": false
+ },
+ {
+  "text": "}number number1b>oneplural",
+  "ok": true
+ },
+ {
+  "text": "1plural{ {",
+  "ok": false
+ },
+ {
+  "text": "number#1xselect",
+  "ok": true
+ },
+ {
+  "text": " 1n{<{selectx=",
+  "ok": false
+ },
+ {
+  "text": "{>:aselect ,,1",
+  "ok": false
+ },
+ {
+  "text": "plural<otherbselect}/},",
+  "ok": false
+ },
+ {
+  "text": ",#n:plural:one=plural",
+  "ok": true
+ },
+ {
+  "text": "< othera=",
+  "ok": true
+ },
+ {
+  "text": "a:selectother< 'otherother",
+  "ok": true
+ },
+ {
+  "text": "}>#{'numbernumber}1",
+  "ok": false
+ },
+ {
+  "text": "x:xbselect",
+  "ok": true
+ },
+ {
+  "text": "=selectother,one#selectaother",
+  "ok": true
+ },
+ {
+  "text": "}1x}'",
+  "ok": true
+ },
+ {
+  "text": "={oneb:",
+  "ok": false
+ },
+ {
+  "text": "otherotherselecta ",
+  "ok": true
+ },
+ {
+  "text": "<numberplurala,",
+  "ok": false
+ },
+ {
+  "text": "<1:/bx >{",
+  "ok": false
+ },
+ {
+  "text": ",=#otheroneselectnplural{",
+  "ok": false
+ },
+ {
+  "text": "a:otherb'pluralother# ",
+  "ok": true
+ },
+ {
+  "text": "}pluraln<1plural11other",
+  "ok": true
+ },
+ {
+  "text": ">n:/n'}=}",
+  "ok": true
+ },
+ {
+  "text": "x:n>select",
+  "ok": true
+ },
+ {
+  "text": "}1n/:",
+  "ok": true
+ },
+ {
+  "text": "{:number1{number1>,",
+  "ok": false
+ },
+ {
+  "text": "=onex1 ",
+  "ok": true
+ },
+ {
+  "text": " number#plurala",
+  "ok": true
+ },
+ {
+  "text": " {=other,",
+  "ok": false
+ },
+ {
+  "text": "selectaother<#",
+  "ok": true
+ },
+ {
+  "text": "bselectplural>select=plural=one",
+  "ok": true
+ },
+ {
+  "text": "one#b<other>,x<",
+  "ok": false
+ },
+ {
+  "text": "plurala'{a=b,select",
+  "ok": true
+ },
+ {
+  "text": "={>'1",
+  "ok": false
+ },
+ {
+  "text": "bselectother1x'othern>",
+  "ok": true
+ },
+ {
+  "text": "1n<otherpluraln#:}",
+  "ok": false
+ },
+ {
+  "text": "pluralx othernumber",
+  "ok": true
+ },
+ {
+  "text": "/'other#=",
+  "ok": true
+ },
+ {
+  "text": "/one'1selectnumberone{1",
+  "ok": false
+ },
+ {
+  "text": "1number  x",
+  "ok": true
+ },
+ {
+  "text": ",selectaselect}",
+  "ok": true
+ },
+ {
+  "text": ">,selectx}</a/",
+  "ok": false
+ },
+ {
+  "text": "<plurala,#",
+  "ok": false
+ },
+ {
+  "text": "#plural'other< }b1",
+  "ok": true
+ },
+ {
+  "text": ":>,:select",
+  "ok": true
+ },
+ {
+  "text": "/>>onenumber /otherb",
+  "ok": true
+ },
+ {
+  "text": "b1number/ one{, ",
+  "ok": false
+ },
+ {
+  "text": "#:=onen",
+  "ok": true
+ },
+ {
+  "text": "one{'1' < ,",
+  "ok": false
+ },
+ {
+  "text": "<:n/' b/}",
+  "ok": true
+ },
+ {
+  "text": "/{}plural }n#/",
+  "ok": false
+ },
+ {
+  "text": "<select=x'",
+  "ok": false
+ },
+ {
+  "text": " ,}'n1<one:",
+  "ok": false
+ },
+ {
+  "text": "#n#othernumber<bba",
+  "ok": false
+ },
+ {
+  "text": "selectplural/>number",
+  "ok": true
+ },
+ {
+  "text": "oneab<x >,plural",
+  "ok": false
+ },
+ {
+  "text": "otherone= x",
+  "ok": true
+ },
+ {
+  "text": ",select:'{number>>'",
+  "ok": true
+ },
+ {
+  "text": "plural'=,number#plural<#",
+  "ok": true
+ },
+ {
+  "text": "}<:axothernumber, ",
+  "ok": true
+ },
+ {
+  "text": "1n a>otheranumber,",
+  "ok": true
+ },
+ {
+  "text": "x,plural}}<onenn",
+  "ok": false
+ },
+ {
+  "text": ",=plural#x",
+  "ok": true
+ },
+ {
+  "text": "{numberone},",
+  "ok": true
+ },
+ {
+  "text": "=}selectx##select{<",
+  "ok": false
+ },
+ {
+  "text": "<'nxother",
+  "ok": true
+ },
+ {
+  "text": "#bother,}1plural#other",
+  "ok": true
+ },
+ {
+  "text": "nnumber=nselect{x#}",
+  "ok": false
+ },
+ {
+  "text": "an{numberoneab ,",
+  "ok": false
+ },
+ {
+  "text": "n/none,",
+  "ok": true
+ },
+ {
+  "text": "none :'oneb#<",
+  "ok": true
+ },
+ {
+  "text": "=pluralone{numberboneselect/",
+  "ok": false
+ },
+ {
+  "text": "<,plural=n",
+  "ok": true
+ },
+ {
+  "text": "otherother>a b},one",
+  "ok": true
+ },
+ {
+  "text": ",>#xselect##{x",
+  "ok": false
+ },
+ {
+  "text": "plural:x}ab'aa",
+  "ok": true
+ },
+ {
+  "text": ",'bother:",
+  "ok": true
+ },
+ {
+  "text": "number#plural==>other#number",
+  "ok": true
+ },
+ {
+  "text": "select,/a'",
+  "ok": true
+ },
+ {
+  "text": "}=}=number1/1/",
+  "ok": true
+ },
+ {
+  "text": "a{a< 1number<plural",
+  "ok": false
+ },
+ {
+  "text": ":{bpluralnumber",
+  "ok": false
+ },
+ {
+  "text": "n :' ",
+  "ok": true
+ },
+ {
+  "text": "/#one1a",
+  "ok": true
+ },
+ {
+  "text": "}/1otherb",
+  "ok": true
+ },
+ {
+  "text": "pluralb<{plural",
+  "ok": false
+ },
+ {
+  "text": "otherother<1other",
+  "ok": true
+ },
+ {
+  "text": "'<a1xn,nx",
+  "ok": true
+ },
+ {
+  "text": ">>a:=",
+  "ok": true
+ },
+ {
+  "text": "selectone#pluralone",
+  "ok": true
+ },
+ {
+  "text": "}pluralxselectb=,/x",
+  "ok": true
+ },
+ {
+  "text": "= number#x> =>",
+  "ok": true
+ },
+ {
+  "text": " plural''==xother1",
+  "ok": true
+ },
+ {
+  "text": "<''}>",
+  "ok": true
+ },
+ {
+  "text": "<other1a:",
+  "ok": false
+ },
+ {
+  "text": "={nn>",
+  "ok": false
+ },
+ {
+  "text": "nx=onea",
+  "ok": true
+ },
+ {
+  "text": "otherbplural one",
+  "ok": true
+ },
+ {
+  "text": "{number ,/",
+  "ok": false
+ },
+ {
+  "text": "'pluralselectnplural",
+  "ok": true
+ },
+ {
+  "text": ">1one}a",
+  "ok": true
+ },
+ {
+  "text": "'pluralother' =xplural'",
+  "ok": true
+ },
+ {
+  "text": "other,,:select",
+  "ok": true
+ },
+ {
+  "text": "a,<other1",
+  "ok": false
+ },
+ {
+  "text": ">/x=select<</:",
+  "ok": false
+ },
+ {
+  "text": ",xpluralpluralpluralan,n",
+  "ok": true
+ },
+ {
+  "text": "onex/>,",
+  "ok": true
+ },
+ {
+  "text": "::,< x= x",
+  "ok": true
+ },
+ {
+  "text": "',' x",
+  "ok": true
+ },
+ {
+  "text": "{}xbx",
+  "ok": false
+ },
+ {
+  "text": "n,plural/a",
+  "ok": true
+ },
+ {
+  "text": "b# one>{ '}",
+  "ok": false
+ },
+ {
+  "text": "1number{oneplural'xaselect",
+  "ok": false
+ },
+ {
+  "text": "boneselectothernumberone>#one",
+  "ok": true
+ },
+ {
+  "text": "xpluralnumber>1/select1plural",
+  "ok": true
+ },
+ {
+  "text": "/,oneone':otherother/",
+  "ok": true
+ },
+ {
+  "text": "'bone:other:select==",
+  "ok": true
+ },
+ {
+  "text": "bother}:one:#x,",
+  "ok": true
+ },
+ {
+  "text": "number:>>} selectplural#",
+  "ok": true
+ },
+ {
+  "text": "'a1n,",
+  "ok": true
+ },
+ {
+  "text": " nselect>a",
+  "ok": true
+ },
+ {
+  "text": "<b{a1{other:#",
+  "ok": false
+ },
+ {
+  "text": "one=,,{",
+  "ok": false
+ },
+ {
+  "text": ":/bselectb",
+  "ok": true
+ },
+ {
+  "text": "1otheroneselect/{bnumberplural",
+  "ok": false
+ },
+ {
+  "text": "n 'select>",
+  "ok": true
+ },
+ {
+  "text": "{other xnumberselect >'",
+  "ok": false
+ },
+ {
+  "text": "oneaselectxselect",
+  "ok": true
+ },
+ {
+  "text": "/one,other'",
+  "ok": true
+ },
+ {
+  "text": "'nnumberplural<",
+  "ok": true
+ },
+ {
+  "text": "{> <x''n=",
+  "ok": false
+ },
+ {
+  "text": "number<onenumber1,'<plural",
+  "ok": false
+ },
+ {
+  "text": "#>=a:>{number{",
+  "ok": false
+ },
+ {
+  "text": "b'pluralnumber<numberx:number",
+  "ok": false
+ },
+ {
+  "text": "b#select:/<'onex",
+  "ok": true
+ },
+ {
+  "text": "=>'an",
+  "ok": true
+ },
+ {
+  "text": "'oneplural{1xnumber/number",
+  "ok": false
+ },
+ {
+  "text": "pluralnumber}},",
+  "ok": true
+ },
+ {
+  "text": ">::a}other,}x",
+  "ok": true
+ },
+ {
+  "text": "=aselectotherbpluralplural1other",
+  "ok": true
+ },
+ {
+  "text": ">1anumbera# <b",
+  "ok": false
+ },
+ {
+  "text": ">select, 1, =:",
+  "ok": true
+ },
+ {
+  "text": ",} ##",
+  "ok": true
+ },
+ {
+  "text": "n#1pluralone",
+  "ok": true
+ },
+ {
+  "text": "/'n>}",
+  "ok": true
+ },
+ {
+  "text": "'=:,#}selectother=",
+  "ok": true
+ },
+ {
+  "text": "{other:<plural",
+  "ok": false
+ },
+ {
+  "text": "number> x/",
+  "ok": true
+ },
+ {
+  "text": "{#,nnumber",
+  "ok": false
+ },
+ {
+  "text": "<number',{numberselect==",
+  "ok": false
+ },
+ {
+  "text": "selectother#:number",
+  "ok": true
+ },
+ {
+  "text": "' nna",
+  "ok": true
+ },
+ {
+  "text": "  onea,",
+  "ok": true
+ },
+ {
+  "text": "pluralplural',,x}:#",
+  "ok": true
+ },
+ {
+  "text": "n#otherselectb",
+  "ok": true
+ },
+ {
+  "text": "1selectselectb{",
+  "ok": false
+ },
+ {
+  "text": ",abpluralxnumbernumber1n",
+  "ok": true
+ },
+ {
+  "text": "nselect/><",
+  "ok": true
+ },
+ {
+  "text": "n1one>nselectx<one",
+  "ok": false
+ },
+ {
+  "text": "}bone: ",
+  "ok": true
+ },
+ {
+  "text": "/,}one=",
+  "ok": true
+ },
+ {
+  "text": "#bn'/",
+  "ok": true
+ },
+ {
+  "text": ">'>other number1 plural",
+  "ok": true
+ },
+ {
+  "text": " x , ",
+  "ok": true
+ },
+ {
+  "text": "1',x}",
+  "ok": true
+ },
+ {
+  "text": "<# ,}",
+  "ok": true
+ },
+ {
+  "text": "x <xn",
+  "ok": false
+ },
+ {
+  "text": ",=select'n",
+  "ok": true
+ },
+ {
+  "text": "/other1< ",
+  "ok": true
+ },
+ {
+  "text": "oneonenumberselect#",
+  "ok": true
+ },
+ {
+  "text": ",>  #=/x ",
+  "ok": true
+ },
+ {
+  "text": "select'>==xa }",
+  "ok": true
+ },
+ {
+  "text": "nselectbselect}",
+  "ok": true
+ },
+ {
+  "text": "numberselect<1:<onex>",
+  "ok": false
+ },
+ {
+  "text": "x}1 1",
+  "ok": true
+ },
+ {
+  "text": "{anxother,<, ",
+  "ok": false
+ },
+ {
+  "text": "bnumberaplural/none<:",
+  "ok": true
+ },
+ {
+  "text": "a:',/",
+  "ok": true
+ },
+ {
+  "text": "xplural>onen",
+  "ok": true
+ },
+ {
+  "text": "1an'pluralbbselect ",
+  "ok": true
+ },
+ {
+  "text": "'{#,other<=select=",
+  "ok": true
+ },
+ {
+  "text": "'{otherselectone",
+  "ok": true
+ },
+ {
+  "text": "b>pluralother>'pluraln/",
+  "ok": true
+ },
+ {
+  "text": "/'select 1",
+  "ok": true
+ },
+ {
+  "text": "pluralother1xn",
+  "ok": true
+ },
+ {
+  "text": "/{nselectother",
+  "ok": false
+ },
+ {
+  "text": "n/oneaplural",
+  "ok": true
+ },
+ {
+  "text": "nb}ba",
+  "ok": true
+ },
+ {
+  "text": "selecta1onex,/,number",
+  "ok": true
+ },
+ {
+  "text": "/select}#plural",
+  "ok": true
+ },
+ {
+  "text": ":',}number:'numberplural",
+  "ok": true
+ },
+ {
+  "text": " 11nothernumber",
+  "ok": true
+ },
+ {
+  "text": "1=other=bplural1n=",
+  "ok": true
+ },
+ {
+  "text": "numberone1}plural",
+  "ok": true
+ },
+ {
+  "text": "{'number#n",
+  "ok": false
+ },
+ {
+  "text": "{select>select>/,otherone",
+  "ok": false
+ },
+ {
+  "text": "a#>/select",
+  "ok": true
+ },
+ {
+  "text": "pluralabone= n}select",
+  "ok": true
+ },
+ {
+  "text": "#=selectx<",
+  "ok": true
+ },
+ {
+  "text": ":<<pluralone,:{x",
+  "ok": false
+ },
+ {
+  "text": "='otheroneone}'}x",
+  "ok": true
+ },
+ {
+  "text": "'=>>= ,>nplural",
+  "ok": true
+ },
+ {
+  "text": "otheroneselect<>",
+  "ok": true
+ },
+ {
+  "text": "{#1:n/:otherone",
+  "ok": false
+ },
+ {
+  "text": "::'select'",
+  "ok": true
+ },
+ {
+  "text": " otherb/number",
+  "ok": true
+ },
+ {
+  "text": "/>pluralx'",
+  "ok": true
+ },
+ {
+  "text": "}'one other'}plural,",
+  "ok": true
+ },
+ {
+  "text": ",selectx>{",
+  "ok": false
+ },
+ {
+  "text": "xbnnumber ",
+  "ok": true
+ },
+ {
+  "text": ",b plural,",
+  "ok": true
+ },
+ {
+  "text": "othera<one } number'}",
+  "ok": false
+ },
+ {
+  "text": "}number,={",
+  "ok": false
+ },
+ {
+  "text": "numberotherb/<",
+  "ok": true
+ },
+ {
+  "text": "numberselect  other",
+  "ok": true
+ },
+ {
+  "text": "xx#'n",
+  "ok": true
+ },
+ {
+  "text": "selectselect:{naplural{#",
+  "ok": false
+ },
+ {
+  "text": ">>:xx",
+  "ok": true
+ },
+ {
+  "text": "{plural}1<plural'{select",
+  "ok": false
+ },
+ {
+  "text": "/selectotherotherbother#otherother",
+  "ok": true
+ },
+ {
+  "text": "<=: a",
+  "ok": true
+ },
+ {
+  "text": "a:select< n/selectother",
+  "ok": true
+ },
+ {
+  "text": " >select1'",
+  "ok": true
+ },
+ {
+  "text": "bn,plural},xselect>",
+  "ok": true
+ },
+ {
+  "text": ",<nselectplural",
+  "ok": false
+ },
+ {
+  "text": "number =b {:{{",
+  "ok": false
+ },
+ {
+  "text": "/one'selectother",
+  "ok": true
+ },
+ {
+  "text": "}select:}plural",
+  "ok": true
+ },
+ {
+  "text": "}one{select'",
+  "ok": false
+ },
+ {
+  "text": "':' a",
+  "ok": true
+ },
+ {
+  "text": "numbera1<#",
+  "ok": true
+ },
+ {
+  "text": "plural <=<=a//",
+  "ok": true
+ },
+ {
+  "text": "x=a1one<:}other",
+  "ok": true
+ },
+ {
+  "text": "<:/{b#>:select",
+  "ok": false
+ },
+ {
+  "text": "other,=plural=1x#other",
+  "ok": true
+ },
+ {
+  "text": "numbern '=n'a1",
+  "ok": true
+ },
+ {
+  "text": "<<numberpluralother#<' ",
+  "ok": false
+ },
+ {
+  "text": "#{othernumberb",
+  "ok": false
+ },
+ {
+  "text": "selectx/}',nselect'",
+  "ok": true
+ },
+ {
+  "text": "<a:= ",
+  "ok": false
+ },
+ {
+  "text": "select,  one",
+  "ok": true
+ },
+ {
+  "text": "1''other1<ab ",
+  "ok": false
+ },
+ {
+  "text": "/x=>other",
+  "ok": true
+ },
+ {
+  "text": "other{11selectxb'#",
+  "ok": false
+ },
+ {
+  "text": ",:,=',other=plural",
+  "ok": true
+ },
+ {
+  "text": "<<<{one",
+  "ok": false
+ },
+ {
+  "text": "plural>xselectn",
+  "ok": true
+ },
+ {
+  "text": "#/otherselecta",
+  "ok": true
+ },
+ {
+  "text": "xaselectplural:",
+  "ok": true
+ },
+ {
+  "text": "b{,otherx",
+  "ok": false
+ },
+ {
+  "text": "selectotherx}other'1#>",
+  "ok": true
+ },
+ {
+  "text": "{select#number'> <'",
+  "ok": false
+ },
+ {
+  "text": "=1'aotherbselectnumber,",
+  "ok": true
+ },
+ {
+  "text": "#<numberanumber",
+  "ok": false
+ },
+ {
+  "text": ",:}<b/,==",
+  "ok": false
+ },
+ {
+  "text": "nnumberpluralother<</other>",
+  "ok": false
+ },
+ {
+  "text": "numbernumber#a=#{number:",
+  "ok": false
+ },
+ {
+  "text": "other{}pluralnumber",
+  "ok": false
+ },
+ {
+  "text": "plural}{number1",
+  "ok": false
+ },
+ {
+  "text": "select>>:'select none",
+  "ok": true
+ },
+ {
+  "text": "select<numberna",
+  "ok": false
+ },
+ {
+  "text": "/numberselectplural/",
+  "ok": true
+ },
+ {
+  "text": "pluralnumber//select",
+  "ok": true
+ },
+ {
+  "text": "other/number}#",
+  "ok": true
+ },
+ {
+  "text": "/nplural:1",
+  "ok": true
+ },
+ {
+  "text": ", a1select< '1",
+  "ok": true
+ },
+ {
+  "text": "'onexa1",
+  "ok": true
+ },
+ {
+  "text": ",>/x}",
+  "ok": true
+ },
+ {
+  "text": "b <xplural",
+  "ok": false
+ },
+ {
+  "text": "'1>other<>'plural,",
+  "ok": true
+ },
+ {
+  "text": "number>/otherplural1#=a",
+  "ok": true
+ },
+ {
+  "text": " othera##",
+  "ok": true
+ },
+ {
+  "text": "/one1othera  other1",
+  "ok": true
+ },
+ {
+  "text": "ab}/'",
+  "ok": true
+ },
+ {
+  "text": "/=xa:",
+  "ok": true
+ },
+ {
+  "text": "one=a/x",
+  "ok": true
+ },
+ {
+  "text": "a>",
+  "ok": true
+ },
+ {
+  "text": "1:1othernumber",
+  "ok": true
+ },
+ {
+  "text": "selectnumber }bnumberpluralxa",
+  "ok": true
+ },
+ {
+  "text": "bb,'{ x=n",
+  "ok": true
+ },
+ {
+  "text": " nnumberb>otherone1plural",
+  "ok": true
+ },
+ {
+  "text": "bnn{#onennumber}",
+  "ok": false
+ },
+ {
+  "text": "=b{={:}/,",
+  "ok": false
+ },
+ {
+  "text": "selectotherone}{",
+  "ok": false
+ },
+ {
+  "text": "bother}nbplural </",
+  "ok": false
+ },
+ {
+  "text": "one number<select}selectone ",
+  "ok": false
+ },
+ {
+  "text": "=',one1=','",
+  "ok": true
+ },
+ {
+  "text": "=bpluralb,",
+  "ok": true
+ },
+ {
+  "text": "#x=,select",
+  "ok": true
+ },
+ {
+  "text": "numberbx,>",
+  "ok": true
+ },
+ {
+  "text": "select1}/onex=: ",
+  "ok": true
+ },
+ {
+  "text": "<one#>/",
+  "ok": false
+ },
+ {
+  "text": "/#plural :aone'b",
+  "ok": true
+ },
+ {
+  "text": "1=<select,",
+  "ok": false
+ },
+ {
+  "text": ",selectxnumber===other/",
+  "ok": true
+ },
+ {
+  "text": "one#{,,#=}#",
+  "ok": false
+ },
+ {
+  "text": "=#<other##:one:",
+  "ok": false
+ },
+ {
+  "text": "1}'pluralnumber",
+  "ok": true
+ },
+ {
+  "text": "numberx1x/>/a{",
+  "ok": false
+ },
+ {
+  "text": "other1plural> ",
+  "ok": true
+ },
+ {
+  "text": "}=selecta1' anumber",
+  "ok": true
+ },
+ {
+  "text": "= x1{ax'plural",
+  "ok": false
+ },
+ {
+  "text": "'1#< <selectselectx",
+  "ok": false
+ },
+ {
+  "text": "otherxnumber1>",
+  "ok": true
+ },
+ {
+  "text": ">:'other{",
+  "ok": false
+ },
+ {
+  "text": "1plural,  ",
+  "ok": true
+ },
+ {
+  "text": "x:x>other'<<}",
+  "ok": true
+ },
+ {
+  "text": "}n a}<selectn ",
+  "ok": false
+ },
+ {
+  "text": " plural,1,",
+  "ok": true
+ },
+ {
+  "text": "bother <oneoneone> ",
+  "ok": false
+ },
+ {
+  "text": "bone pluralanaplural,",
+  "ok": true
+ },
+ {
+  "text": "pluralbbplural{/ x'",
+  "ok": false
+ },
+ {
+  "text": "selectnumber=xb<aplural#",
+  "ok": false
+ },
+ {
+  "text": "pluralother11>",
+  "ok": true
+ },
+ {
+  "text": "numberone=b#number><x",
+  "ok": false
+ },
+ {
+  "text": "one='}'1,1select",
+  "ok": true
+ },
+ {
+  "text": "}>#,number:<,b",
+  "ok": true
+ },
+ {
+  "text": "'{# one,><:",
+  "ok": true
+ },
+ {
+  "text": "#=bselectx",
+  "ok": true
+ },
+ {
+  "text": "number>'#xx1numbernumber",
+  "ok": true
+ },
+ {
+  "text": " other<oneplural/number},",
+  "ok": false
+ },
+ {
+  "text": " aplural/'b}bn",
+  "ok": true
+ },
+ {
+  "text": ",:#1=",
+  "ok": true
+ },
+ {
+  "text": "a}b,/{,plural#",
+  "ok": false
+ },
+ {
+  "text": "1>otherna",
+  "ok": true
+ },
+ {
+  "text": "numberoneselect=bone>1other",
+  "ok": true
+ },
+ {
+  "text": "number=}n:1number'1",
+  "ok": true
+ },
+ {
+  "text": " aone<,",
+  "ok": true
+ },
+ {
+  "text": " ,<selectnumber",
+  "ok": false
+ },
+ {
+  "text": "' selectxpluralpluralone,other",
+  "ok": true
+ },
+ {
+  "text": "1 ,x'",
+  "ok": true
+ },
+ {
+  "text": ">,}/onenumber=select>",
+  "ok": true
+ },
+ {
+  "text": "oneother{ plural:<#=",
+  "ok": false
+ },
+ {
+  "text": "boneonen1'=otherplural",
+  "ok": true
+ },
+ {
+  "text": "plural,1=1 //}",
+  "ok": true
+ },
+ {
+  "text": "'other'#/pluralxpluralb",
+  "ok": true
+ },
+ {
+  "text": "none1bothernother1}",
+  "ok": true
+ },
+ {
+  "text": ",#}:'<:==",
+  "ok": true
+ },
+ {
+  "text": "1other,b>onex}#",
+  "ok": true
+ },
+ {
+  "text": "ax:=other/n,a",
+  "ok": true
+ },
+ {
+  "text": "/>='a>/11",
+  "ok": true
+ },
+ {
+  "text": " ,:selectpluralselectaxnumber",
+  "ok": true
+ },
+ {
+  "text": "xaselect1'",
+  "ok": true
+ },
+ {
+  "text": "<one>}>",
+  "ok": false
+ },
+ {
+  "text": "number=}=1 ,othera",
+  "ok": true
+ },
+ {
+  "text": "<=/1,select>11",
+  "ok": true
+ },
+ {
+  "text": "a}x ='=11",
+  "ok": true
+ },
+ {
+  "text": "number number>one",
+  "ok": true
+ },
+ {
+  "text": "select:}#select",
+  "ok": true
+ },
+ {
+  "text": "pluralselect1otherxnone#n",
+  "ok": true
+ },
+ {
+  "text": "one=xnn",
+  "ok": true
+ },
+ {
+  "text": ">nother>/",
+  "ok": true
+ },
+ {
+  "text": "{pluralother=,<selectnone",
+  "ok": false
+ },
+ {
+  "text": "aab/#<other#1",
+  "ok": false
+ },
+ {
+  "text": "{onenumbera#bselect<{",
+  "ok": false
+ },
+ {
+  "text": "numberother> ={anumbera",
+  "ok": false
+ },
+ {
+  "text": ">/>'',otherotherone",
+  "ok": true
+ },
+ {
+  "text": "/= /plural",
+  "ok": true
+ },
+ {
+  "text": "'oneother{<#xnumberx",
+  "ok": false
+ },
+ {
+  "text": "/aselectone1",
+  "ok": true
+ },
+ {
+  "text": "onenumberone, pluralaplural<",
+  "ok": true
+ },
+ {
+  "text": ":b ,}b>n<",
+  "ok": true
+ },
+ {
+  "text": "number x} /number<{",
+  "ok": false
+ },
+ {
+  "text": " plural#{}#{#{",
+  "ok": false
+ },
+ {
+  "text": "'1/}onexone,a",
+  "ok": true
+ },
+ {
+  "text": ", # plural{:b'",
+  "ok": false
+ },
+ {
+  "text": "=#/othera",
+  "ok": true
+ },
+ {
+  "text": "'one{other<xselect}select",
+  "ok": false
+ },
+ {
+  "text": " one={other",
+  "ok": false
+ },
+ {
+  "text": "#other=number'>>:,",
+  "ok": true
+ },
+ {
+  "text": "n#1numberplural<#>>",
+  "ok": true
+ },
+ {
+  "text": ">number</n",
+  "ok": false
+ },
+ {
+  "text": " select}plural1 aother:",
+  "ok": true
+ },
+ {
+  "text": ",an:{}one'number",
+  "ok": false
+ },
+ {
+  "text": "/>n#plural",
+  "ok": true
+ },
+ {
+  "text": "otherbother#<>}>>",
+  "ok": true
+ },
+ {
+  "text": "a=1b1}'#:",
+  "ok": true
+ },
+ {
+  "text": "xaone #",
+  "ok": true
+ },
+ {
+  "text": "plural,1'select",
+  "ok": true
+ },
+ {
+  "text": "n{<==",
+  "ok": false
+ },
+ {
+  "text": " <}#one",
+  "ok": true
+ },
+ {
+  "text": "1/bother:>{number}",
+  "ok": true
+ },
+ {
+  "text": "xx}}number",
+  "ok": true
+ },
+ {
+  "text": "=b# :",
+  "ok": true
+ },
+ {
+  "text": ">n:}/,a 1",
+  "ok": true
+ },
+ {
+  "text": "pluralotherpluralplural:",
+  "ok": true
+ },
+ {
+  "text": "=':a/",
+  "ok": true
+ },
+ {
+  "text": "<selectother<}a,,/",
+  "ok": false
+ },
+ {
+  "text": ">}}<plural{plural}'",
+  "ok": false
+ },
+ {
+  "text": "xn}a/plural '=",
+  "ok": true
+ },
+ {
+  "text": "{'pluralbn one/plural",
+  "ok": false
+ },
+ {
+  "text": "x1plural:other",
+  "ok": true
+ },
+ {
+  "text": "}oneselect<>",
+  "ok": true
+ },
+ {
+  "text": "n:a/{",
+  "ok": false
+ },
+ {
+  "text": "  #}}",
+  "ok": true
+ },
+ {
+  "text": "n1,xx #n,",
+  "ok": true
+ },
+ {
+  "text": "#>'plural,{}1x",
+  "ok": false
+ },
+ {
+  "text": "'>>:plural",
+  "ok": true
+ },
+ {
+  "text": "numberotherselect==1b: ",
+  "ok": true
+ },
+ {
+  "text": ":#1aother",
+  "ok": true
+ },
+ {
+  "text": "'xn:}",
+  "ok": true
+ },
+ {
+  "text": "selectotherbplural<",
+  "ok": true
+ },
+ {
+  "text": "= {plural:",
+  "ok": false
+ },
+ {
+  "text": " numbern'numbern=,n",
+  "ok": true
+ },
+ {
+  "text": "#nother=a",
+  "ok": true
+ },
+ {
+  "text": "select<plural,number':an",
+  "ok": false
+ },
+ {
+  "text": "x:x>plural=pluralnone",
+  "ok": true
+ },
+ {
+  "text": "{{number#=",
+  "ok": false
+ },
+ {
+  "text": "/<=x/number}'number",
+  "ok": true
+ },
+ {
+  "text": "{:'1selectb>n,1",
+  "ok": false
+ },
+ {
+  "text": "numberone:a{xnumberselect1",
+  "ok": false
+ },
+ {
+  "text": "#/numbera 'nxone",
+  "ok": true
+ },
+ {
+  "text": "select{one=>#=select1",
+  "ok": false
+ },
+ {
+  "text": "1oneaonenumber",
+  "ok": true
+ },
+ {
+  "text": ">n{'>",
+  "ok": false
+ },
+ {
+  "text": "a/x/1'}onea",
+  "ok": true
+ },
+ {
+  "text": ">=other/x",
+  "ok": true
+ },
+ {
+  "text": "pluralselectone{,",
+  "ok": false
+ },
+ {
+  "text": "pluralother>number<#}'}",
+  "ok": true
+ },
+ {
+  "text": "other{one<other",
+  "ok": false
+ },
+ {
+  "text": "select#oneone1",
+  "ok": true
+ },
+ {
+  "text": "11nb/{number<b",
+  "ok": false
+ },
+ {
+  "text": "#selectnoneselect",
+  "ok": true
+ },
+ {
+  "text": ">b,#1b>oneother",
+  "ok": true
+ },
+ {
+  "text": "other<n b",
+  "ok": false
+ },
+ {
+  "text": "}}one:#",
+  "ok": true
+ },
+ {
+  "text": "'= >b",
+  "ok": true
+ },
+ {
+  "text": "select,{a1",
+  "ok": false
+ },
+ {
+  "text": "'aa:pluralselect'n/",
+  "ok": true
+ },
+ {
+  "text": "number>select'}>n/x",
+  "ok": true
+ },
+ {
+  "text": "numberselectone>1<selectother1",
+  "ok": false
+ },
+ {
+  "text": "#:numbernumber=",
+  "ok": true
+ },
+ {
+  "text": ":{=a>",
+  "ok": false
+ },
+ {
+  "text": "'=x/pluralnumbernumber:b",
+  "ok": true
+ },
+ {
+  "text": "{1':1x xone",
+  "ok": false
+ },
+ {
+  "text": "{aa<,",
+  "ok": false
+ },
+ {
+  "text": "other {selectselectb11'",
+  "ok": false
+ },
+ {
+  "text": "a>bbn",
+  "ok": true
+ },
+ {
+  "text": "/'a>n,x,=",
+  "ok": true
+ },
+ {
+  "text": ":,selectnumber{",
+  "ok": false
+ },
+ {
+  "text": ">'select{plural:plural1plural",
+  "ok": false
+ },
+ {
+  "text": ",:{selectselect",
+  "ok": false
+ },
+ {
+  "text": "',numbern#{n=a",
+  "ok": false
+ },
+ {
+  "text": ", :onen",
+  "ok": true
+ },
+ {
+  "text": ">one,plurala",
+  "ok": true
+ },
+ {
+  "text": "other<b/x",
+  "ok": false
+ },
+ {
+  "text": "}n numberone",
+  "ok": true
+ },
+ {
+  "text": "}=}{:none,'",
+  "ok": false
+ },
+ {
+  "text": "x:{/>",
+  "ok": false
+ },
+ {
+  "text": "n#axb<select'{",
+  "ok": false
+ },
+ {
+  "text": "pluraln=a,={a}",
+  "ok": true
+ },
+ {
+  "text": "1a<one1:other='",
+  "ok": false
+ },
+ {
+  "text": "}one :{",
+  "ok": false
+ },
+ {
+  "text": "},:pluralone pluraln#",
+  "ok": true
+ },
+ {
+  "text": " b:nx",
+  "ok": true
+ },
+ {
+  "text": "selectxpluralselect1",
+  "ok": true
+ },
+ {
+  "text": "selectotherx}1other,other,",
+  "ok": true
+ },
+ {
+  "text": "/':select{oneb,,",
+  "ok": false
+ },
+ {
+  "text": "}# 1,numberba ",
+  "ok": true
+ },
+ {
+  "text": " select#a<select><=",
+  "ok": false
+ },
+ {
+  "text": "aother:plural#>:other>",
+  "ok": true
+ },
+ {
+  "text": "x =axotherxone/",
+  "ok": true
+ },
+ {
+  "text": "b{number/{}{1select",
+  "ok": false
+ },
+ {
+  "text": " x/nx",
+  "ok": true
+ },
+ {
+  "text": "=/b1{numberx}<",
+  "ok": true
+ },
+ {
+  "text": "b/:xb",
+  "ok": true
+ },
+ {
+  "text": "select/one ,a'one#",
+  "ok": true
+ },
+ {
+  "text": ", >numberx,onen'",
+  "ok": true
+ },
+ {
+  "text": ",numberaother,",
+  "ok": true
+ },
+ {
+  "text": "{#{one/",
+  "ok": false
+ },
+ {
+  "text": "bba#1b'bn",
+  "ok": true
+ },
+ {
+  "text": "otherxx:plural",
+  "ok": true
+ },
+ {
+  "text": ",othera><bselect<other",
+  "ok": false
+ },
+ {
+  "text": "pluralnnb 1#other{",
+  "ok": false
+ },
+ {
+  "text": ":number=a'x}1<",
+  "ok": true
+ },
+ {
+  "text": "plural <one}",
+  "ok": false
+ },
+ {
+  "text": "a,{>x#,/n",
+  "ok": false
+ },
+ {
+  "text": "npluralb'plural:x##",
+  "ok": true
+ },
+ {
+  "text": "a'a'plural",
+  "ok": true
+ },
+ {
+  "text": "==#one=",
+  "ok": true
+ },
+ {
+  "text": "<:,>n/otherselectnumber",
+  "ok": true
+ },
+ {
+  "text": "pluralb{1>",
+  "ok": false
+ },
+ {
+  "text": "oneaone}plural",
+  "ok": true
+ },
+ {
+  "text": "xaonenx",
+  "ok": true
+ },
+ {
+  "text": "xpluralx:=b{'{",
+  "ok": false
+ },
+ {
+  "text": "other/one#=1number,one",
+  "ok": true
+ },
+ {
+  "text": " #{otherb/'number'",
+  "ok": false
+ },
+ {
+  "text": "one=",
+  "ok": true
+ },
+ {
+  "text": " n#one/{/x:",
+  "ok": false
+ },
+ {
+  "text": "one=','{one'1",
+  "ok": true
+ },
+ {
+  "text": "npluralone >{x#a",
+  "ok": false
+ },
+ {
+  "text": "numberotherselect=b",
+  "ok": true
+ },
+ {
+  "text": "a1/<>",
+  "ok": true
+ },
+ {
+  "text": "<b'numberb",
+  "ok": false
+ },
+ {
+  "text": "one,:#x",
+  "ok": true
+ },
+ {
+  "text": "'xone select#x {",
+  "ok": false
+ },
+ {
+  "text": "=,''a",
+  "ok": true
+ },
+ {
+  "text": "pluraloneselect/b",
+  "ok": true
+ },
+ {
+  "text": ">bother1a",
+  "ok": true
+ },
+ {
+  "text": "::{select,",
+  "ok": false
+ },
+ {
+  "text": ", other>other#'1other",
+  "ok": true
+ },
+ {
+  "text": "<=aother}",
+  "ok": true
+ },
+ {
+  "text": "aoneothera'{/':",
+  "ok": true
+ },
+ {
+  "text": "b{b}select",
+  "ok": true
+ },
+ {
+  "text": ">:n'<",
+  "ok": true
+ },
+ {
+  "text": "selectselectother}/other#oneselect",
+  "ok": true
+ },
+ {
+  "text": "ba{/x :}=",
+  "ok": false
+ },
+ {
+  "text": "'}number#one",
+  "ok": true
+ },
+ {
+  "text": "plural1numberbother':other<",
+  "ok": true
+ },
+ {
+  "text": "otheraxnumber=/numberselect{",
+  "ok": false
+ },
+ {
+  "text": "b>select/>an{>",
+  "ok": false
+ },
+ {
+  "text": "{,,:' ,a'",
+  "ok": false
+ },
+ {
+  "text": "{numberb/,ax}one",
+  "ok": false
+ },
+ {
+  "text": " anumberone select#}other",
+  "ok": true
+ },
+ {
+  "text": " {na ",
+  "ok": false
+ },
+ {
+  "text": ">>a/b",
+  "ok": true
+ },
+ {
+  "text": "onex:a{",
+  "ok": false
+ },
+ {
+  "text": "  =/other",
+  "ok": true
+ },
+ {
+  "text": ">#=1one",
+  "ok": true
+ },
+ {
+  "text": ">plural{,>",
+  "ok": false
+ },
+ {
+  "text": "{1{pluralplural",
+  "ok": false
+ },
+ {
+  "text": "/othern/ ",
+  "ok": true
+ },
+ {
+  "text": "=,<1 ",
+  "ok": true
+ },
+ {
+  "text": "1x>number<#=#b",
+  "ok": true
+ },
+ {
+  "text": "x#b>oneotherxselect}",
+  "ok": true
+ },
+ {
+  "text": "x,a<number",
+  "ok": false
+ },
+ {
+  "text": ":selectotherb ",
+  "ok": true
+ },
+ {
+  "text": "/#selectx:{x=}",
+  "ok": false
+ },
+ {
+  "text": "'plural <number",
+  "ok": false
+ },
+ {
+  "text": "selectxnumber=other1one<=",
+  "ok": true
+ },
+ {
+  "text": "=x1selectselect",
+  "ok": true
+ },
+ {
+  "text": "xnumber{} ",
+  "ok": false
+ },
+ {
+  "text": "/n>,number: plural/",
+  "ok": true
+ },
+ {
+  "text": "bnplural=}",
+  "ok": true
+ },
+ {
+  "text": "<otherother><:<,one",
+  "ok": false
+ },
+ {
+  "text": "selectonenumbera:",
+  "ok": true
+ },
+ {
+  "text": ",numberanumber'",
+  "ok": true
+ },
+ {
+  "text": "othera<{select",
+  "ok": false
+ },
+ {
+  "text": "aa=<><>na",
+  "ok": true
+ },
+ {
+  "text": "'other<xother",
+  "ok": false
+ },
+ {
+  "text": "plural/onexxotherselect#n",
+  "ok": true
+ },
+ {
+  "text": "=a><>",
+  "ok": true
+ },
+ {
+  "text": "other:b}:{< {",
+  "ok": false
+ },
+ {
+  "text": "<}abx#/select,",
+  "ok": true
+ },
+ {
+  "text": "pluralnxbn=bnumberselect",
+  "ok": true
+ },
+ {
+  "text": "aplural{:/>:=:",
+  "ok": false
+ },
+ {
+  "text": "nplural=numbernumberbselect}}",
+  "ok": true
+ },
+ {
+  "text": "aothernumber n",
+  "ok": true
+ },
+ {
+  "text": "aoneone,>",
+  "ok": true
+ },
+ {
+  "text": "x,numbernumberselect{/},",
+  "ok": false
+ },
+ {
+  "text": "<:/>one",
+  "ok": true
+ },
+ {
+  "text": "'n}select1",
+  "ok": true
+ },
+ {
+  "text": "}#/'numbernumber#}/",
+  "ok": true
+ },
+ {
+  "text": "select}otherx{",
+  "ok": false
+ },
+ {
+  "text": ">}b1/",
+  "ok": true
+ },
+ {
+  "text": "bnx:/",
+  "ok": true
+ },
+ {
+  "text": "number {'plural",
+  "ok": false
+ },
+ {
+  "text": "1>{#number",
+  "ok": false
+ },
+ {
+  "text": ",</numbernumber",
+  "ok": false
+ },
+ {
+  "text": " otherotherx'",
+  "ok": true
+ },
+ {
+  "text": ":<plural select",
+  "ok": false
+ },
+ {
+  "text": ",{numberplural>x>a1",
+  "ok": false
+ },
+ {
+  "text": "/}nx#{, {",
+  "ok": false
+ },
+ {
+  "text": "xone<b/pluralone:/",
+  "ok": false
+ },
+ {
+  "text": "otherxx>b",
+  "ok": true
+ },
+ {
+  "text": "#<xother{ select#'",
+  "ok": false
+ },
+ {
+  "text": "select/abselectx#bother",
+  "ok": true
+ },
+ {
+  "text": "{=bone/othern1'",
+  "ok": false
+ },
+ {
+  "text": "<xplural1numberbone/1",
+  "ok": false
+ },
+ {
+  "text": "#n>1b",
+  "ok": true
+ },
+ {
+  "text": "other,>><select'{{",
+  "ok": false
+ },
+ {
+  "text": "x1{one<x}a<",
+  "ok": false
+ },
+ {
+  "text": "=a,=b:plural: ",
+  "ok": true
+ },
+ {
+  "text": "x:>selectanumbera>=",
+  "ok": true
+ },
+ {
+  "text": "plural>='{",
+  "ok": true
+ },
+ {
+  "text": "=}one>plural",
+  "ok": true
+ },
+ {
+  "text": "x:n#/",
+  "ok": true
+ },
+ {
+  "text": "select{a,a< bb",
+  "ok": false
+ },
+ {
+  "text": "1/,/select",
+  "ok": true
+ },
+ {
+  "text": "> {#>",
+  "ok": false
+ },
+ {
+  "text": "{other<a'",
+  "ok": false
+ },
+ {
+  "text": "1:<1b",
+  "ok": true
+ },
+ {
+  "text": ">x:,#",
+  "ok": true
+ },
+ {
+  "text": "#' plural,",
+  "ok": true
+ },
+ {
+  "text": "=x#othera",
+  "ok": true
+ },
+ {
+  "text": "{ #x/xx '",
+  "ok": false
+ },
+ {
+  "text": "/oneonenumber:,=other1",
+  "ok": true
+ },
+ {
+  "text": "a'>bnumber",
+  "ok": true
+ },
+ {
+  "text": "a1{{1> >:",
+  "ok": false
+ },
+ {
+  "text": "numbera=a,",
+  "ok": true
+ },
+ {
+  "text": "x}:xselect#>one1",
+  "ok": true
+ },
+ {
+  "text": "=a:1n:numberb{",
+  "ok": false
+ },
+ {
+  "text": "<x/selectonexonex:",
+  "ok": false
+ },
+ {
+  "text": "nnbonea",
+  "ok": true
+ },
+ {
+  "text": "#}number' other<=:",
+  "ok": true
+ },
+ {
+  "text": "x:xa}<1} ",
+  "ok": true
+ },
+ {
+  "text": "<{n/otherselect'a<",
+  "ok": false
+ },
+ {
+  "text": "plural<'>'",
+  "ok": true
+ },
+ {
+  "text": "select{xone1",
+  "ok": false
+ },
+ {
+  "text": "'other<1one",
+  "ok": true
+ },
+ {
+  "text": ">1nn/>/#plural",
+  "ok": true
+ },
+ {
+  "text": "botherb select",
+  "ok": true
+ },
+ {
+  "text": "select/aoneb1one}/",
+  "ok": true
+ },
+ {
+  "text": "<na<'",
+  "ok": false
+ },
+ {
+  "text": ":a',#,# one",
+  "ok": true
+ },
+ {
+  "text": "{/,ab",
+  "ok": false
+ },
+ {
+  "text": "number1}>#<<//",
+  "ok": false
+ },
+ {
+  "text": "#number'=a",
+  "ok": true
+ },
+ {
+  "text": "}}/numbernone1 <",
+  "ok": true
+ },
+ {
+  "text": "ab,number}/nonea",
+  "ok": true
+ },
+ {
+  "text": "selectn,=>",
+  "ok": true
+ },
+ {
+  "text": ",a''{",
+  "ok": false
+ },
+ {
+  "text": "number select>,}aselect1",
+  "ok": true
+ },
+ {
+  "text": "1{'nselect>one<,",
+  "ok": false
+ },
+ {
+  "text": "=,{/>",
+  "ok": false
+ },
+ {
+  "text": "number##>:ab  ",
+  "ok": true
+ },
+ {
+  "text": "1=a, ",
+  "ok": true
+ },
+ {
+  "text": "=bnxaone/other'",
+  "ok": true
+ },
+ {
+  "text": "n{numberplural}",
+  "ok": true
+ },
+ {
+  "text": "<''select=",
+  "ok": true
+ },
+ {
+  "text": "number:onenumber,:,=:",
+  "ok": true
+ },
+ {
+  "text": "number: select/{#bx",
+  "ok": false
+ },
+ {
+  "text": "one=,,<",
+  "ok": true
+ },
+ {
+  "text": "<1b</",
+  "ok": false
+ },
+ {
+  "text": "}1xnother",
+  "ok": true
+ },
+ {
+  "text": "=1= '",
+  "ok": true
+ },
+ {
+  "text": "<x,:1",
+  "ok": false
+ },
+ {
+  "text": "nx#select=  //",
+  "ok": true
+ },
+ {
+  "text": "n/}'=",
+  "ok": true
+ },
+ {
+  "text": "xx aotherother=one'",
+  "ok": true
+ },
+ {
+  "text": "select' nx",
+  "ok": true
+ },
+ {
+  "text": "/n1{xnnumber{<",
+  "ok": false
+ },
+ {
+  "text": "one{other <onen{#",
+  "ok": false
+ },
+ {
+  "text": ",<nbother",
+  "ok": false
+ },
+ {
+  "text": "aa#numbernumberba>plural",
+  "ok": true
+ },
+ {
+  "text": "> {}#",
+  "ok": false
+ },
+ {
+  "text": "1n#,=other>other{",
+  "ok": false
+ },
+ {
+  "text": "select</selectother<a:x",
+  "ok": false
+ },
+ {
+  "text": "number:bb{b{n>",
+  "ok": false
+ },
+ {
+  "text": "}otheroneb#aaone'",
+  "ok": true
+ },
+ {
+  "text": ",pluralabaaxotherplural",
+  "ok": true
+ },
+ {
+  "text": "<bbpluralx>x>>",
+  "ok": false
+ },
+ {
+  "text": "other//<}",
+  "ok": true
+ },
+ {
+  "text": " b{<>aa:x",
+  "ok": false
+ },
+ {
+  "text": "1<:=>",
+  "ok": true
+ },
+ {
+  "text": "other ===x:,}",
+  "ok": true
+ },
+ {
+  "text": "}nnnxnumberx<select",
+  "ok": false
+ },
+ {
+  "text": "b/{otherb1#:=",
+  "ok": false
+ },
+ {
+  "text": "':':{>{ =",
+  "ok": false
+ },
+ {
+  "text": "{otherother1 <bone{",
+  "ok": false
+ },
+ {
+  "text": ",{<numbern",
+  "ok": false
+ },
+ {
+  "text": "aaa{nselecta{>",
+  "ok": false
+ },
+ {
+  "text": "one  one>",
+  "ok": true
+ },
+ {
+  "text": "one>n:/aselect<'",
+  "ok": true
+ },
+ {
+  "text": "onenumber<select=",
+  "ok": false
+ },
+ {
+  "text": ">/a=b",
+  "ok": true
+ },
+ {
+  "text": "1>,1selectplural1,<",
+  "ok": true
+ },
+ {
+  "text": "n'</ >#>/",
+  "ok": true
+ },
+ {
+  "text": "/xplural#a#/ /",
+  "ok": true
+ },
+ {
+  "text": ":x/numbera",
+  "ok": true
+ },
+ {
+  "text": "}select,:,",
+  "ok": true
+ },
+ {
+  "text": "plural''=>",
+  "ok": true
+ },
+ {
+  "text": ",apluralone<",
+  "ok": true
+ },
+ {
+  "text": ",}}n#n:1{",
+  "ok": false
+ },
+ {
+  "text": "nnumber<#pluralplural}<}",
+  "ok": true
+ },
+ {
+  "text": "other#/x:",
+  "ok": true
+ },
+ {
+  "text": "a><xx",
+  "ok": false
+ },
+ {
+  "text": "':=select,",
+  "ok": true
+ },
+ {
+  "text": ">plural}=}plural1onen",
+  "ok": true
+ },
+ {
+  "text": " =>othern",
+  "ok": true
+ },
+ {
+  "text": "aplural:1,number:'other",
+  "ok": true
+ },
+ {
+  "text": "'one:<'",
+  "ok": true
+ },
+ {
+  "text": "one}<one#",
+  "ok": false
+ },
+ {
+  "text": "},/b}",
+  "ok": true
+ },
+ {
+  "text": ",{<>select#}a#",
+  "ok": false
+ },
+ {
+  "text": ",numberxnb",
+  "ok": true
+ },
+ {
+  "text": ",'1}:",
+  "ok": true
+ },
+ {
+  "text": "b,an=b'nn",
+  "ok": true
+ },
+ {
+  "text": "other1onea##= <",
+  "ok": true
+ },
+ {
+  "text": ">one{#,",
+  "ok": false
+ },
+ {
+  "text": "1select<n#",
+  "ok": false
+ },
+ {
+  "text": "n'/} ",
+  "ok": true
+ },
+ {
+  "text": "other <#plural",
+  "ok": true
+ },
+ {
+  "text": "onexone}1> 'number",
+  "ok": true
+ },
+ {
+  "text": "selectselecta1,##{x",
+  "ok": false
+ },
+ {
+  "text": "bone other/number=}<",
+  "ok": true
+ },
+ {
+  "text": "1<nplural/other<x ",
+  "ok": false
+ },
+ {
+  "text": ",{}a numberplurala}",
+  "ok": false
+ },
+ {
+  "text": "',#b ",
+  "ok": true
+ },
+ {
+  "text": "selectbb#one",
+  "ok": true
+ },
+ {
+  "text": "xplural 1 n:n=",
+  "ok": true
+ },
+ {
+  "text": "==bother=na=,",
+  "ok": true
+ },
+ {
+  "text": "one#},one}b{one",
+  "ok": false
+ },
+ {
+  "text": ">bplural=one<, select",
+  "ok": true
+ },
+ {
+  "text": "}xn''",
+  "ok": true
+ },
+ {
+  "text": "select,selectnumbera'1#{",
+  "ok": false
+ },
+ {
+  "text": "selecta number=,{} ",
+  "ok": false
+ },
+ {
+  "text": "'{:}a",
+  "ok": true
+ },
+ {
+  "text": "other}xselect:",
+  "ok": true
+ },
+ {
+  "text": ":oneselect#,",
+  "ok": true
+ },
+ {
+  "text": "/other#,one/,select ",
+  "ok": true
+ },
+ {
+  "text": ">' selectone,' '",
+  "ok": true
+ },
+ {
+  "text": "nselectonebone",
+  "ok": true
+ },
+ {
+  "text": "##>'<select>#}",
+  "ok": true
+ },
+ {
+  "text": "{one:=ba<numberb",
+  "ok": false
+ },
+ {
+  "text": " n,, x={/",
+  "ok": false
+ },
+ {
+  "text": ",'one'n",
+  "ok": true
+ },
+ {
+  "text": "bbone,}",
+  "ok": true
+ },
+ {
+  "text": "=} number,",
+  "ok": true
+ },
+ {
+  "text": " }numbern'",
+  "ok": true
+ },
+ {
+  "text": "b1=#a",
+  "ok": true
+ },
+ {
+  "text": "pluralother#':nselectselect<",
+  "ok": true
+ },
+ {
+  "text": "bn{,>plural/<x",
+  "ok": false
+ },
+ {
+  "text": "<selectothernumbernumber",
+  "ok": false
+ },
+ {
+  "text": ":<one== { /",
+  "ok": false
+ },
+ {
+  "text": "1select,=1xpluralnumbernumber",
+  "ok": true
+ },
+ {
+  "text": ",>n:one",
+  "ok": true
+ },
+ {
+  "text": "#:one<:1selectx{",
+  "ok": false
+ },
+ {
+  "text": ",select aselectpluralselect11",
+  "ok": true
+ },
+ {
+  "text": ",number,bone",
+  "ok": true
+ },
+ {
+  "text": "select'<11",
+  "ok": true
+ },
+ {
+  "text": "=}{<#> }b",
+  "ok": false
+ },
+ {
+  "text": " 1nb,",
+  "ok": true
+ },
+ {
+  "text": ">onenumbernumber{",
+  "ok": false
+ },
+ {
+  "text": "'xx<,selectx,'",
+  "ok": true
+ },
+ {
+  "text": ",1#}1onexbplural",
+  "ok": true
+ },
+ {
+  "text": "other#{:'1bonex",
+  "ok": false
+ },
+ {
+  "text": ">pluralb=x",
+  "ok": true
+ },
+ {
+  "text": "x:b,/",
+  "ok": true
+ },
+ {
+  "text": ">onenumber/b:select:one",
+  "ok": true
+ },
+ {
+  "text": ">}/}n",
+  "ok": true
+ },
+ {
+  "text": ",aoneplural'",
+  "ok": true
+ },
+ {
+  "text": "{other>'a",
+  "ok": false
+ },
+ {
+  "text": ">{other>one",
+  "ok": false
+ },
+ {
+  "text": ",{one<<# ,select",
+  "ok": false
+ },
+ {
+  "text": "a#select,>'1:#",
+  "ok": true
+ },
+ {
+  "text": "selectonenb{",
+  "ok": false
+ },
+ {
+  "text": "=}#xa",
+  "ok": true
+ },
+ {
+  "text": "1=select/axpluralxb",
+  "ok": true
+ },
+ {
+  "text": "{nx=<",
+  "ok": false
+ },
+ {
+  "text": "pluralpluraln =a1'{",
+  "ok": true
+ },
+ {
+  "text": "<other,b}",
+  "ok": false
+ },
+ {
+  "text": " onebxn/ <a",
+  "ok": false
+ },
+ {
+  "text": "><number{<",
+  "ok": false
+ },
+ {
+  "text": " selecta{select=plural/n",
+  "ok": false
+ },
+ {
+  "text": "1pluralother#/",
+  "ok": true
+ },
+ {
+  "text": "<:other=}pluralnumber//",
+  "ok": true
+ },
+ {
+  "text": "select{npluralnumberotheraselect=",
+  "ok": false
+ },
+ {
+  "text": "#1>=}bn1,",
+  "ok": true
+ },
+ {
+  "text": "select/other b:#>/",
+  "ok": true
+ },
+ {
+  "text": "b}bnb",
+  "ok": true
+ },
+ {
+  "text": ": /<}",
+  "ok": true
+ },
+ {
+  "text": "aotherx'select/1=select",
+  "ok": true
+ },
+ {
+  "text": " >one,plural, bb",
+  "ok": true
+ },
+ {
+  "text": "=>1other/=n}1",
+  "ok": true
+ },
+ {
+  "text": "''=none>x=one",
+  "ok": true
+ },
+ {
+  "text": "bbonea apluralx,",
+  "ok": true
+ },
+ {
+  "text": "one bother<",
+  "ok": true
+ },
+ {
+  "text": "one{''{ #,,",
+  "ok": false
+ },
+ {
+  "text": "a>select}/",
+  "ok": true
+ },
+ {
+  "text": "n=xpluralaa1otherselect",
+  "ok": true
+ },
+ {
+  "text": "x:}}number",
+  "ok": true
+ },
+ {
+  "text": "{}>1'{plural=select",
+  "ok": false
+ },
+ {
+  "text": "pluralselectplural:select",
+  "ok": true
+ },
+ {
+  "text": ">n1=:< :one",
+  "ok": true
+ },
+ {
+  "text": "bapluralplural ",
+  "ok": true
+ },
+ {
+  "text": "'//{one",
+  "ok": false
+ },
+ {
+  "text": "'oneselect/b1:xb",
+  "ok": true
+ },
+ {
+  "text": "'a/number=",
+  "ok": true
+ },
+ {
+  "text": "<select' onea1,'",
+  "ok": false
+ },
+ {
+  "text": "#/,:a",
+  "ok": true
+ },
+ {
+  "text": "x/one}one",
+  "ok": true
+ },
+ {
+  "text": "1>/:::n#plural",
+  "ok": true
+ },
+ {
+  "text": "nnoneone}",
+  "ok": true
+ },
+ {
+  "text": "}numberother{}",
+  "ok": false
+ },
+ {
+  "text": "a:}selecta'other{a",
+  "ok": false
+ },
+ {
+  "text": "plural' n/,plural1other",
+  "ok": true
+ },
+ {
+  "text": ", n,anumber{<=",
+  "ok": false
+ },
+ {
+  "text": "nother }>",
+  "ok": true
+ },
+ {
+  "text": "select1,/=a}=:",
+  "ok": true
+ },
+ {
+  "text": "numberother</>",
+  "ok": false
+ },
+ {
+  "text": "onea/>1#< ,",
+  "ok": true
+ },
+ {
+  "text": "select//onex",
+  "ok": true
+ },
+ {
+  "text": "'n{:a",
+  "ok": false
+ },
+ {
+  "text": "{}<1}",
+  "ok": false
+ },
+ {
+  "text": "a=select:onepluralaselectnumber",
+  "ok": true
+ },
+ {
+  "text": "}:bx#",
+  "ok": true
+ },
+ {
+  "text": " >x'x",
+  "ok": true
+ },
+ {
+  "text": "> { /:other<x",
+  "ok": false
+ },
+ {
+  "text": "selectone>#',plural{:",
+  "ok": false
+ },
+ {
+  "text": "other}<'x",
+  "ok": true
+ },
+ {
+  "text": "plural'x'/#{:plural",
+  "ok": false
+ },
+ {
+  "text": "select:/selectb",
+  "ok": true
+ },
+ {
+  "text": "pluralaother/=other/b/",
+  "ok": true
+ },
+ {
+  "text": ":}/1b }bother",
+  "ok": true
+ },
+ {
+  "text": "''>bnx}onen",
+  "ok": true
+ },
+ {
+  "text": "11{}}",
+  "ok": false
+ },
+ {
+  "text": " 'pluralb:",
+  "ok": true
+ },
+ {
+  "text": ">#plural1>apluralselectn",
+  "ok": true
+ },
+ {
+  "text": "<plural{ select",
+  "ok": false
+ },
+ {
+  "text": "{/=1'",
+  "ok": false
+ },
+ {
+  "text": " naone>:1<=",
+  "ok": true
+ },
+ {
+  "text": "oneonen: number",
+  "ok": true
+ },
+ {
+  "text": "}>#plural{",
+  "ok": false
+ },
+ {
+  "text": "numberoneone',",
+  "ok": true
+ },
+ {
+  "text": "one/=one ",
+  "ok": true
+ },
+ {
+  "text": " oneoneother>",
+  "ok": true
+ },
+ {
+  "text": "n=<none/xb{",
+  "ok": false
+ },
+ {
+  "text": "{one{plurala<other{x",
+  "ok": false
+ },
+ {
+  "text": "<nxselect=",
+  "ok": false
+ },
+ {
+  "text": "aplural/other>",
+  "ok": true
+ },
+ {
+  "text": "pluralselect=number'",
+  "ok": true
+ },
+ {
+  "text": "/< bplural",
+  "ok": true
+ },
+ {
+  "text": "bplural={}",
+  "ok": false
+ },
+ {
+  "text": "n/=a1",
+  "ok": true
+ },
+ {
+  "text": "bnumber/ pluralonepluralxother",
+  "ok": true
+ },
+ {
+  "text": "a>x11='#{",
+  "ok": false
+ },
+ {
+  "text": "=select'<other",
+  "ok": true
+ },
+ {
+  "text": "}plural':b}select,{",
+  "ok": false
+ },
+ {
+  "text": "#x/other/other':select",
+  "ok": true
+ },
+ {
+  "text": "aoneotherselect#",
+  "ok": true
+ },
+ {
+  "text": "onen/b,>other:number",
+  "ok": true
+ },
+ {
+  "text": "{select11numberselectbone<",
+  "ok": false
+ },
+ {
+  "text": "number{{/xpluralnselect}",
+  "ok": false
+ },
+ {
+  "text": "{one=select:",
+  "ok": false
+ },
+ {
+  "text": "plural1x1<",
+  "ok": true
+ },
+ {
+  "text": "1 >:1",
+  "ok": true
+ },
+ {
+  "text": "{nx::<1  ",
+  "ok": false
+ },
+ {
+  "text": "'<xnothern}1{",
+  "ok": true
+ },
+ {
+  "text": " b}{{",
+  "ok": false
+ },
+ {
+  "text": "b''otherbnumber x ",
+  "ok": true
+ },
+ {
+  "text": "1>{othernumber",
+  "ok": false
+ },
+ {
+  "text": "onepluralother: ",
+  "ok": true
+ },
+ {
+  "text": "}a>aplural{ {plural",
+  "ok": false
+ },
+ {
+  "text": "x}<one,other{select{",
+  "ok": false
+ },
+ {
+  "text": "other,#:numberotherax:",
+  "ok": true
+ },
+ {
+  "text": "select>,selectplural",
+  "ok": true
+ },
+ {
+  "text": "oneotherba,bselectax",
+  "ok": true
+ },
+ {
+  "text": ",'n< x{''",
+  "ok": false
+ },
+ {
+  "text": "plural:b}#",
+  "ok": true
+ },
+ {
+  "text": "/'1number,",
+  "ok": true
+ },
+ {
+  "text": "'botherbother",
+  "ok": true
+ },
+ {
+  "text": "<# 1select",
+  "ok": true
+ },
+ {
+  "text": "'select>nb",
+  "ok": true
+ },
+ {
+  "text": " / number,",
+  "ok": true
+ },
+ {
+  "text": "1 1>b",
+  "ok": true
+ },
+ {
+  "text": ":#,plural'",
+  "ok": true
+ },
+ {
+  "text": "x''<<'annumber",
+  "ok": true
+ },
+ {
+  "text": ":other>b x 'plural",
+  "ok": true
+ },
+ {
+  "text": "/a:# number}otherone",
+  "ok": true
+ },
+ {
+  "text": "a{oneselectselect:number}number",
+  "ok": false
+ },
+ {
+  "text": "{>/1one",
+  "ok": false
+ },
+ {
+  "text": ": '=xotherone1n",
+  "ok": true
+ },
+ {
+  "text": "select{other{,",
+  "ok": false
+ },
+ {
+  "text": ">a1/#}plural}b",
+  "ok": true
+ },
+ {
+  "text": "selectselect<'':bother,",
+  "ok": true
+ },
+ {
+  "text": "'}'onebab>other",
+  "ok": true
+ },
+ {
+  "text": "xa,a'",
+  "ok": true
+ },
+ {
+  "text": "xother,{n'##>",
+  "ok": false
+ },
+ {
+  "text": "b,otherone:",
+  "ok": true
+ },
+ {
+  "text": "x#}/b=#:,",
+  "ok": true
+ },
+ {
+  "text": ">/{<xotherselect n",
+  "ok": false
+ },
+ {
+  "text": "aselectonepluralselect<}>a",
+  "ok": true
+ },
+ {
+  "text": "#select=a1",
+  "ok": true
+ },
+ {
+  "text": "number<,{#otherother}select",
+  "ok": false
+ },
+ {
+  "text": "b1n/ one>number:",
+  "ok": true
+ },
+ {
+  "text": "a :=>,/'one",
+  "ok": true
+ },
+ {
+  "text": "//:'a:=<1",
+  "ok": true
+ },
+ {
+  "text": "b},select:b,otherx",
+  "ok": true
+ },
+ {
+  "text": "otheraother,n",
+  "ok": true
+ },
+ {
+  "text": "#other#'/#plural#}",
+  "ok": true
+ },
+ {
+  "text": "pluralb}plural,",
+  "ok": true
+ },
+ {
+  "text": "one'n#number{'}x",
+  "ok": false
+ },
+ {
+  "text": " ,#=plurala}a'",
+  "ok": true
+ },
+ {
+  "text": ",#/nselect a{plural",
+  "ok": false
+ },
+ {
+  "text": ">=}xnumberselect:n=",
+  "ok": true
+ },
+ {
+  "text": "1:<n1",
+  "ok": false
+ },
+ {
+  "text": "numberother=pluralselect{1#one",
+  "ok": false
+ },
+ {
+  "text": " 'one}number}1' ",
+  "ok": true
+ },
+ {
+  "text": "/pluralpluralselect/n,>:",
+  "ok": true
+ },
+ {
+  "text": "=xselectother>",
+  "ok": true
+ },
+ {
+  "text": ":, 1=x{: ",
+  "ok": false
+ },
+ {
+  "text": "one:1number://>1",
+  "ok": true
+ },
+ {
+  "text": "{number{plural=",
+  "ok": false
+ },
+ {
+  "text": ">/one,,",
+  "ok": true
+ },
+ {
+  "text": "one/otherselect/",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, plural/,: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, 1 {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, aa}b {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, /{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, plural#/1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, otherna {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, >#number {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, select= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, one>1other {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, number {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, } {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, : {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, number'1'< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, x: aone {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, ,:  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, < {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, ' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, selectxplural {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, one, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, 'an1  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, x' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, xa>, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, /onenumber=select {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, aone {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, { plural:< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, = {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, #x {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, oneonen1 {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, =otherplural {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, plural,1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, 1  {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, /}=otherx {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, other' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, /pluralxpluralb {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, none1b {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, nother1}plural {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, one,# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, :'< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, ==one1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, ,b>onex {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, #number, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, ax: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, other/n, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, x/> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, >/1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, # , {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, selectpluralselecta {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, numbernumberselect,x {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, select1' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, <one {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, }>onenumber= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, =1  {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, othera>{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, /1, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, >11 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, a}x  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, 11: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural,  number> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, /select:}# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, apluralselect {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, otherx {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, one#n/one {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, xn {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, select {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, n {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, >/pluralplural {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, one {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, #x{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, other=, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, onenumber {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, otheraa {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, /#< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, #1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, { {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, #b {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, <{<number {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, > {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, ={anumber {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, plural {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, a>/>' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, ,otherotherone {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, /= /plural {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, oneother' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, other{<#x {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, x, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, aselectone1a {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, numberone, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, pluralaplural< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural,  ,}b> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, <'onexnumber {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, x} /number {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, {a plural {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, {}#{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, { ' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, /}one {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, one,a<, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, # plural{: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, ',=# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, othera {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, 'one{other< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, select} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, {n1  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, othera# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, =number {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, :,other {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, plural<#>> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, >number< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural,  select} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, 1 a {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, :<,an {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, {} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, 'number,/> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, #plural {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, otherbother# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, >} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, >#a= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, b1 {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, '#:' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, >= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, xa {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural,  #pluralother {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, plural, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, :n{<= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, 1 <}# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural,  1/ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, other:> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, number}{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, nxx}} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, n=b#  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, #>n {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, }/,a  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, otherpluralplural {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, >plural, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, ':a/other {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, selectother<} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, ,,/ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, }} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, plural{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, }'number, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, numberbxonex {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, /plural '= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, {'pluralbn {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, one/plural, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, 1plural:otherselect {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, oneselect<> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, a}n: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, /{:  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, #}}bx {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, }{>plural {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, onen1,x {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural,  #n,{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, '# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, #>' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, ,{}1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, }' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, >:pluralanumber {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, select==1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, : select:# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, aother {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, 'x {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, :} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, /plural1select {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, otherbplural {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, n= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, {plural: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural,   {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, numbern=,n {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, #n {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, =a select< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, ,number' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, anone {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, :x>plural= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, none, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, {number {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, =#/< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, x {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, number}'numberplural {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, 1select {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, >n,1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, numberone: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, numberselect1 # {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, numbera {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, #select{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, => {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, =select {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, }1onea {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, number=number: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, n{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, >= xa {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, 1'} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, aplural> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, >=other {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, x{' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, one{,a {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, other {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, number<#}' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, other{one< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, /select {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, oneone1b {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, x11n {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, /{number {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, b= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, ':1# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, noneselect#> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, ,#1b> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, othernumber<b {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, :other {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, n b {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, b {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, = > {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, number} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, 1'b {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, 'aa: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, select'n/ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, number>select' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, >n/xone {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, selectone> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, :numbernumber= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, =a {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, '=> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, a'= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, /pluralnumbernumber: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, =n>number {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, {1': {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, x  {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, one,{aa {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, ,oneother { {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, selectb11' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, a>bbn {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, /'a>n {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, x,=1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, , {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, number{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, select{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, :plural1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, 1,:{select {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, #',numbern {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, {n=a {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, , :one {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, :>one,plural {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, /other< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, /x {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, }n {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural,  }=}{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, none,' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, x: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, />  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, #ax {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, <select' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural,  plural {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, plural, =a,= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, a} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, {<1a {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, one1:other {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, '>{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, }one  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, {other},: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, #' } {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, plural, b:n {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "<b>b>1selectx</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>select1</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>select</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>x}1other,</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>,</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>=x/</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>:select{one</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>,,other}#</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>1</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>numberba  </b>",
+  "ok": true
+ },
+ {
+  "text": "<b>select#a<select</b>",
+  "ok": false
+ },
+ {
+  "text": "<b><=one</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>other:plural#</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>:other>otherx</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>=ax</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>xone</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>one</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>/{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>{1select/ </b>",
+  "ok": false
+ },
+ {
+  "text": "<b>/nx </b>",
+  "ok": true
+ },
+ {
+  "text": "<b>/b1</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>numberx</b>",
+  "ok": true
+ },
+ {
+  "text": "<b><:b/</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>xb#</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>/one</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>,a'one#</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>, ></b>",
+  "ok": true
+ },
+ {
+  "text": "<b>x,onen'</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>,numberaother</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>n{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>{one/</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>anumber</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>#bba#</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>b'bn</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>otherxx:plural</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>,other</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>><bselect</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>otherotherpluralnn</b>",
+  "ok": true
+ },
+ {
+  "text": "<b> </b>",
+  "ok": true
+ },
+ {
+  "text": "<b>#other{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>:number=a'</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>}1<</b>",
+  "ok": false
+ },
+ {
+  "text": "<b> {=:plural</b>",
+  "ok": false
+ },
+ {
+  "text": "<b><one}</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>a,</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>>x#</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>/nan</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>b'plural:</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>##</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>a'a'plural</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>==</b>",
+  "ok": true
+ },
+ {
+  "text": "<b><<:,></b>",
+  "ok": true
+ },
+ {
+  "text": "<b>/</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>selectnumber</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>plural</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>></b>",
+  "ok": true
+ },
+ {
+  "text": "<b>onea</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>}plural>b</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>xaone</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>xonexplural</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>:=</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>{'{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>other/one#=</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>number,</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>number</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>other #{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>b</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>'</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>xnone</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>a</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>n#one/</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>/x</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>aone='</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>'{one'</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>anpluralone</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>>{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>#</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>>}</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>#bx</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>numberotherselect</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>bna1/</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>>:<b</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>numberb'b</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>one,:</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>xother'</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>select#x {</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>=</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>a}plural</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>select/</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>}>b</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>1a</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>:</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>{select,</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>, other</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>other#</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>1other,<=</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>other} aone</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>a'</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>/':n</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>}</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>>/</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>>''</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>1{x/</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>:n'</b>",
+  "ok": false
+ },
+ {
+  "text": "<b><selectselect</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>}/other#one</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>aba{/</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>}=1'}</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>other</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>bother':other</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>>>plural>one</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>axnumber=/</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>select{b</b>",
+  "ok": false
+ },
+ {
+  "text": "<b><</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>an{></b>",
+  "ok": false
+ },
+ {
+  "text": "<b>,:</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>a'other{number</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>/,a</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>}oneone a</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>, {na</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>}></b>",
+  "ok": false
+ },
+ {
+  "text": "<b>a/b</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>onex</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>a{1 </b>",
+  "ok": false
+ },
+ {
+  "text": "<b>other></b>",
+  "ok": true
+ },
+ {
+  "text": "<b>select>#=</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>one1>plural{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>>/{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>{pluralpluraln</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>/ n=,</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>1 one1</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>>number</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>#=</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>b#x#b</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>oneotherxselect</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>{#'<</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>x,a<</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>1:selectotherb</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>#selectx:{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>=}{{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>onepluralx=</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>plural <numberone</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>xnumber</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>other1one</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>=plural></b>",
+  "ok": true
+ },
+ {
+  "text": "<b>=x1</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>selectn</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>number{} plural</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>pluralaother/</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>>,number:</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>plural/</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>bn</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>bnumber=</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>plural:'/other</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>><:</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>selectselectonenumber</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>:,</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>numberanumber'</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>selectxa</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>=<</b>",
+  "ok": true
+ },
+ {
+  "text": "<b><>na:</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>xotherplural=</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>plural/one</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>xother</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>#n</b>",
+  "ok": true
+ },
+ {
+  "text": "<b><number}</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>>xother:b</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>:{< {</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>ab</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>#/select,</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>pluralnx</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>n=bnumber</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>{/oneaplural</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>:/></b>",
+  "ok": true
+ },
+ {
+  "text": "<b>=:bnumber</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>nplural=numbernumber</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>select}</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>/aothernumber</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>n1</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>oneone</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>><x,number</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>select{/},</b>",
+  "ok": false
+ },
+ {
+  "text": "<b><:</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>>one{#}</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>n}select1</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>}#/'</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>number#}/></b>",
+  "ok": false
+ },
+ {
+  "text": "<b>selectselect}other</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>>}b1/</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>bnx:/</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>'1number {</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>x/1>{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>number},</</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>otherx'number</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>=other::</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>plural selecta</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>{numberplural></b>",
+  "ok": false
+ },
+ {
+  "text": "<b>>a1one/</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>nx#{,</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>{xxone<</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>/pluralone:</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>selectotherxx></b>",
+  "ok": true
+ },
+ {
+  "text": "<b>b/= #</b>",
+  "ok": true
+ },
+ {
+  "text": "<b><xother</b>",
+  "ok": false
+ },
+ {
+  "text": "<b> select#</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>x</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>/ab</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>x#bother<</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>=bone</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>othern1'a</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>xplural1numberb</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>/1n#n</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>1b other,</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>select'{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b><x</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>{one<x</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>a<<</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>a,=b:</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>: >oneother</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>selecta</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>a>=n</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>>='{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>=}one></b>",
+  "ok": false
+ },
+ {
+  "text": "<b>,x:</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>{onepluralnother</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>{a</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>a< bb</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>other/</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>/select,></b>",
+  "ok": true
+ },
+ {
+  "text": "<b>{#>:{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b><a':</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>:<</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>{}>x</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>,#}</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>' plural,/</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>x#other</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>one{ #x</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>xx '{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b></</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>other1>number</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>bnumberplural><</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>1{{</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>> </b>",
+  "ok": true
+ },
+ {
+  "text": "<b>:nnumbera=</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>,otherx</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>:xselect#</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>other=a</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>1n:numberb</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>{}#</b>",
+  "ok": false
+ },
+ {
+  "text": "<b>x/selectone</b>",
+  "ok": true
+ },
+ {
+  "text": "<b>/n</b>",
+  "ok": true
+ },
+ {
+  "text": "{a, select, b {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, ax#}number {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  other<= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, <x {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, xa} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1} b {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, other< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, n {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, otherselect'a {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1 {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, <'> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, numberb}select {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, x {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, ' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, <1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, one>1n {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, /> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, #plural{other {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, botherb  {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, /a {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, b1one}/ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, one {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, {}< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, a<'<: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ',#,# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, {:{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ,ab number {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, }>#<< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, /select#number' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, aother {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, }/numbern {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1  {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, '{# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, b, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, } {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, noneaselectselect {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, ,=> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ,a''{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, number select {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ,}aselect1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, nselect> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, < {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, }=, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, />> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  number## {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, :a {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,    {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ,  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, select {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, =bn {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, aone/other' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, {:n{number {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, }1<'' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, =one {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, : {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, number {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, :,=: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, number:  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, /{# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, x} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, =,,<n {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1b< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, >/select} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, other,=1= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 'select<x {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, :1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, nx# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, = {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  // {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, n/}'= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,   {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, other {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, =one'plural1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, {selectselect' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, nx {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, /n1{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, {< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, {= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, oneone{other {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, <onen{# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, , {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, nbother a {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, #numbernumber {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, a>pluralb  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, },>  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, }#< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, n#,=other {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, other{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, select</select {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, <a {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, bb{b{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, >>numbera {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, otheroneb# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, a {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, 'one,plural {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ba {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, xother {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, bbplural {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, > {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, >> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, other//<} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, /a  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, { {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, >a {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, :x/1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, := {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, {>number/' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  == {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, x:,}one {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, x<selecta {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, / {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, otherb1# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, =one': {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, :{> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  = {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, {other {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1 <bone {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, >one: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, {<number {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, aaa {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, nselecta{> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, #none {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  one>> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, otherone {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, n:/aselect {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ',onenumber< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, >/a=b {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1>,1select {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1,<xn {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, </ > {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, >/a/ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, plural# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, #/ / {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, /numbera1} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ,: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ,plural' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, =>}, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, pluralone {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, plural{one,} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, n#n:1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, plural {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, number<#plural {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, }> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1other# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, x:/ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ><xx} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, :=select {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, other>plural}= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, plural1 {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, n} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, =>othern# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1,number {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 'otherselect' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, :<'}one {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, <one# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, }, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, b} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ,{< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, select#} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, #n {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, numberxnbselect {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, '1} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, numberselectotherb {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, an=b {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, nn<other1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, a## {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  <select>one {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, #,>b {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1select<n {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, nn' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1other {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, <# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  onex {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, }1>  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, numberotherselectselect {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, 1, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, # {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, x b {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, /number {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  1<n {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, <x = {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, {}a number {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, a} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ',# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  /select {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, b#one#x {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  n:n= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, bother=na {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ,#one {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, },one} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, {one  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, bplural= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, <, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ,n {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ''>pluralx {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, numbera' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, #{aselect {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  number=, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, }  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, '{:} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, selectother {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, xselect:} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, #,a {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, other#, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, /,select > {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, {xother>' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, selectone,' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, '/nselectone {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, onex# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, >' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, select>#} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1#{one: {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ba<numberb {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  n, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  x={ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, /,'one {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, n/ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ,}}= {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  number,, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, }number {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 'selectb {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, a< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, other#': {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, selectselect<number {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  bn{ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, >plural/ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, x/< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, othernumbernumber {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, otherx:<one {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, =  {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select,  /other1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ,=1 {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, numberplural {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, ,, {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, n:onea# {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, one< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1select {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, {{} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ,select {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, aselectpluralselect1 {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, number,b {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ,select'< {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1<=} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, <#> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, }b/ {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, ',>x {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, >onenumbernumber {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, '{plural## {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, xx {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, ,selectx {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 'b {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, 1#}1one {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, bplurala {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, #{:' {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, bonex {b} other {c}}",
+  "ok": true
+ },
+ {
+  "text": "{a, select, >plural {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, =xnx {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, b,/#> {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, number/b:select {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "{a, select, onen>} {b} other {c}}",
+  "ok": false
+ },
+ {
+  "text": "plural {a} X",
+  "ok": true
+ },
+ {
+  "text": "1,aone {a} X",
+  "ok": true
+ },
+ {
+  "text": "',{other> {a} X",
+  "ok": false
+ },
+ {
+  "text": "aselect>{other {a} X",
+  "ok": false
+ },
+ {
+  "text": "one=>{, {a} X",
+  "ok": false
+ },
+ {
+  "text": ",{one< {a} X",
+  "ok": false
+ },
+ {
+  "text": "# , {a} X",
+  "ok": true
+ },
+ {
+  "text": "=  {a} X",
+  "ok": true
+ },
+ {
+  "text": "a# {a} X",
+  "ok": true
+ },
+ {
+  "text": ",>' {a} X",
+  "ok": true
+ },
+ {
+  "text": ":#1select {a} X",
+  "ok": true
+ },
+ {
+  "text": "nb{ {a} X",
+  "ok": false
+ },
+ {
+  "text": "=}#x {a} X",
+  "ok": true
+ },
+ {
+  "text": "x {a} X",
+  "ok": true
+ },
+ {
+  "text": "=select/a {a} X",
+  "ok": true
+ },
+ {
+  "text": "pluralx {a} X",
+  "ok": true
+ },
+ {
+  "text": "}{nx {a} X",
+  "ok": false
+ },
+ {
+  "text": "< {a} X",
+  "ok": true
+ },
+ {
+  "text": "baplural {a} X",
+  "ok": true
+ },
+ {
+  "text": "n = {a} X",
+  "ok": true
+ },
+ {
+  "text": "1'{ {a} X",
+  "ok": true
+ },
+ {
+  "text": "<other,b} {a} X",
+  "ok": false
+ },
+ {
+  "text": " onebxn {a} X",
+  "ok": true
+ },
+ {
+  "text": "  {a} X",
+  "ok": true
+ },
+ {
+  "text": "anumberb'other {a} X",
+  "ok": true
+ },
+ {
+  "text": "=> {a} X",
+  "ok": true
+ },
+ {
+  "text": "n><number{ {a} X",
+  "ok": false
+ },
+ {
+  "text": ">, {a} X",
+  "ok": true
+ },
+ {
+  "text": " selecta{ {a} X",
+  "ok": false
+ },
+ {
+  "text": "=plural {a} X",
+  "ok": true
+ },
+ {
+  "text": "n:1pluralother {a} X",
+  "ok": true
+ },
+ {
+  "text": "/x< {a} X",
+  "ok": true
+ },
+ {
+  "text": "other= {a} X",
+  "ok": true
+ },
+ {
+  "text": "pluralnumber/ {a} X",
+  "ok": true
+ },
+ {
+  "text": "otherselect{nplural {a} X",
+  "ok": false
+ },
+ {
+  "text": "otheraselect= {a} X",
+  "ok": true
+ },
+ {
+  "text": "# {a} X",
+  "ok": true
+ },
+ {
+  "text": "> {a} X",
+  "ok": true
+ },
+ {
+  "text": "}bn1, {a} X",
+  "ok": true
+ },
+ {
+  "text": "select/other b {a} X",
+  "ok": true
+ },
+ {
+  "text": "#>/nb {a} X",
+  "ok": true
+ },
+ {
+  "text": "b {a} X",
+  "ok": true
+ },
+ {
+  "text": ": /<} {a} X",
+  "ok": true
+ },
+ {
+  "text": "aotherx' {a} X",
+  "ok": true
+ },
+ {
+  "text": "/1= {a} X",
+  "ok": true
+ },
+ {
+  "text": "x  {a} X",
+  "ok": true
+ },
+ {
+  "text": "one,plural,  {a} X",
+  "ok": true
+ },
+ {
+  "text": "b#=>1 {a} X",
+  "ok": true
+ },
+ {
+  "text": "/=n}1 {a} X",
+  "ok": true
+ },
+ {
+  "text": "{other {a} X",
+  "ok": false
+ },
+ {
+  "text": "'=none {a} X",
+  "ok": true
+ },
+ {
+  "text": "x=oneoneb {a} X",
+  "ok": true
+ },
+ {
+  "text": "one {a} X",
+  "ok": true
+ },
+ {
+  "text": " apluralx, {a} X",
+  "ok": true
+ },
+ {
+  "text": "one bother {a} X",
+  "ok": true
+ },
+ {
+  "text": "pluralselect<one{ {a} X",
+  "ok": false
+ },
+ {
+  "text": "'{ # {a} X",
+  "ok": true
+ },
+ {
+  "text": ",,a>select {a} X",
+  "ok": true
+ },
+ {
+  "text": "/ {a} X",
+  "ok": true
+ },
+ {
+  "text": "n= {a} X",
+  "ok": true
+ },
+ {
+  "text": "a1otherselect {a} X",
+  "ok": true
+ },
+ {
+  "text": "x:}}number {a} X",
+  "ok": true
+ },
+ {
+  "text": "{} {a} X",
+  "ok": false
+ },
+ {
+  "text": "1'{plural= {a} X",
+  "ok": true
+ },
+ {
+  "text": ": {a} X",
+  "ok": true
+ },
+ {
+  "text": "selectplural:select  {a} X",
+  "ok": true
+ },
+ {
+  "text": "n1=:< {a} X",
+  "ok": true
+ },
+ {
+  "text": ":one {a} X",
+  "ok": true
+ },
+ {
+  "text": "bapluralplural  {a} X",
+  "ok": true
+ },
+ {
+  "text": "'//{ {a} X",
+  "ok": false
+ },
+ {
+  "text": "x' {a} X",
+  "ok": true
+ },
+ {
+  "text": "select/b1 {a} X",
+  "ok": true
+ },
+ {
+  "text": "xb{ {a} X",
+  "ok": false
+ },
+ {
+  "text": "=select {a} X",
+  "ok": true
+ },
+ {
+  "text": "'a/ {a} X",
+  "ok": true
+ },
+ {
+  "text": "= {a} X",
+  "ok": true
+ },
+ {
+  "text": "numberother {a} X",
+  "ok": true
+ },
+ {
+  "text": "select {a} X",
+  "ok": true
+ },
+ {
+  "text": " onea1, {a} X",
+  "ok": true
+ },
+ {
+  "text": "',{/ {a} X",
+  "ok": false
+ },
+ {
+  "text": "#/, {a} X",
+  "ok": true
+ },
+ {
+  "text": "a:x/one {a} X",
+  "ok": true
+ },
+ {
+  "text": "one#1 {a} X",
+  "ok": true
+ },
+ {
+  "text": "::n {a} X",
+  "ok": true
+ },
+ {
+  "text": "nnone {a} X",
+  "ok": true
+ },
+ {
+  "text": "} {a} X",
+  "ok": true
+ },
+ {
+  "text": "}numberother {a} X",
+  "ok": true
+ },
+ {
+  "text": "a:} {a} X",
+  "ok": true
+ },
+ {
+  "text": "a'other{ {a} X",
+  "ok": false
+ },
+ {
+  "text": "plural, {a} X",
+  "ok": true
+ },
+ {
+  "text": "plural' n {a} X",
+  "ok": true
+ },
+ {
+  "text": ",plural1other {a} X",
+  "ok": true
+ },
+ {
+  "text": ", n {a} X",
+  "ok": true
+ },
+ {
+  "text": "a {a} X",
+  "ok": true
+ },
+ {
+  "text": "{<=}n {a} X",
+  "ok": false
+ },
+ {
+  "text": " }>< {a} X",
+  "ok": true
+ },
+ {
+  "text": "1,/=a {a} X",
+  "ok": true
+ },
+ {
+  "text": "=:: {a} X",
+  "ok": true
+ },
+ {
+  "text": "other</ {a} X",
+  "ok": false
+ },
+ {
+  "text": "otherone {a} X",
+  "ok": true
+ },
+ {
+  "text": "/>1#< {a} X",
+  "ok": true
+ },
+ {
+  "text": ", {a} X",
+  "ok": true
+ },
+ {
+  "text": "select//onex {a} X",
+  "ok": true
+ },
+ {
+  "text": "'n {a} X",
+  "ok": true
+ },
+ {
+  "text": "pluralselect {a} X",
+  "ok": true
+ },
+ {
+  "text": "{}<1} {a} X",
+  "ok": false
+ },
+ {
+  "text": ">othera=select {a} X",
+  "ok": true
+ },
+ {
+  "text": "aselectnumber {a} X",
+  "ok": true
+ },
+ {
+  "text": "#} {a} X",
+  "ok": true
+ },
+ {
+  "text": "'xplural<< {a} X",
+  "ok": true
+ },
+ {
+  "text": " { /: {a} X",
+  "ok": false
+ },
+ {
+  "text": "<xnumberx {a} X",
+  "ok": false
+ },
+ {
+  "text": "selectone {a} X",
+  "ok": true
+ },
+ {
+  "text": "#' {a} X",
+  "ok": true
+ },
+ {
+  "text": "other}< {a} X",
+  "ok": true
+ },
+ {
+  "text": "x#plural {a} X",
+  "ok": true
+ },
+ {
+  "text": "x'/ {a} X",
+  "ok": true
+ },
+ {
+  "text": "{:plural {a} X",
+  "ok": false
+ },
+ {
+  "text": ">'#1select {a} X",
+  "ok": true
+ },
+ {
+  "text": "/select {a} X",
+  "ok": true
+ },
+ {
+  "text": "xpluralaother/ {a} X",
+  "ok": true
+ },
+ {
+  "text": "other/b/' {a} X",
+  "ok": true
+ },
+ {
+  "text": "other:} {a} X",
+  "ok": true
+ },
+ {
+  "text": "1b {a} X",
+  "ok": true
+ },
+ {
+  "text": "}bother< {a} X",
+  "ok": true
+ },
+ {
+  "text": "'> {a} X",
+  "ok": true
+ },
+ {
+  "text": "nx}onen {a} X",
+  "ok": true
+ },
+ {
+  "text": "11{}} {a} X",
+  "ok": false
+ },
+ {
+  "text": "x{number1 {a} X",
+  "ok": false
+ },
+ {
+  "text": "' {a} X",
+  "ok": true
+ },
+ {
+  "text": "b:number {a} X",
+  "ok": true
+ },
+ {
+  "text": "b'<># {a} X",
+  "ok": true
+ },
+ {
+  "text": "1>a {a} X",
+  "ok": true
+ },
+ {
+  "text": "selectnbselect {a} X",
+  "ok": true
+ },
+ {
+  "text": "<plural{  {a} X",
+  "ok": false
+ },
+ {
+  "text": "}{/= {a} X",
+  "ok": false
+ },
+ {
+  "text": "'= {a} X",
+  "ok": true
+ },
+ {
+  "text": "# naone {a} X",
+  "ok": true
+ },
+ {
+  "text": ":1 {a} X",
+  "ok": true
+ },
+ {
+  "text": "=<oneone {a} X",
+  "ok": false
+ },
+ {
+  "text": ": number {a} X",
+  "ok": true
+ },
+ {
+  "text": "}> {a} X",
+  "ok": true
+ },
+ {
+  "text": "plural{ {a} X",
+  "ok": false
+ },
+ {
+  "text": "numberone {a} X",
+  "ok": true
+ },
+ {
+  "text": "',n {a} X",
+  "ok": true
+ },
+ {
+  "text": "one  {a} X",
+  "ok": true
+ },
+ {
+  "text": " one {a} X",
+  "ok": true
+ },
+ {
+  "text": "other {a} X",
+  "ok": true
+ },
+ {
+  "text": " n= {a} X",
+  "ok": true
+ },
+ {
+  "text": "none/ {a} X",
+  "ok": true
+ },
+ {
+  "text": "a{one {a} X",
+  "ok": false
+ },
+ {
+  "text": "plurala<other{ {a} X",
+  "ok": false
+ },
+ {
+  "text": ",<n {a} X",
+  "ok": false
+ },
+ {
+  "text": "select=}aplural {a} X",
+  "ok": true
+ },
+ {
+  "text": "other>, {a} X",
+  "ok": true
+ },
+ {
+  "text": "select= {a} X",
+  "ok": true
+ },
+ {
+  "text": "'}/< {a} X",
+  "ok": true
+ },
+ {
+  "text": "bplural:b {a} X",
+  "ok": true
+ },
+ {
+  "text": "={}{, {a} X",
+  "ok": false
+ },
+ {
+  "text": "n/=a1 {a} X",
+  "ok": true
+ },
+ {
+  "text": "bnumber {a} X",
+  "ok": true
+ },
+ {
+  "text": " pluraloneplural {a} X",
+  "ok": true
+ },
+ {
+  "text": "otheronea>x {a} X",
+  "ok": true
+ },
+ {
+  "text": "1 {a} X",
+  "ok": true
+ },
+ {
+  "text": "'#{number {a} X",
+  "ok": false
+ },
+ {
+  "text": ",=select {a} X",
+  "ok": true
+ },
+ {
+  "text": "<other {a} X",
+  "ok": false
+ },
+ {
+  "text": "}plural' {a} X",
+  "ok": true
+ },
+ {
+  "text": "b} {a} X",
+  "ok": true
+ },
+ {
+  "text": ",{ {a} X",
+  "ok": false
+ },
+ {
+  "text": "#x/other {a} X",
+  "ok": true
+ },
+ {
+  "text": "other': {a} X",
+  "ok": true
+ },
+ {
+  "text": "pluralother {a} X",
+  "ok": true
+ },
+ {
+  "text": "otherselect {a} X",
+  "ok": true
+ },
+ {
+  "text": "n/b {a} X",
+  "ok": true
+ },
+ {
+  "text": ">other:numbernumber {a} X",
+  "ok": true
+ },
+ {
+  "text": "other{select11 {a} X",
+  "ok": false
+ },
+ {
+  "text": "one<number< {a} X",
+  "ok": false
+ },
+ {
+  "text": "number{{ {a} X",
+  "ok": false
+ },
+ {
+  "text": "xpluralnselect} {a} X",
+  "ok": true
+ },
+ {
+  "text": "{one= {a} X",
+  "ok": false
+ },
+ {
+  "text": ":=<selectplural {a} X",
+  "ok": false
+ },
+ {
+  "text": "x1<} {a} X",
+  "ok": true
+ },
+ {
+  "text": " >:1 {a} X",
+  "ok": true
+ },
+ {
+  "text": "{nx {a} X",
+  "ok": false
+ },
+ {
+  "text": ":<1 {a} X",
+  "ok": true
+ },
+ {
+  "text": " numbernother' {a} X",
+  "ok": true
+ },
+ {
+  "text": "xnother {a} X",
+  "ok": true
+ },
+ {
+  "text": "}1 {a} X",
+  "ok": true
+ },
+ {
+  "text": "b}{{= {a} X",
+  "ok": false
+ },
+ {
+  "text": "xb'' {a} X",
+  "ok": true
+ },
+ {
+  "text": "bnumber  {a} X",
+  "ok": true
+ },
+ {
+  "text": " :1>{ {a} X",
+  "ok": false
+ },
+ {
+  "text": "number=  {a} X",
+  "ok": true
+ },
+ {
+  "text": "other: one {a} X",
+  "ok": true
+ },
+ {
+  "text": "a>a {a} X",
+  "ok": true
+ },
+ {
+  "text": "{  {a} X",
+  "ok": false
+ },
+ {
+  "text": "plural x {a} X",
+  "ok": true
+ },
+ {
+  "text": "<one {a} X",
+  "ok": false
+ },
+ {
+  "text": "other{select {a} X",
+  "ok": false
+ },
+ {
+  "text": ">' other {a} X",
+  "ok": true
+ },
+ {
+  "text": "#: {a} X",
+  "ok": true
+ },
+ {
+  "text": "x:,select {a} X",
+  "ok": true
+ },
+ {
+  "text": ",selectpluralone {a} X",
+  "ok": true
+ },
+ {
+  "text": "otherba,b {a} X",
+  "ok": true
+ },
+ {
+  "text": "ax {a} X",
+  "ok": true
+ },
+ {
+  "text": "/x,'n {a} X",
+  "ok": true
+ },
+ {
+  "text": "{''}plural {a} X",
+  "ok": false
+ },
+ {
+  "text": "b}#1/ {a} X",
+  "ok": true
+ },
+ {
+  "text": "1number,>' {a} X",
+  "ok": true
+ },
+ {
+  "text": "otherbother {a} X",
+  "ok": true
+ },
+ {
+  "text": "<# 1 {a} X",
+  "ok": true
+ },
+ {
+  "text": ",'select>n {a} X",
+  "ok": true
+ },
+ {
+  "text": ", / number {a} X",
+  "ok": true
+ },
+ {
+  "text": "}1 1 {a} X",
+  "ok": true
+ },
+ {
+  "text": ":#, {a} X",
+  "ok": true
+ },
+ {
+  "text": "'xx' {a} X",
+  "ok": true
+ },
+ {
+  "text": "<<' {a} X",
+  "ok": true
+ },
+ {
+  "text": "nnumbera {a} X",
+  "ok": true
+ },
+ {
+  "text": "other>b {a} X",
+  "ok": true
+ },
+ {
+  "text": "x ' {a} X",
+  "ok": true
+ },
+ {
+  "text": "# number {a} X",
+  "ok": true
+ },
+ {
+  "text": "otherone#a {a} X",
+  "ok": true
+ },
+ {
+  "text": "number}number}{ {a} X",
+  "ok": false
+ },
+ {
+  "text": "/1one>' {a} X",
+  "ok": true
+ },
+ {
+  "text": ": '= {a} X",
+  "ok": true
+ },
+ {
+  "text": "otherone1n {a} X",
+  "ok": true
+ },
+ {
+  "text": "1,select{other {a} X",
+  "ok": false
+ },
+ {
+  "text": ",# {a} X",
+  "ok": true
+ },
+ {
+  "text": "a1/#} {a} X",
+  "ok": true
+ },
+ {
+  "text": "}bpluralother {a} X",
+  "ok": true
+ },
+ {
+  "text": "selectselect<' {a} X",
+  "ok": true
+ },
+ {
+  "text": ":bother, {a} X",
+  "ok": true
+ },
+ {
+  "text": "'}'one {a} X",
+  "ok": true
+ },
+ {
+  "text": "ab>othern {a} X",
+  "ok": true
+ },
+ {
+  "text": "a'', {a} X",
+  "ok": true
+ },
+ {
+  "text": "b x {a} X",
+  "ok": true
+ },
+ {
+  "text": ",{n {a} X",
+  "ok": false
+ },
+ {
+  "text": "## {a} X",
+  "ok": true
+ },
+ {
+  "text": ",b,otherone {a} X",
+  "ok": true
+ },
+ {
+  "text": "b'ax {a} X",
+  "ok": true
+ },
+ {
+  "text": "}/b= {a} X",
+  "ok": true
+ },
+ {
+  "text": ":, {a} X",
+  "ok": true
+ },
+ {
+  "text": ">/{ {a} X",
+  "ok": false
+ },
+ {
+  "text": "xotherselect n {a} X",
+  "ok": true
+ },
+ {
+  "text": "aselect {a} X",
+  "ok": true
+ },
+ {
+  "text": "pluralselect<} {a} X",
+  "ok": true
+ },
+ {
+  "text": "a: {a} X",
+  "ok": true
+ },
+ {
+  "text": "1=a {a} X",
+  "ok": true
+ },
+ {
+  "text": "number<, {a} X",
+  "ok": true
+ },
+ {
+  "text": "#otherother} {a} X",
+  "ok": true
+ },
+ {
+  "text": " b1 {a} X",
+  "ok": true
+ },
+ {
+  "text": "/ one>number {a} X",
+  "ok": true
+ },
+ {
+  "text": "bn< {a} X",
+  "ok": true
+ },
+ {
+  "text": " :=>, {a} X",
+  "ok": true
+ },
+ {
+  "text": "'oneone// {a} X",
+  "ok": true
+ },
+ {
+  "text": "'a:=< {a} X",
+  "ok": true
+ },
+ {
+  "text": ">>ab {a} X",
+  "ok": true
+ },
+ {
+  "text": ",select: {a} X",
+  "ok": true
+ },
+ {
+  "text": ",otherx:other {a} X",
+  "ok": true
+ },
+ {
+  "text": "nother# {a} X",
+  "ok": true
+ },
+ {
+  "text": "#plural# {a} X",
+  "ok": true
+ },
+ {
+  "text": ",pluralb} {a} X",
+  "ok": true
+ },
+ {
+  "text": ",=# {a} X",
+  "ok": true
+ },
+ {
+  "text": "one'n# {a} X",
+  "ok": true
+ }
+]

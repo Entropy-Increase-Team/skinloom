@@ -293,7 +293,11 @@ func (s *Service) List(ctx context.Context, f Filter, v Viewer) ([]*ent.Texture,
 			if !ok {
 				return nil, "", badCursor
 			}
-			where = append(where, tex.Or(tex.LikesLT(likes), tex.And(tex.Likes(likes), tex.IDLT(id))))
+			// likes <= L is implied by the OR, but only a plain bound gives the database
+			// an index range on (visibility, [type,] likes, id). Without it PostgreSQL's
+			// generic plan for the prepared statement scanned most of the index: 240 ms
+			// a page at a million textures instead of 1 ms (ADR 0038).
+			where = append(where, tex.LikesLTE(likes), tex.Or(tex.LikesLT(likes), tex.And(tex.Likes(likes), tex.IDLT(id))))
 		}
 		q = q.Order(ent.Desc(tex.FieldLikes), ent.Desc(tex.FieldID))
 	default:

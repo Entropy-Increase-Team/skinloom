@@ -28,6 +28,8 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/dbtest"
 	"github.com/Entropy-Increase-Team/skinloom/internal/player"
+	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/sitesettings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
 
 	_ "modernc.org/sqlite"
@@ -51,6 +53,11 @@ CREATE TABLE reports (id integer primary key autoincrement, tid integer not null
 CREATE TABLE notifications (id varchar not null primary key, type varchar not null, notifiable_type varchar not null, notifiable_id integer not null,
   data text not null, read_at datetime null, created_at datetime null, updated_at datetime null);
 CREATE TABLE uuid (id integer primary key autoincrement, name varchar not null, uuid varchar(255) not null);
+CREATE TABLE language_lines (id integer primary key autoincrement, "group" varchar not null, "key" varchar not null, text text not null,
+  created_at datetime null, updated_at datetime null);
+CREATE TABLE oauth_clients (id integer primary key autoincrement, user_id integer null, name varchar not null, secret varchar(100) null,
+  provider varchar null, redirect text not null, personal_access_client tinyint(1) not null, password_client tinyint(1) not null,
+  revoked tinyint(1) not null, created_at datetime null, updated_at datetime null);
 `
 
 // skinPNG is a valid w×h PNG; seed makes files differ.
@@ -157,7 +164,16 @@ func newTarget(t *testing.T, d *db.DB) (Target, *storage.Local) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return Target{DB: d, Store: store, Locales: []string{"zh-CN", "en"}}, store
+	return Target{DB: d, Store: store, Locales: []string{"zh-CN", "en"}, Settings: testRegistry(t)}, store
+}
+
+func testRegistry(t *testing.T) *settings.Registry {
+	t.Helper()
+	reg, err := sitesettings.Builtin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return reg
 }
 
 func entries(r *Report, sev Severity) string {

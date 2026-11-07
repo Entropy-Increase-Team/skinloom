@@ -34,7 +34,7 @@ var (
 	OnUserRegistered = NewEvent[UserEvent]("user.registered", 1, "An account was created.")
 	OnUserBanned     = NewEvent[UserEvent]("user.banned", 1, "An administrator banned an account.")
 	OnUserDeleted    = NewEvent[UserEvent]("user.deleted", 1,
-		"An account was removed for good (an administrator's delete, or the end of the grace period after the user deleted it). Its players, closet and private textures went with it; its public textures stay without an uploader.")
+		"An account was removed for good (an administrator's delete, or the end of the grace period after the user deleted it). Its players (each announced as player.deleted first), closet and private textures went with it; its public textures stay without an uploader.")
 )
 
 // PlayerEvent is about one player, as it is after the change.
@@ -51,8 +51,8 @@ var (
 	OnPlayerRenamed = NewEvent[PlayerEvent]("player.renamed", 1,
 		"A player was renamed (with v3 UUIDs its UUID changed with the name).")
 	OnPlayerUpdated = NewEvent[PlayerEvent]("player.updated", 1,
-		"What a player wears changed (put on, taken off, or removed with a texture or a closet item), or its owner did: what game clients get for it is different now.")
-	OnPlayerDeleted = NewEvent[PlayerEvent]("player.deleted", 1, "A player was deleted by its owner or an administrator.")
+		"What a player wears changed (put on, taken off, or removed with a texture or a closet item), or its owner's account was banned, deleted or restored: what game clients get for it is different now.")
+	OnPlayerDeleted = NewEvent[PlayerEvent]("player.deleted", 1, "A player was deleted by its owner or an administrator, or with its account.")
 )
 
 // TextureEvent is about one texture, as it is after the change (texture.deleted: as

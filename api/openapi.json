@@ -2409,6 +2409,12 @@
           "id": {
             "type": "string"
           },
+          "js": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "layout": {
             "additionalProperties": {
               "type": "string"
@@ -2427,6 +2433,7 @@
           "version",
           "tokens",
           "css",
+          "js",
           "layout",
           "home"
         ],

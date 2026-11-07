@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,7 +13,9 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/backup"
 	"github.com/Entropy-Increase-Team/skinloom/internal/buildinfo"
 	"github.com/Entropy-Increase-Team/skinloom/internal/config"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/datalock"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/fsperm"
 	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
 )
 
@@ -64,6 +67,11 @@ func Backup(ctx context.Context, p Paths, o BackupOptions) (string, backup.Manif
 	if err != nil {
 		return "", m, err
 	}
+	if err := fsperm.Private(tmp); err != nil { // Windows ignores the mode
+		f.Close()
+		os.Remove(tmp)
+		return "", m, err
+	}
 	m, err = backup.Write(ctx, f, backup.Sources{DB: database, Store: store, DataDir: p.DataDir, ConfigPath: p.ConfigPath,
 		Version: buildinfo.Version, Now: now})
 	if cerr := f.Close(); err == nil {
@@ -106,7 +114,8 @@ func prune(dir string, keep int) error {
 	return nil
 }
 
-// Restore unpacks an archive into the install at p, which must not be running.
+// Restore unpacks an archive into the install at p. It refuses while a site runs with
+// that data directory (datalock).
 func Restore(ctx context.Context, p Paths, file string, force bool) (backup.Result, error) {
 	p, err := p.Resolve()
 	if err != nil {
@@ -117,11 +126,28 @@ func Restore(ctx context.Context, p Paths, file string, force bool) (backup.Resu
 		return backup.Result{}, err
 	}
 	defer f.Close()
-	if err := os.MkdirAll(p.DataDir, 0o750); err != nil {
+	lk, err := lockDataDir(p, datalock.Exclusive)
+	if errors.Is(err, datalock.ErrInUse) {
+		return backup.Result{}, fmt.Errorf("SkinLoom is running with %s: stop it first (skinloom service stop, or end the serve / up process)", p.DataDir)
+	}
+	if err != nil {
 		return backup.Result{}, err
 	}
+	defer lk.Release()
 	return backup.Restore(ctx, f, backup.Target{DataDir: p.DataDir, ConfigPath: p.ConfigPath, Force: force,
 		OpenStore: func(ctx context.Context, c config.Config) (storage.Store, error) {
 			return openStore(ctx, c.Storage, p.DataDir)
 		}})
+}
+
+// lockDataDir creates the data directory of p if needed and locks it with take.
+func lockDataDir(p Paths, take func(string) (*datalock.Lock, error)) (*datalock.Lock, error) {
+	p, err := p.Resolve()
+	if err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(p.DataDir, 0o750); err != nil {
+		return nil, err
+	}
+	return take(p.DataDir)
 }

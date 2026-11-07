@@ -12,6 +12,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/importer/bs"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
+	"github.com/Entropy-Increase-Team/skinloom/internal/sitesettings"
 )
 
 // ImportBS imports a Blessing Skin site into the install at p, creating the data
@@ -44,7 +45,11 @@ func ImportBS(ctx context.Context, p Paths, src bs.Source, o bs.Options) (*bs.Re
 	if err != nil {
 		return nil, err
 	}
-	t := bs.Target{DB: database, Store: store}
+	reg, err := sitesettings.Builtin()
+	if err != nil {
+		return nil, err
+	}
+	t := bs.Target{DB: database, Store: store, Settings: reg}
 	if cfg.Storage.Driver != "s3" {
 		t.StoreDir = cfg.Storage.Dir(p.DataDir)
 	}

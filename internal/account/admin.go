@@ -322,6 +322,13 @@ func (s *Service) AdminUpdateUser(ctx context.Context, a Actor, id int64, up Adm
 				return err
 			}
 		}
+		// Banned players answer 403, a pending deletion's 404: games and the CDN
+		// must see the change either way.
+		if up.Status != nil && user.Status(*up.Status) != target.Status {
+			if err := s.announcePlayers(ctx, tx, id, hook.OnPlayerUpdated); err != nil {
+				return err
+			}
+		}
 		return audit(ctx, tx, actorID(a), "admin.user_updated", "user", strconv.FormatInt(id, 10), meta.IP, auditMeta)
 	})
 	return u, err
@@ -346,6 +353,9 @@ func (s *Service) AdminDeleteUser(ctx context.Context, a Actor, id int64, meta R
 	meta = meta.clipped()
 	err = s.withTx(ctx, func(tx *ent.Client) error {
 		if err := s.beforeDelete(ctx, tx, id); err != nil {
+			return err
+		}
+		if err := s.announcePlayers(ctx, tx, id, hook.OnPlayerDeleted); err != nil {
 			return err
 		}
 		if err := tx.User.DeleteOneID(id).Exec(ctx); err != nil {

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/fsperm"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
 )
@@ -170,6 +171,10 @@ func Write(ctx context.Context, w io.Writer, src Sources) (Manifest, error) {
 func snapshot(ctx context.Context, d *db.DB, dataDir string) (string, error) {
 	dir := filepath.Join(dataDir, "backups")
 	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return "", err
+	}
+	// The copy holds every account; on Windows it would take the folder's permissions.
+	if err := fsperm.Private(dir); err != nil {
 		return "", err
 	}
 	b := make([]byte, 8)

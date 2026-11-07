@@ -8,7 +8,17 @@ import { type FormEvent, type ReactNode, useEffect, useState } from 'react'
 import { FormError } from '@/components/auth/field'
 import { problemOf } from '@/lib/problem'
 
-import { changesOf, type Draft, draftOf, type FieldProblem, groupSettings, LOCALES, MULTILINE, type SectionId } from './settings-form'
+import {
+  changesOf,
+  CODE,
+  type Draft,
+  draftOf,
+  type FieldProblem,
+  groupSettings,
+  LOCALES,
+  MULTILINE,
+  type SectionId,
+} from './settings-form'
 
 const selectClass = 'h-9 rounded-md border border-input bg-transparent px-2 text-sm'
 const areaClass = 'rounded-md border border-input bg-transparent px-3 py-2 text-sm'
@@ -208,12 +218,12 @@ function SettingField({
     control = (
       <textarea
         id={id}
-        rows={v.type === 'json' ? 8 : 4}
+        rows={CODE.has(v.key) ? 12 : v.type === 'json' ? 8 : 4}
         spellCheck={false}
         value={String(draft.value)}
         onChange={(e) => set(e.target.value)}
         aria-describedby={described}
-        className={`${areaClass} ${v.type === 'json' ? 'font-mono text-xs' : ''}`}
+        className={`${areaClass} ${v.type === 'json' || CODE.has(v.key) ? 'font-mono text-xs' : ''}`}
       />
     )
   } else {

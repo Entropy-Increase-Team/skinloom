@@ -22,6 +22,7 @@ export const SECTIONS = [
   { id: 'other', page: 'settings', prefixes: [''] },
   { id: 'branding', page: 'appearance', prefixes: ['site.logo', 'site.favicon', 'site.copyright', 'seo.'] },
   { id: 'customCss', page: 'appearance', prefixes: ['theme.custom_css'] },
+  { id: 'customJs', page: 'appearance', prefixes: ['theme.custom_js'] },
 ] as const
 
 export type SectionId = (typeof SECTIONS)[number]['id']
@@ -29,6 +30,9 @@ export type SettingsPage = (typeof SECTIONS)[number]['page']
 
 /** Settings edited on pages of their own (appearance, translations), not as form fields. */
 const OWN_EDITORS = new Set(['theme.active', 'theme.overrides', 'home.blocks', 'i18n.overrides'])
+
+/** Text settings that hold code, edited in a monospaced text area. */
+export const CODE = new Set(['theme.custom_css', 'theme.custom_js'])
 
 /** Localized settings written in Markdown, edited in a text area. */
 export const MULTILINE = new Set(['site.announcement', 'site.copyright', 'texture.content_policy'])

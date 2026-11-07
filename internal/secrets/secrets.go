@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/fsperm"
 )
 
 // Secrets are generated on first start.
@@ -33,6 +35,9 @@ func Ensure(dataDir string) (*Secrets, error) {
 	dir := filepath.Join(dataDir, "secrets")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, fmt.Errorf("create secrets directory: %w", err)
+	}
+	if err := fsperm.Private(dir); err != nil { // 0700 means nothing on Windows
+		return nil, err
 	}
 	token, err := ensureFile(AdminTokenFile(dataDir), 32)
 	if err != nil {

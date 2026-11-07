@@ -7,6 +7,8 @@ import (
 	"image"
 	_ "image/png"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -203,5 +205,56 @@ func TestNotificationsAPI(t *testing.T) {
 	_ = json.Unmarshal(admin.do("GET", "/api/v1/admin/audit?action=admin.notification_sent", "").Body.Bytes(), &audit)
 	if len(audit.Records) != 2 {
 		t.Fatalf("sends are audited: %d", len(audit.Records))
+	}
+}
+
+// A texture whose file is missing (common on imported sites: BS keeps the row when the
+// file is gone) renders as Blessing Skin does: avatars show the placeholder, previews
+// are a 404. It is not a server failure, so never a 503.
+func TestMissingFileRendersAsBlessingSkin(t *testing.T) {
+	d, dir := newTestDepsDir(t)
+	setSettings(t, d, `{"captcha.provider": "none"}`)
+	h, _ := New(d)
+	admin := &browser{t: t, h: h}
+	setupSite(t, d, admin)
+	alice := registerUser(t, h, "alice@example.com")
+	var up UploadView
+	file := testPNG(t, 64, 64, 1)
+	_ = json.Unmarshal(upload(t, alice, "Skin", "steve", true, file).Body.Bytes(), &up)
+	skin := up.Texture
+	rec := alice.do("POST", "/api/v1/me/players", `{"name":"Alice"}`)
+	var created PlayerCreated
+	if err := json.Unmarshal(rec.Body.Bytes(), &created); rec.Code != http.StatusOK || err != nil {
+		t.Fatalf("player: %d %s", rec.Code, rec.Body)
+	}
+	if rec := alice.do("PUT", fmt.Sprintf("/api/v1/me/players/%d/textures", created.Player.ID), fmt.Sprintf(`{"skin":%d}`, skin.ID)); rec.Code != http.StatusOK {
+		t.Fatalf("wear: %d %s", rec.Code, rec.Body)
+	}
+	if err := os.Remove(filepath.Join(dir, "textures", skin.Hash)); err != nil {
+		t.Fatal(err)
+	}
+
+	placeholder := get(t, h, nil, "/avatar/hash/"+strings.Repeat("0", 64)+"?png").Body.Bytes()
+	for _, path := range []string{"/avatar/hash/" + skin.Hash + "?png", fmt.Sprintf("/avatar/%d?png", skin.ID), "/avatar/player/Alice?png"} {
+		rec := get(t, h, nil, path)
+		if rec.Code != http.StatusOK || !bytes.Equal(rec.Body.Bytes(), placeholder) {
+			t.Errorf("%s: %d, placeholder %v", path, rec.Code, bytes.Equal(rec.Body.Bytes(), placeholder))
+		}
+	}
+	for _, path := range []string{fmt.Sprintf("/preview/%d", skin.ID), "/preview/hash/" + skin.Hash} {
+		if rec := get(t, h, nil, path); rec.Code != http.StatusNotFound {
+			t.Errorf("%s: %d, want 404", path, rec.Code)
+		}
+	}
+
+	// Put back, the file renders: the placeholder was not cached under its key.
+	if err := os.WriteFile(filepath.Join(dir, "textures", skin.Hash), file, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if rec := get(t, h, nil, "/avatar/hash/"+skin.Hash+"?png"); rec.Code != http.StatusOK || bytes.Equal(rec.Body.Bytes(), placeholder) {
+		t.Errorf("after the file came back: %d, still the placeholder %v", rec.Code, bytes.Equal(rec.Body.Bytes(), placeholder))
+	}
+	if rec := get(t, h, nil, fmt.Sprintf("/preview/%d", skin.ID)); rec.Code != http.StatusOK {
+		t.Errorf("preview after the file came back: %d", rec.Code)
 	}
 }

@@ -73,6 +73,19 @@ func coreDefs() []Def {
 			},
 		},
 		{
+			// Allowed by the pages' Content-Security-Policy through the nonce of the
+			// <script> that loads it (ADR 0039), so it may load further scripts itself.
+			Key: "theme.custom_js", Type: TypeText, Default: "", Superadmin: true,
+			Doc: fmt.Sprintf("JavaScript run on every page after it is parsed, at most %d KB; served as its own script. "+
+				"Super administrators only. (BS custom_js)", MaxCustomJS/1024),
+			Validate: func(v any) error {
+				if len(v.(string)) > MaxCustomJS {
+					return fmt.Errorf("at most %d KB", MaxCustomJS/1024)
+				}
+				return nil
+			},
+		},
+		{
 			Key: "theme.active", Type: TypeString, Public: true, Default: "default",
 			Doc: "ID of the active theme.",
 		},
@@ -99,8 +112,11 @@ func coreDefs() []Def {
 	}
 }
 
-// MaxCustomCSS is the largest theme.custom_css, in bytes.
-const MaxCustomCSS = 64 * 1024
+// Largest theme.custom_css and theme.custom_js, in bytes.
+const (
+	MaxCustomCSS = 64 * 1024
+	MaxCustomJS  = 64 * 1024
+)
 
 // Limits of i18n.overrides.
 const (
@@ -114,9 +130,10 @@ var (
 	overrideKey    = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_-]*(\.[A-Za-z0-9_-]+)*$`)
 )
 
-// validateOverrides checks i18n.overrides: {locale: {message key: text}}. Braces must
-// pair up, so an override cannot break the message format of the texts around it;
-// that its placeholders match the default's is up to the admin panel, which knows them.
+// validateOverrides checks i18n.overrides: {locale: {message key: text}}. Each text must
+// parse as an ICU message the way the browser parses it (checkMessage), so an override
+// cannot leave a page showing the message key; that its placeholders match the
+// default's is up to the admin panel, which knows them.
 func validateOverrides(v any) error {
 	m, ok := v.(map[string]any)
 	if !ok {
@@ -138,8 +155,9 @@ func validateOverrides(v any) error {
 				return fmt.Errorf("%s: %q is not a message key like nav.skinlib", locale, key)
 			case !ok || utf8.RuneCountInString(s) > maxOverrideText:
 				return fmt.Errorf("%s.%s: want text of at most %d characters", locale, key, maxOverrideText)
-			case !balancedBraces(s):
-				return fmt.Errorf("%s.%s: { and } do not pair up", locale, key)
+			}
+			if err := checkMessage(s); err != nil {
+				return fmt.Errorf("%s.%s: %v", locale, key, err)
 			}
 			n++
 		}
@@ -148,21 +166,6 @@ func validateOverrides(v any) error {
 		return fmt.Errorf("at most %d texts", MaxTextOverrides)
 	}
 	return nil
-}
-
-func balancedBraces(s string) bool {
-	depth := 0
-	for _, r := range s {
-		switch r {
-		case '{':
-			depth++
-		case '}':
-			if depth--; depth < 0 {
-				return false
-			}
-		}
-	}
-	return depth == 0
 }
 
 // validImageOrEmpty accepts an http(s) URL, a path on this site (/…, not //…) or "".

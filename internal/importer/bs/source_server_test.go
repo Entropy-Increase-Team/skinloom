@@ -37,6 +37,14 @@ func TestServerSources(t *testing.T) {
 			`CREATE TABLE bs_textures (tid serial primary key, name varchar(50) not null, type varchar(10) not null, hash varchar(64) not null, size integer not null,
 			  uploader integer not null, public smallint not null, upload_at timestamp(0) without time zone not null, likes integer not null default 0)`,
 			`CREATE TABLE bs_options (id serial primary key, option_name varchar(50) not null, option_value text not null)`,
+			`CREATE TABLE bs_language_lines (id serial primary key, "group" varchar(255) not null, "key" varchar(255) not null, text text not null,
+			  created_at timestamp(0) without time zone null, updated_at timestamp(0) without time zone null)`,
+			`CREATE TABLE bs_oauth_clients (id bigserial primary key, user_id bigint null, name varchar(255) not null, secret varchar(100) null,
+			  provider varchar(255) null, redirect text not null, personal_access_client boolean not null, password_client boolean not null,
+			  revoked boolean not null, created_at timestamp(0) without time zone null, updated_at timestamp(0) without time zone null)`,
+			`INSERT INTO bs_language_lines ("group", "key", text) VALUES ('general', 'skinlib', '{"zh_CN":"材质库"}')`,
+			`INSERT INTO bs_oauth_clients (id, user_id, name, secret, redirect, personal_access_client, password_client, revoked, created_at)
+			  VALUES (9, 1, 'App', 'sec', 'https://a.example/cb', false, false, false, '2022-02-02 02:02:02')`,
 		}})
 	}
 	if dsn := os.Getenv("SKINLOOM_TEST_MYSQL"); dsn != "" {
@@ -50,6 +58,14 @@ func TestServerSources(t *testing.T) {
 			"CREATE TABLE bs_textures (tid int unsigned auto_increment primary key, name varchar(50) not null, type varchar(10) not null, hash varchar(64) not null," +
 				" size int not null, uploader int not null, public tinyint not null, upload_at datetime not null, likes int unsigned not null default 0) DEFAULT CHARSET=utf8mb4",
 			"CREATE TABLE bs_options (id int unsigned auto_increment primary key, option_name varchar(50) not null, option_value longtext not null) DEFAULT CHARSET=utf8mb4",
+			"CREATE TABLE bs_language_lines (id int unsigned auto_increment primary key, `group` varchar(255) not null, `key` varchar(255) not null, text text not null," +
+				" created_at timestamp null, updated_at timestamp null) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+			"CREATE TABLE bs_oauth_clients (id bigint unsigned auto_increment primary key, user_id bigint unsigned null, name varchar(255) not null, secret varchar(100) null," +
+				" provider varchar(255) null, redirect text not null, personal_access_client tinyint(1) not null, password_client tinyint(1) not null," +
+				" revoked tinyint(1) not null, created_at timestamp null, updated_at timestamp null) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+			"INSERT INTO bs_language_lines (`group`, `key`, text) VALUES ('general', 'skinlib', '{\"zh_CN\":\"材质库\"}')",
+			"INSERT INTO bs_oauth_clients (id, user_id, name, secret, redirect, personal_access_client, password_client, revoked, created_at)" +
+				" VALUES (9, 1, 'App', 'sec', 'https://a.example/cb', 0, 0, 0, '2022-02-02 02:02:02')",
 		}})
 	}
 	if len(dialects) == 0 {
@@ -65,7 +81,7 @@ func TestServerSources(t *testing.T) {
 			}
 			defer pool.Close()
 			drop := func() {
-				for _, tb := range []string{"bs_users", "bs_players", "bs_textures", "bs_options"} {
+				for _, tb := range []string{"bs_users", "bs_players", "bs_textures", "bs_options", "bs_language_lines", "bs_oauth_clients", "bs_plugin_data"} {
 					_, _ = pool.Exec("DROP TABLE IF EXISTS " + tb)
 				}
 			}
@@ -78,6 +94,9 @@ func TestServerSources(t *testing.T) {
 				`INSERT INTO bs_textures (tid, name, type, hash, size, uploader, public, upload_at) VALUES (1, '皮肤', 'alex', '`+hash+`', 2, 1, 1, '2020-01-01 08:00:00')`,
 				`INSERT INTO bs_players (pid, uid, name, tid_skin, tid_cape, last_modified) VALUES (1, 1, 'Root', 1, 0, '2021-01-01 00:00:00')`,
 				`INSERT INTO bs_options (option_name, option_value) VALUES ('ygg_uuid_algorithm', 'v4')`,
+				// A plugin's table: listed from the server's catalog as left behind.
+				`CREATE TABLE bs_plugin_data (id integer primary key)`,
+				`INSERT INTO bs_plugin_data (id) VALUES (1), (2)`,
 			) {
 				if dl.driver == "mysql" {
 					s = strings.ReplaceAll(s, "true)", "1)")
@@ -121,8 +140,18 @@ func TestServerSources(t *testing.T) {
 			if p.SkinID == nil || p.UUID == "" {
 				t.Errorf("player = %+v", p)
 			}
+			if c, err := target.Ent.OAuthClient.Get(ctx, 9); err != nil || c.Name != "App" || !c.CreatedAt.Equal(time.Date(2022, 2, 2, 2, 2, 2, 0, shanghai)) {
+				t.Errorf("client = %+v, %v", c, err)
+			}
+			if ov, err := target.Ent.Setting.Get(ctx, "i18n.overrides"); err != nil || !strings.Contains(ov.Value, "材质库") {
+				t.Errorf("overrides = %+v, %v", ov, err)
+			}
 			if !strings.Contains(entries(r, Warning), "bs_user_closet : table not found") {
 				t.Errorf("missing tables not reported:\n%s", entries(r, Warning))
+			}
+			left := r.LeftBehind()
+			if len(left) != 1 || left[0].Table != "bs_plugin_data" || !strings.HasPrefix(left[0].Message, "2 rows: ") {
+				t.Errorf("left behind: %+v", left)
 			}
 		})
 	}

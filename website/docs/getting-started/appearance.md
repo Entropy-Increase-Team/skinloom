@@ -64,7 +64,18 @@ skinloom settings set home.blocks null
 
 主题留了几个类名方便定制，例如首页大标题 `.sl-hero`、分栏登录页旁的面板 `.sl-auth-panel`、Markdown 内容 `.sl-markdown`。颜色请优先用"颜色"一栏或 CSS 变量（`var(--primary)` 等），换主题时更不容易出问题。
 
-自定义 JavaScript 暂不支持，会在加上内容安全策略（CSP）之后提供。
+## 自定义 JavaScript
+
+`theme.custom_js` 在页面解析完后作为一个单独的脚本加载，最多 64 KB，对每个页面、每位访客生效，同样**只有超级管理员**能修改。
+
+- 页面带有内容安全策略（CSP）：只有带本次请求随机 nonce 的脚本，以及由这些脚本加载的脚本能运行。自定义 JavaScript 由页面带着 nonce 加载，所以可以照常 `document.createElement('script')` 引入统计代码等外部脚本；被注入到页面里的脚本和 `onerror=` 之类的内联事件则不会运行。
+- 统计代码可以向任意 HTTPS 地址发送数据。两种写法不能用：用 `document.write` 写出 `<script>` 标签（改用 `createElement`），以及 `eval` 或 `new Function`。统计服务给的安装代码如果是 `<script src="…">` 标签，在这里改写成 `createElement` 加载。
+- SkinLoom 在站内切换页面时不重新加载，脚本只在打开网站时运行一次。要在每个页面做事，监听页面切换（例如用 `MutationObserver` 观察 `<main>`）。
+- 写坏了导致网站无法使用时，在服务器上清空它：
+
+  ```bash
+  skinloom settings set theme.custom_js null
+  ```
 
 ## 从 Blessing Skin 迁移
 
@@ -75,7 +86,7 @@ skinloom settings set home.blocks null
 | 导航栏、侧栏颜色 | "颜色"一栏 |
 | `copyright_text` | 页脚文字（改为 Markdown） |
 | `custom_css` | 自定义 CSS |
-| `custom_js` | 暂不支持 |
+| `custom_js` | 自定义 JavaScript（打开网站时运行一次，见上文） |
 | 透明导航、隐藏介绍、固定背景 | 用区块编排与自定义 CSS 实现 |
 | `meta_keywords` | 搜索关键词 |
 | `meta_extras` | 不提供（任意 HTML 进入页面头部有安全风险） |

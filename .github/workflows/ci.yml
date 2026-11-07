@@ -27,6 +27,9 @@ jobs:
           go-version-file: go.mod
       - run: go vet ./...
       - run: go test ./...
+        env:
+          # The authlib-injector harness (Java) must run on Linux, not be skipped.
+          SKINLOOM_TEST_JAVA: ${{ runner.os == 'Linux' && '1' || '' }}
       - name: Race detector (needs cgo; Linux runners have gcc)
         if: runner.os == 'Linux'
         run: go test -race ./...

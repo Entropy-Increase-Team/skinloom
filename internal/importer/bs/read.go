@@ -52,6 +52,19 @@ type (
 		ID         int64
 		Name, UUID string
 	}
+	// srcLine is a translation the administrator changed (spatie/laravel-translation-
+	// loader): Text is a JSON object of BS locale → text.
+	srcLine struct {
+		ID               int64
+		Group, Key, Text string
+	}
+	// srcClient is a Laravel Passport client.
+	srcClient struct {
+		ID, UserID                  int64
+		Name, Secret, Redirect      string
+		Personal, Password, Revoked bool
+		CreatedAt                   wall
+	}
 )
 
 // sourceData is everything read from BS, in primary-key order.
@@ -63,11 +76,18 @@ type sourceData struct {
 	Reports       []srcReport
 	Notifications []srcNotification
 	UUIDs         []srcUUID
+	Lines         []srcLine
+	Clients       []srcClient
 	Options       map[string]string
 	// Tables the site does not have (older BS versions, plugins not installed).
 	Missing []string
 	// UUIDTable: the Yggdrasil plugin's uuid table exists.
 	UUIDTable bool
+	// Prefix is the site's table prefix; OtherTables the tables the import does not
+	// read (TablesErr when they could not be listed), for the report.
+	Prefix      string
+	OtherTables []srcTable
+	TablesErr   error
 }
 
 // read loads the whole site inside one read-only transaction.
@@ -101,13 +121,15 @@ func (s Source) read(ctx context.Context, pool *sql.DB) (*sourceData, error) {
 		withVerified = has("users", "verified")
 		withLocale   = has("users", "locale")
 		optional     = map[string]bool{}
-		d            = &sourceData{Options: map[string]string{}}
+		d            = &sourceData{Options: map[string]string{}, Prefix: s.Prefix}
 	)
 	for _, t := range []struct{ table, cols string }{
 		{"user_closet", "user_uid, texture_tid, item_name"},
 		{"reports", "id, tid, uploader, reporter, reason, status, report_at"},
 		{"notifications", "notifiable_type, notifiable_id, data, read_at, created_at"},
 		{"uuid", "id, name, uuid"}, // the Yggdrasil plugin's
+		{"language_lines", "id, " + s.col("group") + ", " + s.col("key") + ", text"},
+		{"oauth_clients", "id, user_id, name, secret, redirect, personal_access_client, password_client, revoked, created_at"},
 	} {
 		if optional[t.table] = has(t.table, t.cols); !optional[t.table] {
 			d.Missing = append(d.Missing, s.Prefix+t.table)
@@ -273,6 +295,47 @@ func (s Source) read(ctx context.Context, pool *sql.DB) (*sourceData, error) {
 		}
 	}
 
+	if optional["language_lines"] {
+		q := "SELECT id, " + s.col("group") + ", " + s.col("key") + ", text FROM " + s.table("language_lines") + " ORDER BY id"
+		err = each(ctx, tx, q, func(sc scanner) error {
+			var (
+				l               srcLine
+				group, key, txt sql.NullString
+			)
+			if err := sc.Scan(&l.ID, &group, &key, &txt); err != nil {
+				return err
+			}
+			l.Group, l.Key, l.Text = group.String, key.String, txt.String
+			d.Lines = append(d.Lines, l)
+			return nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("read language_lines: %w", err)
+		}
+	}
+
+	if optional["oauth_clients"] {
+		q := "SELECT id, user_id, name, secret, redirect, personal_access_client, password_client, revoked, created_at FROM " + s.table("oauth_clients") + " ORDER BY id"
+		err = each(ctx, tx, q, func(sc scanner) error {
+			var (
+				c                           srcClient
+				uid                         sql.NullInt64
+				name, secret, redirect      sql.NullString
+				personal, password, revoked flexBool
+			)
+			if err := sc.Scan(&c.ID, &uid, &name, &secret, &redirect, &personal, &password, &revoked, &c.CreatedAt); err != nil {
+				return err
+			}
+			c.UserID, c.Name, c.Secret, c.Redirect = uid.Int64, name.String, secret.String, redirect.String
+			c.Personal, c.Password, c.Revoked = bool(personal), bool(password), bool(revoked)
+			d.Clients = append(d.Clients, c)
+			return nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("read oauth_clients: %w", err)
+		}
+	}
+
 	err = each(ctx, tx, "SELECT option_name, option_value FROM "+s.table("options"), func(sc scanner) error {
 		var k, v sql.NullString
 		if err := sc.Scan(&k, &v); err != nil {
@@ -284,7 +347,11 @@ func (s Source) read(ctx context.Context, pool *sql.DB) (*sourceData, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read options: %w", err)
 	}
-	return d, tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	d.OtherTables, d.TablesErr = s.otherTables(ctx, pool)
+	return d, nil
 }
 
 // undefined reports whether err says a table or column does not exist.

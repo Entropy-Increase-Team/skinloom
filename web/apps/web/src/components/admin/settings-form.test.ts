@@ -28,6 +28,7 @@ describe('groupSettings', () => {
     view('site.logo', 'string', ''),
     view('site.name', 'localized', {}),
     view('theme.custom_css', 'text', ''),
+    view('theme.custom_js', 'text', ''),
     view('theme.active', 'string', 'default'),
     view('home.blocks', 'json', null),
   ]
@@ -47,6 +48,7 @@ describe('groupSettings', () => {
     expect(groupSettings(views, 'appearance').map((g) => [g.id, g.settings.map((s) => s.key)])).toEqual([
       ['branding', ['site.logo', 'site.favicon', 'seo.keywords']],
       ['customCss', ['theme.custom_css']],
+      ['customJs', ['theme.custom_js']],
     ])
   })
 })

@@ -861,6 +861,10 @@
         "title": "Custom CSS",
         "intro": "Added after the theme's styles on every page; only super administrators may change it."
       },
+      "customJs": {
+        "title": "Custom JavaScript",
+        "intro": "Runs on every page for every visitor; only super administrators may change it. The site switches pages without reloading, so the script runs once when the site is opened."
+      },
       "cdn": {
         "title": "CDN purging",
         "intro": "When a player changes skin or name or is deleted, the CDN drops its cached profile and avatar, so games show the new skin at once. Texture files are named by their content and need no purging."
@@ -1159,6 +1163,10 @@
     "theme": {
       "custom_css": {
         "label": "Custom CSS"
+      },
+      "custom_js": {
+        "label": "Custom JavaScript",
+        "help": "Loaded as a script of its own after the page is parsed, at most 64 KB. It may load further scripts. If it breaks the site, clear it with: skinloom settings set theme.custom_js null. BS custom_js."
       }
     },
     "cdn": {

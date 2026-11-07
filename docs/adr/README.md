@@ -39,3 +39,7 @@
 | [0033](0033-system-service-helm-and-deploy-smoke.md) | 系统服务命令、Helm Chart 与部署冒烟测试 | 已接受 |
 | [0034](0034-m4-review-fixes.md) | M4 全量审查的修正：恢复先检查后写入、设置保存串行化、密钥跟随去处 | 已接受 |
 | [0035](0035-m5-split-and-bs-importer.md) | M5 的拆分；BS 导入器（核心数据） | 已接受 |
+| [0036](0036-bs-importer-settings-and-secrets.md) | BS 导入器：站点设置、翻译、OAuth 应用与签名密钥 | 已接受 |
+| [0037](0037-contract-tests.md) | 契约测试：黄金文件、authlib-injector 端到端、渲染快照与站点对比 | 已接受 |
+| [0038](0038-load-tests.md) | 压测：k6 场景、百万材质的种子数据与压测发现的修正 | 已接受 |
+| [0039](0039-security-self-check.md) | 安全自查：内容安全策略与自定义 JavaScript，以及 ADR 0034 的遗留问题 | 已接受 |

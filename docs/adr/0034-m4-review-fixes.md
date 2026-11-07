@@ -45,7 +45,7 @@ M4 五个部分完成后，对暂存区的全部改动（157 个文件）分五�
 - `yggdrasil.Service.UploadTexture` 与 `ResetTexture` 多了 `Policy` 参数。
 - 前端新增直接依赖 `@formatjs/icu-messageformat-parser`（lockfile 里原本就有）；翻译问题类型 `braces` 改名为 `syntax`。
 - 审查时写下的失败测试都保留为回归测试。
-- 仍未解决、已记录：
+- 仍未解决、已记录（均已在 ADR 0039 解决）：
   - 恢复时不检查站点是否已停止。
   - Windows 上备份文件与日志的权限继承父目录。
   - 封禁或删除用户不会触发 CDN 刷新。

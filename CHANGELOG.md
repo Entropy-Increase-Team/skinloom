@@ -4,6 +4,48 @@
 
 ## [Unreleased]
 
+### 安全（M5 安全自查，ADR 0039）
+- 所有页面带内容安全策略（CSP）：每个请求一个随机 nonce，只有站点自己的脚本和它们加载的脚本能运行，注入的 `<script>` 和内联事件不再执行；页面只能被本站嵌入，表单只能提交到本站；脚本可以向任意 HTTPS 地址发请求（统计代码要用）。后端的 JSON、图片和材质文件带一个什么都不允许的策略。
+- 恢复备份时检查站点是否在运行：运行中的站点持有 `data/skinloom.lock`，`skinloom restore` 拿不到锁就拒绝（`--force` 也一样）；恢复进行时站点无法启动。不支持 `flock` 的卷上不加锁，照常启动。
+- Windows 上的 `data/secrets`、`data/backups`、备份文件、日志文件和 `skinloom import bs` 的报告只允许运行 SkinLoom 的账户、SYSTEM 和 Administrators 访问，不再继承上级目录的权限。已经这样设置过的（包括 `service install` 给服务账户加的权限）不会被管理员运行的命令重设；当前账户无权改权限时保持原样，不会让服务启动失败。
+- 封禁、解封、注销、恢复或删除账号时，它的每个角色都触发 CDN 刷新：封禁后 CDN 不再继续提供缓存的皮肤。
+- 服务器端按 ICU 消息格式完整校验翻译覆盖（以前只检查花括号），与浏览器里的解析器逐条对照测试。
+
+### 新增（ADR 0039）
+- 自定义 JavaScript（后台"外观 → 自定义 JavaScript"，设置 `theme.custom_js`，最多 64 KB，仅超级管理员）：作为单独的脚本文件、带 CSP nonce 加载，可以再加载统计代码等脚本。站点切换页面不刷新，脚本在打开网站时运行一次。写坏了可以用 `skinloom settings set theme.custom_js null` 清空。
+- `skinloom import bs` 导入 BS 的 `custom_js`，并在报告里说明运行方式的不同。
+
+### 变更（ADR 0039）
+- bootstrap 的 `theme` 多了 `js` 字段；`/themes-assets/_custom/` 也提供 `.js`。
+- 在页面里注入脚本的反向代理或插件会被 CSP 拦下，改为通过主题或自定义 JavaScript 加载。
+- BS 导入器把带 `<`、`>` 的称呼当作非纯文本丢弃（与花括号一样）。
+
+### 性能（M5 压测，ADR 0038）
+- 大于 300×300 像素的头像和预览图输出 PNG（纯 Go 的 WebP 编码在大尺寸上太慢），128×128 以上用最快的压缩级别；渲染并发数随 CPU 数变化。未缓存头像的 p99 从 230 ms 降到约 30 ms。
+- PostgreSQL 上按点赞数翻页的皮肤库列表能用上索引，一百万材质时 p99 从 238 ms 降到 1.6 ms。
+- 压测工具：`bench/run.sh`（种子数据一百万材质、k6 场景、冷启动与内存）和手动触发的 `Load test` 工作流。所有 04 §5.4 的目标在 SQLite 与 PostgreSQL 上都达到。
+
+### 新增（M5 契约测试，ADR 0037）
+- `skinloom import compare --bs <url> --skinloom <url> <角色名>...`：用启动器和游戏服务器的方式向 BS 与 SkinLoom 提同样的请求（CSL、USM、旧版 PNG、材质文件、Yggdrasil 查询），逐条比较客户端读到的内容，签名各自验证。迁移指南把它列为切换前的一步。
+- 测试：游戏接口的黄金文件（45 个请求）、authlib-injector 端到端（一个最小的 Java 程序走完认证、join、hasJoined 与签名校验）、2D/3D 头像与预览的渲染快照。
+
+### 修复（ADR 0039 审查）
+- `skinloom import bs`：`custom` 角色名规则配空正则时，与 BS 一样允许任何名字（以前变成官方规则）；`MAIL_ENCRYPTION=ssl` 配 587 等端口时导入为 STARTTLS，与 Laravel 10 的行为一致（以前是直接 TLS，发信失败）。
+- `skinloom import compare` 第一行比较两站的签名公钥，密钥没有导入时能看出来。
+- 材质文件缺失时，头像显示默认头像、预览图返回 404，与 BS 一样（以前都是 503）。
+- `skinloom import bs` 的报告为 BS 启用的每个插件写一行：SkinLoom 用什么代替，或者它的数据没有导入（以前不提）。数据库里导入器不读、有数据的表（插件的表、共用数据库的其它程序的表）也列出行数。这些"留在 BS"的条目放在报告开头单独一节，导入时控制台完整显示。
+
+### 修复（ADR 0037）
+- Yggdrasil 的 `textures` 属性补上 `"isPublic": true`，与 yggdrasil-api 一致。
+
+### 新增（M5 BS 导入器第 2 部分，ADR 0036）
+- `skinloom import bs` 导入站点设置：站点名称、简介、公告、地址、版权文字（HTML 转为 Markdown）、注册与邮箱验证、reCAPTCHA、角色名规则、积分与签到、材质大小与命名规则、自定义 CSS、关键词、Yggdrasil 选项；中英文版本分别导入。超出 SkinLoom 范围的值改为最接近的允许值，不合格的值保留默认值，没有对应设置的选项逐条写进报告。
+- 用 `--env` 时导入 BS `.env` 里的邮件设置（SMTP 服务器、端口、加密方式、账号、密码、发件人）。
+- 在 BS 里改过的常用称呼（首页、皮肤库、用户中心、登录、衣柜、管理面板、积分、皮肤、披风）导入为翻译覆盖；其它改过的文字在报告里逐条列出。
+- 导入 OAuth 应用：ID、所有者、密钥、回调地址不变，第三方应用不用改配置。Passport 的个人访问与密码授权客户端、已撤销的应用不导入。
+- 导入 yggdrasil-api 插件的签名密钥，切换后游戏服务器不用重启。
+- 测试：BS 全部十种密码方法的兼容向量；一份脏数据迁移回归库，整份导入报告与黄金文件比较。
+
 ### 新增（M5 BS 导入器，ADR 0035）
 - `skinloom import bs --env <BS 的 .env>`：把 Blessing Skin 站点导入一个全新的 SkinLoom，包括账号（密码照旧可用，首次登录升级为 argon2id）、角色与 UUID、材质与文件、衣柜、举报和未读通知。支持 MySQL、PostgreSQL、SQLite 源和表前缀。
 - 只读源库。整个导入在一个事务里，`--dry-run` 是同一个导入最后回滚。报告分阻止、警告、已修正、已丢弃四类，写在 `data/import/`。

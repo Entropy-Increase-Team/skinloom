@@ -49,7 +49,7 @@ function offlineBootstrap(acceptLanguage: string): SiteBootstrap {
       copyrightHtml: '',
       keywords: '',
     },
-    theme: { id: 'none', version: '0', tokens: { light: {}, dark: {} }, css: [], layout: {}, home: [{ type: 'hero' }] },
+    theme: { id: 'none', version: '0', tokens: { light: {}, dark: {} }, css: [], js: [], layout: {}, home: [{ type: 'hero' }] },
     menus: { explore: [], user: [], admin: [] },
     plugins: [],
     server: { name: 'SkinLoom', version: 'unknown' },
