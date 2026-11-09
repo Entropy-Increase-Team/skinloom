@@ -12,7 +12,7 @@ const config: Config = {
   favicon: 'img/logo.svg',
   // The Pages workflow passes the real address: the custom domain at its root, or
   // https://entropy-increase-team.github.io/skinloom/ before one is configured.
-  url: process.env.SITE_URL || 'https://skinloom.cn',
+  url: process.env.SITE_URL || 'https://docs.skinloom.cn',
   baseUrl: process.env.BASE_URL || '/',
   organizationName: 'Entropy-Increase-Team',
   projectName: 'skinloom',

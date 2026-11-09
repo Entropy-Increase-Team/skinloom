@@ -4,7 +4,7 @@
 
 <p align="center">开源、自托管的 Minecraft 皮肤站</p>
 
-<p align="center"><a href="https://skinloom.cn">文档</a> · <a href="https://github.com/Entropy-Increase-Team/skinloom/releases">下载</a> · <a href="CHANGELOG.md">更新日志</a> · <a href="README.en.md">English</a></p>
+<p align="center"><a href="https://docs.skinloom.cn">文档</a> · <a href="https://github.com/Entropy-Increase-Team/skinloom/releases">下载</a> · <a href="CHANGELOG.md">更新日志</a> · <a href="README.en.md">English</a></p>
 
 ---
 
@@ -35,15 +35,15 @@ docker compose logs skinloom | grep setup     # 一次性安装链接
 
 **发行包：** 从 [Releases](https://github.com/Entropy-Increase-Team/skinloom/releases) 下载解压，Windows 双击 `start.bat`，macOS 双击 `start.command`，Linux 运行 `./start.sh`。
 
-打开日志里的安装链接（`http://服务器地址:17546/setup?token=…`），设置站点名称和管理员账号即可。更多部署方式见[文档](https://skinloom.cn/docs/deployment/quick-start)。
+打开日志里的安装链接（`http://服务器地址:17546/setup?token=…`），设置站点名称和管理员账号即可。更多部署方式见[文档](https://docs.skinloom.cn/docs/deployment/quick-start)。
 
 ## 文档
 
 | 我是…… | 去看 |
 |---|---|
-| 玩家 | [玩家指南](https://skinloom.cn/docs/players/account)：账号、上传皮肤、角色、在游戏里使用 |
-| 站长 | [站长指南](https://skinloom.cn/docs/deployment/quick-start)：部署、配置、后台、从 Blessing Skin 迁移 |
-| 开发者 | [开发环境](https://skinloom.cn/docs/development/setup)、[架构](https://skinloom.cn/docs/development/architecture)、[接口](https://skinloom.cn/docs/development/api) |
+| 玩家 | [玩家指南](https://docs.skinloom.cn/docs/players/account)：账号、上传皮肤、角色、在游戏里使用 |
+| 站长 | [站长指南](https://docs.skinloom.cn/docs/deployment/quick-start)：部署、配置、后台、从 Blessing Skin 迁移 |
+| 开发者 | [开发环境](https://docs.skinloom.cn/docs/development/setup)、[架构](https://docs.skinloom.cn/docs/development/architecture)、[接口](https://docs.skinloom.cn/docs/development/api) |
 
 设计取舍见[设计文档](docs/design/README.md)和[架构决策记录](docs/adr/README.md)。
 

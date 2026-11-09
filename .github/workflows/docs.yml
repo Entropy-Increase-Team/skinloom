@@ -3,7 +3,7 @@ name: Docs site
 # Builds website/ (docs, design docs, ADRs, devlog) and publishes it with GitHub Pages.
 # One-time setup in the repository: Settings → Pages → Build and deployment →
 # Source: "GitHub Actions". With a custom domain (Settings → Pages → Custom domain,
-# e.g. skinloom.cn) the site is served at its root; otherwise at
+# docs.skinloom.cn) the site is served at its root; otherwise at
 # https://entropy-increase-team.github.io/skinloom/. Base URL is picked automatically.
 on:
   push:

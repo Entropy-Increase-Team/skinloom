@@ -4,7 +4,7 @@
 
 <p align="center">Open-source, self-hosted Minecraft skin site</p>
 
-<p align="center"><a href="https://skinloom.cn">Docs (Chinese)</a> · <a href="https://github.com/Entropy-Increase-Team/skinloom/releases">Download</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="README.md">中文</a></p>
+<p align="center"><a href="https://docs.skinloom.cn">Docs (Chinese)</a> · <a href="https://github.com/Entropy-Increase-Team/skinloom/releases">Download</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="README.md">中文</a></p>
 
 ---
 
@@ -35,7 +35,7 @@ docker compose logs skinloom | grep setup     # one-time setup link
 
 **Release bundle:** download from [Releases](https://github.com/Entropy-Increase-Team/skinloom/releases), unpack, then run `start.bat` (Windows), `start.command` (macOS) or `./start.sh` (Linux).
 
-Open the setup link from the log (`http://<host>:17546/setup?token=…`) to name the site and create the administrator. The only port to open is 17546; everything the site stores is in its data directory (`/data` in containers, `data/` in bundles), so back that up. Other deployment options are in the [docs](https://skinloom.cn/docs/deployment/quick-start).
+Open the setup link from the log (`http://<host>:17546/setup?token=…`) to name the site and create the administrator. The only port to open is 17546; everything the site stores is in its data directory (`/data` in containers, `data/` in bundles), so back that up. Other deployment options are in the [docs](https://docs.skinloom.cn/docs/deployment/quick-start).
 
 ## Development
 
@@ -47,7 +47,7 @@ cd web && bun install && cd ..
 go run ./cmd/skinloom up --dev     # http://localhost:17546
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for commands and conventions, the [architecture](https://skinloom.cn/docs/development/architecture) page for the layout, and [SECURITY.md](SECURITY.md) to report a vulnerability privately.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for commands and conventions, the [architecture](https://docs.skinloom.cn/docs/development/architecture) page for the layout, and [SECURITY.md](SECURITY.md) to report a vulnerability privately.
 
 ## Acknowledgements
 

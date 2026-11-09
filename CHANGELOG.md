@@ -18,6 +18,7 @@
 ### 文档（ADR 0040）
 - 文档站按读者重新组织：**玩家指南**（账号、皮肤与披风、角色、在游戏里使用）、**站长指南**（快速开始、部署、配置文件、站点设置、后台管理等）和**开发**（环境、架构、接口、插件与主题）。新增全部 80 个站点设置的速查表。`/docs/getting-started/*` 下的页面已移到新位置。
 - README 精简为介绍、快速开始和文档入口；发布流程移到 CONTRIBUTING。
+- 文档站地址改为 https://docs.skinloom.cn（README、发行包说明、systemd 单元的 Documentation 随之更新）。
 
 ### 变更（开发者，ADR 0040）
 - 后端目录分层：业务模块移到 `internal/modules/`，基础设施移到 `internal/platform/`。自行用 `-ldflags -X` 注入版本号的构建脚本要改为 `github.com/Entropy-Increase-Team/skinloom/internal/platform/buildinfo.Version`。

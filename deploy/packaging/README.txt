@@ -16,7 +16,7 @@
   然后在本目录里执行：
     Windows（管理员终端）: skinloom.exe service install  然后  skinloom.exe service start
     Linux / macOS        : sudo ./skinloom service install  然后  sudo ./skinloom service start
-  日志与首次启动的安装链接在 data/logs/skinloom.log。详见 https://skinloom.cn/docs/deployment/binary
+  日志与首次启动的安装链接在 data/logs/skinloom.log。详见 https://docs.skinloom.cn/docs/deployment/binary
 
 目录说明
   skinloom(.exe)  后端程序（也负责启动前端）
@@ -24,7 +24,8 @@
   runtime/node/   随包附带的 Node.js 运行时
   data/           首次启动后生成：数据库、配置、密钥、上传文件
 
-官网与文档：https://skinloom.cn
+官网：https://skinloom.cn
+文档：https://docs.skinloom.cn
 源码：https://github.com/Entropy-Increase-Team/skinloom
 鸣谢：Blessing Skin（https://github.com/bs-community/blessing-skin-server）
 
@@ -41,5 +42,5 @@ Quick start
   "skinloom service install" then "skinloom service start" (administrator terminal on
   Windows, sudo elsewhere); the log is then in data/logs/skinloom.log.
 
-Website and docs: https://skinloom.cn · Source: https://github.com/Entropy-Increase-Team/skinloom
+Website: https://skinloom.cn · Docs: https://docs.skinloom.cn · Source: https://github.com/Entropy-Increase-Team/skinloom
 License: MIT (see LICENSE and NOTICE). Bundled Node.js: see runtime/node/LICENSE.

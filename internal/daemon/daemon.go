@@ -126,7 +126,7 @@ func SystemdUnit(o Options) string {
 	}
 	return `[Unit]
 Description=SkinLoom (云织) Minecraft skin site
-Documentation=https://skinloom.cn
+Documentation=https://docs.skinloom.cn
 After=network-online.target
 Wants=network-online.target
 

@@ -1,6 +1,6 @@
 # 参与贡献
 
-感谢你愿意参与云织！本文是开发者需要的全部约定；项目结构和设计规则见文档站的[架构](https://skinloom.cn/docs/development/architecture)。
+感谢你愿意参与云织！本文是开发者需要的全部约定；项目结构和设计规则见文档站的[架构](https://docs.skinloom.cn/docs/development/architecture)。
 
 ## 开发环境
 
