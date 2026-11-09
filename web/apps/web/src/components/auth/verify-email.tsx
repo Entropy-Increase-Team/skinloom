@@ -67,7 +67,7 @@ export function VerifyBanner({ email, required, canResend }: { email: string; re
     }
   }
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-amber-500/15 px-4 py-2 text-sm">
+    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-warning/15 px-4 py-2 text-sm">
       <span>{t(required ? 'bannerRequired' : 'banner', { email })}</span>
       {!canResend ? (
         <span className="text-muted-foreground">{t('noMail')}</span>

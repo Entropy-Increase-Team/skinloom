@@ -34,6 +34,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 -------------------------------------------------------------------------------
+Fonts
+
+The web frontend bundles these fonts (served from /_next/static/media), installed
+from the Fontsource npm packages. All are licensed under the SIL Open Font License,
+Version 1.1 (https://openfontlicense.org):
+
+- Inter, Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter)
+- Noto Sans SC (Source Han Sans), Copyright (c) 2014-2021 Adobe
+  (https://github.com/notofonts/noto-cjk), with Reserved Font Name 'Source'
+- JetBrains Mono, Copyright (c) 2020 The JetBrains Mono Project Authors
+  (https://github.com/JetBrains/JetBrainsMono)
+
+-------------------------------------------------------------------------------
 Release bundles additionally include the Node.js runtime (runtime/node), distributed
 under its own license; see runtime/node/LICENSE in the bundle.
 Third-party Go and npm dependencies keep their respective licenses.

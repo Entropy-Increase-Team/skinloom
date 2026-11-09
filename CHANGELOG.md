@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+### 变更（前端设计系统 P0，ADR 0042）
+- 新的配色：中性灰、靛蓝主色、金线强调色（积分、签到、警告）、成功绿与危险红；所有文字在亮色和暗色下的对比度都不低于 4.5:1。内置的"织锦"主题同步换成新的一套 token，大标题改为同色系的明暗过渡。
+- 界面字体改为 Inter（英文与数字）+ 思源黑体（中文）+ JetBrains Mono（哈希、UUID），全部随程序发布、由站点自己提供，不再依赖各平台的系统字体。中文按需分片加载，首页首次访问约下载 0.8 MB 字体，之后由浏览器缓存。
+- 后台"外观 → 颜色"新增"强调色"；"强调背景"改名为"悬停背景"（它一直是菜单、按钮悬停时的底色）。
+- 皮肤库菜单的图标从 `shirt` 改为 `layout-grid`（`shirt` 表示衣柜）。
+
+### 新增（主题作者与插件开发者，ADR 0042）
+- 主题 token：`faint-foreground`（三级文字）、`highlight`、`success`、`warning`、`destructive-foreground` 等 `*-foreground`、`pixel-a`/`pixel-b`（皮肤预览的像素格底板）、`shadow-popover`、`shadow-dialog`、`chart-1`…`chart-5`、`sidebar-*`；字体增加 `fonts.mono`、`fonts.display`。不写时取默认值，现有主题照常工作。
+- `@skinloom/ui` 提供 token 样式表 `@skinloom/ui/globals.css` 与菜单图标表 `MenuIcon`；`@skinloom/api-client/query` 提供每个接口的 TanStack Query 钩子。
+- 主题的 CSS 不在任何 cascade layer 里，总是优先于站点自己的样式，不需要 `!important`（ADR 0043）。
+
 ### 修复（1.0 收尾，ADR 0040）
 - 服务端代码在事务中途出错崩溃（panic）时，事务现在会回滚。以前事务会一直占着数据库连接和锁，使用 SQLite 时站点此后的所有写入都会失败，直到重启。
 

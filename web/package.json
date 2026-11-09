@@ -21,7 +21,8 @@
     "dev": "node scripts/ws.mjs dev --only @skinloom/web",
     "build": "node scripts/ws.mjs build --only @skinloom/web",
     "typecheck": "node scripts/ws.mjs typecheck",
-    "test": "node --test scripts/ws.test.mjs && node scripts/ws.mjs test",
-    "gen:api": "node scripts/ws.mjs generate --only @skinloom/api-client"
+    "test": "node --test scripts/ws.test.mjs scripts/check-styles.test.mjs && node scripts/check-styles.mjs && node scripts/ws.mjs test",
+    "gen:api": "node scripts/ws.mjs generate --only @skinloom/api-client",
+    "check:styles": "node scripts/check-styles.mjs"
   }
 }

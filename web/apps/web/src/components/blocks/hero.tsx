@@ -20,18 +20,18 @@ export async function HeroBlock({ props }: { props: Props }) {
   const showJoin = !toRegister || (boot.auth.registration === 'open' && !boot.needsSetup && !viewer)
   return (
     <section
-      className="sl-hero relative isolate overflow-hidden text-white"
+      className="sl-hero relative isolate overflow-hidden text-primary-foreground"
       style={background ? { backgroundImage: `url(${JSON.stringify(background)})`, backgroundSize: 'cover' } : undefined}
     >
       <div className="relative z-10 mx-auto flex max-w-6xl flex-col items-start gap-6 px-4 py-24 sm:py-32">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">{str(props.title) ?? boot.site.name}</h1>
-        <p className="max-w-2xl text-lg text-white/85">{str(props.subtitle) ?? boot.site.description}</p>
+        <p className="max-w-2xl text-lg text-primary-foreground/85">{str(props.subtitle) ?? boot.site.description}</p>
         <div className="flex flex-wrap gap-3">
-          <Button asChild size="lg" className="bg-white text-slate-900 hover:bg-white/90">
+          <Button asChild size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
             <Link href={safeHref(props.primaryAction, '/skinlib')}>{t('browse')}</Link>
           </Button>
           {showJoin && (
-            <Button asChild size="lg" variant="outline" className="border-white/60 bg-transparent text-white hover:bg-white/10 hover:text-white">
+            <Button asChild size="lg" variant="outline" className="border-primary-foreground/60 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
               <Link href={join}>{t('join')}</Link>
             </Button>
           )}

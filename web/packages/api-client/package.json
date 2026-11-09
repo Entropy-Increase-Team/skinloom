@@ -6,16 +6,32 @@
   "license": "MIT",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./query": "./src/query.ts"
   },
   "scripts": {
     "generate": "orval --config orval.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5",
+    "react": "^19"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@tanstack/react-query": "^5.107.1",
     "@types/node": "^24",
+    "@types/react": "^19.3.0",
     "orval": "~8.43.0",
+    "react": "19.3.1",
     "typescript": "~5.9.3",
     "vitest": "^5.0.5"
   }

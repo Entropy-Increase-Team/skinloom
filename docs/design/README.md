@@ -10,3 +10,4 @@ SkinLoom 立项阶段的分析与方案，记录的是动工前的设想。实�
 | [04 重构方案](04-rewrite-plan.md) | 选型、架构、热加载、部署、路线图 |
 | [05 插件与主题开发体系](05-plugin-theme-standard.md) | 插件 API 1.0 规范草案 |
 | [06 文档与日志体系](06-docs-and-logs.md) | 文档、更新日志、开发日志、ADR 的维护规则 |
+| [07 前端重构方案](07-frontend-redesign.md) | 设计系统、组件库、页面重构与主题系统扩展（草案）；规则见 `web/design.md` |

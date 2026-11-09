@@ -50,7 +50,7 @@ function Section({ title, description, children }: { title: string; description?
 function OneTimeSecret({ label, value }: { label: string; value: string }) {
   const t = useTranslations('oauth')
   return (
-    <div role="status" className="flex flex-col gap-2 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3">
+    <div role="status" className="flex flex-col gap-2 rounded-md border border-success/40 bg-success/10 p-3">
       <p className="text-sm font-medium">{label}</p>
       <div className="flex flex-wrap items-center gap-2">
         <code className="break-all rounded bg-background px-2 py-1 font-mono text-sm">{value}</code>

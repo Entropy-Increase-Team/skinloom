@@ -45,3 +45,5 @@
 | [0039](0039-security-self-check.md) | 安全自查：内容安全策略与自定义 JavaScript，以及 ADR 0034 的遗留问题 | 已接受 |
 | [0040](0040-v1-cleanup-layout-and-docs.md) | 1.0 收尾：目录分层（modules / platform）、统一的事务工具、按读者组织的文档 | 已接受 |
 | [0041](0041-readable-console-log.md) | 终端日志：给人看的格式与 NOTICE 级别 | 已接受 |
+| [0042](0042-frontend-design-system.md) | 前端设计系统与组件库：shadcn/ui（Base UI）、lucide、TanStack Query、OFL 字体 | 已接受 |
+| [0043](0043-local-themes-and-manifest-extensions.md) | 本地主题目录与主题清单扩展 | 已接受（P4 实现） |

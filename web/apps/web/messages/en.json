@@ -1238,11 +1238,12 @@
       "tokens": {
         "primary": "Primary",
         "primary-foreground": "Text on primary",
+        "highlight": "Highlight (score, check-in, warnings)",
         "background": "Background",
         "foreground": "Text",
         "card": "Cards",
         "muted": "Muted background",
-        "accent": "Accent background",
+        "accent": "Hover background",
         "border": "Borders",
         "radius": "Corner radius"
       },

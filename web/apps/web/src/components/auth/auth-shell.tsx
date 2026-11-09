@@ -13,9 +13,9 @@ export async function AuthShell({ children }: { children: React.ReactNode }) {
   }
   return (
     <div className="mx-auto grid max-w-5xl gap-8 px-4 py-12 md:grid-cols-2">
-      <aside className="sl-auth-panel relative isolate hidden flex-col justify-end overflow-hidden rounded-xl p-8 text-white md:flex">
+      <aside className="sl-auth-panel relative isolate hidden flex-col justify-end overflow-hidden rounded-xl p-8 text-primary-foreground md:flex">
         <p className="text-2xl font-semibold">{boot.site.name}</p>
-        <p className="mt-2 text-white/85">{boot.site.description}</p>
+        <p className="mt-2 text-primary-foreground/85">{boot.site.description}</p>
       </aside>
       <div className="flex flex-col gap-6 md:py-6">{children}</div>
     </div>

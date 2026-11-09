@@ -49,7 +49,7 @@ function Section({ title, description, children }: { title: string; description?
 function Done({ message }: { message: string | null }) {
   if (!message) return null
   return (
-    <p role="status" className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm">
+    <p role="status" className="rounded-md border border-success/40 bg-success/10 px-3 py-2 text-sm">
       {message}
     </p>
   )

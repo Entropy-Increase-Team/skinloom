@@ -224,7 +224,7 @@ func registerSite(api huma.API, d Deps) {
 			},
 			Theme: d.Themes.Resolve(snap),
 			Menus: map[string][]MenuItem{
-				"explore": {{ID: "skinlib", Title: "nav.skinlib", Href: "/skinlib", Icon: "shirt", Order: 10}},
+				"explore": {{ID: "skinlib", Title: "nav.skinlib", Href: "/skinlib", Icon: "layout-grid", Order: 10}},
 				"user":    {},
 				"admin":   {},
 			},

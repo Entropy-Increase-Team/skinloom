@@ -134,9 +134,9 @@ function Check({ check }: { check: StatusCheck }) {
   const t = useTranslations('adminStatus.checks')
   const icon =
     check.level === 'ok' ? (
-      <CircleCheck className="size-4 shrink-0 text-primary" aria-hidden />
+      <CircleCheck className="size-4 shrink-0 text-success" aria-hidden />
     ) : check.level === 'warn' ? (
-      <CircleAlert className="size-4 shrink-0 text-amber-500" aria-hidden />
+      <CircleAlert className="size-4 shrink-0 text-warning-foreground dark:text-warning" aria-hidden />
     ) : (
       <CircleX className="size-4 shrink-0 text-destructive" aria-hidden />
     )

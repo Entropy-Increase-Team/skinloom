@@ -1,0 +1,253 @@
+/*
+ * SkinLoom design tokens and base styles (web/design.md §2–§7, ADR 0042).
+ *
+ * The app imports this after `@import 'tailwindcss'`; plugins that use Tailwind import
+ * the same file, so every component follows the active theme.
+ *
+ * Fallback values are the default theme's. The root layout injects the active theme's
+ * tokens with a doubled :root selector, and themes' own CSS is not in any cascade layer,
+ * so both always win over what is defined here (ADR 0043). Token names and meanings are
+ * public API for themes; values are not.
+ */
+@import 'tw-animate-css';
+
+/* Components in this package use utility classes too. */
+@source '../';
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  :root {
+    /* Neutral ramp, faintly tinted toward the indigo primary. */
+    --background: oklch(0.985 0.002 262);
+    --foreground: oklch(0.21 0.014 262);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.21 0.014 262);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.21 0.014 262);
+    --muted: oklch(0.965 0.005 262);
+    /* Three text roles: foreground, muted-foreground (secondary), faint-foreground (meta). */
+    --muted-foreground: oklch(0.45 0.016 262);
+    --faint-foreground: oklch(0.545 0.014 262);
+    --secondary: oklch(0.965 0.005 262);
+    --secondary-foreground: oklch(0.21 0.014 262);
+    /* shadcn's meaning: the hover surface of menu items and ghost buttons, not a brand colour. */
+    --accent: oklch(0.965 0.005 262);
+    --accent-foreground: oklch(0.21 0.014 262);
+    /* Indigo (indigo-dyed cloth): primary actions, selection, links, focus. */
+    --primary: oklch(0.47 0.13 262);
+    --primary-foreground: oklch(0.985 0.002 262);
+    /* Gold thread: score, check-in, rankings, warnings. Fills only, never text. */
+    --highlight: oklch(0.8 0.14 80);
+    --highlight-foreground: oklch(0.3 0.06 60);
+    --warning: oklch(0.8 0.14 80);
+    --warning-foreground: oklch(0.3 0.06 60);
+    --success: oklch(0.52 0.13 155);
+    --success-foreground: oklch(0.985 0.002 262);
+    --destructive: oklch(0.55 0.2 27);
+    --destructive-foreground: oklch(0.985 0.002 262);
+    --border: oklch(0.21 0.014 262 / 10%);
+    --input: oklch(0.21 0.014 262 / 14%);
+    --ring: oklch(0.47 0.13 262);
+    /* Charts: one accent leads, the rest are neutral steps. */
+    --chart-1: oklch(0.47 0.13 262);
+    --chart-2: oklch(0.8 0.14 80);
+    --chart-3: oklch(0.21 0.014 262 / 45%);
+    --chart-4: oklch(0.21 0.014 262 / 28%);
+    --chart-5: oklch(0.21 0.014 262 / 16%);
+    --sidebar: oklch(0.985 0.002 262);
+    --sidebar-foreground: oklch(0.21 0.014 262);
+    --sidebar-primary: oklch(0.47 0.13 262);
+    --sidebar-primary-foreground: oklch(0.985 0.002 262);
+    --sidebar-accent: oklch(0.965 0.005 262);
+    --sidebar-accent-foreground: oklch(0.21 0.014 262);
+    --sidebar-border: oklch(0.21 0.014 262 / 10%);
+    --sidebar-ring: oklch(0.47 0.13 262);
+    /* The checkerboard behind skin previews (design.md §8). */
+    --pixel-a: oklch(0.955 0.006 262);
+    --pixel-b: oklch(1 0 0);
+    --shadow-popover: 0 8px 24px oklch(0.21 0.014 262 / 8%), 0 1px 2px oklch(0.21 0.014 262 / 6%);
+    --shadow-dialog: 0 16px 48px oklch(0.21 0.014 262 / 12%);
+    --radius: 0.625rem;
+    /* Kept for older themes; the default theme no longer paints hue gradients. */
+    --brand-gradient: var(--primary);
+
+    --sl-font-sans: 'Inter Variable', 'Noto Sans SC Variable', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+    --sl-font-mono: 'JetBrains Mono Variable', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+    --sl-font-display: var(--sl-font-sans);
+    --sl-viewer-background: transparent;
+
+    --duration-fast: 150ms;
+    --duration-base: 200ms;
+    --duration-slow: 320ms;
+  }
+
+  .dark {
+    --background: oklch(0.165 0.008 262);
+    --foreground: oklch(0.95 0.004 262);
+    --card: oklch(0.2 0.01 262);
+    --card-foreground: oklch(0.95 0.004 262);
+    --popover: oklch(0.2 0.01 262);
+    --popover-foreground: oklch(0.95 0.004 262);
+    --muted: oklch(0.245 0.012 262);
+    --muted-foreground: oklch(0.75 0.014 262);
+    --faint-foreground: oklch(0.64 0.014 262);
+    --secondary: oklch(0.245 0.012 262);
+    --secondary-foreground: oklch(0.95 0.004 262);
+    --accent: oklch(0.245 0.012 262);
+    --accent-foreground: oklch(0.95 0.004 262);
+    --primary: oklch(0.74 0.11 262);
+    --primary-foreground: oklch(0.18 0.03 262);
+    --highlight: oklch(0.82 0.13 82);
+    --highlight-foreground: oklch(0.26 0.05 60);
+    --warning: oklch(0.82 0.13 82);
+    --warning-foreground: oklch(0.26 0.05 60);
+    --success: oklch(0.72 0.14 155);
+    --success-foreground: oklch(0.165 0.008 262);
+    --destructive: oklch(0.68 0.18 25);
+    --destructive-foreground: oklch(0.165 0.008 262);
+    --border: oklch(0.95 0.004 262 / 10%);
+    --input: oklch(0.95 0.004 262 / 14%);
+    --ring: oklch(0.74 0.11 262);
+    --chart-1: oklch(0.74 0.11 262);
+    --chart-2: oklch(0.82 0.13 82);
+    --chart-3: oklch(0.95 0.004 262 / 45%);
+    --chart-4: oklch(0.95 0.004 262 / 28%);
+    --chart-5: oklch(0.95 0.004 262 / 16%);
+    --sidebar: oklch(0.165 0.008 262);
+    --sidebar-foreground: oklch(0.95 0.004 262);
+    --sidebar-primary: oklch(0.74 0.11 262);
+    --sidebar-primary-foreground: oklch(0.18 0.03 262);
+    --sidebar-accent: oklch(0.245 0.012 262);
+    --sidebar-accent-foreground: oklch(0.95 0.004 262);
+    --sidebar-border: oklch(0.95 0.004 262 / 10%);
+    --sidebar-ring: oklch(0.74 0.11 262);
+    --pixel-a: oklch(0.215 0.011 262);
+    --pixel-b: oklch(0.2 0.01 262);
+    --shadow-popover: 0 16px 48px oklch(0 0 0 / 50%);
+    --shadow-dialog: 0 16px 48px oklch(0 0 0 / 50%);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-faint-foreground: var(--faint-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  /* One --radius scales every step (design.md §5). */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --font-sans: var(--sl-font-sans);
+  --font-mono: var(--sl-font-mono);
+  --font-display: var(--sl-font-display);
+}
+
+@theme {
+  /* Two sizes beside Tailwind's: captions and reading text (design.md §3.2). */
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.25rem;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.625rem;
+  /* The one easing curve (design.md §6). */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-foreground;
+  }
+  /* One stroke for every lucide icon, plugins' included (design.md §7). */
+  .lucide {
+    stroke-width: 1.75;
+  }
+}
+
+/* Markdown rendered on the server (announcements, notifications, copyright). */
+@layer components {
+  .sl-markdown {
+    @apply text-sm leading-relaxed;
+  }
+  .sl-markdown > * + * {
+    @apply mt-2;
+  }
+  .sl-markdown a {
+    @apply text-primary underline underline-offset-2;
+  }
+  .sl-markdown ul {
+    @apply list-disc pl-5;
+  }
+  .sl-markdown ol {
+    @apply list-decimal pl-5;
+  }
+  .sl-markdown h1,
+  .sl-markdown h2,
+  .sl-markdown h3 {
+    @apply font-medium;
+  }
+  .sl-markdown code {
+    @apply rounded-sm bg-muted px-1 py-0.5 font-mono text-xs;
+  }
+  .sl-markdown blockquote {
+    @apply border-l-2 pl-3 text-muted-foreground;
+  }
+  .sl-markdown table {
+    @apply border-collapse text-xs;
+  }
+  .sl-markdown th,
+  .sl-markdown td {
+    @apply border px-2 py-1;
+  }
+}
+
+/* Theme hooks with a base look; a theme's CSS may restyle them (design.md §14). */
+@layer components {
+  /* The panel beside the forms of the "split" auth layout. */
+  .sl-auth-panel {
+    background: var(--brand-gradient);
+  }
+  /* The 8px checkerboard behind skin and cape previews (design.md §8). */
+  .sl-pixel-backdrop {
+    background: repeating-conic-gradient(var(--pixel-a) 0 25%, var(--pixel-b) 0 50%) 0 0 / 16px 16px;
+  }
+}

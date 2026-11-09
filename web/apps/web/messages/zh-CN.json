@@ -1301,11 +1301,12 @@
       "tokens": {
         "primary": "主色",
         "primary-foreground": "主色上的文字",
+        "highlight": "强调色（积分、签到、警告）",
         "background": "背景",
         "foreground": "文字",
         "card": "卡片",
         "muted": "弱化背景",
-        "accent": "强调背景",
+        "accent": "悬停背景",
         "border": "边框",
         "radius": "圆角"
       },

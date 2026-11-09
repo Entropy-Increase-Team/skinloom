@@ -12,7 +12,7 @@ export type Mode = 'light' | 'dark'
  * Tokens the colour editor offers in each mode; radius (one for both modes, set with the
  * light tokens) comes on its own. Any other token stays settable through theme.overrides.
  */
-export const COLOR_TOKENS = ['primary', 'primary-foreground', 'background', 'foreground', 'card', 'muted', 'accent', 'border'] as const
+export const COLOR_TOKENS = ['primary', 'primary-foreground', 'highlight', 'background', 'foreground', 'card', 'muted', 'accent', 'border'] as const
 
 /** Overrides with one token set, or removed when value is empty; empty groups are dropped. */
 export function withToken(o: Overrides, group: keyof Overrides, name: string, value: string): Overrides {

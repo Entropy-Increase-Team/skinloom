@@ -1,9 +1,11 @@
 'use client'
 
+import { QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from 'next-themes'
-import { createContext, useContext } from 'react'
+import { createContext, useContext, useState } from 'react'
 
 import type { SiteBootstrap } from '@/lib/bootstrap'
+import { makeQueryClient } from '@/lib/query'
 
 const BootstrapContext = createContext<SiteBootstrap | null>(null)
 
@@ -24,11 +26,15 @@ export function Providers({
   nonce?: string
   children: React.ReactNode
 }) {
+  // One cache per browser tab, kept across navigations and re-renders.
+  const [queryClient] = useState(makeQueryClient)
   return (
     <BootstrapContext.Provider value={bootstrap}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange nonce={nonce}>
-        {children}
-      </ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange nonce={nonce}>
+          {children}
+        </ThemeProvider>
+      </QueryClientProvider>
     </BootstrapContext.Provider>
   )
 }

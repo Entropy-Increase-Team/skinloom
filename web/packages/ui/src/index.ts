@@ -6,3 +6,4 @@ export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 export { Badge, badgeVariants } from './components/badge'
 export { Input } from './components/input'
 export { Label } from './components/label'
+export { MenuIcon, menuIcons } from './icons'

@@ -1,5 +1,6 @@
 'use client'
 
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 
@@ -16,6 +17,7 @@ import { nextRefreshDelay } from '@/lib/refresh'
  */
 export function LiveRefresh({ version }: { version: number }) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const current = useRef(version)
   current.current = version
   const offline = version < 0
@@ -35,6 +37,8 @@ export function LiveRefresh({ version }: { version: number }) {
       timer = setTimeout(() => {
         timer = undefined
         router.refresh()
+        // Client-side data may depend on settings too (score rates, rules, translations).
+        void queryClient.invalidateQueries()
       }, nextRefreshDelay())
     }
     es.addEventListener('hello', onChange)
@@ -43,7 +47,7 @@ export function LiveRefresh({ version }: { version: number }) {
       es.close()
       if (timer) clearTimeout(timer)
     }
-  }, [router, offline])
+  }, [router, queryClient, offline])
 
   return null
 }

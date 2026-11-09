@@ -11,6 +11,12 @@ import { getBootstrap } from '@/lib/bootstrap'
 import { safeImageUrl } from '@/lib/safe-url'
 import { themeStyle } from '@/lib/theme'
 
+// Interface fonts, self-hosted from npm and served from /_next/static (ADR 0042): Inter for
+// Latin and figures, Noto Sans SC for Chinese (unicode-range slices: only the parts a page
+// uses are downloaded), JetBrains Mono for hashes, UUIDs and tokens. All SIL OFL 1.1.
+import '@fontsource-variable/inter'
+import '@fontsource-variable/noto-sans-sc'
+import '@fontsource-variable/jetbrains-mono'
 import './globals.css'
 
 export async function generateMetadata(): Promise<Metadata> {

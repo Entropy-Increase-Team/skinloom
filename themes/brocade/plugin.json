@@ -2,77 +2,151 @@
   "$schema": "https://skinloom.cn/schema/plugin.v1.json",
   "id": "brocade",
   "kind": "theme",
-  "version": "0.1.0",
-  "name": { "zh-CN": "织锦", "en": "Brocade" },
+  "version": "0.2.0",
+  "name": {
+    "zh-CN": "织锦",
+    "en": "Brocade"
+  },
   "description": {
     "zh-CN": "暖色的第二套内置主题：朱红与金色、分栏的登录页、更紧凑的皮肤库，首页展示最新材质与站点数据。",
     "en": "A warm second built-in theme: vermilion and gold, split sign-in pages, a denser skin library, and a home page with the latest textures and site figures."
   },
   "license": "MIT",
-  "engines": { "skinloom": ">=0.1.0" },
+  "engines": {
+    "skinloom": ">=0.1.0"
+  },
   "apiVersion": 1,
   "theme": {
     "tokens": {
       "light": {
-        "background": "oklch(0.985 0.008 75)",
-        "foreground": "oklch(0.24 0.04 30)",
+        "background": "oklch(0.985 0.006 75)",
+        "foreground": "oklch(0.24 0.035 35)",
         "card": "oklch(1 0 0)",
-        "card-foreground": "oklch(0.24 0.04 30)",
+        "card-foreground": "oklch(0.24 0.035 35)",
         "popover": "oklch(1 0 0)",
-        "popover-foreground": "oklch(0.24 0.04 30)",
-        "primary": "oklch(0.52 0.17 28)",
-        "primary-foreground": "oklch(0.98 0.01 75)",
-        "secondary": "oklch(0.95 0.02 75)",
-        "secondary-foreground": "oklch(0.3 0.05 30)",
-        "muted": "oklch(0.95 0.015 75)",
-        "muted-foreground": "oklch(0.5 0.04 40)",
-        "accent": "oklch(0.92 0.05 85)",
-        "accent-foreground": "oklch(0.3 0.05 30)",
-        "destructive": "oklch(0.55 0.22 25)",
-        "border": "oklch(0.9 0.02 70)",
-        "input": "oklch(0.9 0.02 70)",
-        "ring": "oklch(0.52 0.17 28)",
-        "chart-1": "oklch(0.52 0.17 28)",
+        "popover-foreground": "oklch(0.24 0.035 35)",
+        "muted": "oklch(0.955 0.012 75)",
+        "muted-foreground": "oklch(0.46 0.03 40)",
+        "faint-foreground": "oklch(0.54 0.025 45)",
+        "secondary": "oklch(0.955 0.012 75)",
+        "secondary-foreground": "oklch(0.24 0.035 35)",
+        "accent": "oklch(0.955 0.012 75)",
+        "accent-foreground": "oklch(0.24 0.035 35)",
+        "primary": "oklch(0.52 0.17 30)",
+        "primary-foreground": "oklch(0.985 0.006 75)",
+        "highlight": "oklch(0.8 0.14 85)",
+        "highlight-foreground": "oklch(0.3 0.06 60)",
+        "warning": "oklch(0.8 0.14 85)",
+        "warning-foreground": "oklch(0.3 0.06 60)",
+        "success": "oklch(0.54 0.12 150)",
+        "success-foreground": "oklch(0.985 0.006 75)",
+        "destructive": "oklch(0.48 0.17 15)",
+        "destructive-foreground": "oklch(0.985 0.006 75)",
+        "border": "oklch(0.24 0.035 35 / 10%)",
+        "input": "oklch(0.24 0.035 35 / 14%)",
+        "ring": "oklch(0.52 0.17 30)",
+        "chart-1": "oklch(0.52 0.17 30)",
+        "chart-2": "oklch(0.8 0.14 85)",
+        "chart-3": "oklch(0.24 0.035 35 / 45%)",
+        "chart-4": "oklch(0.24 0.035 35 / 28%)",
+        "chart-5": "oklch(0.24 0.035 35 / 16%)",
+        "sidebar": "oklch(0.985 0.006 75)",
+        "sidebar-foreground": "oklch(0.24 0.035 35)",
+        "sidebar-primary": "oklch(0.52 0.17 30)",
+        "sidebar-primary-foreground": "oklch(0.985 0.006 75)",
+        "sidebar-accent": "oklch(0.955 0.012 75)",
+        "sidebar-accent-foreground": "oklch(0.24 0.035 35)",
+        "sidebar-border": "oklch(0.24 0.035 35 / 10%)",
+        "sidebar-ring": "oklch(0.52 0.17 30)",
+        "pixel-a": "oklch(0.95 0.014 75)",
+        "pixel-b": "oklch(1 0 0)",
+        "shadow-popover": "0 8px 24px oklch(0.24 0.035 35 / 8%), 0 1px 2px oklch(0.24 0.035 35 / 6%)",
+        "shadow-dialog": "0 16px 48px oklch(0.24 0.035 35 / 12%)",
         "radius": "0.5rem",
-        "brand-gradient": "linear-gradient(135deg, oklch(0.5 0.17 25), oklch(0.62 0.14 60))"
+        "brand-gradient": "linear-gradient(135deg, oklch(0.5 0.17 28), oklch(0.44 0.15 22))"
       },
       "dark": {
-        "background": "oklch(0.18 0.02 30)",
-        "foreground": "oklch(0.95 0.015 75)",
-        "card": "oklch(0.22 0.025 30)",
-        "card-foreground": "oklch(0.95 0.015 75)",
-        "popover": "oklch(0.22 0.025 30)",
-        "popover-foreground": "oklch(0.95 0.015 75)",
-        "primary": "oklch(0.7 0.15 45)",
-        "primary-foreground": "oklch(0.18 0.02 30)",
-        "secondary": "oklch(0.28 0.03 30)",
-        "secondary-foreground": "oklch(0.95 0.015 75)",
-        "muted": "oklch(0.28 0.03 30)",
-        "muted-foreground": "oklch(0.72 0.03 60)",
-        "accent": "oklch(0.32 0.05 50)",
-        "accent-foreground": "oklch(0.95 0.015 75)",
-        "destructive": "oklch(0.65 0.2 25)",
-        "border": "oklch(1 0 0 / 10%)",
-        "input": "oklch(1 0 0 / 14%)",
-        "ring": "oklch(0.7 0.15 45)",
-        "chart-1": "oklch(0.7 0.15 45)",
-        "brand-gradient": "linear-gradient(135deg, oklch(0.4 0.13 25), oklch(0.45 0.11 55))"
+        "background": "oklch(0.18 0.015 40)",
+        "foreground": "oklch(0.95 0.012 75)",
+        "card": "oklch(0.215 0.018 40)",
+        "card-foreground": "oklch(0.95 0.012 75)",
+        "popover": "oklch(0.215 0.018 40)",
+        "popover-foreground": "oklch(0.95 0.012 75)",
+        "muted": "oklch(0.26 0.02 40)",
+        "muted-foreground": "oklch(0.76 0.025 60)",
+        "faint-foreground": "oklch(0.65 0.025 55)",
+        "secondary": "oklch(0.26 0.02 40)",
+        "secondary-foreground": "oklch(0.95 0.012 75)",
+        "accent": "oklch(0.26 0.02 40)",
+        "accent-foreground": "oklch(0.95 0.012 75)",
+        "primary": "oklch(0.72 0.14 40)",
+        "primary-foreground": "oklch(0.18 0.015 40)",
+        "highlight": "oklch(0.82 0.13 85)",
+        "highlight-foreground": "oklch(0.26 0.05 60)",
+        "warning": "oklch(0.82 0.13 85)",
+        "warning-foreground": "oklch(0.26 0.05 60)",
+        "success": "oklch(0.72 0.13 150)",
+        "success-foreground": "oklch(0.18 0.015 40)",
+        "destructive": "oklch(0.68 0.17 20)",
+        "destructive-foreground": "oklch(0.18 0.015 40)",
+        "border": "oklch(0.95 0.012 75 / 10%)",
+        "input": "oklch(0.95 0.012 75 / 14%)",
+        "ring": "oklch(0.72 0.14 40)",
+        "chart-1": "oklch(0.72 0.14 40)",
+        "chart-2": "oklch(0.82 0.13 85)",
+        "chart-3": "oklch(0.95 0.012 75 / 45%)",
+        "chart-4": "oklch(0.95 0.012 75 / 28%)",
+        "chart-5": "oklch(0.95 0.012 75 / 16%)",
+        "sidebar": "oklch(0.18 0.015 40)",
+        "sidebar-foreground": "oklch(0.95 0.012 75)",
+        "sidebar-primary": "oklch(0.72 0.14 40)",
+        "sidebar-primary-foreground": "oklch(0.18 0.015 40)",
+        "sidebar-accent": "oklch(0.26 0.02 40)",
+        "sidebar-accent-foreground": "oklch(0.95 0.012 75)",
+        "sidebar-border": "oklch(0.95 0.012 75 / 10%)",
+        "sidebar-ring": "oklch(0.72 0.14 40)",
+        "pixel-a": "oklch(0.235 0.018 40)",
+        "pixel-b": "oklch(0.215 0.018 40)",
+        "shadow-popover": "0 16px 48px oklch(0 0 0 / 50%)",
+        "shadow-dialog": "0 16px 48px oklch(0 0 0 / 50%)",
+        "brand-gradient": "linear-gradient(135deg, oklch(0.42 0.13 28), oklch(0.36 0.11 22))"
       },
       "fonts": {
-        "sans": "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+        "sans": "'Inter Variable', 'Noto Sans SC Variable', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif",
+        "mono": "'JetBrains Mono Variable', ui-monospace, 'SFMono-Regular', Consolas, monospace"
       },
       "viewer": {
         "background": "radial-gradient(circle at 50% 40%, oklch(0.8 0.1 70 / 30%), transparent 70%)"
       }
     },
     "css": "theme.css",
-    "layout": { "auth": "split", "skinlib": "compact" },
+    "layout": {
+      "auth": "split",
+      "skinlib": "compact"
+    },
     "home": [
-      { "type": "hero", "props": { "primaryAction": "/skinlib", "secondaryAction": "/auth/register" } },
-      { "type": "announcement" },
-      { "type": "latest-textures", "props": { "limit": 12 } },
-      { "type": "stats" },
-      { "type": "launcher-guide" }
+      {
+        "type": "hero",
+        "props": {
+          "primaryAction": "/skinlib",
+          "secondaryAction": "/auth/register"
+        }
+      },
+      {
+        "type": "announcement"
+      },
+      {
+        "type": "latest-textures",
+        "props": {
+          "limit": 12
+        }
+      },
+      {
+        "type": "stats"
+      },
+      {
+        "type": "launcher-guide"
+      }
     ]
   }
 }

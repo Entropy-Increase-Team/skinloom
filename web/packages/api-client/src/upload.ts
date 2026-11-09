@@ -1,5 +1,5 @@
 import { apiFetch } from './fetcher'
-import type { UploadView } from './gen/api'
+import type { UploadView } from './gen/model'
 
 export interface TextureUpload {
   file: Blob
