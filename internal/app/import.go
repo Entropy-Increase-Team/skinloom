@@ -10,9 +10,9 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/config"
 	"github.com/Entropy-Increase-Team/skinloom/internal/httpapi"
 	"github.com/Entropy-Increase-Team/skinloom/internal/importer/bs"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/sitesettings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
-	"github.com/Entropy-Increase-Team/skinloom/internal/sitesettings"
 )
 
 // ImportBS imports a Blessing Skin site into the install at p, creating the data

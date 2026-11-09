@@ -8,10 +8,10 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/account"
-	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
-	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
-	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/captcha"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/mail"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
 )
 
 // mailReady reports whether mail with links can be sent: a mail driver and site.url.

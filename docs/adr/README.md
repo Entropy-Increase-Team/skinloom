@@ -43,3 +43,5 @@
 | [0037](0037-contract-tests.md) | 契约测试：黄金文件、authlib-injector 端到端、渲染快照与站点对比 | 已接受 |
 | [0038](0038-load-tests.md) | 压测：k6 场景、百万材质的种子数据与压测发现的修正 | 已接受 |
 | [0039](0039-security-self-check.md) | 安全自查：内容安全策略与自定义 JavaScript，以及 ADR 0034 的遗留问题 | 已接受 |
+| [0040](0040-v1-cleanup-layout-and-docs.md) | 1.0 收尾：目录分层（modules / platform）、统一的事务工具、按读者组织的文档 | 已接受 |
+| [0041](0041-readable-console-log.md) | 终端日志：给人看的格式与 NOTICE 级别 | 已接受 |

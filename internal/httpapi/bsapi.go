@@ -18,15 +18,15 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	tex "github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
-	"github.com/Entropy-Increase-Team/skinloom/internal/account"
-	"github.com/Entropy-Increase-Team/skinloom/internal/buildinfo"
-	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
-	"github.com/Entropy-Increase-Team/skinloom/internal/oauth"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/notify"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/oauth"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/score"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/buildinfo"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
-	"github.com/Entropy-Increase-Team/skinloom/internal/player"
-	"github.com/Entropy-Increase-Team/skinloom/internal/score"
-	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
-	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
 )
 
 // The Blessing Skin compatible resource API (/api/user, /api/players, /api/closet;

@@ -8,36 +8,36 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/account"
-	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
-	"github.com/Entropy-Increase-Team/skinloom/internal/cdn"
 	"github.com/Entropy-Increase-Team/skinloom/internal/config"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
-	"github.com/Entropy-Increase-Team/skinloom/internal/jobs"
-	"github.com/Entropy-Increase-Team/skinloom/internal/logging"
-	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
-	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
-	"github.com/Entropy-Increase-Team/skinloom/internal/oauth"
+	"github.com/Entropy-Increase-Team/skinloom/internal/httpapi"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/captcha"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/cdn"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/mail"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/notify"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/oauth"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/render"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/report"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/sitesettings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/social"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/theme"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/yggdrasil"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/jobs"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/logging"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
-	"github.com/Entropy-Increase-Team/skinloom/internal/player"
-	"github.com/Entropy-Increase-Team/skinloom/internal/pubsub"
-	"github.com/Entropy-Increase-Team/skinloom/internal/render"
-	"github.com/Entropy-Increase-Team/skinloom/internal/report"
-	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
-	"github.com/Entropy-Increase-Team/skinloom/internal/sitesettings"
-	"github.com/Entropy-Increase-Team/skinloom/internal/social"
-	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
-	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
-	"github.com/Entropy-Increase-Team/skinloom/internal/theme"
-	"github.com/Entropy-Increase-Team/skinloom/internal/yggdrasil"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/pubsub"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 	"github.com/Entropy-Increase-Team/skinloom/themes"
 )
 
@@ -118,95 +118,114 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 	if err != nil {
 		return nil, err
 	}
-	var (
-		out     io.Writer = os.Stderr
-		logFile *os.File
-	)
+	c := &Core{Paths: p, Config: cfg, FreshConfig: fresh}
+	ok := false
+	defer func() { // every error return below
+		if !ok {
+			c.Close(context.Background())
+		}
+	}()
 	if name := cmp.Or(cfg.Log.File, p.LogFile); name != "" && p.Serve {
 		if !filepath.IsAbs(name) {
 			name = filepath.Join(p.DataDir, name)
 		}
-		if logFile, err = logging.OpenFile(name); err != nil {
+		if c.logFile, err = logging.OpenFile(name); err != nil {
 			return nil, fmt.Errorf("open log file: %w", err)
 		}
-		out = logging.Tee(logFile, os.Stderr)
 	}
-	opened := false
-	defer func() { // every error return below
-		if !opened && logFile != nil {
-			logFile.Close()
-		}
-	}()
-	logCtl, log := logging.New(out, cfg.Log.Level, cfg.Log.Format)
+	logOpts := logging.Options{Console: os.Stderr, Level: cfg.Log.Level, Format: cfg.Log.Format}
+	logOpts.Pretty, logOpts.Color = logging.ConsoleStyle(os.Stderr)
+	if c.logFile != nil { // a nil *os.File would still be a non-nil io.Writer
+		logOpts.File = c.logFile
+	}
+	c.LogCtl, c.Log = logging.New(logOpts)
+	log := c.Log
 
-	database, err := db.Open(ctx, db.Options{
+	if c.DB, err = db.Open(ctx, db.Options{
 		Driver: cfg.Database.Driver, DSN: cfg.Database.DSN, DataDir: p.DataDir, MaxOpenConns: cfg.Database.MaxOpenConns,
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
-	if err := migrate.Up(ctx, database, p.DataDir, log.With("component", "migrate")); err != nil {
-		database.Close()
+	if err := migrate.Up(ctx, c.DB, p.DataDir, log.With("component", "migrate")); err != nil {
 		return nil, err
 	}
+	client := c.DB.Ent
 
-	broker := pubsub.New()
-	bus := hook.NewBus(log.With("component", "hook"), 4)
-	themeReg := theme.NewRegistry()
-	if err := themeReg.LoadDir(themes.Builtin, "builtin"); err != nil {
-		database.Close()
+	c.Broker = pubsub.New()
+	c.Bus = hook.NewBus(log.With("component", "hook"), 4)
+	c.Themes = theme.NewRegistry()
+	if err := c.Themes.LoadDir(themes.Builtin, "builtin"); err != nil {
 		return nil, fmt.Errorf("load built-in themes: %w", err)
 	}
 	store, err := openStore(ctx, cfg.Storage, p.DataDir)
 	if err != nil {
-		database.Close()
 		return nil, err
 	}
-	reg, err := sitesettings.Registry(themeReg)
+	reg, err := sitesettings.Registry(c.Themes)
 	if err != nil {
-		database.Close()
 		return nil, err
 	}
-	svc := settings.NewService(reg, database.Ent, broker, bus, log.With("component", "settings"))
-	if err := svc.Load(ctx); err != nil {
-		database.Close()
+	c.Settings = settings.NewService(reg, client, c.Broker, c.Bus, log.With("component", "settings"))
+	if err := c.Settings.Load(ctx); err != nil {
 		return nil, err
 	}
-	c := &Core{
-		Paths: p, Config: cfg, LogCtl: logCtl, Log: log, logFile: logFile, DB: database,
-		Broker: broker, Bus: bus, Settings: svc, Themes: themeReg, FreshConfig: fresh,
-		Accounts: account.NewService(database.Ent, log.With("component", "account")),
-		Captcha:  captcha.NewService(captcha.Options{Log: log.With("component", "captcha")}),
-		Mailer:   mail.New(log.With("component", "mail")),
-		Jobs:     jobs.New(database.Ent, log.With("component", "jobs")),
-		Textures: texture.NewService(database.Ent, store, log.With("component", "texture")),
-		Players:  player.NewService(database.Ent, log.With("component", "player")),
-	}
-	c.Reports = report.NewService(database.Ent, c.Textures, log.With("component", "report"))
+
+	c.Accounts = account.NewService(client, log.With("component", "account"))
+	c.Captcha = captcha.NewService(captcha.Options{Log: log.With("component", "captcha")})
+	c.Mailer = mail.New(log.With("component", "mail"))
+	c.Jobs = jobs.New(client, log.With("component", "jobs"))
+	c.Textures = texture.NewService(client, store, log.With("component", "texture"))
+	c.Players = player.NewService(client, log.With("component", "player"))
+	c.Reports = report.NewService(client, c.Textures, log.With("component", "report"))
 	// Rendering is CPU-bound: one render per core at most, 64 MiB of results.
 	c.Renders = render.NewService(runtime.GOMAXPROCS(0), 64<<20)
-	c.Notify = notify.NewService(database.Ent, log.With("component", "notify"))
-	c.Yggdrasil = yggdrasil.NewService(database.Ent, c.Accounts, c.Players, c.Textures, log.With("component", "yggdrasil"))
-	c.OAuth = oauth.NewService(database.Ent, log.With("component", "oauth"))
-	c.Social = social.NewService(database.Ent, c.Accounts, log.With("component", "social"))
+	c.Notify = notify.NewService(client, log.With("component", "notify"))
+	c.Yggdrasil = yggdrasil.NewService(client, c.Accounts, c.Players, c.Textures, log.With("component", "yggdrasil"))
+	c.OAuth = oauth.NewService(client, log.With("component", "oauth"))
+	c.Social = social.NewService(client, c.Accounts, log.With("component", "social"))
+
+	// Background jobs, and the calls modules make into each other.
 	c.Jobs.Register(account.MailJobKind, c.sendMail)
-	c.Accounts.SetJobNotifier(c.Jobs.Kick)
 	c.Jobs.Register(texture.SweepJobKind, c.Textures.HandleSweepJob)
+	// Domain events go out through the job queue (hook.Event.Publish): the outbox.
+	c.Jobs.Register(hook.OutboxJobKind, c.Bus.Deliver)
+	c.Accounts.SetJobNotifier(c.Jobs.Kick)
 	c.Textures.SetJobNotifier(c.Jobs.Kick)
 	c.Accounts.SetBeforeDelete(c.Textures.BeforeUserDelete)
-	// Domain events go out through the job queue (hook.Event.Publish): the outbox.
-	c.Jobs.Register(hook.OutboxJobKind, bus.Deliver)
-	c.Accounts.SetHooks(bus)
-	c.Textures.SetHooks(bus)
-	c.Players.SetHooks(bus)
-	c.Reports.SetHooks(bus)
-	c.CDN = cdn.NewService(bus, svc, log.With("component", "cdn"))
+	c.Accounts.SetHooks(c.Bus)
+	c.Textures.SetHooks(c.Bus)
+	c.Players.SetHooks(c.Bus)
+	c.Reports.SetHooks(c.Bus)
+	c.CDN = cdn.NewService(c.Bus, c.Settings, log.With("component", "cdn"))
 	if err := c.CDN.Start(); err != nil {
-		database.Close()
 		return nil, err
 	}
-	opened = true
+	ok = true
 	return c, nil
+}
+
+// APIDeps returns the services the HTTP API uses. The caller adds what depends on how
+// the process serves (client address resolution, runtime info, frontend readiness).
+func (c *Core) APIDeps(log *slog.Logger) httpapi.Deps {
+	return httpapi.Deps{
+		Log:       log,
+		DB:        c.DB,
+		Settings:  c.Settings,
+		Themes:    c.Themes,
+		Broker:    c.Broker,
+		Accounts:  c.Accounts,
+		Captcha:   c.Captcha,
+		Mailer:    c.Mailer,
+		Textures:  c.Textures,
+		Players:   c.Players,
+		Reports:   c.Reports,
+		Renders:   c.Renders,
+		Notify:    c.Notify,
+		Yggdrasil: c.Yggdrasil,
+		OAuth:     c.OAuth,
+		Social:    c.Social,
+		CDN:       c.CDN,
+	}
 }
 
 // sendMail is the background job that delivers a queued mail with the mail settings
@@ -236,10 +255,14 @@ func (c *Core) SetupLink(ctx context.Context, base string) (string, error) {
 	return strings.TrimRight(base, "/") + "/setup?token=" + token, nil
 }
 
-// Close releases resources.
+// Close releases resources, also those of a Core that OpenCore did not finish.
 func (c *Core) Close(ctx context.Context) {
-	c.Bus.Close(ctx)
-	_ = c.DB.Close()
+	if c.Bus != nil {
+		c.Bus.Close(ctx)
+	}
+	if c.DB != nil {
+		_ = c.DB.Close()
+	}
 	if c.logFile != nil {
 		_ = c.logFile.Close()
 	}

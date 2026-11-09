@@ -14,12 +14,12 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/dbtest"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
-	"github.com/Entropy-Increase-Team/skinloom/internal/player"
-	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 )
 
 // sqliteTarget is a migrated, empty SkinLoom SQLite database.

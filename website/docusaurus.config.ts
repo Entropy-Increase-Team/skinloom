@@ -61,7 +61,7 @@ const config: Config = {
         sidebarPath: false,
         numberPrefixParser: false, // keep 04-rewrite-plan as the URL, matching the file name
         editUrl: `${repo}/edit/main/`,
-        remarkPlugins: [crossInstanceLinks],
+        beforeDefaultRemarkPlugins: [crossInstanceLinks],
       },
     ],
     [
@@ -73,7 +73,7 @@ const config: Config = {
         sidebarPath: false,
         numberPrefixParser: false,
         editUrl: `${repo}/edit/main/`,
-        remarkPlugins: [crossInstanceLinks],
+        beforeDefaultRemarkPlugins: [crossInstanceLinks],
       },
     ],
   ],
@@ -84,9 +84,8 @@ const config: Config = {
       title: '云织 SkinLoom',
       logo: { alt: 'SkinLoom', src: 'img/logo.svg' },
       items: [
-        { type: 'docSidebar', sidebarId: 'guide', position: 'left', label: '使用指南' },
+        { type: 'docSidebar', sidebarId: 'guide', position: 'left', label: '指南' },
         { type: 'docSidebar', sidebarId: 'dev', position: 'left', label: '开发' },
-        { type: 'docSidebar', sidebarId: 'plugins', position: 'left', label: '插件开发' },
         { to: '/design/', label: '设计文档', position: 'left' },
         { to: '/adr/', label: 'ADR', position: 'left' },
         { to: '/devlog', label: '开发日志', position: 'left' },
@@ -99,8 +98,9 @@ const config: Config = {
         {
           title: '文档',
           items: [
-            { label: '快速开始', to: '/docs/getting-started/quick-start' },
-            { label: '插件开发', to: '/docs/plugins/overview' },
+            { label: '快速开始', to: '/docs/deployment/quick-start' },
+            { label: '玩家指南', to: '/docs/players/account' },
+            { label: '插件与主题', to: '/docs/plugins/overview' },
             { label: '更新日志', href: `${repo}/blob/main/CHANGELOG.md` },
           ],
         },

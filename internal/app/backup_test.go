@@ -14,7 +14,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/backup"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/datalock"
-	"github.com/Entropy-Increase-Team/skinloom/internal/secrets"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/secrets"
 )
 
 // A backup taken from a running install restores into an empty data directory with

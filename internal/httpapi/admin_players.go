@@ -10,13 +10,13 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
-	"github.com/Entropy-Increase-Team/skinloom/internal/account"
-	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
-	"github.com/Entropy-Increase-Team/skinloom/internal/player"
-	"github.com/Entropy-Increase-Team/skinloom/internal/score"
-	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
-	"github.com/Entropy-Increase-Team/skinloom/internal/stats"
-	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/audit"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/score"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/stats"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
 )
 
 // AdminPlayerView is a player in the admin panel.

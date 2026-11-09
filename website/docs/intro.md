@@ -6,21 +6,30 @@ sidebar_position: 1
 
 # 云织 SkinLoom
 
-云织（SkinLoom）是一个开源、自托管的 Minecraft 皮肤站：玩家上传、分享皮肤与披风，管理自己的游戏角色；游戏客户端与启动器通过 CustomSkinLoader、authlib-injector（外置登录）等方式加载皮肤与登录。
+云织是一个开源、自托管的 Minecraft 皮肤站。玩家在这里上传、分享皮肤和披风，给游戏角色换装；启动器和游戏通过外置登录（authlib-injector）或 CustomSkinLoader 等 Mod 显示这些皮肤。
 
-项目以 [Blessing Skin](https://github.com/bs-community/blessing-skin-server) 为蓝本重新设计：保持外部协议兼容（老站可以迁移，游戏端不用改配置），同时重做数据模型、运行模型与插件体系。后端使用 Go，前端使用 Next.js，以 MIT 协议发布。
+它以 [Blessing Skin](https://github.com/bs-community/blessing-skin-server) 为蓝本重新实现，对外协议保持兼容：老站可以一键迁移，玩家和服务器不用改配置。
 
-官网：<https://skinloom.cn> · 源码：<https://github.com/Entropy-Increase-Team/skinloom>
+## 你是谁？
 
-## 当前状态
-
-项目已完成 **M1（账号）** 与 **M2（材质与角色）**，正在进行 **M3（外置登录与开放平台）**。一键启动、热加载、主题、设置、发行包等基础设施，安装向导、注册与登录、验证码、邮件、邮箱验证、找回密码、个人资料与登录设备、注销账号、后台用户管理与审计日志，以及材质上传、皮肤库、收藏与衣柜、材质管理、签到与用户中心、举报、后台概览与角色管理、站内通知、头像与预览图、S3 兼容存储、角色和 CustomSkinLoader / UniSkinMod / Legacy 游戏接口、authlib-injector 外置登录（Yggdrasil）、OAuth 2.0 开放平台、个人访问令牌、兼容 Blessing Skin 的全部资源接口，以及 GitHub、Microsoft 与 OpenID Connect 第三方登录都已可用。进度见 [开发日志](/devlog) 与 [更新日志](https://github.com/Entropy-Increase-Team/skinloom/blob/main/CHANGELOG.md)。
-
-## 从哪里开始
-
-| 我是…… | 去看 |
+| 我想…… | 从这里开始 |
 |---|---|
-| 想搭一个皮肤站 | [快速开始](getting-started/quick-start.md) → [配置](getting-started/configuration.md) → [部署](deployment/overview.md) |
-| 想参与开发 | [开发环境](development/setup.md) → [架构概览](development/architecture.md) |
-| 想写插件或主题 | [插件开发概览](plugins/overview.md) |
-| 想了解设计取舍 | [设计文档](/design/) 与 [架构决策记录](/adr/) |
+| 在某个皮肤站上用皮肤 | [玩家指南](players/account.md) |
+| 自己搭一个皮肤站 | [快速开始](deployment/quick-start.md) |
+| 从 Blessing Skin 搬过来 | [从 Blessing Skin 迁移](deployment/from-blessing-skin.md) |
+| 接入本站账号、调用接口 | [开放平台与接口](development/api.md) |
+| 参与开发 | [开发环境](development/setup.md) → [架构](development/architecture.md) |
+
+## 有什么
+
+**玩家**：皮肤库、上传与收藏、衣柜、多个角色、3D 预览、签到积分、举报、站内通知，以及 GitHub / Microsoft / OpenID Connect 登录。
+
+**游戏**：authlib-injector 外置登录、CustomSkinLoader、UniSkinMod、固定图片地址，头像与预览图。
+
+**站长**：后台管理用户、角色、举报与审计日志；在线修改设置、主题与首页，不用重启；SQLite / MySQL / PostgreSQL；本地或 S3 存储；CDN 刷新；备份恢复；Docker、Kubernetes、Windows / macOS / Linux 发行包与系统服务。
+
+**开发者**：OAuth 2.0、个人访问令牌、与 Blessing Skin 相同的资源接口，以及完整的 REST API（OpenAPI 3.1）。
+
+## 状态
+
+1.0 正在收尾，目前发布的是 0.x 预览版，接口和设置在 1.0 之前仍可能调整。更新内容见[更新日志](https://github.com/Entropy-Increase-Team/skinloom/blob/main/CHANGELOG.md)，开发过程见[开发日志](/devlog)。

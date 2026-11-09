@@ -13,7 +13,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/oauth"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/oauth"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/clip"
 )
 
 // Text overrides, OAuth applications and the Yggdrasil signing key: the parts of a BS
@@ -141,7 +142,7 @@ func planClients(d *sourceData, userExists func(int64) bool, at func(wall) time.
 			r.add(Dropped, "oauth_clients", c.ID, "owner %d no longer exists", c.UserID)
 			continue
 		}
-		name := truncate(strings.TrimSpace(cleanText(c.Name)), 64)
+		name := clip.Runes(strings.TrimSpace(cleanText(c.Name)), 64)
 		if name == "" {
 			name = fmt.Sprintf("Application %d", c.ID)
 			r.add(Fixed, "oauth_clients", c.ID, "no name: named %q", name)

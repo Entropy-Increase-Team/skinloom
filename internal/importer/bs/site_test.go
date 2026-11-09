@@ -14,7 +14,8 @@ import (
 	"testing"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
-	"github.com/Entropy-Increase-Team/skinloom/internal/oauth"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/oauth"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/dbtest"
 )
@@ -94,7 +95,7 @@ func TestImportSiteData(t *testing.T) {
 			"mail.from":                       `"\"Old Site\" \u003cnoreply@example.com\u003e"`,
 		}
 		for k, v := range want {
-			if !sameJSON(json.RawMessage(got[k]), json.RawMessage(v)) {
+			if !settings.SameJSON(json.RawMessage(got[k]), json.RawMessage(v)) {
 				t.Errorf("%s = %s, want %s", k, got[k], v)
 			}
 		}
@@ -245,7 +246,7 @@ func TestPlanMail(t *testing.T) {
 			t.Errorf("%+v: wrote %v", tc.mail, m.out)
 		}
 		for k, v := range tc.want {
-			if !sameJSON(m.out[k], json.RawMessage(v)) {
+			if !settings.SameJSON(m.out[k], json.RawMessage(v)) {
 				t.Errorf("%+v: %s = %s, want %s", tc.mail, k, m.out[k], v)
 			}
 		}

@@ -18,7 +18,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 )
 
 // maxFileSize caps what is read per texture file (BS's own limit is a few MB; the

@@ -12,9 +12,9 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
-	"github.com/Entropy-Increase-Team/skinloom/internal/account"
-	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
-	"github.com/Entropy-Increase-Team/skinloom/internal/social"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/captcha"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/social"
 )
 
 // SocialCookie ties a sign-in with a provider to the browser that started it.

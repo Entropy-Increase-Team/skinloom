@@ -3,7 +3,7 @@ import type { ResolvedTheme } from '@skinloom/api-client'
 const tokenName = /^[a-z0-9-]+$/
 
 /**
- * Whether a token value stays inside its CSS declaration (as internal/theme checks it).
+ * Whether a token value stays inside its CSS declaration (as internal/modules/theme checks it).
  * All tokens are written on one line, so a value must neither end the declaration (; { }
  * < >, a comment) nor run past it into the next ones (an unterminated string, an unclosed
  * bracket, a trailing escape, a line break).
@@ -59,6 +59,6 @@ export function textureGridClass(density: Layouts['skinlib']): string {
     : 'grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
 }
 
-/** The layout variants themes can choose (internal/theme.Layouts). */
+/** The layout variants themes can choose (internal/modules/theme.Layouts). */
 const LAYOUTS = { auth: ['card', 'split'], skinlib: ['comfortable', 'compact'] } as const
 type Layouts = { [A in keyof typeof LAYOUTS]: (typeof LAYOUTS)[A][number] }

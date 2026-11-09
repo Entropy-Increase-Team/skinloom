@@ -24,13 +24,13 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
 	entplayer "github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
-	"github.com/Entropy-Increase-Team/skinloom/internal/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/sitesettings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/dbtest"
-	"github.com/Entropy-Increase-Team/skinloom/internal/player"
-	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
-	"github.com/Entropy-Increase-Team/skinloom/internal/sitesettings"
-	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 
 	_ "modernc.org/sqlite"
 )

@@ -1,6 +1,7 @@
 package contract
 
 import (
+	"cmp"
 	"context"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -145,7 +146,7 @@ func (s *Site) meta(ctx context.Context, c *http.Client) error {
 	if s.key, err = ParsePublicKey(m.Key); err != nil {
 		return fmt.Errorf("signaturePublickey: %w", err)
 	}
-	s.home = strings.TrimRight(cmpOr(m.Meta.Links.Homepage, s.Base), "/")
+	s.home = strings.TrimRight(cmp.Or(m.Meta.Links.Homepage, s.Base), "/")
 	return nil
 }
 
@@ -155,13 +156,6 @@ func fingerprint(k *rsa.PublicKey) string {
 		return err.Error()
 	}
 	return fmt.Sprintf("RSA %d bits, SHA-256 %x\n", k.N.BitLen(), sha256.Sum256(der))
-}
-
-func cmpOr(a, b string) string {
-	if a != "" {
-		return a
-	}
-	return b
 }
 
 // fetch returns the comparable form of a response, and its raw body.

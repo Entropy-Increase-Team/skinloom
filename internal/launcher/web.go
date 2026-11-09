@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -145,7 +146,7 @@ func (w *Web) runOnce(ctx context.Context, spec Spec) error {
 		cmd.Env = append(cmd.Env, "NODE_ENV=production")
 	}
 	cmd.Env = append(cmd.Env, spec.env...)
-	stdout, stderr := newLineWriter(w.out, slog.LevelInfo), newLineWriter(w.out, slog.LevelWarn)
+	stdout, stderr := newLineWriter(w.out, false), newLineWriter(w.out, true)
 	defer stdout.Close()
 	defer stderr.Close()
 	cmd.Stdout, cmd.Stderr = stdout, stderr
@@ -196,18 +197,18 @@ func command(spec Spec) (*exec.Cmd, error) {
 	}
 }
 
-// lineWriter turns a byte stream into one log record per line.
+// lineWriter turns the frontend's output into one log record per line.
 type lineWriter struct {
-	log   *slog.Logger
-	level slog.Level
-	mu    sync.Mutex
-	buf   []byte
+	log    *slog.Logger
+	stderr bool
+	mu     sync.Mutex
+	buf    []byte
 }
 
 const maxLine = 64 * 1024
 
-func newLineWriter(log *slog.Logger, level slog.Level) *lineWriter {
-	return &lineWriter{log: log, level: level}
+func newLineWriter(log *slog.Logger, stderr bool) *lineWriter {
+	return &lineWriter{log: log, stderr: stderr}
 }
 
 func (l *lineWriter) Write(p []byte) (int, error) {
@@ -241,11 +242,35 @@ func (l *lineWriter) Close() error {
 }
 
 func (l *lineWriter) emit(b []byte) {
-	line := strings.TrimRight(string(b), "\r")
-	if strings.TrimSpace(line) == "" {
-		return
+	if level, msg, keep := frontendLine(string(b), l.stderr); keep {
+		l.log.Log(context.Background(), level, msg)
 	}
-	l.log.Log(context.Background(), l.level, line)
+}
+
+// ansiCode matches a terminal escape sequence: Next.js colors its output when FORCE_COLOR
+// reaches it, and the log adds its own colors (or none, in files).
+var ansiCode = regexp.MustCompile(`\x1b\[[0-9;?]*[ -/]*[@-~]`)
+
+// requestLine matches the request log of the Next.js server: "GET /skinlib 200 in 12ms".
+var requestLine = regexp.MustCompile(`^(GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS) \S+ \d{3} in `)
+
+// frontendLine gives a line of the frontend's output its level, so it reads like the
+// rest of the log. It drops empty lines and the "- Local:" and "- Network:" banner,
+// which names the internal port: people must use the public one.
+func frontendLine(line string, stderr bool) (slog.Level, string, bool) {
+	line = strings.TrimSpace(ansiCode.ReplaceAllString(line, ""))
+	switch {
+	case line == "", strings.HasPrefix(line, "- Local:"), strings.HasPrefix(line, "- Network:"):
+		return 0, "", false
+	case requestLine.MatchString(line):
+		return slog.LevelDebug, line, true // like the backend's request log
+	case strings.HasPrefix(line, "⨯"), strings.HasPrefix(line, "Error:"), strings.HasPrefix(line, "Error "):
+		return slog.LevelError, line, true
+	case stderr, strings.HasPrefix(line, "⚠"):
+		return slog.LevelWarn, line, true
+	default:
+		return slog.LevelInfo, line, true
+	}
 }
 
 // ResolveServerDir finds the directory with the Next.js standalone server.js.

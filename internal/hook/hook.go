@@ -30,8 +30,8 @@ import (
 	"time"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
-	"github.com/Entropy-Increase-Team/skinloom/internal/jobs"
-	"github.com/Entropy-Increase-Team/skinloom/internal/registry"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/jobs"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/registry"
 )
 
 // Kind of hook.

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/render"
-	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
-	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/render"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 )
 
 // A user may make their own private skin their avatar, and /avatar/user/{uid} shows

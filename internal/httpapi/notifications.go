@@ -9,10 +9,10 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
-	"github.com/Entropy-Increase-Team/skinloom/internal/account"
-	"github.com/Entropy-Increase-Team/skinloom/internal/audit"
-	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
-	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/audit"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/notify"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
 )
 
 // NotificationView is one message in the signed-in user's inbox.

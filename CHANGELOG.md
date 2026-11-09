@@ -4,6 +4,25 @@
 
 ## [Unreleased]
 
+### 修复（1.0 收尾，ADR 0040）
+- 服务端代码在事务中途出错崩溃（panic）时，事务现在会回滚。以前事务会一直占着数据库连接和锁，使用 SQLite 时站点此后的所有写入都会失败，直到重启。
+
+### 变更（日志，ADR 0041）
+- 终端里的日志改为易读的格式：短时间、彩色级别、方括号里的组件名，错误红色、警告黄色。日志文件、Docker 与 systemd 收集的日志仍是带完整时间的 `key=value`（或 JSON）。支持 `NO_COLOR` 与 `FORCE_COLOR`。
+- 新增 `NOTICE` 级别（终端里显示为绿色的 `NOTE`），用于站点地址、首次安装链接和关闭提示；`log.level = warn` 时仍然显示。日志文件里写作 `level=NOTICE`，`grep setup` 照常可用。
+- 首次启动的数据库迁移合并为一行"database migrated"，逐个文件的记录改为 debug。
+- 前端进程的输出按内容分级：每个请求一行的记录改为 debug，`⨯`、`Error:` 开头的行为 error；不再转发 Next.js 打印的内部端口地址（`- Local: http://127.0.0.1:17547`，容易误以为要访问它），也不再把它的颜色码写进日志。
+- 命令行出错时，终端里的 `error:` 显示为红色。
+- 在终端里启动站点（`skinloom up` / `serve`）时，先显示一个 SKINLOOM 字符画横幅和版本号；日志文件、Docker 与 systemd 的日志里没有它。
+
+### 文档（ADR 0040）
+- 文档站按读者重新组织：**玩家指南**（账号、皮肤与披风、角色、在游戏里使用）、**站长指南**（快速开始、部署、配置文件、站点设置、后台管理等）和**开发**（环境、架构、接口、插件与主题）。新增全部 80 个站点设置的速查表。`/docs/getting-started/*` 下的页面已移到新位置。
+- README 精简为介绍、快速开始和文档入口；发布流程移到 CONTRIBUTING。
+
+### 变更（开发者，ADR 0040）
+- 后端目录分层：业务模块移到 `internal/modules/`，基础设施移到 `internal/platform/`。自行用 `-ldflags -X` 注入版本号的构建脚本要改为 `github.com/Entropy-Increase-Team/skinloom/internal/platform/buildinfo.Version`。
+- 事务统一使用 `db.WithTx`。
+
 ### 安全（M5 安全自查，ADR 0039）
 - 所有页面带内容安全策略（CSP）：每个请求一个随机 nonce，只有站点自己的脚本和它们加载的脚本能运行，注入的 `<script>` 和内联事件不再执行；页面只能被本站嵌入，表单只能提交到本站；脚本可以向任意 HTTPS 地址发请求（统计代码要用）。后端的 JSON、图片和材质文件带一个什么都不允许的策略。
 - 恢复备份时检查站点是否在运行：运行中的站点持有 `data/skinloom.lock`，`skinloom restore` 拿不到锁就拒绝（`--force` 也一样）；恢复进行时站点无法启动。不支持 `flock` 的卷上不加锁，照常启动。

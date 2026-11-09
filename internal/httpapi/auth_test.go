@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/realip"
 )
 

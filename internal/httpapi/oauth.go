@@ -16,7 +16,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
-	"github.com/Entropy-Increase-Team/skinloom/internal/oauth"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/oauth"
 )
 
 // The OAuth 2.0 endpoints (/oauth/*) follow RFC 6749 rather than the /api/v1

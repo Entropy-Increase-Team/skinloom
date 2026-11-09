@@ -9,8 +9,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
-	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 )
 
 // mountFiles serves texture files: by hash for game clients (contract 02 §2.1), and

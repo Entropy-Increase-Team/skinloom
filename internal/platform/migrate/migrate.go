@@ -66,11 +66,17 @@ func Up(ctx context.Context, d *db.DB, dataDir string, log *slog.Logger) error {
 		}
 	}
 	results, err := p.Up(ctx)
+	// One line for the operator (a new site applies them all at once), each file at debug.
+	var took time.Duration
 	for _, r := range results {
-		log.Info("migration applied", "version", r.Source.Version, "file", filepath.Base(r.Source.Path), "took", r.Duration.Round(time.Millisecond))
+		took += r.Duration
+		log.Debug("migration applied", "version", r.Source.Version, "file", filepath.Base(r.Source.Path), "took", r.Duration.Round(time.Millisecond))
 	}
 	if err != nil {
 		return fmt.Errorf("apply migrations: %w", err)
+	}
+	if n := len(results); n > 0 {
+		log.Info("database migrated", "applied", n, "version", results[n-1].Source.Version, "took", took.Round(time.Millisecond))
 	}
 	return nil
 }

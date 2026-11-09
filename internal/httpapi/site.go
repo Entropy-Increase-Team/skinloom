@@ -11,14 +11,14 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/account"
-	"github.com/Entropy-Increase-Team/skinloom/internal/buildinfo"
-	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
-	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
-	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
-	"github.com/Entropy-Increase-Team/skinloom/internal/social"
-	"github.com/Entropy-Increase-Team/skinloom/internal/stats"
-	"github.com/Entropy-Increase-Team/skinloom/internal/theme"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/captcha"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/notify"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/social"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/stats"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/theme"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/buildinfo"
 )
 
 // LocaleInfo describes a supported UI language.

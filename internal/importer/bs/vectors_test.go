@@ -15,7 +15,7 @@ import (
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
 )
 
 // Password compatibility vectors (design 02 §6 item 3): every password method of BS

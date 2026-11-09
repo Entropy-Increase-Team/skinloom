@@ -18,10 +18,10 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	tex "github.com/Entropy-Increase-Team/skinloom/ent/texture"
-	"github.com/Entropy-Increase-Team/skinloom/internal/player"
-	"github.com/Entropy-Increase-Team/skinloom/internal/render"
-	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
-	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/render"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 )
 
 // mountRender serves avatars and previews (contract 02 §2.5): a skin's head, flat or

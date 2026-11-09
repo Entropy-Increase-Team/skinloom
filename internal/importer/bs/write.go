@@ -20,9 +20,9 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/systemstate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
-	"github.com/Entropy-Increase-Team/skinloom/internal/player"
-	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
 )
 
 // ErrNotEmpty refuses an import into a site that already has accounts or textures.

@@ -11,7 +11,7 @@ import { LatestTexturesBlock, PopularTexturesBlock } from './textures'
 
 /**
  * Built-in block types, rendered on the server (SEO-friendly); the same list as the
- * block catalog in internal/theme/blocks.go. Themes compose pages from these in
+ * block catalog in internal/modules/theme/blocks.go. Themes compose pages from these in
  * plugin.json → theme.home; admins override via the home.blocks setting.
  * Plugin-provided block types render on the client once the plugin runtime lands (P2).
  */

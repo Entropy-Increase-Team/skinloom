@@ -11,12 +11,12 @@ import (
 	"time"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/backup"
-	"github.com/Entropy-Increase-Team/skinloom/internal/buildinfo"
 	"github.com/Entropy-Increase-Team/skinloom/internal/config"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/buildinfo"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/datalock"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/fsperm"
-	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 )
 
 // BackupOptions control Backup.

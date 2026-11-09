@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -43,5 +44,28 @@ func TestOnlyTheServerOpensTheLogFile(t *testing.T) {
 	c.Close(context.Background())
 	if _, err := os.Stat(filepath.Join(dir, "logs", "x.log")); err == nil {
 		t.Error("a CLI command opened the log file")
+	}
+}
+
+// A step after the database opened (here the texture store) failing must close the
+// database too: on Windows an open SQLite file cannot be deleted or replaced.
+func TestOpenCoreClosesDatabaseOnLateError(t *testing.T) {
+	dir := t.TempDir()
+	cfg := "[storage]\ndriver = \"s3\"\nendpoint = \"not/an/endpoint\"\nbucket = \"x\"\naccess_key = \"k\"\nsecret_key = \"s\"\n"
+	if err := os.WriteFile(filepath.Join(dir, "config.toml"), []byte(cfg), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, err := OpenCore(context.Background(), Paths{DataDir: dir})
+	if err == nil || !strings.Contains(err.Error(), "s3") {
+		t.Fatalf("OpenCore with a bad S3 endpoint: %v", err)
+	}
+	matches, _ := filepath.Glob(filepath.Join(dir, "*.db"))
+	if len(matches) == 0 {
+		t.Fatal("the database was not created before the failing step")
+	}
+	for _, f := range matches {
+		if err := os.Remove(f); err != nil {
+			t.Errorf("database still open after OpenCore failed: %v", err)
+		}
 	}
 }

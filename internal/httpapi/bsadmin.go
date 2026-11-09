@@ -12,13 +12,13 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	entreport "github.com/Entropy-Increase-Team/skinloom/ent/report"
-	"github.com/Entropy-Increase-Team/skinloom/internal/account"
-	"github.com/Entropy-Increase-Team/skinloom/internal/oauth"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/oauth"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/report"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/score"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
-	"github.com/Entropy-Increase-Team/skinloom/internal/player"
-	"github.com/Entropy-Increase-Team/skinloom/internal/report"
-	"github.com/Entropy-Increase-Team/skinloom/internal/score"
-	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
 )
 
 // The administration part of the Blessing Skin compatible resource API (/api/admin/*;

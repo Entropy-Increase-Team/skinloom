@@ -310,6 +310,6 @@ package_manager = "auto"  # [hot] dev mode only: auto (bun, then pnpm, then npm)
 
 [log]
 level = "info"            # [hot] debug | info | warn | error
-format = "text"           # [hot] text | json
+format = "text"           # [hot] text (readable on a terminal, key=value in files and pipes) | json
 file = ""                 # [cold] also write the log to this file, relative to the data dir
 `

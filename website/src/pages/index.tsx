@@ -9,10 +9,10 @@ export default function Home() {
       <main className="container margin-vert--xl">
         <h1 className="hero__title">{siteConfig.title}</h1>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
-        <p>Go 后端 + Next.js 前端 · 一键运行 · 全链路热加载 · 统一的插件与主题标准 · MIT</p>
+        <p>兼容 Blessing Skin · authlib-injector 外置登录 · Docker 与发行包一键运行 · MIT</p>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <Link className="button button--primary button--lg" to="/docs/getting-started/quick-start">快速开始</Link>
-          <Link className="button button--secondary button--lg" to="/docs/plugins/overview">插件开发</Link>
+          <Link className="button button--primary button--lg" to="/docs/deployment/quick-start">搭建皮肤站</Link>
+          <Link className="button button--secondary button--lg" to="/docs/players/account">玩家指南</Link>
           <Link className="button button--secondary button--lg" to="/devlog">开发日志</Link>
         </div>
         <p className="margin-top--lg" style={{ opacity: 0.8 }}>

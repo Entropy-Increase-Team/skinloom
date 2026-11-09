@@ -10,10 +10,11 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/account"
-	"github.com/Entropy-Increase-Team/skinloom/internal/player"
-	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
-	"github.com/Entropy-Increase-Team/skinloom/internal/storage"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/clip"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 )
 
 // The SkinLoom rows an import writes. IDs of users, textures, players and reports are
@@ -171,10 +172,10 @@ func plan(d *sourceData, files map[string]fileInfo, o planOptions, r *Report) *p
 			t.Role, t.Status = "user", "active"
 			r.add(Warning, "users", u.ID, "unknown permission %d: imported as a normal user", u.Permission)
 		}
-		t.Nickname = truncate(strings.TrimSpace(text("users", u.ID, "nickname", u.Nickname)), maxNickname)
+		t.Nickname = clip.Runes(strings.TrimSpace(text("users", u.ID, "nickname", u.Nickname)), maxNickname)
 		if t.Nickname == "" {
 			local, _, _ := strings.Cut(email, "@")
-			t.Nickname = truncate(cmp.Or(local, "user"+strconv.FormatInt(u.ID, 10)), account.MaxNicknameLen)
+			t.Nickname = clip.Runes(cmp.Or(local, "user"+strconv.FormatInt(u.ID, 10)), account.MaxNicknameLen)
 			r.add(Fixed, "users", u.ID, "no nickname: set to %q", t.Nickname)
 		}
 		algo, hash, problem := passwordOf(u.Password, methods)
@@ -185,7 +186,7 @@ func plan(d *sourceData, files map[string]fileInfo, o planOptions, r *Report) *p
 		if l := strings.ReplaceAll(u.Locale, "_", "-"); slices.Contains(o.Locales, l) {
 			t.Locale = l
 		}
-		t.RegisterIP = truncateBytes(cleanText(u.IP), 45)
+		t.RegisterIP = clip.Bytes(cleanText(u.IP), 45)
 		if u.Verified {
 			v := t.CreatedAt // BS keeps no verification time
 			t.VerifiedAt = &v
@@ -257,7 +258,7 @@ func plan(d *sourceData, files map[string]fileInfo, o planOptions, r *Report) *p
 		} else if s.Uploader != 0 {
 			r.add(Fixed, "textures", s.ID, "uploader %d no longer exists: shown as a deleted account", s.Uploader)
 		}
-		name := truncate(strings.TrimSpace(text("textures", s.ID, "name", s.Name)), maxTextureName)
+		name := clip.Runes(strings.TrimSpace(text("textures", s.ID, "name", s.Name)), maxTextureName)
 		if name == "" {
 			name = "#" + strconv.FormatInt(s.ID, 10)
 			r.add(Fixed, "textures", s.ID, "no name: named %q", name)
@@ -338,7 +339,7 @@ func plan(d *sourceData, files map[string]fileInfo, o planOptions, r *Report) *p
 			r.add(Dropped, "players", s.ID, "no name")
 			continue
 		}
-		final := truncate(name, player.MaxNameLen)
+		final := clip.Runes(name, player.MaxNameLen)
 		if other, taken := takenNames[player.Key(final)]; taken || final != s.Name {
 			final = freeName(final, takenNames)
 			switch {
@@ -442,7 +443,7 @@ func plan(d *sourceData, files map[string]fileInfo, o planOptions, r *Report) *p
 			continue
 		}
 		inCloset[k] = true
-		name := truncate(strings.TrimSpace(text("user_closet", s.UserID, "item name", s.Name)), maxTextureName)
+		name := clip.Runes(strings.TrimSpace(text("user_closet", s.UserID, "item name", s.Name)), maxTextureName)
 		if name == "" {
 			name = tex.Name
 		}
@@ -475,7 +476,7 @@ func plan(d *sourceData, files map[string]fileInfo, o planOptions, r *Report) *p
 			}
 			reportedBy[k] = s.ID
 		}
-		t.Reason = cmp.Or(truncate(strings.TrimSpace(text("reports", s.ID, "reason", s.Reason)), maxReportReason), "-")
+		t.Reason = cmp.Or(clip.Runes(strings.TrimSpace(text("reports", s.ID, "reason", s.Reason)), maxReportReason), "-")
 		switch s.Status {
 		case 0:
 			t.Status = "pending"
@@ -498,7 +499,7 @@ func plan(d *sourceData, files map[string]fileInfo, o planOptions, r *Report) *p
 			badNotices++
 			continue
 		}
-		title := truncate(strings.TrimSpace(text("notifications", s.UserID, "title", data.Title)), maxNoticeTitle)
+		title := clip.Runes(strings.TrimSpace(text("notifications", s.UserID, "title", data.Title)), maxNoticeTitle)
 		if title == "" {
 			title = "-"
 		}
@@ -608,7 +609,7 @@ func freeName(name string, taken map[string]int64) string {
 	}
 	for n := 2; ; n++ {
 		suffix := "_" + strconv.Itoa(n)
-		c := truncate(name, player.MaxNameLen-len(suffix)) + suffix
+		c := clip.Runes(name, player.MaxNameLen-len(suffix)) + suffix
 		if _, ok := taken[player.Key(c)]; !ok {
 			return c
 		}
@@ -637,21 +638,4 @@ func mdEscape(s string) string {
 // cleanText drops NUL bytes and replaces invalid UTF-8.
 func cleanText(s string) string {
 	return strings.ToValidUTF8(strings.ReplaceAll(s, "\x00", ""), "\uFFFD")
-}
-
-// truncate cuts s to n characters.
-func truncate(s string, n int) string {
-	if utf8.RuneCountInString(s) <= n {
-		return s
-	}
-	return string([]rune(s)[:n])
-}
-
-// truncateBytes cuts s to at most n bytes on a character boundary.
-func truncateBytes(s string, n int) string {
-	for len(s) > n {
-		_, size := utf8.DecodeLastRuneInString(s)
-		s = s[:len(s)-size]
-	}
-	return s
 }

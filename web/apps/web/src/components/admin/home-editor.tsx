@@ -158,7 +158,7 @@ function BlockCard({
   )
 }
 
-/** One property, edited by its kind (internal/theme PropType). */
+/** One property, edited by its kind (internal/modules/theme PropType). */
 function PropField({ prop: p, value, onChange }: { prop: Prop; value: unknown; onChange: (v: unknown) => void }) {
   const t = useTranslations('appearance')
   const label = t.has(`props.${p.name}`) ? t(`props.${p.name}`) : p.name

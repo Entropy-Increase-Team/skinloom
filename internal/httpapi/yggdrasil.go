@@ -14,10 +14,10 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/buildinfo"
-	"github.com/Entropy-Increase-Team/skinloom/internal/score"
-	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
-	"github.com/Entropy-Increase-Team/skinloom/internal/yggdrasil"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/score"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/yggdrasil"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/buildinfo"
 )
 
 // YggdrasilPrefix is where the Yggdrasil API lives (authlib-injector's API root).

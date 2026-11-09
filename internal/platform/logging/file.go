@@ -1,0 +1,40 @@
+package logging
+
+import (
+	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
+
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/fsperm"
+)
+
+// RotateAt is the size beyond which OpenFile starts a new file, keeping the old one
+// as <name>.1 (one generation: enough to read the last start's setup link).
+const RotateAt = 20 << 20
+
+// OpenFile opens path for appending, creating its directory, after moving a file
+// grown beyond RotateAt to path.1.
+func OpenFile(path string) (*os.File, error) {
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+		return nil, err
+	}
+	if info, err := os.Stat(path); err == nil && info.Size() > RotateAt {
+		if err := os.Rename(path, path+".1"); err != nil {
+			return nil, err
+		}
+	} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, err
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o640)
+	if err != nil {
+		return nil, err
+	}
+	// The log holds the one-time setup link; on Windows the file would take its
+	// folder's permissions instead of the mode.
+	if err := fsperm.Private(path); err != nil {
+		f.Close()
+		return nil, err
+	}
+	return f, nil
+}

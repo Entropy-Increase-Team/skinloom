@@ -129,7 +129,7 @@ for target in "${targets[@]}"; do
 
   exe=skinloom; [ "$os" = windows ] && exe=skinloom.exe
   CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath \
-    -ldflags "-s -w -X github.com/Entropy-Increase-Team/skinloom/internal/buildinfo.Version=$VERSION -X github.com/Entropy-Increase-Team/skinloom/internal/buildinfo.Commit=$COMMIT -X github.com/Entropy-Increase-Team/skinloom/internal/buildinfo.Date=$DATE" \
+    -ldflags "-s -w -X github.com/Entropy-Increase-Team/skinloom/internal/platform/buildinfo.Version=$VERSION -X github.com/Entropy-Increase-Team/skinloom/internal/platform/buildinfo.Commit=$COMMIT -X github.com/Entropy-Increase-Team/skinloom/internal/platform/buildinfo.Date=$DATE" \
     -o "$stage/$exe" ./cmd/skinloom
   # The bare backend as well, for split deployments that run the frontend elsewhere.
   server="skinloom-server-$VERSION-$os-$arch"; [ "$os" = windows ] && server="$server.exe"

@@ -15,7 +15,7 @@ M3 的最后一部分：用 GitHub、Microsoft 或任何 OpenID Connect 提供�
 - **三种提供方**：`github`、`microsoft`、`oidc`（按 issuer 自动发现，Google、Keycloak、Authentik 等都能用），一起写在设置 `auth.social.providers` 里。设置 `site.url` 后，登录页和注册页出现"使用 … 登录"按钮。
 - **第一次登录**：已绑定的直接登录；提供方和本站都验证过的同一邮箱自动绑定；其余进入"欢迎"页，创建新账号（邮箱、昵称预填）或"登录并绑定"已有账号。
 - **已绑定的账号**：个人资料页查看、绑定、解除绑定。通过第三方登录创建的账号没有密码，可以在个人资料页设置第一个密码。
-- 设计记录：[ADR 0025](https://github.com/Entropy-Increase-Team/skinloom/blob/main/docs/adr/0025-social-login.md)；文档站新增[第三方登录](/docs/getting-started/social-login)页面。
+- 设计记录：[ADR 0025](https://github.com/Entropy-Increase-Team/skinloom/blob/main/docs/adr/0025-social-login.md)；文档站新增[第三方登录](/docs/admin/social-login)页面。
 
 ## 不只按邮箱认人
 

@@ -127,7 +127,7 @@ func TestCrashIsDetectedEvenIfGrandchildHoldsPipes(t *testing.T) {
 
 func TestLineWriter(t *testing.T) {
 	var buf bytes.Buffer
-	lw := newLineWriter(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{ReplaceAttr: dropTime})), slog.LevelInfo)
+	lw := newLineWriter(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{ReplaceAttr: dropTime})), false)
 	_, _ = io.WriteString(lw, "one\r\ntw")
 	_, _ = io.WriteString(lw, "o\n\nthree")
 	lw.Close()
@@ -172,5 +172,41 @@ func TestResolvePortAvoidsBusyPort(t *testing.T) {
 	free := got
 	if got, changed, _ := ResolvePort(free); got != free || changed {
 		t.Fatalf("a free port must be kept: %d → %d", free, got)
+	}
+}
+
+// The frontend's own output is sorted into levels so it reads like the rest of the
+// log: request lines are debug (as the backend's), errors are errors, and the
+// "- Local: http://127.0.0.1:17547" banner is dropped (people must use the public
+// port, never the frontend's internal one).
+func TestFrontendLineLevels(t *testing.T) {
+	for _, c := range []struct {
+		line   string
+		stderr bool
+		level  slog.Level
+		msg    string
+		keep   bool
+	}{
+		{"▲ Next.js 16.4.2 (Turbopack)", false, slog.LevelInfo, "▲ Next.js 16.4.2 (Turbopack)", true},
+		{"   - Local:         http://127.0.0.1:17547", false, 0, "", false},
+		{"   - Network:       http://127.0.0.1:17547", false, 0, "", false},
+		{" ✓ Ready in 1155ms", false, slog.LevelInfo, "✓ Ready in 1155ms", true},
+		{" GET / 200 in 2.0s (next.js: 1525ms)", false, slog.LevelDebug, "GET / 200 in 2.0s (next.js: 1525ms)", true},
+		{" POST /user/profile 303 in 12ms", false, slog.LevelDebug, "POST /user/profile 303 in 12ms", true},
+		{" ⚠ Invalid next.config.ts options detected", false, slog.LevelWarn, "⚠ Invalid next.config.ts options detected", true},
+		{" ⨯ TypeError: x is not a function", true, slog.LevelError, "⨯ TypeError: x is not a function", true},
+		{"Error: listen EADDRINUSE: address already in use", true, slog.LevelError, "Error: listen EADDRINUSE: address already in use", true},
+		{"    at Server.listen (node:net:1960:7)", true, slog.LevelWarn, "at Server.listen (node:net:1960:7)", true},
+		{"(node:123) ExperimentalWarning: something", true, slog.LevelWarn, "(node:123) ExperimentalWarning: something", true},
+		// Next.js colors its output when FORCE_COLOR reaches it: the codes go, so the line
+		// is still recognized and the log file stays plain text.
+		{"GET / \x1b[32m200\x1b[39m in 1895ms\x1b[2m (next.js: 1188ms)\x1b[22m", false, slog.LevelDebug, "GET / 200 in 1895ms (next.js: 1188ms)", true},
+		{"\x1b[31m\x1b[1m⨯\x1b[22m\x1b[39m TypeError: x", true, slog.LevelError, "⨯ TypeError: x", true},
+		{"\x1b[1m\x1b[38;2;173;127;168m▲ Next.js 16.4.2\x1b[39m\x1b[22m (Turbopack)", false, slog.LevelInfo, "▲ Next.js 16.4.2 (Turbopack)", true},
+	} {
+		level, msg, keep := frontendLine(c.line, c.stderr)
+		if keep != c.keep || (keep && (level != c.level || msg != c.msg)) {
+			t.Errorf("%q: got %v %q %v, want %v %q %v", c.line, level, msg, keep, c.level, c.msg, c.keep)
+		}
 	}
 }

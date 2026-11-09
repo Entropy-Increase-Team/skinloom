@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/secrets"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/secrets"
 )
 
 // End-to-end: a real server on a free port, a browser-like SSE client, a settings change

@@ -8,21 +8,23 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/buildinfo"
 	"github.com/Entropy-Increase-Team/skinloom/internal/config"
 	"github.com/Entropy-Increase-Team/skinloom/internal/gateway"
 	"github.com/Entropy-Increase-Team/skinloom/internal/httpapi"
 	"github.com/Entropy-Increase-Team/skinloom/internal/launcher"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/yggdrasil"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/buildinfo"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/datalock"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/logging"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/realip"
-	"github.com/Entropy-Increase-Team/skinloom/internal/secrets"
-	"github.com/Entropy-Increase-Team/skinloom/internal/yggdrasil"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/secrets"
 )
 
 // RunOptions control `skinloom up` / `skinloom serve`.
@@ -40,6 +42,8 @@ type RunOptions struct {
 
 // Run starts the server and blocks until ctx is cancelled.
 func Run(ctx context.Context, o RunOptions) error {
+	pretty, color := logging.ConsoleStyle(os.Stderr)
+	writeBanner(os.Stderr, pretty, color, buildinfo.Version)
 	p := o.Paths
 	p.Serve = true
 	// Held while the site runs, so skinloom restore refuses to replace its files.
@@ -80,25 +84,23 @@ func Run(ctx context.Context, o RunOptions) error {
 	// The frontend this process runs (web.mode managed or dev), for /readyz: an
 	// external frontend has its own probes, and the backend stays ready without it.
 	var localWeb atomic.Pointer[string]
-	api, _ := httpapi.New(httpapi.Deps{
-		Log: log.With("component", "http"), DB: core.DB, Settings: core.Settings,
-		Themes: core.Themes, Broker: core.Broker, Accounts: core.Accounts, Captcha: core.Captcha, Mailer: core.Mailer, Textures: core.Textures, Players: core.Players, Reports: core.Reports, Renders: core.Renders, Notify: core.Notify, Yggdrasil: core.Yggdrasil, OAuth: core.OAuth, Social: core.Social, CDN: core.CDN,
-		AdminToken: sec.AdminToken,
-		ClientInfo: func(r *http.Request) realip.Info { return gw.ClientInfo(r) },
-		Runtime:    httpapi.RuntimeInfo{Started: time.Now(), Role: cfg.Server.Role, Web: cfg.Web.Mode, Storage: cmp.Or(cfg.Storage.Driver, "local")},
-		WebReady: func() bool {
-			addr := localWeb.Load()
-			if addr == nil {
-				return true
-			}
-			c, err := net.DialTimeout("tcp", *addr, 500*time.Millisecond)
-			if err != nil {
-				return false
-			}
-			_ = c.Close()
+	deps := core.APIDeps(log.With("component", "http"))
+	deps.AdminToken = sec.AdminToken
+	deps.ClientInfo = func(r *http.Request) realip.Info { return gw.ClientInfo(r) }
+	deps.Runtime = httpapi.RuntimeInfo{Started: time.Now(), Role: cfg.Server.Role, Web: cfg.Web.Mode, Storage: cmp.Or(cfg.Storage.Driver, "local")}
+	deps.WebReady = func() bool {
+		addr := localWeb.Load()
+		if addr == nil {
 			return true
-		},
-	})
+		}
+		c, err := net.DialTimeout("tcp", *addr, 500*time.Millisecond)
+		if err != nil {
+			return false
+		}
+		_ = c.Close()
+		return true
+	}
+	api, _ := httpapi.New(deps)
 
 	ln, err := net.Listen("tcp", cfg.Server.Listen)
 	if err != nil {
@@ -173,7 +175,7 @@ func Run(ctx context.Context, o RunOptions) error {
 	})
 
 	local := fmt.Sprintf("http://localhost:%d/", port)
-	log.Info("SkinLoom is running",
+	logging.Notice(log, "SkinLoom is running",
 		"version", buildinfo.Version, "url", local, "role", cfg.Server.Role, "web", cfg.Web.Mode,
 		"database", core.DB.Dialect, "data", core.Paths.DataDir)
 	if core.FreshConfig {
@@ -186,7 +188,7 @@ func Run(ctx context.Context, o RunOptions) error {
 		log.Warn("cannot create a setup link", "err", err)
 	} else if link != "" {
 		// Only someone who can read this console (or the logs) can claim the new site.
-		log.Info("first run: open this one-time link to create the administrator account", "url", link)
+		logging.Notice(log, "first run: open this one-time link to create the administrator account", "url", link)
 		open = link
 	}
 	if o.Open {
@@ -203,7 +205,7 @@ func Run(ctx context.Context, o RunOptions) error {
 			return err
 		}
 	}
-	log.Info("shutting down")
+	logging.Notice(log, "shutting down")
 	stop()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()

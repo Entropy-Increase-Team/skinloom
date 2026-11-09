@@ -11,9 +11,9 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	tex "github.com/Entropy-Increase-Team/skinloom/ent/texture"
-	"github.com/Entropy-Increase-Team/skinloom/internal/account"
-	"github.com/Entropy-Increase-Team/skinloom/internal/report"
-	"github.com/Entropy-Increase-Team/skinloom/internal/score"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/report"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/score"
 )
 
 // ReportView is a report as its reporter sees it.

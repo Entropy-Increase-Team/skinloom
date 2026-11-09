@@ -12,7 +12,7 @@ RUN go mod download
 COPY . .
 ARG VERSION=0.0.0-dev
 RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath \
-      -ldflags "-s -w -X github.com/Entropy-Increase-Team/skinloom/internal/buildinfo.Version=${VERSION}" \
+      -ldflags "-s -w -X github.com/Entropy-Increase-Team/skinloom/internal/platform/buildinfo.Version=${VERSION}" \
       -o /out/skinloom ./cmd/skinloom
 
 # The frontend stage runs per target platform: native modules in the standalone output

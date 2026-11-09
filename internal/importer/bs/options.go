@@ -6,12 +6,11 @@ import (
 	"html"
 	"net/mail"
 	"net/url"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
 )
 
 // BS options → SkinLoom settings (design 02 §4). An option is read the way BS's
@@ -106,7 +105,7 @@ func (m *optionMapper) set(from, key string, v any) {
 		delete(m.out, key)
 		return
 	}
-	if dflt, _ := json.Marshal(def.Default); sameJSON(raw, dflt) {
+	if dflt, _ := json.Marshal(def.Default); settings.SameJSON(raw, dflt) {
 		delete(m.out, key)
 		return
 	}
@@ -568,10 +567,3 @@ func short(s string) string {
 }
 
 // sameJSON: a and b decode to the same value.
-func sameJSON(a, b json.RawMessage) bool {
-	var x, y any
-	if json.Unmarshal(a, &x) != nil || json.Unmarshal(b, &y) != nil {
-		return false
-	}
-	return reflect.DeepEqual(x, y)
-}

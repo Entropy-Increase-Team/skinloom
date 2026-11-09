@@ -1,6 +1,6 @@
 /**
  * Block properties as pages receive them: the server has checked them against the
- * block catalog (internal/theme/blocks.go) and picked the visitor's language, so text is
+ * block catalog (internal/modules/theme/blocks.go) and picked the visitor's language, so text is
  * a string and Markdown arrives rendered as <name>Html. A theme's own blocks are checked
  * when it is loaded. These helpers still treat every value as untrusted input.
  */

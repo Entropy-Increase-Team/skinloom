@@ -24,7 +24,7 @@ M3 从外置登录开始：云织内置了 authlib-injector 的 Yggdrasil API，
   - 首页区块和个人资料页给出接口地址、复制按钮、可以拖进启动器的链接；
   - 所有响应带 `X-Authlib-Injector-API-Location`，只填站点地址也行；
   - 个人资料页显示几个启动器登录着，可以一键全部退出。
-- 设计记录：[ADR 0022 Yggdrasil 外置登录](https://github.com/Entropy-Increase-Team/skinloom/blob/main/docs/adr/0022-yggdrasil.md)；文档站新增[外置登录](/docs/getting-started/launchers)。
+- 设计记录：[ADR 0022 Yggdrasil 外置登录](https://github.com/Entropy-Increase-Team/skinloom/blob/main/docs/adr/0022-yggdrasil.md)；文档站新增[外置登录](/docs/players/in-game)。
 
 ## 修掉的插件问题
 

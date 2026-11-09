@@ -19,7 +19,7 @@ sidebar_position: 1
 - **首次安装**：首次启动会在日志里打印一次性安装链接 `http://<地址>:17546/setup?token=…`。打开它设置站点名称与地址、创建管理员账号。链接 24 小时有效、用后作废；找不到时运行 `skinloom setup-link` 再生成一个。只有能看到日志的人才能完成安装。
 - **数据**：数据库（SQLite 时）、配置、密钥、上传文件都在数据目录（容器里是 `/data`，发行包里是 `data/`）。备份这个目录即可；使用外部数据库时另行备份数据库。
 - **升级**：替换程序或镜像后重启。启动时自动执行数据库迁移（带锁，多副本同时启动也安全）；使用 SQLite 时先把数据库快照到 `data/backups/`。
-- **配置**：所有 `config.toml` 的键都能用环境变量覆盖，格式 `SKINLOOM_<段>__<键>`，例如 `SKINLOOM_DATABASE__DSN`；列表用逗号分隔，例如 `SKINLOOM_SERVER__TRUSTED_PROXIES=10.0.0.0/8,127.0.0.1`。详见 [配置](../getting-started/configuration.md)。
+- **配置**：所有 `config.toml` 的键都能用环境变量覆盖，格式 `SKINLOOM_<段>__<键>`，例如 `SKINLOOM_DATABASE__DSN`；列表用逗号分隔，例如 `SKINLOOM_SERVER__TRUSTED_PROXIES=10.0.0.0/8,127.0.0.1`。详见 [配置文件](../admin/configuration.md)。
 
 ## 路径归属
 

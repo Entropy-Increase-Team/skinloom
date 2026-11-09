@@ -24,7 +24,7 @@ export function withToken(o: Overrides, group: keyof Overrides, name: string, va
   return next
 }
 
-/** Whether a value can go into a CSS declaration; the server refuses the others (internal/theme). */
+/** Whether a value can go into a CSS declaration; the server refuses the others (internal/modules/theme). */
 export function safeToken(v: string): boolean {
   return [...v].length <= 200 && safeTokenValue(v)
 }

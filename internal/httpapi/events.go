@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/pubsub"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/pubsub"
 )
 
 // serveEvents streams change notifications to browsers (Server-Sent Events). The

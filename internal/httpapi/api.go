@@ -1,6 +1,3 @@
-// Package httpapi builds the backend HTTP surface: /api/v1 (Huma, OpenAPI 3.1), the
-// SSE change stream, health probes and theme assets. Game protocols mount here too as
-// their modules land.
 package httpapi
 
 import (
@@ -16,25 +13,25 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"github.com/Entropy-Increase-Team/skinloom/internal/account"
-	"github.com/Entropy-Increase-Team/skinloom/internal/buildinfo"
-	"github.com/Entropy-Increase-Team/skinloom/internal/captcha"
-	"github.com/Entropy-Increase-Team/skinloom/internal/cdn"
-	"github.com/Entropy-Increase-Team/skinloom/internal/mail"
-	"github.com/Entropy-Increase-Team/skinloom/internal/notify"
-	"github.com/Entropy-Increase-Team/skinloom/internal/oauth"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/captcha"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/cdn"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/mail"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/notify"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/oauth"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/render"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/report"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/social"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/theme"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/yggdrasil"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/buildinfo"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/httpx"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/pubsub"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/realip"
-	"github.com/Entropy-Increase-Team/skinloom/internal/player"
-	"github.com/Entropy-Increase-Team/skinloom/internal/pubsub"
-	"github.com/Entropy-Increase-Team/skinloom/internal/render"
-	"github.com/Entropy-Increase-Team/skinloom/internal/report"
-	"github.com/Entropy-Increase-Team/skinloom/internal/settings"
-	"github.com/Entropy-Increase-Team/skinloom/internal/social"
-	"github.com/Entropy-Increase-Team/skinloom/internal/texture"
-	"github.com/Entropy-Increase-Team/skinloom/internal/theme"
-	"github.com/Entropy-Increase-Team/skinloom/internal/yggdrasil"
 )
 
 // Deps are the services the API needs.
