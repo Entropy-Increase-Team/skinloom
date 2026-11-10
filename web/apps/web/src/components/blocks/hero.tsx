@@ -1,4 +1,4 @@
-import { Button } from '@skinloom/ui'
+import { ButtonLink } from '@skinloom/ui'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 
@@ -27,13 +27,13 @@ export async function HeroBlock({ props }: { props: Props }) {
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">{str(props.title) ?? boot.site.name}</h1>
         <p className="max-w-2xl text-lg text-primary-foreground/85">{str(props.subtitle) ?? boot.site.description}</p>
         <div className="flex flex-wrap gap-3">
-          <Button asChild size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
-            <Link href={safeHref(props.primaryAction, '/skinlib')}>{t('browse')}</Link>
-          </Button>
+          <ButtonLink size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90" render={<Link href={safeHref(props.primaryAction, '/skinlib')} />}>
+            {t('browse')}
+          </ButtonLink>
           {showJoin && (
-            <Button asChild size="lg" variant="outline" className="border-primary-foreground/60 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
-              <Link href={join}>{t('join')}</Link>
-            </Button>
+            <ButtonLink size="lg" variant="outline" className="border-primary-foreground/60 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground" render={<Link href={join} />}>
+              {t('join')}
+            </ButtonLink>
           )}
         </div>
       </div>

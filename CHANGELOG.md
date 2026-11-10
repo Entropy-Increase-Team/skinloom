@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+### 新增（前端组件库 P1，ADR 0042）
+- 后台"外观"新增**组件总览**页（`/admin/appearance/preview`）：当前主题下的全部颜色、字号、按钮、表单、弹层、皮肤组件与菜单图标，可以切换亮暗模式，给主题作者和插件作者核对。
+- `@skinloom/ui` 换成完整的组件库：shadcn/ui 的基础组件（Base UI 底层）按设计系统调整后全部导出，另有皮肤站自己的组件：双面预览 `TexturePreview`、3D 预览 `SkinViewer`、首页展示区 `SkinCarousel`（当前皮肤行走、自动轮播、减少动效时静止）、`TextureCard`、`PlayerCard`、`TexturePicker`、`useConfirm` 确认对话框、`CopyField`、`Dropzone`、`SaveBar`、`StatCard`、`UsageMeter`、`StatusDot`、`RelativeTime` 等。
+- 新主题 token `overlay`：对话框与抽屉背后的遮罩。
+
+### 变更（前端组件库 P1）
+- 材质详情页的 3D 预览改用新的 `SkinViewer`：屏幕外不渲染，系统设置了减少动效时不走动。
+- 看起来像按钮的链接（顶栏的登录、注册等）现在是真正的链接，屏幕阅读器不再把它们读成按钮。
+- 插件开发者：`@skinloom/ui` 的 `Button` 不再有 `asChild`；链接用 `ButtonLink`，弹层触发器用 `render`。原来的 `Button`、`Card`、`Badge`、`Input`、`Label` 名称不变。
+
 ### 变更（前端设计系统 P0，ADR 0042）
 - 新的配色：中性灰、靛蓝主色、金线强调色（积分、签到、警告）、成功绿与危险红；所有文字在亮色和暗色下的对比度都不低于 4.5:1。内置的"织锦"主题同步换成新的一套 token，大标题改为同色系的明暗过渡。
 - 界面字体改为 Inter（英文与数字）+ 思源黑体（中文）+ JetBrains Mono（哈希、UUID），全部随程序发布、由站点自己提供，不再依赖各平台的系统字体。中文按需分片加载，首页首次访问约下载 0.8 MB 字体，之后由浏览器缓存。

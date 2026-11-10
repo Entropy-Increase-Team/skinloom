@@ -1,7 +1,7 @@
 'use client'
 
 import { resendVerification, verifyEmail } from '@skinloom/api-client'
-import { Button } from '@skinloom/ui'
+import { Button, ButtonLink } from '@skinloom/ui'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -33,9 +33,9 @@ export function VerifyEmail({ token }: { token: string }) {
     return (
       <div className="flex flex-col gap-4">
         <p className="rounded-md border bg-muted/40 px-3 py-3 text-sm">{state === 'done' ? t('done') : t('invalid')}</p>
-        <Button asChild variant="outline">
-          <Link href="/">{t('home')}</Link>
-        </Button>
+        <ButtonLink variant="outline" render={<Link href="/" />}>
+          {t('home')}
+        </ButtonLink>
       </div>
     )
   }

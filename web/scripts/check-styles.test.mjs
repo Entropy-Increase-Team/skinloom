@@ -20,11 +20,12 @@ test('palette and arbitrary colours are refused', () => {
     '2:ring-offset-black',
     '3:border-x-red-600',
     '3:bg-[#',
-    '3:text-[rgb',
+    '3:text-[rgb(',
   ])
 })
 
 test('tokens and look-alikes pass', () => {
-  const ok = 'text-primary-foreground bg-muted/40 border-border text-success dark:text-warning bg-(--pixel-a) text-whitespace sl-white-box shadow-(--shadow-popover)'
+  const ok =
+    'text-primary-foreground bg-muted/40 border-border text-success dark:text-warning bg-(--pixel-a) text-whitespace sl-white-box shadow-(--shadow-popover) hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)]'
   assert.deepEqual(findViolations(ok), [])
 })

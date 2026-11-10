@@ -37,3 +37,13 @@
 - 内置主题的 token 换成新的一套；第三方主题（目前还没有）沿用 shadcn 名称即可继续工作，`highlight` 等新 token 不写时取默认值。
 - `@skinloom/ui` 的公开导出会在 P1 大幅增加；插件 API 在 2.0 冻结前允许调整。
 - 后端 bootstrap 中皮肤库菜单的 `icon` 从 `shirt` 变为 `layout-grid`。
+
+## 实施记录（P1，2026-11-10）
+
+- 基础组件用 `shadcn add` 装进 `packages/ui/src/components/ui/`，保留上游的代码风格；按 `design.md` 调整的只有尺寸、圆角、颜色、阴影和动效。CLI 把依赖装到了应用、导入写成了应用的别名，已改到 `packages/ui`。
+- shadcn 的组件依赖 `shadcn/tailwind.css` 里的自定义变体（如 `data-horizontal` 对应 Base UI 的 `data-orientation`）。按 `shadcn eject` 的做法把用到的部分抄进 `globals.css`，没有把整个 shadcn CLI 加为依赖；滚动渐隐与闪光效果没有抄。漏掉它们时滑块的轨道高度为 0。
+- 看起来像按钮的链接用新增的 `ButtonLink`（Base UI `useRender`），不用 `<Button render={<Link />}>`：后者给链接加了 `role="button"`。
+- Base UI 会渲染内联脚本，宿主用 `CSPProvider` 把页面的 nonce 交给它；否则每个页面都有一条 CSP 拦截。
+- 共享组件自己显示的文字由宿主通过 `UiLabelsProvider` 提供（消息里的 `ui` 命名空间），插件拿到的是同一套译文。
+- 新 token `overlay`（遮罩），由默认与织锦主题定义。
+- Recharts 不进 `@skinloom/ui` 的总出口，用到时从 `@skinloom/ui/components/ui/chart` 引入；包标了 `sideEffects`，未用的组件可以被摇掉。

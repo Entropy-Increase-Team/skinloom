@@ -73,6 +73,7 @@
 | ★`destructive-foreground` | `oklch(0.985 0.002 262)` | | 危险色上的文字 |
 | `border` | `oklch(0.21 0.014 262 / 10%)` | 约 `#e8e8e9` | 发丝线 |
 | `input` | `oklch(0.21 0.014 262 / 14%)` | 约 `#dedfe0` | 输入框边框 |
+| ★`overlay` | `oklch(0.21 0.014 262 / 30%)` | | 对话框、抽屉背后的遮罩 |
 | `ring` | 同 `primary` | | 焦点环（用时 50% 透明） |
 | `chart-1` | 同 `primary` | | 主系列 |
 | `chart-2` | 同 `highlight` | | 需要突出的第二系列 |
@@ -99,6 +100,7 @@
 | `destructive` | `oklch(0.68 0.18 25)` | `#f3625d` |
 | `border` | `oklch(0.95 0.004 262 / 10%)` | 约 `#292c30` |
 | `input` | `oklch(0.95 0.004 262 / 14%)` | 约 `#323439` |
+| ★`overlay` | `oklch(0 0 0 / 60%)` | |
 
 **两种模式共用**
 
@@ -456,7 +458,9 @@
 | 可排序、筛选、分页、批量操作 | `DataTable`（`Table` + TanStack Table） | |
 | 键盘快捷键 | `Kbd` | |
 
-**Button 变体**：`default`（主色）、`secondary`、`outline`、`ghost`、`destructive`、`link`；尺寸 `sm`、`default`、`lg`、`icon`、`icon-sm`。加载状态 `loading` 属性：显示 `Spinner` 并禁用。
+**Button 变体**：`default`（主色）、`secondary`、`outline`、`ghost`、`destructive`（实心红，只用于确认危险操作）、`destructive-soft`（淡红，列表里的删除）、`link`；尺寸 `xs`、`sm`、`default`、`lg`、`icon`、`icon-sm`、`icon-lg`。加载状态 `loading` 属性：显示 `Spinner` 并禁用。
+
+**看起来像按钮的链接**用 `ButtonLink`（`<ButtonLink render={<Link href="/skinlib" />}>`），不要用 `Button` 渲染链接：`Button` 会给元素加上 `role="button"`，屏幕阅读器就读不出它是链接。弹层的触发器则相反，用 `render={<Button variant="outline" />}` 把按钮交给触发器。
 
 ### 10.3 业务组件
 
@@ -483,6 +487,7 @@
 | `StatusDot` | 状态小圆点（正常绿、注意金、故障红、未知灰）+ 文字，用于系统状态、举报状态 |
 | `RelativeTime` | 相对时间，悬停显示完整时间 |
 | `MenuIcon` | 按名称渲染允许的菜单图标（7.2） |
+| `UiLabelsProvider` | 共享组件自己显示的文字（复制、取消、未保存……），宿主按访客的语言提供一次（消息里的 `ui` 命名空间），插件不用再翻译 |
 | `Markdown` | 服务端渲染好的 HTML 的容器（`.sl-markdown`），排版用 `text-body` |
 
 ### 10.4 常用组合
@@ -535,6 +540,9 @@
 - 尺寸、间距只用 4 的倍数。
 - 组件不读全局状态；数据通过属性传入，或使用 TanStack Query 的钩子（见方案文档 §5）。
 - 客户端组件只在需要交互的叶子节点上加 `'use client'`。
+- 组件里需要显示的固定文字从 `useUiLabels()` 取，不写死中文或英文。
+- 宿主根部依次包着 `CSPProvider`（把页面的 CSP nonce 交给 Base UI 的内联脚本）、`UiLabelsProvider`、`TooltipProvider`、`ConfirmProvider` 和 `Toaster`；插件不用自己再包。
+- 基础组件（`components/ui/`）保持 shadcn 的代码风格，方便用 `shadcn add --diff` 对照上游；调整只改尺寸、圆角、颜色和动效，并在提交说明里写明。
 
 ## 14. 给主题作者
 

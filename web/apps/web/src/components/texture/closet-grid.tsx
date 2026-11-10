@@ -1,7 +1,7 @@
 'use client'
 
 import { type ClosetItemView, type ClosetPage, listCloset, removeFromCloset, renameClosetItem, setAvatar, type Unfavorited } from '@skinloom/api-client'
-import { Button, Input } from '@skinloom/ui'
+import { Button, ButtonLink, Input } from '@skinloom/ui'
 import { Pencil, Trash2, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -124,12 +124,12 @@ export function ClosetGrid() {
         <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
           <p>{query ? t('noMatch') : t('empty')}</p>
           <div className="flex gap-2">
-            <Button asChild variant="outline">
-              <Link href="/skinlib">{t('browse')}</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/skinlib/upload">{t('upload')}</Link>
-            </Button>
+            <ButtonLink variant="outline" render={<Link href="/skinlib" />}>
+              {t('browse')}
+            </ButtonLink>
+            <ButtonLink  render={<Link href="/skinlib/upload" />}>
+              {t('upload')}
+            </ButtonLink>
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-import { Button } from '@skinloom/ui'
+import { ButtonLink } from '@skinloom/ui'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 
@@ -47,13 +47,13 @@ export async function SiteHeader() {
             <UserMenu viewer={viewer} />
           ) : (
             <>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/auth/login">{t('nav.login')}</Link>
-              </Button>
+              <ButtonLink variant="ghost" size="sm" render={<Link href="/auth/login" />}>
+                {t('nav.login')}
+              </ButtonLink>
               {boot.auth.registration === 'open' && !boot.needsSetup && (
-                <Button size="sm" asChild>
-                  <Link href="/auth/register">{t('nav.register')}</Link>
-                </Button>
+                <ButtonLink size="sm" render={<Link href="/auth/register" />}>
+                  {t('nav.register')}
+                </ButtonLink>
               )}
             </>
           )}

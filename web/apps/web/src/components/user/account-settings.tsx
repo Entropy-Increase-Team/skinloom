@@ -20,7 +20,7 @@ import {
   type SocialRedirect,
   unlinkSocial,
 } from '@skinloom/api-client'
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Label } from '@skinloom/ui'
+import { Badge, Button, ButtonLink, Card, CardContent, CardDescription, CardHeader, CardTitle, Label } from '@skinloom/ui'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
@@ -110,9 +110,9 @@ export function AvatarSection({ viewer }: { viewer: Viewer }) {
         <Avatar userId={viewer.id} size={64} version={viewer.avatarTextureId} className="size-16 rounded-md bg-muted" />
         <Avatar userId={viewer.id} size={64} version={viewer.avatarTextureId} cube className="size-16" />
         <div className="flex flex-col gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/user/closet">{t('chooseAvatar')}</Link>
-          </Button>
+          <ButtonLink variant="outline" size="sm" render={<Link href="/user/closet" />}>
+            {t('chooseAvatar')}
+          </ButtonLink>
           {viewer.avatarTextureId && (
             <Button
               variant="ghost"

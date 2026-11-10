@@ -34,6 +34,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 -------------------------------------------------------------------------------
+shadcn/ui and Base UI
+
+The base components in web/packages/ui/src/components/ui were generated with the
+shadcn CLI and adapted; web/packages/ui/src/styles/globals.css includes variants
+and keyframes from shadcn's dist/tailwind.css.
+shadcn/ui, Copyright (c) 2023 shadcn, MIT License (https://github.com/shadcn-ui/ui).
+They are built on Base UI, Copyright (c) 2019 Material-UI SAS, MIT License
+(https://github.com/mui/base-ui).
+
+-------------------------------------------------------------------------------
 Fonts
 
 The web frontend bundles these fonts (served from /_next/static/media), installed

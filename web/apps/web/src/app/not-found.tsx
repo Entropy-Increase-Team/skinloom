@@ -1,4 +1,4 @@
-import { Button } from '@skinloom/ui'
+import { ButtonLink } from '@skinloom/ui'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 
@@ -9,9 +9,9 @@ export default async function NotFound() {
       <p className="font-mono text-sm text-muted-foreground">404</p>
       <h1 className="text-3xl font-bold tracking-tight">{t('notFound.title')}</h1>
       <p className="text-muted-foreground">{t('notFound.body')}</p>
-      <Button asChild>
-        <Link href="/">{t('common.backHome')}</Link>
-      </Button>
+      <ButtonLink  render={<Link href="/" />}>
+        {t('common.backHome')}
+      </ButtonLink>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { type Dashboard, getDashboard } from '@skinloom/api-client'
-import { Button, Card, CardContent, CardHeader, CardTitle } from '@skinloom/ui'
+import { ButtonLink, Card, CardContent, CardHeader, CardTitle } from '@skinloom/ui'
 import { Coins, Flag, HardDrive, Images, KeyRound, Megaphone, Shirt, Upload, UserCog, Users } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -71,12 +71,10 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             {links.map(({ href, icon: Icon, label }) => (
-              <Button key={href} asChild variant="outline">
-                <Link href={href}>
-                  <Icon />
-                  {label}
-                </Link>
-              </Button>
+              <ButtonLink key={href} variant="outline" render={<Link href={href} />}>
+                <Icon />
+                {label}
+              </ButtonLink>
             ))}
           </CardContent>
         </Card>

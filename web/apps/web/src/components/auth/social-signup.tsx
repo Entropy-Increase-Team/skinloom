@@ -1,7 +1,7 @@
 'use client'
 
 import { getSocialPending, linkSocialPending, registerSocial, type SocialPending } from '@skinloom/api-client'
-import { Button } from '@skinloom/ui'
+import { Button, ButtonLink } from '@skinloom/ui'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -44,9 +44,9 @@ export function SocialSignup({ signedInAs, mail }: { signedInAs?: string; mail: 
     return (
       <div className="flex flex-col gap-4">
         <p className="text-sm">{t('pending.expired')}</p>
-        <Button asChild className="self-start">
-          <Link href="/auth/login">{t('pending.again')}</Link>
-        </Button>
+        <ButtonLink className="self-start" render={<Link href="/auth/login" />}>
+          {t('pending.again')}
+        </ButtonLink>
       </div>
     )
   }

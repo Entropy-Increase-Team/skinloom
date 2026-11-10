@@ -1,5 +1,5 @@
 import { listTextures, type TexturePage } from '@skinloom/api-client'
-import { Button, Input } from '@skinloom/ui'
+import { ButtonLink, Input } from '@skinloom/ui'
 import { Upload } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -51,12 +51,10 @@ export default async function SkinLibraryPage({ searchParams }: { searchParams: 
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
         </div>
-        <Button asChild>
-          <Link href={viewer ? '/skinlib/upload' : '/auth/login?next=/skinlib/upload'}>
-            <Upload />
-            {t('upload')}
-          </Link>
-        </Button>
+        <ButtonLink  render={<Link href={viewer ? '/skinlib/upload' : '/auth/login?next=/skinlib/upload'} />}>
+          <Upload />
+          {t('upload')}
+        </ButtonLink>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">

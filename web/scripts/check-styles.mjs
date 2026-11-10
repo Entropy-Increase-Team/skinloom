@@ -19,7 +19,8 @@ const PALETTE = 'slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|gree
 /** Colour classes that bypass the tokens. */
 export const FORBIDDEN = [
   new RegExp(`(?<![\\w-])${PREFIX}-(?:(?:${PALETTE})-\\d{2,3}|white|black)(?![\\w-])`, 'g'),
-  new RegExp(`(?<![\\w-])${PREFIX}-\\[(?:#|rgb|hsl|oklch|oklab|lab|lch|color)`, 'g'),
+  // Literal colours only: color-mix() of token variables is fine.
+  new RegExp(`(?<![\\w-])${PREFIX}-\\[(?:#|(?:rgba?|hsla?|oklch|oklab|lab|lch|color)\\()`, 'g'),
 ]
 
 /** The offending class names in one file's text, with 1-based line numbers. */

@@ -1,5 +1,5 @@
 import { ApiError, getTexture, getTextureRules, type TextureDetail, type TextureRules } from '@skinloom/api-client'
-import { Badge, Button, Card, CardContent } from '@skinloom/ui'
+import { Badge, ButtonLink, Card, CardContent, SkinViewer } from '@skinloom/ui'
 import { Download, Heart, Lock } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -8,7 +8,6 @@ import { getFormatter, getTranslations } from 'next-intl/server'
 import { cache } from 'react'
 
 import { WearOnPlayer } from '@/components/player/wear-on-player'
-import { SkinViewer3D } from '@/components/texture/skin-viewer'
 import { ReportButton } from '@/components/texture/report-button'
 import { FavoriteButton, OwnerControls } from '@/components/texture/texture-actions'
 import { kb } from '@/lib/skin'
@@ -56,9 +55,9 @@ export default async function TexturePage({ params }: { params: Promise<{ tid: s
       <div className="mx-auto flex max-w-md flex-col items-center gap-4 px-4 py-24 text-center">
         <Lock className="size-10 text-muted-foreground" aria-hidden />
         <p>{loaded.status === 403 ? t('privateNotice') : t('loadFailed')}</p>
-        <Button asChild variant="outline">
-          <Link href="/skinlib">{t('back')}</Link>
-        </Button>
+        <ButtonLink variant="outline" render={<Link href="/skinlib" />}>
+          {t('back')}
+        </ButtonLink>
       </div>
     )
   }
@@ -73,7 +72,12 @@ export default async function TexturePage({ params }: { params: Promise<{ tid: s
   return (
     <div className="mx-auto grid max-w-5xl gap-6 px-4 py-8 md:grid-cols-[1fr_20rem]">
       <div className="h-[28rem] overflow-hidden rounded-lg border bg-muted/40">
-        <SkinViewer3D hash={x.hash} type={x.type} label={t('preview', { name: x.name })} />
+        <SkinViewer
+          skin={x.type === 'cape' ? null : `/textures/${x.hash}`}
+          cape={x.type === 'cape' ? `/textures/${x.hash}` : null}
+          model={x.type === 'alex' ? 'slim' : 'default'}
+          label={t('preview', { name: x.name })}
+        />
       </div>
       <Card className="self-start">
         <CardContent className="flex flex-col gap-4 pt-6">
@@ -105,12 +109,10 @@ export default async function TexturePage({ params }: { params: Promise<{ tid: s
           {viewer && rules && <FavoriteButton texture={x} rates={rules.rates} />}
           {x.inCloset && <WearOnPlayer textureId={x.id} kind={x.type === 'cape' ? 'cape' : 'skin'} />}
           {rules?.allowDownload && (
-            <Button asChild variant="outline">
-              <a href={`/raw/${x.id}.png`} download={`${x.name}.png`}>
-                <Download />
-                {t('download')}
-              </a>
-            </Button>
+            <ButtonLink variant="outline" render={<a href={`/raw/${x.id}.png`} download={`${x.name}.png`} />}>
+              <Download />
+              {t('download')}
+            </ButtonLink>
           )}
           {canManage && rules && <OwnerControls texture={x} rates={rules.rates} charged={x.mine} />}
           {viewer && !x.mine && rules && <ReportButton textureId={x.id} rates={rules.rates} />}

@@ -1,7 +1,7 @@
 'use client'
 
 import { resetPassword } from '@skinloom/api-client'
-import { Button } from '@skinloom/ui'
+import { Button, ButtonLink } from '@skinloom/ui'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { type FormEvent, useState } from 'react'
@@ -47,9 +47,9 @@ export function ResetForm({ token }: { token: string }) {
     return (
       <div className="flex flex-col gap-4">
         <p className="rounded-md border bg-muted/40 px-3 py-3 text-sm leading-relaxed">{done ? t('done') : t('invalid')}</p>
-        <Button asChild>
-          <Link href={done ? '/auth/login' : '/auth/forgot'}>{done ? t('signIn') : t('again')}</Link>
-        </Button>
+        <ButtonLink  render={<Link href={done ? '/auth/login' : '/auth/forgot'} />}>
+          {done ? t('signIn') : t('again')}
+        </ButtonLink>
       </div>
     )
   }

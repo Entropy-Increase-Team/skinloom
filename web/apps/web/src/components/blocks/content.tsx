@@ -1,4 +1,4 @@
-import { Button } from '@skinloom/ui'
+import { ButtonLink } from '@skinloom/ui'
 import Link from 'next/link'
 
 import { Markdown } from '@/components/markdown'
@@ -46,15 +46,13 @@ export function ButtonsBlock({ props }: { props: Props }) {
   return (
     <section className="mx-auto flex max-w-6xl flex-wrap gap-3 px-4 py-8">
       {items.map((x, i) => (
-        <Button key={`${x.href}-${i}`} asChild variant={i === 0 ? 'default' : 'outline'}>
-          {x.href.startsWith('/') ? (
-            <Link href={x.href}>{x.label}</Link>
-          ) : (
-            <a href={x.href} rel="noreferrer">
-              {x.label}
-            </a>
-          )}
-        </Button>
+        <ButtonLink
+          key={`${x.href}-${i}`}
+          variant={i === 0 ? 'default' : 'outline'}
+          render={x.href.startsWith('/') ? <Link href={x.href} /> : <a href={x.href} rel="noreferrer" />}
+        >
+          {x.label}
+        </ButtonLink>
       ))}
     </section>
   )
