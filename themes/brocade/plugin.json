@@ -2,7 +2,7 @@
   "$schema": "https://skinloom.cn/schema/plugin.v1.json",
   "id": "brocade",
   "kind": "theme",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "name": {
     "zh-CN": "织锦",
     "en": "Brocade"

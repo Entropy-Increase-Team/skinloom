@@ -1539,7 +1539,15 @@
     "noMatch": "没有符合条件的材质",
     "all": "全部",
     "skins": "皮肤",
-    "capes": "披风"
+    "capes": "披风",
+    "close": "关闭",
+    "loading": "加载中",
+    "more": "更多",
+    "morePages": "更多页",
+    "previousPage": "上一页",
+    "nextPage": "下一页",
+    "toggleSidebar": "展开或收起侧栏",
+    "navigation": "导航"
   },
   "componentPreview": {
     "title": "组件总览",
@@ -1626,5 +1634,41 @@
       "skin": "皮肤",
       "cape": "披风"
     }
+  },
+  "shell": {
+    "menu": "菜单",
+    "account": "账号",
+    "settings": "语言与外观",
+    "language": "语言",
+    "appearance": "外观",
+    "light": "亮色",
+    "dark": "暗色",
+    "system": "跟随系统",
+    "signOut": "退出登录",
+    "userCenter": "用户中心",
+    "admin": "管理后台",
+    "backToUser": "返回用户中心",
+    "toggleSidebar": "展开或收起侧栏",
+    "home": "首页"
+  },
+  "userNav": {
+    "overview": "概览",
+    "mine": "我的",
+    "players": "角色",
+    "closet": "衣柜",
+    "upload": "上传材质",
+    "account": "账号",
+    "profile": "资料与安全",
+    "notifications": "通知",
+    "reports": "我的举报",
+    "developer": "开发者",
+    "apps": "应用与令牌",
+    "plugins": "扩展"
+  },
+  "adminNav": {
+    "content": "内容",
+    "site": "站点",
+    "system": "系统",
+    "plugins": "扩展"
   }
 }

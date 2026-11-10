@@ -5,8 +5,6 @@ import { getLocale, getMessages } from 'next-intl/server'
 
 import { LiveRefresh } from '@/components/live-refresh'
 import { Providers } from '@/components/providers'
-import { SiteFooter } from '@/components/site-footer'
-import { SiteHeader } from '@/components/site-header'
 import { getBootstrap } from '@/lib/bootstrap'
 import { safeImageUrl } from '@/lib/safe-url'
 import { themeStyle } from '@/lib/theme'
@@ -56,16 +54,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <script key={src} src={src} nonce={nonce} defer />
         ))}
       </head>
-      <body className="min-h-screen antialiased">
+      <body className="min-h-svh antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
           {/* The home page renders its blocks itself; in the client bootstrap they would
               ride along with every page. */}
           <Providers bootstrap={{ ...boot, theme: { ...boot.theme, home: [] } }} nonce={nonce}>
-            <div className="flex min-h-screen flex-col">
-              <SiteHeader />
-              <main className="flex-1">{children}</main>
-              <SiteFooter />
-            </div>
+            {/* Each area brings its frame: (site) the public header and footer, (app) the
+                sidebar shell of the user center and the admin area (design.md §9.2). */}
+            {children}
             <LiveRefresh version={boot.version} />
           </Providers>
         </NextIntlClientProvider>

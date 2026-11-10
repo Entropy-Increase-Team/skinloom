@@ -1476,7 +1476,15 @@
     "noMatch": "No textures match",
     "all": "All",
     "skins": "Skins",
-    "capes": "Capes"
+    "capes": "Capes",
+    "close": "Close",
+    "loading": "Loading",
+    "more": "More",
+    "morePages": "More pages",
+    "previousPage": "Go to the previous page",
+    "nextPage": "Go to the next page",
+    "toggleSidebar": "Show or hide the sidebar",
+    "navigation": "Navigation"
   },
   "componentPreview": {
     "title": "Components",
@@ -1563,5 +1571,41 @@
       "skin": "Skin",
       "cape": "Cape"
     }
+  },
+  "shell": {
+    "menu": "Menu",
+    "account": "Account",
+    "settings": "Language and appearance",
+    "language": "Language",
+    "appearance": "Appearance",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "signOut": "Sign out",
+    "userCenter": "My account",
+    "admin": "Administration",
+    "backToUser": "Back to my account",
+    "toggleSidebar": "Show or hide the sidebar",
+    "home": "Home"
+  },
+  "userNav": {
+    "overview": "Overview",
+    "mine": "Mine",
+    "players": "Players",
+    "closet": "Closet",
+    "upload": "Upload",
+    "account": "Account",
+    "profile": "Profile and security",
+    "notifications": "Notifications",
+    "reports": "My reports",
+    "developer": "Developers",
+    "apps": "Apps and tokens",
+    "plugins": "Extensions"
+  },
+  "adminNav": {
+    "content": "Content",
+    "site": "Site",
+    "system": "System",
+    "plugins": "Extensions"
   }
 }

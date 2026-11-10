@@ -332,10 +332,6 @@
 
 /* Theme hooks with a base look; a theme's CSS may restyle them (design.md §14). */
 @layer components {
-  /* The panel beside the forms of the "split" auth layout. */
-  .sl-auth-panel {
-    background: var(--brand-gradient);
-  }
   /* The 8px checkerboard behind skin and cape previews (design.md §8). */
   .sl-pixel-backdrop {
     background: repeating-conic-gradient(var(--pixel-a) 0 25%, var(--pixel-b) 0 50%) 0 0 / 16px 16px;

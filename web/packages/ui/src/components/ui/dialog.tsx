@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { cn } from "#lib/utils"
+import { SrLabel } from "#components/skinloom/labels"
 
 import { Button } from "#components/ui/button"
 import { XIcon } from "lucide-react"
@@ -72,7 +73,7 @@ function DialogContent({
           >
             <XIcon
             />
-            <span className="sr-only">Close</span>
+            <SrLabel k="close" />
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>

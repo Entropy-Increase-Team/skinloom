@@ -33,6 +33,14 @@ export interface UiLabels {
   all: string
   skins: string
   capes: string
+  close: string
+  loading: string
+  more: string
+  morePages: string
+  previousPage: string
+  nextPage: string
+  toggleSidebar: string
+  navigation: string
 }
 
 export const defaultLabels: UiLabels = {
@@ -57,6 +65,14 @@ export const defaultLabels: UiLabels = {
   all: 'All',
   skins: 'Skins',
   capes: 'Capes',
+  close: 'Close',
+  loading: 'Loading',
+  more: 'More',
+  morePages: 'More pages',
+  previousPage: 'Go to the previous page',
+  nextPage: 'Go to the next page',
+  toggleSidebar: 'Show or hide the sidebar',
+  navigation: 'Navigation',
 }
 
 const LabelsContext = createContext<UiLabels>(defaultLabels)
@@ -72,4 +88,10 @@ export function useUiLabels(): UiLabels {
 /** Replaces {name} placeholders with values. */
 export function fill(template: string, values: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (m, k: string) => (k in values ? String(values[k]) : m))
+}
+
+/** Words only screen readers hear (a close button's name…), in the visitor's language. */
+export function SrLabel({ k }: { k: keyof UiLabels }) {
+  const t = useUiLabels()
+  return <span className="sr-only">{t[k]}</span>
 }

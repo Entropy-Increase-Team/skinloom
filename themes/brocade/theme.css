@@ -33,3 +33,13 @@
   background-position: 0 0, 9px 9px;
   background-size: 18px 18px;
 }
+
+/* The split sign-in panel in the brand colours instead of the pixel backdrop. */
+.sl-auth-panel {
+  background: var(--brand-gradient);
+  color: var(--primary-foreground);
+}
+
+.sl-auth-panel p {
+  color: inherit;
+}

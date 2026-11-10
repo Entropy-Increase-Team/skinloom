@@ -12,8 +12,8 @@ export async function generateMetadata(): Promise<Metadata> {
 /** The default texts of every language, read here so the editor can show and search them. */
 export default async function AdminTranslationsPage() {
   const [zh, en] = await Promise.all([
-    import('../../../../messages/zh-CN.json').then((m) => m.default as Messages),
-    import('../../../../messages/en.json').then((m) => m.default as Messages),
+    import('../../../../../messages/zh-CN.json').then((m) => m.default as Messages),
+    import('../../../../../messages/en.json').then((m) => m.default as Messages),
   ])
   const english = new Map(flatten(en))
   // A key one language lacks (the English setting help, which falls back to the server's
