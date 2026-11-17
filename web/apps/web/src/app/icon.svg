@@ -1,10 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#3b82c4"/>
-  <g fill="#f8fafc">
-    <rect x="8" y="8" width="16" height="4" rx="1" opacity=".55"/>
-    <rect x="8" y="14" width="4" height="4" rx="1"/>
-    <rect x="20" y="14" width="4" height="4" rx="1"/>
-    <rect x="12" y="20" width="8" height="4" rx="1" opacity=".8"/>
-    <rect x="14" y="6" width="4" height="20" rx="1" opacity=".25"/>
-  </g>
+  <style>
+    .warp { fill: #3057a3; }
+    .weft { fill: #edb345; }
+    .cut { fill: #0c0e12; opacity: 0.14; }
+    @media (prefers-color-scheme: dark) {
+      .warp { fill: #85abf0; }
+      .weft { fill: #eebb58; }
+      .cut { fill: #0c0e12; opacity: 0.28; }
+    }
+  </style>
+  <defs>
+    <clipPath id="wl"><rect x="8" y="4" width="5" height="24" rx="1.5"/></clipPath>
+    <clipPath id="wr"><rect x="19" y="4" width="5" height="24" rx="1.5"/></clipPath>
+    <clipPath id="wt"><rect x="4" y="8" width="24" height="5" rx="1.5"/></clipPath>
+    <clipPath id="wb"><rect x="4" y="19" width="24" height="5" rx="1.5"/></clipPath>
+  </defs>
+
+  <!-- Vertical warp bands -->
+  <rect x="8" y="4" width="5" height="24" rx="1.5" class="warp"/>
+  <rect x="19" y="4" width="5" height="24" rx="1.5" class="warp"/>
+
+  <!-- Subtle downward directional shadows onto vertical warp -->
+  <rect x="19" y="13" width="5" height="1.25" class="cut" clip-path="url(#wr)"/>
+  <rect x="8" y="24" width="5" height="1.25" class="cut" clip-path="url(#wl)"/>
+
+  <!-- Horizontal weft bands -->
+  <rect x="4" y="8" width="24" height="5" rx="1.5" class="weft"/>
+  <rect x="4" y="19" width="24" height="5" rx="1.5" class="weft"/>
+
+  <!-- Subtle rightward directional shadows onto horizontal weft -->
+  <rect x="13" y="8" width="1.25" height="5" class="cut" clip-path="url(#wt)"/>
+  <rect x="24" y="19" width="1.25" height="5" class="cut" clip-path="url(#wb)"/>
+
+  <!-- Over-weave segments (TL & BR) -->
+  <rect x="8" y="4" width="5" height="11" rx="1.5" class="warp"/>
+  <rect x="19" y="17" width="5" height="11" rx="1.5" class="warp"/>
 </svg>

@@ -26,5 +26,8 @@ describe('SkinCarousel mobile accessibility', () => {
     )
     expect(html).toMatch(/<canvas[^>]*role="img"[^>]*aria-label="Test Skin"/)
     expect(html).toContain('href="/skinlib/show/1"')
+    expect(html).toContain('aria-label="Previous"')
+    expect(html).toContain('aria-label="Next"')
+    expect(html).toContain('aria-label="Second Skin"')
   })
 })

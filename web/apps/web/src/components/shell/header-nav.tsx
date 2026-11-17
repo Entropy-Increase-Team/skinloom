@@ -8,6 +8,8 @@ import { useTranslations } from 'next-intl'
 export interface NavLink {
   href: string
   label: string
+  /** Optional icon name from MenuIcon registry (design.md §7.1). */
+  icon?: string
 }
 
 /** Whether `pathname` is in the section `href` leads to. */

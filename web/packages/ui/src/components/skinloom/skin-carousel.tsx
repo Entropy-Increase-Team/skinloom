@@ -232,6 +232,8 @@ export function SkinCarousel({
         let lastTime = performance.now()
         let walkTime = 0
         let inView = true
+        let isDragging = false
+        let revealTimer = 0
         const tick = (now: number) => {
           animFrame = 0
           if (disposed || !inView || document.hidden) return
@@ -241,27 +243,31 @@ export function SkinCarousel({
             walkTime += dt * WALK_SPEED
           }
           const damp = 1 - Math.exp(-10 * dt)
+          const dampFade = isDragging ? 1 - Math.exp(-18 * dt) : damp
           const activeIdx = indexRef.current
 
           for (let k = 0; k < n; k++) {
             const state = players[k]!
             const p = state.obj
-            const target = targetForOffset(slotOffset(k, activeIdx, n))
+            const offset = slotOffset(k, activeIdx, n)
+            const target = targetForOffset(offset)
+            const targetOpacity = isDragging && offset !== 0 ? 0 : target.opacity
             state.cur.x += (target.x - state.cur.x) * damp
             state.cur.y += (target.y - state.cur.y) * damp
             state.cur.z += (target.z - state.cur.z) * damp
             state.cur.scale += (target.scale - state.cur.scale) * damp
             state.cur.rotY += (target.rotY - state.cur.rotY) * damp
-            state.cur.opacity += (target.opacity - state.cur.opacity) * damp
+            state.cur.opacity += (targetOpacity - state.cur.opacity) * dampFade
 
             p.position.set(state.cur.x, state.cur.y, state.cur.z)
             p.scale.setScalar(state.cur.scale)
             p.rotation.y = state.cur.rotY
             p.visible = state.cur.opacity > 0.02
-            if (
-              p.visible &&
-              (Math.abs(state.cur.opacity - state.lastOpacity) > 0.005 ||
-                (target.opacity >= 0.99 && state.lastOpacity < 0.99))
+            if (!p.visible) {
+              state.lastOpacity = 0
+            } else if (
+              Math.abs(state.cur.opacity - state.lastOpacity) > 0.005 ||
+              (targetOpacity >= 0.99 && state.lastOpacity < 0.99)
             ) {
               applyOpacity(p, state.cur.opacity)
               state.lastOpacity = state.cur.opacity
@@ -307,15 +313,21 @@ export function SkinCarousel({
         }
         if (!document.hidden) animFrame = requestAnimationFrame(tick)
 
-        // Dragging turns the scene; letting go smoothly returns the camera to home.
+        // Dragging hides side candidates while orbiting; letting go returns camera home then fades them back in.
         const home = viewer.camera.position.clone()
         let raf = 0
         const onStart = () => {
           cancelAnimationFrame(raf)
+          window.clearTimeout(revealTimer)
+          isDragging = true
           setDragging(true)
         }
         const onEnd = () => {
           setDragging(false)
+          window.clearTimeout(revealTimer)
+          revealTimer = window.setTimeout(() => {
+            isDragging = false
+          }, Math.round(RETURN_MS * 0.65))
           const from = viewer!.camera.position.clone()
           const start = performance.now()
           const step = (now: number) => {
@@ -367,6 +379,7 @@ export function SkinCarousel({
         cleanups.push(
           () => cancelAnimationFrame(animFrame),
           () => cancelAnimationFrame(raf),
+          () => window.clearTimeout(revealTimer),
           () => el.removeEventListener('pointerdown', onPointerDown),
           () => el.removeEventListener('pointerup', onPointerUp),
           () => resize.disconnect(),
@@ -521,17 +534,53 @@ export function SkinCarousel({
           variant="secondary"
           size="xs"
           nativeButton={false}
-          className="max-w-[75%] min-w-0 gap-1 rounded-md border bg-card/90 px-2 text-xs font-medium shadow-xs"
+          className="h-8 min-w-0 max-w-[54%] gap-1 rounded-md border bg-card/90 px-2.5 text-xs font-medium shadow-xs"
           render={<LinkAs href={current.href} />}
         >
           <span className="truncate">{current.name}</span>
           <ArrowUpRight className="size-3 shrink-0 text-muted-foreground" aria-hidden />
         </Button>
         {n > 1 && (
-          <div className="flex shrink-0 items-center gap-1" aria-hidden>
-            {items.map((item, i) => (
-              <span key={item.id} className={cn('h-1.5 rounded-full transition-colors duration-200', i === index ? 'w-4 bg-primary' : 'w-1.5 bg-input')} />
-            ))}
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon-sm"
+              onClick={() => go(index - 1)}
+              aria-label={t.previous}
+              title={t.previous}
+              className="bg-card/90 pointer-coarse:size-9"
+            >
+              <ChevronLeft />
+            </Button>
+            <div className="flex items-center px-0.5">
+              {items.map((item, i) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => go(i)}
+                  aria-label={item.name}
+                  aria-current={i === index}
+                  className="flex h-8 cursor-pointer items-center px-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 rounded-sm"
+                >
+                  <span
+                    className={cn(
+                      'h-1.5 rounded-full transition-[width,background-color] duration-200',
+                      i === index ? 'w-4 bg-primary' : 'w-1.5 bg-input',
+                    )}
+                  />
+                </button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              onClick={() => go(index + 1)}
+              aria-label={t.next}
+              title={t.next}
+              className="bg-card/90 pointer-coarse:size-9"
+            >
+              <ChevronRight />
+            </Button>
           </div>
         )}
       </div>

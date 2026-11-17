@@ -29,8 +29,12 @@ export async function SiteHeader({ variant = 'public' }: { variant?: 'public' | 
   const logo = safeImageUrl(boot.site.logo)
   const title = (key: string) => (key.startsWith('nav.') ? t(key as 'nav.skinlib') : key)
   const links: NavLink[] = [
-    ...[...(boot.menus.explore ?? [])].sort((a, b) => a.order - b.order).map((m) => ({ href: m.href, label: title(m.title) })),
-    { href: '/about', label: t('nav.about') },
+    ...[...(boot.menus.explore ?? [])].sort((a, b) => a.order - b.order).map((m) => ({
+      href: m.href,
+      label: title(m.title),
+      icon: m.icon || (m.href === '/skinlib' ? 'layout-grid' : undefined),
+    })),
+    { href: '/about', label: t('nav.about'), icon: 'info' },
   ]
   const canRegister = boot.auth.registration === 'open' && !boot.needsSetup
   const app = variant === 'app'
@@ -64,7 +68,15 @@ export async function SiteHeader({ variant = 'public' }: { variant?: 'public' | 
               {canRegister && <ButtonLink render={<Link href="/auth/register" />}>{t('nav.register')}</ButtonLink>}
             </div>
           )}
-          {!app && <MobileMenu links={links} signIn={viewer ? undefined : '/auth/login'} register={!viewer && canRegister ? '/auth/register' : undefined} />}
+          {!app && (
+            <MobileMenu
+              links={links}
+              siteName={boot.site.name}
+              siteLogo={logo}
+              signIn={viewer ? undefined : '/auth/login'}
+              register={!viewer && canRegister ? '/auth/register' : undefined}
+            />
+          )}
         </div>
       </div>
       {boot.offline && <div className="bg-destructive/10 px-4 py-2 text-center text-sm text-destructive">{t('offline')}</div>}
