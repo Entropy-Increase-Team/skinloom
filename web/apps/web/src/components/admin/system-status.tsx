@@ -1,8 +1,8 @@
 'use client'
 
 import { getSystemStatus, type StatusCheck, type SystemStatus } from '@skinloom/api-client'
-import { Button, Card, CardContent, CardHeader, CardTitle } from '@skinloom/ui'
-import { CircleAlert, CircleCheck, CircleX, RefreshCw } from 'lucide-react'
+import { Button, PageHeader, Skeleton, type Status, StatusDot } from '@skinloom/ui'
+import { RefreshCw } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import { type ReactNode, useCallback, useEffect, useState } from 'react'
 
@@ -43,36 +43,47 @@ export function SystemStatusView() {
     void load()
   }, [load])
 
-  if (!status) return error ? <FormError message={error} /> : <p className="text-sm text-muted-foreground">{t('loading')}</p>
+  const ta = useTranslations('admin')
+  const header = (
+    <PageHeader
+      title={ta('systemStatus')}
+      description={t('intro')}
+      actions={
+        <Button variant="outline" loading={loading} onClick={() => void load()}>
+          <RefreshCw />
+          {t('refresh')}
+        </Button>
+      }
+    />
+  )
+  if (!status)
+    return (
+      <div className="flex flex-col gap-6">
+        {header}
+        {error ? <FormError message={error} /> : <Skeleton className="h-96 rounded-xl" />}
+      </div>
+    )
 
   const date = (iso?: string) => (iso ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(iso)) : '—')
   const number = (n: number) => new Intl.NumberFormat(locale).format(n)
   const s = status
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{t('intro')}</p>
-        <Button variant="outline" size="sm" disabled={loading} onClick={() => void load()}>
-          <RefreshCw />
-          {t('refresh')}
-        </Button>
-      </div>
+      {header}
       <FormError message={error} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('checks.title')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="flex flex-col gap-2">
-            {s.checks.map((c) => (
-              <Check key={c.id} check={c} />
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+      <section className="flex flex-col gap-3" aria-labelledby="checks-title">
+        <h2 id="checks-title" className="text-lg font-medium">
+          {t('checks.title')}
+        </h2>
+        <ul className="flex flex-col divide-y rounded-xl border bg-card">
+          {s.checks.map((c) => (
+            <Check key={c.id} check={c} />
+          ))}
+        </ul>
+      </section>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         <Facts
           title={t('server.title')}
           rows={[
@@ -132,38 +143,29 @@ export function SystemStatusView() {
 
 function Check({ check }: { check: StatusCheck }) {
   const t = useTranslations('adminStatus.checks')
-  const icon =
-    check.level === 'ok' ? (
-      <CircleCheck className="size-4 shrink-0 text-success" aria-hidden />
-    ) : check.level === 'warn' ? (
-      <CircleAlert className="size-4 shrink-0 text-warning-foreground dark:text-warning" aria-hidden />
-    ) : (
-      <CircleX className="size-4 shrink-0 text-destructive" aria-hidden />
-    )
+  const level: Status = check.level === 'ok' ? 'ok' : check.level === 'warn' ? 'warn' : 'error'
+  const text = t.has(`${check.id}.ok`) ? t(`${check.id}.${check.level === 'ok' ? 'ok' : 'problem'}`) : check.id
   return (
-    <li className="flex items-start gap-2 text-sm">
-      {icon}
-      <span>{t.has(`${check.id}.ok`) ? t(`${check.id}.${check.level === 'ok' ? 'ok' : 'problem'}`) : check.id}</span>
+    <li className="px-4 py-3">
+      <StatusDot status={level} className={level === 'ok' ? 'text-sm' : 'text-sm text-foreground'}>
+        {text}
+      </StatusDot>
     </li>
   )
 }
 
 function Facts({ title, rows }: { title: string; rows: [string, ReactNode][] }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
-          {rows.map(([k, v]) => (
-            <div key={k} className="contents">
-              <dt className="text-muted-foreground">{k}</dt>
-              <dd className="min-w-0 break-words tabular-nums">{v}</dd>
-            </div>
-          ))}
-        </dl>
-      </CardContent>
-    </Card>
+    <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
+      <h2 className="text-sm font-medium">{title}</h2>
+      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-sm">
+        {rows.map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="text-muted-foreground">{k}</dt>
+            <dd className="min-w-0 break-words tabular-nums">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   )
 }

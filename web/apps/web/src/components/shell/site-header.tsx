@@ -39,17 +39,17 @@ export async function SiteHeader({ variant = 'public' }: { variant?: 'public' | 
     <header className="sl-header sticky top-0 z-40 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
       <div className={cn('flex h-14 items-center gap-2 md:gap-6', app ? 'px-3 md:px-5' : 'mx-auto max-w-[75rem] px-4 sm:px-6 lg:px-8')}>
         {app && <AppSidebarTrigger />}
-        <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2.5 rounded-md">
+        <Link href="/" className="flex min-w-0 items-center gap-2.5 rounded-md">
           {logo ? (
             // An administrator's URL of any size and host: next/image would need each host configured.
-            <img src={logo} alt="" className="h-7 w-auto max-w-32 object-contain" />
+            <img src={logo} alt="" className="h-7 w-auto max-w-32 shrink-0 object-contain" />
           ) : (
-            <Logo className="size-7" />
+            <Logo className="size-7 shrink-0" />
           )}
           <span className="truncate text-[0.9375rem] font-medium">{boot.site.name}</span>
         </Link>
         <HeaderNav links={links} className="max-md:hidden" />
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           {viewer ? (
             <>
               <NotificationBell />

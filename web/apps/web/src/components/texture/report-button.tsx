@@ -1,9 +1,24 @@
 'use client'
 
 import { reportTexture, type ScoreRates } from '@skinloom/api-client'
-import { Button } from '@skinloom/ui'
+import {
+  Button,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Textarea,
+  toast,
+} from '@skinloom/ui'
 import { Flag } from 'lucide-react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { type FormEvent, useState } from 'react'
 
@@ -12,15 +27,21 @@ import { problemOf } from '@/lib/problem'
 
 const MAX_REASON = 500
 
-/** Report a texture to the administrators, with what it costs or earns. */
+/** Report a texture to the administrators, saying what it costs or earns. */
 export function ReportButton({ textureId, rates }: { textureId: number; rates: ScoreRates }) {
   const t = useTranslations('texture.report')
   const tc = useTranslations('common')
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState('')
   const [pending, setPending] = useState(false)
-  const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  function sent() {
+    setOpen(false)
+    setReason('')
+    toast.success(t('sent'), { action: { label: t('mine'), onClick: () => router.push('/user/reports') } })
+  }
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -29,10 +50,10 @@ export function ReportButton({ textureId, rates }: { textureId: number; rates: S
     setError(null)
     try {
       await reportTexture(textureId, { reason: reason.trim() })
-      setSent(true)
+      sent()
     } catch (err) {
       const { status, unverified } = problemOf(err)
-      if (status === 409) setSent(true) // reported already: same outcome for the user
+      if (status === 409) sent() // reported already: same outcome for the user
       else
         setError(
           unverified
@@ -50,53 +71,51 @@ export function ReportButton({ textureId, rates }: { textureId: number; rates: S
     }
   }
 
-  if (sent) {
-    return (
-      <p role="status" className="text-sm text-muted-foreground">
-        {t('sent')}{' '}
-        <Link href="/user/reports" className="text-primary hover:underline">
-          {t('mine')}
-        </Link>
-      </p>
-    )
-  }
-  if (!open) {
-    return (
-      <Button variant="ghost" size="sm" className="self-start text-muted-foreground" onClick={() => setOpen(true)}>
+  const mod = rates.reporterModification
+  const note = [mod < 0 ? t('cost', { score: -mod }) : mod > 0 ? t('earn', { score: mod }) : null, rates.reporterReward > 0 ? t('reward', { score: rates.reporterReward }) : null]
+    .filter(Boolean)
+    .join(' ')
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (next) setError(null)
+      }}
+    >
+      <DialogTrigger render={<Button variant="ghost" size="sm" className="self-start text-muted-foreground" />}>
         <Flag />
         {t('open')}
-      </Button>
-    )
-  }
-  const mod = rates.reporterModification
-  return (
-    <form onSubmit={submit} className="flex flex-col gap-2 border-t pt-4">
-      <label htmlFor="report-reason" className="text-sm font-medium">
-        {t('reason')}
-      </label>
-      <textarea
-        id="report-reason"
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
-        maxLength={MAX_REASON}
-        rows={3}
-        required
-        placeholder={t('placeholder')}
-        className="rounded-md border border-input bg-transparent px-3 py-2 text-sm"
-      />
-      <p className="text-xs text-muted-foreground">
-        {mod < 0 ? t('cost', { score: -mod }) : mod > 0 ? t('earn', { score: mod }) : null}
-        {rates.reporterReward > 0 ? ` ${t('reward', { score: rates.reporterReward })}` : null}
-      </p>
-      <FormError message={error} />
-      <div className="flex gap-2">
-        <Button type="submit" size="sm" variant="destructive" disabled={pending || !reason.trim()}>
-          {t('submit')}
-        </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
-          {t('cancel')}
-        </Button>
-      </div>
-    </form>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-5">
+          <DialogHeader>
+            <DialogTitle>{t('title')}</DialogTitle>
+            <DialogDescription>{t('body')}</DialogDescription>
+          </DialogHeader>
+          <Field>
+            <FieldLabel htmlFor="report-reason">{t('reason')}</FieldLabel>
+            <Textarea
+              id="report-reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              maxLength={MAX_REASON}
+              rows={4}
+              required
+              placeholder={t('placeholder')}
+            />
+            {note && <FieldDescription>{note}</FieldDescription>}
+          </Field>
+          <FormError message={error} />
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</DialogClose>
+            <Button type="submit" variant="destructive" loading={pending} disabled={!reason.trim()}>
+              {t('submit')}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

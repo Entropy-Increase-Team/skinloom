@@ -1,3 +1,4 @@
+import { PageHeader } from '@skinloom/ui'
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -23,11 +24,8 @@ export default async function OAuthManagePage() {
     origin = `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost'}`
   }
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">{t('manageTitle')}</h1>
-        <p className="text-muted-foreground">{t('manageHint')}</p>
-      </div>
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+      <PageHeader title={t('manageTitle')} description={t('manageHint')} />
       <Developer admin={viewer.role === 'admin' || viewer.role === 'superadmin'} origin={origin} />
     </div>
   )

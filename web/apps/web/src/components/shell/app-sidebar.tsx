@@ -2,6 +2,7 @@
 
 import {
   Button,
+  cn,
   MenuIcon,
   Sidebar,
   SidebarContent,
@@ -105,5 +106,46 @@ export function AppSidebar({ sections, footer }: { sections: SidebarSection[]; f
         </SidebarFooter>
       )}
     </Sidebar>
+  )
+}
+
+/**
+ * Horizontal navigation bar for the user center when the active theme sets
+ * `layout.user = "tabs"` (ADR 0043). Keeps the `.sl-sidebar` hook class.
+ */
+export function AppTabNav({ sections, footer }: { sections: SidebarSection[]; footer?: SidebarLink }) {
+  const pathname = usePathname()
+  const links = sections.flatMap((s) => s.links)
+  return (
+    <nav className="sl-sidebar border-b bg-background">
+      <div className="no-scrollbar mx-auto flex w-full max-w-[90rem] items-center gap-1 overflow-x-auto px-4 py-2 sm:px-6 lg:px-8">
+        {links.map((l) => {
+          const active = isCurrent(pathname, l.href, l.exact)
+          return (
+            <Link
+              key={l.href}
+              href={l.href}
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-3 text-sm transition-colors',
+                active ? 'bg-primary/10 font-medium text-primary' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              )}
+            >
+              <MenuIcon name={l.icon} className="size-4" />
+              <span>{l.label}</span>
+            </Link>
+          )
+        })}
+        {footer && (
+          <Link
+            href={footer.href}
+            className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <MenuIcon name={footer.icon} className="size-4" />
+            <span>{footer.label}</span>
+          </Link>
+        )}
+      </div>
+    </nav>
   )
 }

@@ -131,7 +131,8 @@
         "type": "hero",
         "props": {
           "primaryAction": "/skinlib",
-          "secondaryAction": "/auth/register"
+          "secondaryAction": "/auth/register",
+          "layout": "banner"
         }
       },
       {
@@ -149,6 +150,24 @@
       {
         "type": "launcher-guide"
       }
-    ]
+    ],
+    "settings": {
+      "accent": {
+        "type": "color",
+        "label": {
+          "zh-CN": "主色",
+          "en": "Primary color"
+        },
+        "token": "primary"
+      },
+      "lattice": {
+        "type": "boolean",
+        "label": {
+          "zh-CN": "登录页菱格暗纹",
+          "en": "Sign-in diamond lattice"
+        },
+        "default": true
+      }
+    }
   }
 }

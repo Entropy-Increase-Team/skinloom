@@ -111,22 +111,38 @@ func TestAvatar3D(t *testing.T) {
 func TestSkinPreview(t *testing.T) {
 	img := image.NewNRGBA(image.Rect(0, 0, 64, 64))
 	fill(img, 1, 8, 8, 8, 8, red)      // face
+	fill(img, 1, 8, 0, 8, 8, yellow)   // top of head
 	fill(img, 1, 24, 8, 8, 8, blue)    // back of the head
 	fill(img, 1, 44, 20, 4, 12, green) // right arm front
 	s := Normalize(img)
-	p := SkinPreview(s, false, 64) // 2 pixels per skin pixel
+	p := SkinPreview(s, false, 64)
 	if p.Bounds().Dx() != 72 || p.Bounds().Dy() != 64 {
 		t.Fatalf("size %v", p.Bounds())
 	}
-	if p.NRGBAAt(8, 0) != red || p.NRGBAAt(40+8, 0) != blue {
-		t.Fatalf("front face %v, back of head %v", p.NRGBAAt(8, 0), p.NRGBAAt(48, 0))
+	if p.NRGBAAt(0, 0).A != 0 || p.NRGBAAt(71, 63).A != 0 {
+		t.Fatalf("corners should stay transparent: %v %v", p.NRGBAAt(0, 0), p.NRGBAAt(71, 63))
 	}
-	if p.NRGBAAt(0, 16) != green {
-		t.Fatalf("the right arm is on the viewer's left from the front: %v", p.NRGBAAt(0, 16))
+	if c := p.NRGBAAt(14, 15); c != shade(red, 0.86) {
+		t.Fatalf("angled front face = %v, want %v", c, shade(red, 0.86))
 	}
-	slim := SkinPreview(s, true, 64)
-	if slim.NRGBAAt(0, 16).A != 0 || slim.NRGBAAt(2, 16) != green {
-		t.Fatal("slim arms are 3 pixels wide")
+	if c := p.NRGBAAt(19, 7); c != yellow {
+		t.Fatalf("angled top of head = %v, want %v", c, yellow)
+	}
+	if c := p.NRGBAAt(47, 15); c != shade(blue, 0.86) {
+		t.Fatalf("angled back of head = %v, want %v", c, shade(blue, 0.86))
+	}
+
+	// Slim arms are 3 pixels wide vs 4 on classic (sample outer column of right arm front at height=180).
+	classic := SkinPreview(s, false, 180)
+	slim := SkinPreview(s, true, 180)
+	// Center of outer column of right arm front: x=-7.5, y=18, z=2 -> scale=5, cx=53.75, cy=92.425
+	// x1 = (-7.5 - 2)*0.7071 = -6.717 -> px = 53.75 - 33.59 = 20
+	// z1 = (-7.5 + 2)*0.7071 = -3.889 -> sy = 92.425 - (2*0.9063 - (-3.889)*0.4226)*5 = 75
+	if c := classic.NRGBAAt(20, 75); c != shade(green, 0.86) {
+		t.Fatalf("classic outer arm = %v, want %v", c, shade(green, 0.86))
+	}
+	if c := slim.NRGBAAt(20, 75); c.A != 0 {
+		t.Fatalf("slim outer arm should be transparent, got %v", c)
 	}
 }
 

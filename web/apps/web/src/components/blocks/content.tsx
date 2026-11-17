@@ -1,18 +1,17 @@
-import { ButtonLink } from '@skinloom/ui'
+import { ButtonLink, cn, Markdown } from '@skinloom/ui'
 import Link from 'next/link'
 
-import { Markdown } from '@/components/markdown'
 import { safeHref, safeImageUrl } from '@/lib/safe-url'
 
-import { type Props, str } from './props'
+import { CONTAINER, type Props, str } from './props'
 
 /** props: content (Markdown, rendered by the server as contentHtml). */
 export function MarkdownBlock({ props }: { props: Props }) {
   const html = str(props.contentHtml)
   if (!html) return null
   return (
-    <section className="mx-auto max-w-6xl px-4 py-8">
-      <Markdown html={html} className="text-base" />
+    <section className={cn(CONTAINER, 'sl-block-markdown py-8')}>
+      <Markdown html={html} className="text-body" />
     </section>
   )
 }
@@ -25,7 +24,7 @@ export function ImageBlock({ props }: { props: Props }) {
   // An administrator's URL of any size and host: next/image would need each host configured.
   const img = <img src={src} alt={str(props.alt) ?? ''} className="h-auto w-full rounded-xl" loading="lazy" />
   return (
-    <section className="mx-auto max-w-6xl px-4 py-8">
+    <section className={cn(CONTAINER, 'sl-block-image py-8')}>
       {href ? (
         <a href={href} className="block" rel={href.startsWith('/') ? undefined : 'noreferrer'}>
           {img}
@@ -44,7 +43,7 @@ export function ButtonsBlock({ props }: { props: Props }) {
     .filter((x): x is { label: string; href: string } => !!x.label && x.href !== '')
   if (items.length === 0) return null
   return (
-    <section className="mx-auto flex max-w-6xl flex-wrap gap-3 px-4 py-8">
+    <section className={cn(CONTAINER, 'sl-block-buttons flex flex-wrap gap-3 py-8')}>
       {items.map((x, i) => (
         <ButtonLink
           key={`${x.href}-${i}`}

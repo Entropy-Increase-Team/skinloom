@@ -6,11 +6,13 @@ package render
 
 import (
 	"bytes"
+	"cmp"
 	"image"
 	"image/color"
 	"image/draw"
 	"image/png"
 	"math"
+	"slices"
 
 	"github.com/HugoSmits86/nativewebp"
 )
@@ -111,49 +113,6 @@ func setOpaque(img *image.NRGBA, u, x0, y0, x1, y1 int) {
 // part copies a w×h rectangle of the skin at (sx, sy) to (dx, dy) of a figure, all in
 // skin pixels.
 type part struct{ sx, sy, w, h, dx, dy int }
-
-// limbs lists, for the front or the back, the base and overlay faces of a skin laid
-// out as a 16×32 figure. From the front the player's right limbs are on the viewer's
-// left; from the back, on the right. Slim (Alex) arms are 3 pixels wide.
-func limbs(slim, back bool) (base, overlay []part) {
-	a := 4
-	if slim {
-		a = 3
-	}
-	// Each face: base x, y and overlay x, y in the texture; w; figure x for the front
-	// view and for the back view.
-	type face struct{ bx, by, ox, oy, w, h, front, rear int }
-	var faces []face
-	if !back {
-		faces = []face{
-			{8, 8, 40, 8, 8, 8, 4, 0},         // head
-			{20, 20, 20, 36, 8, 12, 4, 0},     // body
-			{44, 20, 44, 36, a, 12, 4 - a, 0}, // right arm
-			{36, 52, 52, 52, a, 12, 12, 0},    // left arm
-			{4, 20, 4, 36, 4, 12, 4, 0},       // right leg
-			{20, 52, 4, 52, 4, 12, 8, 0},      // left leg
-		}
-	} else {
-		faces = []face{
-			{24, 8, 56, 8, 8, 8, 0, 4},
-			{32, 20, 32, 36, 8, 12, 0, 4},
-			{48 + a, 20, 48 + a, 36, a, 12, 0, 12}, // right arm, seen from behind on the right
-			{40 + a, 52, 56 + a, 52, a, 12, 0, 4 - a},
-			{12, 20, 12, 36, 4, 12, 0, 8},
-			{28, 52, 12, 52, 4, 12, 0, 4},
-		}
-	}
-	ys := []int{0, 8, 8, 8, 20, 20}
-	for i, f := range faces {
-		dx := f.front
-		if back {
-			dx = f.rear
-		}
-		base = append(base, part{f.bx, f.by, f.w, f.h, dx, ys[i]})
-		overlay = append(overlay, part{f.ox, f.oy, f.w, f.h, dx, ys[i]})
-	}
-	return base, overlay
-}
 
 // blit draws parts of src (u texture pixels per skin pixel) onto dst, scale output
 // pixels per skin pixel, offset by ox output pixels; over blends by alpha.
@@ -266,20 +225,226 @@ func shade(c color.NRGBA, f float64) color.NRGBA {
 	return color.NRGBA{uint8(float64(c.R) * f), uint8(float64(c.G) * f), uint8(float64(c.B) * f), c.A}
 }
 
-// SkinPreview draws the skin from the front and from the back, side by side, height
-// pixels tall.
+// SkinPreview draws the skin from an angled front view and an angled back view side by
+// side (matching Blessing Skin's 3D oblique angle with nearest-neighbour pixel art),
+// height pixels tall, within a 9:8 canvas.
 func SkinPreview(skin *image.NRGBA, slim bool, height int) *image.NRGBA {
-	scale := float64(height) / 32
-	gap := int(math.Round(4 * scale))
-	fw := int(math.Round(16 * scale))
-	out := image.NewNRGBA(image.Rect(0, 0, 2*fw+gap, height))
+	w := int(math.Round(float64(height) * 9 / 8))
+	out := image.NewNRGBA(image.Rect(0, 0, w, height))
 	u := unit(skin)
-	for i, back := range []bool{false, true} {
-		base, overlay := limbs(slim, back)
-		blit(out, skin, u, base, scale, i*(fw+gap), false)
-		blit(out, skin, u, overlay, scale, i*(fw+gap), true)
-	}
+	scale := float64(height) / 36.0
+	cy := float64(height)/2.0 + 0.485*scale
+	cxFront := 10.75 * scale
+	cxBack := 29.75 * scale
+
+	baseBoxes, overlayBoxes := playerBoxes(slim)
+	const beta = 25 * math.Pi / 180
+	renderAngledFigure(out, skin, u, baseBoxes, overlayBoxes, 45*math.Pi/180, beta, scale, cxFront, cy)
+	renderAngledFigure(out, skin, u, baseBoxes, overlayBoxes, 225*math.Pi/180, beta, scale, cxBack, cy)
 	return out
+}
+
+type vec3 struct{ x, y, z float64 }
+
+func (v vec3) add(o vec3) vec3    { return vec3{v.x + o.x, v.y + o.y, v.z + o.z} }
+func (v vec3) sub(o vec3) vec3    { return vec3{v.x - o.x, v.y - o.y, v.z - o.z} }
+func (v vec3) mul(s float64) vec3 { return vec3{v.x * s, v.y * s, v.z * s} }
+
+type boxSpec struct {
+	x0, x1, y0, y1, z0, z1 float64
+	u, v, tw, th, td       int
+}
+
+func (b boxSpec) expand(d float64, u, v int) boxSpec {
+	return boxSpec{b.x0 - d, b.x1 + d, b.y0 - d, b.y1 + d, b.z0 - d, b.z1 + d, u, v, b.tw, b.th, b.td}
+}
+
+func playerBoxes(slim bool) (base, overlay []boxSpec) {
+	aw := 4
+	if slim {
+		aw = 3
+	}
+	faw := float64(aw)
+	head := boxSpec{-4, 4, 24, 32, -4, 4, 0, 0, 8, 8, 8}
+	torso := boxSpec{-4, 4, 12, 24, -2, 2, 16, 16, 8, 12, 4}
+	rightArm := boxSpec{-4 - faw, -4, 12, 24, -2, 2, 40, 16, aw, 12, 4}
+	leftArm := boxSpec{4, 4 + faw, 12, 24, -2, 2, 32, 48, aw, 12, 4}
+	rightLeg := boxSpec{-4, 0, 0, 12, -2, 2, 0, 16, 4, 12, 4}
+	leftLeg := boxSpec{0, 4, 0, 12, -2, 2, 16, 48, 4, 12, 4}
+
+	base = []boxSpec{head, torso, rightArm, leftArm, rightLeg, leftLeg}
+	overlay = []boxSpec{
+		head.expand(0.5, 32, 0),
+		torso.expand(0.25, 16, 32),
+		rightArm.expand(0.25, 40, 32),
+		leftArm.expand(0.25, 48, 48),
+		rightLeg.expand(0.25, 0, 32),
+		leftLeg.expand(0.25, 0, 48),
+	}
+	return base, overlay
+}
+
+type faceSpec struct {
+	o, du, dv, normal vec3
+	tx, ty, tw, th    int
+	shade             float64
+}
+
+func boxFaces(b boxSpec) [6]faceSpec {
+	dx, dy, dz := b.x1-b.x0, b.y1-b.y0, b.z1-b.z0
+	return [6]faceSpec{
+		{ // front (+Z)
+			vec3{b.x0, b.y1, b.z1}, vec3{dx, 0, 0}, vec3{0, -dy, 0}, vec3{0, 0, 1},
+			b.u + b.td, b.v + b.td, b.tw, b.th, 0.86,
+		},
+		{ // back (-Z)
+			vec3{b.x1, b.y1, b.z0}, vec3{-dx, 0, 0}, vec3{0, -dy, 0}, vec3{0, 0, -1},
+			b.u + b.tw + 2*b.td, b.v + b.td, b.tw, b.th, 0.86,
+		},
+		{ // left side of player (+X)
+			vec3{b.x1, b.y1, b.z1}, vec3{0, 0, -dz}, vec3{0, -dy, 0}, vec3{1, 0, 0},
+			b.u + b.tw + b.td, b.v + b.td, b.td, b.th, 0.70,
+		},
+		{ // right side of player (-X)
+			vec3{b.x0, b.y1, b.z0}, vec3{0, 0, dz}, vec3{0, -dy, 0}, vec3{-1, 0, 0},
+			b.u, b.v + b.td, b.td, b.th, 0.70,
+		},
+		{ // top (+Y)
+			vec3{b.x0, b.y1, b.z0}, vec3{dx, 0, 0}, vec3{0, 0, dz}, vec3{0, 1, 0},
+			b.u + b.td, b.v, b.tw, b.td, 1.0,
+		},
+		{ // bottom (-Y)
+			vec3{b.x0, b.y0, b.z1}, vec3{dx, 0, 0}, vec3{0, 0, -dz}, vec3{0, -1, 0},
+			b.u + b.tw + b.td, b.v, b.tw, b.td, 0.55,
+		},
+	}
+}
+
+type projectedQuad struct {
+	ox, oy       float64
+	dux, duy     float64
+	dvx, dvy     float64
+	z0, dzu, dzv float64
+	centerZ      float64
+	tx, ty       int
+	tw, th       int
+	shade        float64
+	x0, y0       int
+	x1, y1       int
+}
+
+func renderAngledFigure(dst, skin *image.NRGBA, u int, base, overlay []boxSpec, phi, beta, scale, cx, cy float64) {
+	sinPhi, cosPhi := math.Sincos(phi)
+	sinBeta, cosBeta := math.Sincos(beta)
+	project := func(p vec3) (sx, sy, sz float64) {
+		yModel := p.y - 16
+		x1 := p.x*cosPhi - p.z*sinPhi
+		z1 := p.x*sinPhi + p.z*cosPhi
+		sx = cx + x1*scale
+		sy = cy - (yModel*cosBeta-z1*sinBeta)*scale
+		sz = yModel*sinBeta + z1*cosBeta
+		return sx, sy, sz
+	}
+
+	bounds := dst.Bounds()
+	w, h := bounds.Dx(), bounds.Dy()
+	makeQuad := func(f faceSpec) (projectedQuad, bool) {
+		n1z := f.normal.x*sinPhi + f.normal.z*cosPhi
+		nCamZ := f.normal.y*sinBeta + n1z*cosBeta
+		if nCamZ <= 1e-6 {
+			return projectedQuad{}, false
+		}
+		ox, oy, z0 := project(f.o)
+		pxU, pyU, zU := project(f.o.add(f.du))
+		pxV, pyV, zV := project(f.o.add(f.dv))
+		dux, duy, dzu := pxU-ox, pyU-oy, zU-z0
+		dvx, dvy, dzv := pxV-ox, pyV-oy, zV-z0
+		det := dux*dvy - duy*dvx
+		if math.Abs(det) < 1e-6 {
+			return projectedQuad{}, false
+		}
+		pxUV, pyUV, _ := project(f.o.add(f.du).add(f.dv))
+		minX := min(min(ox, pxU), min(pxV, pxUV))
+		maxX := max(max(ox, pxU), max(pxV, pxUV))
+		minY := min(min(oy, pyU), min(pyV, pyUV))
+		maxY := max(max(oy, pyU), max(pyV, pyUV))
+		x0 := max(0, int(math.Floor(minX)))
+		x1 := min(w-1, int(math.Ceil(maxX)))
+		y0 := max(0, int(math.Floor(minY)))
+		y1 := min(h-1, int(math.Ceil(maxY)))
+		if x0 > x1 || y0 > y1 {
+			return projectedQuad{}, false
+		}
+		_, _, cz := project(f.o.add(f.du.mul(0.5)).add(f.dv.mul(0.5)))
+		return projectedQuad{
+			ox, oy, dux, duy, dvx, dvy, z0, dzu, dzv, cz,
+			f.tx, f.ty, f.tw, f.th, f.shade, x0, y0, x1, y1,
+		}, true
+	}
+
+	zbuf := make([]float64, w*h)
+	for i := range zbuf {
+		zbuf[i] = math.Inf(-1)
+	}
+	sample := func(q projectedQuad, a, b float64) color.NRGBA {
+		iu := min(q.tw*u-1, max(0, int(a*float64(q.tw*u))))
+		iv := min(q.th*u-1, max(0, int(b*float64(q.th*u))))
+		return skin.NRGBAAt(q.tx*u+iu, q.ty*u+iv)
+	}
+	rasterize := func(q projectedQuad, isOverlay bool) {
+		det := q.dux*q.dvy - q.duy*q.dvx
+		for py := q.y0; py <= q.y1; py++ {
+			ry := float64(py) + 0.5 - q.oy
+			rowOff := py * w
+			for px := q.x0; px <= q.x1; px++ {
+				rx := float64(px) + 0.5 - q.ox
+				a := (rx*q.dvy - ry*q.dvx) / det
+				b := (q.dux*ry - q.duy*rx) / det
+				if a < -1e-5 || a >= 1+1e-5 || b < -1e-5 || b >= 1+1e-5 {
+					continue
+				}
+				z := q.z0 + a*q.dzu + b*q.dzv
+				idx := rowOff + px
+				if !isOverlay {
+					if z > zbuf[idx] {
+						zbuf[idx] = z
+						dst.SetNRGBA(px, py, shade(sample(q, a, b), q.shade))
+					}
+					continue
+				}
+				if z < zbuf[idx]-1e-4 {
+					continue
+				}
+				c := sample(q, a, b)
+				if c.A == 0 {
+					continue
+				}
+				blend(dst, px, py, shade(c, q.shade))
+			}
+		}
+	}
+
+	for _, box := range base {
+		for _, f := range boxFaces(box) {
+			if q, ok := makeQuad(f); ok {
+				rasterize(q, false)
+			}
+		}
+	}
+	var ovQuads []projectedQuad
+	for _, box := range overlay {
+		for _, f := range boxFaces(box) {
+			if q, ok := makeQuad(f); ok {
+				ovQuads = append(ovQuads, q)
+			}
+		}
+	}
+	slices.SortFunc(ovQuads, func(a, b projectedQuad) int {
+		return cmp.Compare(a.centerZ, b.centerZ)
+	})
+	for _, q := range ovQuads {
+		rasterize(q, true)
+	}
 }
 
 // CapePreview draws the outer face of a cape (the side seen from behind), height

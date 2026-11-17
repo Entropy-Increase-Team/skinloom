@@ -1,3 +1,4 @@
+import { PageHeader } from '@skinloom/ui'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
@@ -14,11 +15,8 @@ export default async function MyReportsPage() {
   if (!(await getViewer())) redirect('/auth/login?next=/user/reports')
   const t = await getTranslations('myReports')
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t('intro')}</p>
-      </div>
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      <PageHeader title={t('title')} description={t('intro')} />
       <MyReports />
     </div>
   )

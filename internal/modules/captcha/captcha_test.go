@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -72,6 +73,21 @@ func TestImagesDiffer(t *testing.T) {
 	if bytes.Equal(a, b) {
 		t.Fatal("two challenges rendered the same image")
 	}
+}
+
+func TestNewImageConcurrent(t *testing.T) {
+	s := NewService(Options{})
+	var wg sync.WaitGroup
+	for range 16 {
+		wg.Go(func() {
+			for range 5 {
+				if _, _, err := s.NewImage(); err != nil {
+					t.Error(err)
+				}
+			}
+		})
+	}
+	wg.Wait()
 }
 
 func TestStoreIsBounded(t *testing.T) {

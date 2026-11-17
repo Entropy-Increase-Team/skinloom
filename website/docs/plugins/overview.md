@@ -20,7 +20,7 @@ sidebar_position: 1
 
 | 部分 | 状态 |
 |---|---|
-| 主题包 | 可用。内置的 `themes/default`、`themes/brocade` 就是按标准写的 |
+| 主题包与本地主题 | 可用。内置 `default`、`brocade`，支持在 `<数据目录>/themes/` 放置本地主题、热加载、`extends` 继承与主题设置（见[开发主题](./themes.md)） |
 | 领域事件 | 用户、角色、材质、衣柜、举报共 15 个事件，内置模块（如 CDN 刷新）已经在用 |
 | 首页区块 | 可用。区块目录见 `GET /api/v1/admin/blocks` |
 | 前端插槽 | 页面已留好位置，等插件运行时上线 |
@@ -28,23 +28,7 @@ sidebar_position: 1
 
 ## 写一个主题
 
-主题包是一个目录：
-
-```text
-my-theme/
-  plugin.json     清单
-  theme.css       可选：额外的样式表
-  *.png / *.svg   可选：图片
-```
-
-`plugin.json` 里可以声明：
-
-- `tokens`：`light`、`dark` 两组颜色（名称同 shadcn/ui：`background`、`primary`……）、`fonts`，以及 3D 预览的背景；
-- `css`：额外的样式表；
-- `layout`：登录页 `card` 或 `split`，皮肤库 `comfortable` 或 `compact`；
-- `home`：默认的首页区块。
-
-加载时会校验：id 只能用 1–32 个小写字母、数字或横线；颜色值不能含 `; { } < >` 或注释；首页区块必须是已知的类型与属性。照着 `themes/` 下的内置主题写最快。目前主题需要随程序一起构建，安装第三方主题要等插件平台。
+运行 `skinloom theme new my-theme --extends default` 即可在 `<数据目录>/themes/my-theme/` 生成主题脚手架，再用 `skinloom theme check` 校验、`skinloom theme reload` 热加载，无需重新编译。完整指南、Token 参考、挂钩清单与示例见[开发主题](./themes.md)。
 
 ## 从 Blessing Skin 迁移插件
 

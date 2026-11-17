@@ -1,10 +1,10 @@
 'use client'
 
 import { type Answer, type CaptchaInfo, linkSocialPending, login, type SocialProviderInfo } from '@skinloom/api-client'
-import { Button } from '@skinloom/ui'
+import { Button, Checkbox, Label } from '@skinloom/ui'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { type FormEvent, useRef, useState } from 'react'
+import { type FormEvent, useState } from 'react'
 
 import { problemOf } from '@/lib/problem'
 
@@ -39,7 +39,7 @@ export function LoginForm({
   const [captchaError, setCaptchaError] = useState<string>()
   const [answer, setAnswer] = useState<Answer | null>(null)
   const [resetKey, setResetKey] = useState(0)
-  const remember = useRef<HTMLInputElement>(null)
+  const [remember, setRemember] = useState(false)
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -55,7 +55,7 @@ export function LoginForm({
       await login({
         email: String(f.get('email') ?? ''),
         password: String(f.get('password') ?? ''),
-        remember: f.get('remember') === 'on',
+        remember,
         ...(needCaptcha && answer ? { captcha: answer } : {}),
       })
       if (linkPending) {
@@ -92,14 +92,14 @@ export function LoginForm({
       <Field id="email" label={t('email')} type="email" autoComplete="username" required autoFocus />
       <Field id="password" label={t('password')} type="password" autoComplete="current-password" required />
       {needCaptcha && <Captcha config={captcha} onChange={setAnswer} resetKey={resetKey} error={captchaError} />}
-      <label className="flex items-center gap-2 text-sm text-muted-foreground">
-        <input ref={remember} type="checkbox" name="remember" className="size-4 accent-primary" />
+      <Label className="w-fit gap-2 font-normal text-muted-foreground">
+        <Checkbox checked={remember} onCheckedChange={setRemember} />
         {t('remember')}
-      </label>
-      <Button type="submit" disabled={pending}>
-        {pending ? t('signingIn') : t('signIn')}
+      </Label>
+      <Button type="submit" size="lg" loading={pending}>
+        {t('signIn')}
       </Button>
-      {!linkPending && <SocialButtons providers={providers} next={next} remember={() => remember.current?.checked ?? false} />}
+      {!linkPending && <SocialButtons providers={providers} next={next} remember={() => remember} />}
     </form>
   )
 }

@@ -1,7 +1,16 @@
 import type { BlockType } from '@skinloom/api-client'
 import { describe, expect, it } from 'vitest'
 
-import { localizedOf, localizedValue, moved, safeToken, savedBlocks, withToken } from './appearance-form'
+import {
+  buildThemeZip,
+  localizedOf,
+  localizedValue,
+  moved,
+  safeToken,
+  savedBlocks,
+  withThemeSetting,
+  withToken,
+} from './appearance-form'
 
 describe('withToken', () => {
   it('sets and removes one token, dropping groups left empty', () => {
@@ -64,5 +73,43 @@ describe('moved', () => {
     expect(moved(['a', 'b', 'c'], 2, -1)).toEqual(['a', 'c', 'b'])
     const list = ['a', 'b']
     expect(moved(list, 0, -1)).toBe(list)
+  })
+})
+
+describe('withThemeSetting & buildThemeZip', () => {
+  it('updates and cleans up per-theme settings', () => {
+    const s = withThemeSetting({}, 'brocade', 'lattice', false)
+    expect(s).toEqual({ brocade: { lattice: false } })
+    expect(withThemeSetting(s, 'brocade', 'lattice', null)).toEqual({})
+  })
+
+  it('packages overrides into a valid zip archive with plugin.json', () => {
+    const zip = buildThemeZip('default', { light: { primary: '#336699' } })
+    expect(zip[0]).toBe(0x50)
+    expect(zip[1]).toBe(0x4b)
+    const text = new TextDecoder().decode(zip)
+    expect(text).toContain('default-custom/plugin.json')
+    expect(text).toContain('"extends": "default"')
+    expect(text).toContain('"#336699"')
+  })
+
+  it('flattens single-level inheritance when exporting from an extended theme', () => {
+    const zip = buildThemeZip(
+      {
+        id: 'my-child',
+        extends: 'default',
+        tokens: {
+          light: { background: '#ffffff', primary: '#112233' },
+          dark: { background: '#111111', primary: '#445566' },
+        },
+      },
+      { light: { primary: '#998877' } },
+    )
+    const text = new TextDecoder().decode(zip)
+    expect(text).toContain('my-child-custom/plugin.json')
+    expect(text).toContain('"extends": "default"')
+    expect(text).not.toContain('"extends": "my-child"')
+    expect(text).toContain('"#998877"')
+    expect(text).toContain('"#ffffff"')
   })
 })

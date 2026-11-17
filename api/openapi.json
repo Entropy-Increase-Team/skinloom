@@ -2394,6 +2394,9 @@
       "ResolvedTheme": {
         "additionalProperties": false,
         "properties": {
+          "colorScheme": {
+            "type": "string"
+          },
           "css": {
             "items": {
               "type": "string"
@@ -2421,6 +2424,12 @@
             },
             "type": "object"
           },
+          "settings": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
           "tokens": {
             "$ref": "#/components/schemas/Tokens"
           },
@@ -2431,6 +2440,7 @@
         "required": [
           "id",
           "version",
+          "colorScheme",
           "tokens",
           "css",
           "js",
@@ -2726,6 +2736,41 @@
         },
         "required": [
           "textureId"
+        ],
+        "type": "object"
+      },
+      "Setting": {
+        "additionalProperties": false,
+        "properties": {
+          "default": {},
+          "label": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "options": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "token": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "color",
+              "image",
+              "choice",
+              "text",
+              "boolean"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
         ],
         "type": "object"
       },
@@ -3595,11 +3640,20 @@
           "active": {
             "type": "boolean"
           },
+          "colorScheme": {
+            "type": "string"
+          },
           "description": {
             "additionalProperties": {
               "type": "string"
             },
             "type": "object"
+          },
+          "error": {
+            "type": "string"
+          },
+          "extends": {
+            "type": "string"
           },
           "home": {
             "description": "The theme's home page, used while home.blocks is null",
@@ -3623,6 +3677,15 @@
             },
             "type": "object"
           },
+          "screenshot": {
+            "type": "string"
+          },
+          "settings": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Setting"
+            },
+            "type": "object"
+          },
           "source": {
             "type": "string"
           },
@@ -3639,6 +3702,7 @@
           "name",
           "source",
           "active",
+          "colorScheme",
           "tokens",
           "layout",
           "home"
@@ -5164,6 +5228,60 @@
           }
         ],
         "summary": "List installed themes",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/themes/reload": {
+      "post": {
+        "description": "Reloads themes from \u003cdata\u003e/themes and broadcasts a config version bump.",
+        "operationId": "reloadThemes",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ThemeView"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Rescan local themes",
         "tags": [
           "admin"
         ]

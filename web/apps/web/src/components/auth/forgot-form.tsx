@@ -56,8 +56,8 @@ export function ForgotForm({ captcha }: { captcha: CaptchaInfo }) {
       <FormError message={error} />
       <Field id="email" label={t('email')} type="email" autoComplete="email" required autoFocus error={fields.email} />
       <Captcha config={captcha} onChange={setAnswer} resetKey={resetKey} error={fields.captcha} />
-      <Button type="submit" disabled={pending}>
-        {pending ? t('submitting') : t('submit')}
+      <Button type="submit" size="lg" loading={pending}>
+        {t('submit')}
       </Button>
     </form>
   )

@@ -204,7 +204,7 @@ func servePreview(w http.ResponseWriter, r *http.Request, d Deps, t *ent.Texture
 	format := imageFormat(r, height*9/8, height) // a skin preview is 36 by 32 skin pixels; a cape's is narrower
 	// The key holds the type: a texture's image never changes, but its type can (an
 	// Alex skin is drawn with slim arms), so the hash alone is not enough.
-	key := fmt.Sprintf("preview:%s:%s:%d:%s", t.Hash, t.Type, height, format)
+	key := fmt.Sprintf("preview2:%s:%s:%d:%s", t.Hash, t.Type, height, format)
 	missing := func() { http.NotFound(w, r) } // as Blessing Skin when the file is gone
 	serveImage(w, r, d, key, format, cache, missing, func() (image.Image, error) {
 		img, err := decodeFile(r, d, t.Hash)

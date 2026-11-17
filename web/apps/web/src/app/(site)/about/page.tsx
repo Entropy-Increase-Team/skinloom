@@ -1,4 +1,6 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@skinloom/ui'
+import { ButtonLink } from '@skinloom/ui'
+import { ArrowUpRight } from 'lucide-react'
+import type * as React from 'react'
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 
@@ -15,55 +17,71 @@ const projects = [
   { name: 'CustomSkinLoader', href: 'https://github.com/xfl03/MCCustomSkinLoader', key: 'csl' },
 ] as const
 
+function External({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-medium hover:text-primary">
+      {children}
+      <ArrowUpRight className="size-3.5 text-faint-foreground" aria-hidden />
+    </a>
+  )
+}
+
+/** About the software: what it is, the version, the open-source repository, and the projects it stands on. */
 export default async function AboutPage() {
   const boot = await getBootstrap()
   const t = await getTranslations('about')
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-12">
-      <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
-      <p className="leading-relaxed text-muted-foreground">{t('intro')}</p>
-      <p className="text-sm text-muted-foreground">
-        {t('version')}: <code className="font-mono">{boot.server.version}</code>
-      </p>
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-10 px-4 py-10 sm:px-6 lg:py-16">
+      <div className="flex flex-col gap-4">
+        <h1 className="text-2xl font-medium">{t('title')}</h1>
+        <p className="text-body text-muted-foreground">{t('intro')}</p>
+        <div className="flex flex-col gap-3 rounded-xl border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Entropy-Increase-Team/skinloom</span>
+            <dl className="flex flex-wrap gap-x-5 gap-y-1 text-caption text-muted-foreground">
+              <div className="flex gap-1.5">
+                <dt>{t('version')}</dt>
+                <dd className="font-mono text-foreground">{boot.server.version}</dd>
+              </div>
+              <div className="flex gap-1.5">
+                <dt>{t('license')}</dt>
+                <dd>
+                  <External href="https://github.com/Entropy-Increase-Team/skinloom/blob/main/LICENSE">MIT</External>
+                </dd>
+              </div>
+            </dl>
+          </div>
+          <ButtonLink variant="outline" size="sm" className="w-fit shrink-0" render={<a href="https://github.com/Entropy-Increase-Team/skinloom" target="_blank" rel="noreferrer" />}>
+            GitHub
+            <ArrowUpRight aria-hidden />
+          </ButtonLink>
+        </div>
+      </div>
 
-      <h2 className="mt-4 text-xl font-semibold">{t('thanksTitle')}</h2>
-      <Card className="border-primary/40">
-        <CardHeader>
-          <CardTitle>
-            <a href="https://github.com/bs-community/blessing-skin-server" target="_blank" rel="noreferrer" className="hover:underline">
-              Blessing Skin Server
-            </a>
-          </CardTitle>
-          <CardDescription className="leading-relaxed">{t('blessing')}</CardDescription>
-        </CardHeader>
-      </Card>
-      <p className="text-sm text-muted-foreground">{t('thanksIntro')}</p>
-      <Card>
-        <CardContent>
-          <ul className="flex flex-col gap-2 text-sm">
-            {projects.map((p) => (
-              <li key={p.name}>
-                <a href={p.href} target="_blank" rel="noreferrer" className="font-medium hover:underline">
-                  {p.name}
-                </a>
-                <span className="text-muted-foreground"> — {t(p.key)}</span>
-              </li>
-            ))}
-            <li>
-              <a href="https://nextjs.org" target="_blank" rel="noreferrer" className="font-medium hover:underline">
-                Next.js
-              </a>
-              <span className="text-muted-foreground">, Go, ent, Huma, chi, shadcn/ui, Tailwind CSS …</span>
+      <section className="flex flex-col gap-4">
+        <h2 className="text-lg font-medium">{t('thanksTitle')}</h2>
+        <p className="text-sm text-muted-foreground">{t('thanksIntro')}</p>
+        <ul className="flex flex-col border-t text-sm">
+          {projects.map((p) => (
+            <li key={p.name} className="flex flex-col gap-0.5 border-b py-3 sm:flex-row sm:gap-4">
+              <span className="sm:w-44 sm:shrink-0">
+                <External href={p.href}>{p.name}</External>
+              </span>
+              <span className="text-muted-foreground">{t(p.key)}</span>
             </li>
-          </ul>
-        </CardContent>
-      </Card>
-      <p className="text-sm text-muted-foreground">
-        {t('license')}:{' '}
-        <a href="https://github.com/Entropy-Increase-Team/skinloom/blob/main/LICENSE" className="hover:underline">
-          MIT
-        </a>
-      </p>
+          ))}
+          <li className="flex flex-col gap-0.5 border-b py-3 sm:flex-row sm:gap-4">
+            <span className="sm:w-44 sm:shrink-0">
+              <External href="https://nextjs.org">Next.js</External>
+            </span>
+            <span className="text-muted-foreground">Go, ent, Huma, chi, shadcn/ui, Base UI, Tailwind CSS …</span>
+          </li>
+        </ul>
+        <div className="flex flex-col gap-1.5 rounded-xl border bg-card p-5">
+          <External href="https://github.com/bs-community/blessing-skin-server">Blessing Skin Server</External>
+          <p className="text-sm leading-relaxed text-muted-foreground">{t('blessing')}</p>
+        </div>
+      </section>
     </div>
   )
 }

@@ -73,7 +73,18 @@ export function Dropzone({
             {hint && <span className="text-xs text-faint-foreground">{hint}</span>}
           </>
         )}
-        <input ref={input} id={id} type="file" accept={accept} disabled={disabled} className="sr-only" onChange={(e) => take(e.target.files)} />
+        <input
+          ref={input}
+          id={id}
+          type="file"
+          accept={accept}
+          disabled={disabled}
+          className="sr-only"
+          onChange={(e) => {
+            take(e.target.files)
+            e.target.value = ''
+          }}
+        />
       </label>
       {error && (
         <p role="alert" className="text-caption text-destructive">

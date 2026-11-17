@@ -33,12 +33,13 @@ export function Providers({
   // The "ui" messages as written: the components fill in {count}, {text}… themselves.
   const messages = useMessages()
   const labels = useMemo(() => (messages.ui ?? {}) as Partial<UiLabels>, [messages])
+  const forcedTheme = bootstrap.theme.colorScheme === 'light' || bootstrap.theme.colorScheme === 'dark' ? bootstrap.theme.colorScheme : undefined
   return (
     <BootstrapContext.Provider value={bootstrap}>
       {/* Base UI renders a few inline scripts and styles: they need the page's nonce. */}
       <CSPProvider nonce={nonce}>
         <QueryClientProvider client={queryClient}>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange nonce={nonce}>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange forcedTheme={forcedTheme} nonce={nonce}>
             <UiLabelsProvider labels={labels}>
               <TooltipProvider delay={200}>
                 <ConfirmProvider>

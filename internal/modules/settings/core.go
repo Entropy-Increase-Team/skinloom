@@ -100,6 +100,16 @@ func coreDefs() []Def {
 			},
 		},
 		{
+			Key: "theme.settings", Type: TypeJSON, Public: true, Default: map[string]any{},
+			Doc: `Per-theme settings configured by the administrator: {"brocade": {"accent": "…"}, …}.`,
+			Validate: func(v any) error {
+				if _, ok := v.(map[string]any); !ok {
+					return fmt.Errorf("want an object")
+				}
+				return nil
+			},
+		},
+		{
 			Key: "i18n.overrides", Type: TypeJSON, Default: map[string]any{}, Validate: validateOverrides,
 			Doc: `The administrator's wording of interface texts: {"zh-CN": {"nav.skinlib": "…"}, "en": {…}}, by message key. ` +
 				`Texts keep the default's {placeholders}. (BS language_lines)`,

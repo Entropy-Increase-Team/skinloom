@@ -42,8 +42,8 @@ export function VerifyEmail({ token }: { token: string }) {
   return (
     <div className="flex flex-col gap-4">
       {state === 'failed' && <p className="text-sm text-destructive">{t('failed')}</p>}
-      <Button onClick={confirm} disabled={state === 'pending'}>
-        {state === 'pending' ? t('confirming') : t('confirm')}
+      <Button size="lg" loading={state === 'pending'} onClick={() => void confirm()}>
+        {t('confirm')}
       </Button>
     </div>
   )

@@ -1,8 +1,8 @@
 'use client'
 
 import { type SignInfo, type SignResult, signIn } from '@skinloom/api-client'
-import { Button, Card, CardContent, CardHeader, CardTitle } from '@skinloom/ui'
-import { CalendarCheck } from 'lucide-react'
+import { Button, toast } from '@skinloom/ui'
+import { CalendarCheck, Check } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useFormatter, useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
@@ -16,7 +16,6 @@ export function SignInCard({ sign }: { sign: SignInfo }) {
   const router = useRouter()
   const [next, setNext] = useState(sign.nextAt ?? null)
   const [pending, setPending] = useState(false)
-  const [message, setMessage] = useState<{ error: boolean; text: string } | null>(null)
 
   // The server only sends nextAt while it is in the future; enable the button when it comes.
   useEffect(() => setNext(sign.nextAt ?? null), [sign.nextAt])
@@ -30,15 +29,14 @@ export function SignInCard({ sign }: { sign: SignInfo }) {
 
   async function onSign() {
     setPending(true)
-    setMessage(null)
     try {
       const res = (await signIn()).data as SignResult
       setNext(res.nextAt)
-      setMessage({ error: false, text: t('gained', { score: res.gained }) })
+      toast.success(t('gained', { score: res.gained }))
       router.refresh()
     } catch (err) {
       const early = problemOf(err).status === 409
-      setMessage({ error: true, text: early ? t('tooEarly') : t('failed') })
+      toast.error(early ? t('tooEarly') : t('failed'))
       if (early) router.refresh()
     } finally {
       setPending(false)
@@ -46,28 +44,30 @@ export function SignInCard({ sign }: { sign: SignInfo }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CalendarCheck className="size-4 text-primary" aria-hidden />
+    <section className="flex flex-col gap-4 rounded-xl border bg-card p-5" aria-labelledby="sign-title">
+      <div className="flex flex-col gap-1">
+        <h2 id="sign-title" className="flex items-center gap-2 text-sm font-medium">
+          <CalendarCheck className="size-4 text-muted-foreground" aria-hidden />
           {t('title')}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3 text-sm">
-        <p className="text-muted-foreground">
+        </h2>
+        <p className="text-caption text-muted-foreground">
           {sign.min === sign.max ? t('fixed', { score: sign.min }) : t('range', { min: sign.min, max: sign.max })}
           {sign.daily ? t('daily') : t('gap', { hours: sign.gapHours })}
         </p>
-        <Button className="self-start" disabled={pending || next !== null} onClick={() => void onSign()}>
-          {pending ? t('signing') : next ? t('done') : t('button')}
+      </div>
+      {next ? (
+        <div className="flex flex-col gap-1">
+          <Button variant="outline" disabled>
+            <Check />
+            {t('done')}
+          </Button>
+          <p className="text-caption text-muted-foreground">{t('next', { time: format.dateTime(new Date(next), { dateStyle: 'medium', timeStyle: 'short' }) })}</p>
+        </div>
+      ) : (
+        <Button loading={pending} onClick={() => void onSign()}>
+          {t('button')}
         </Button>
-        {next && <p className="text-muted-foreground">{t('next', { time: format.dateTime(new Date(next), { dateStyle: 'medium', timeStyle: 'short' }) })}</p>}
-        {message && (
-          <p role="status" className={message.error ? 'text-destructive' : 'text-primary'}>
-            {message.text}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      )}
+    </section>
   )
 }

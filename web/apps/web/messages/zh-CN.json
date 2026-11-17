@@ -10,12 +10,17 @@
     "theme": "切换明暗",
     "language": "语言",
     "backHome": "返回首页",
-    "verifyFirst": "请先验证邮箱：本站要求验证后才能进行这项操作。"
+    "verifyFirst": "请先验证邮箱：本站要求验证后才能进行这项操作",
+    "cancel": "取消",
+    "save": "保存",
+    "loading": "加载中…"
   },
-  "offline": "暂时无法连接后端服务，页面显示的是默认内容。",
+  "offline": "暂时无法连接后端服务，页面显示的是默认内容",
   "hero": {
     "browse": "浏览皮肤库",
-    "join": "免费注册"
+    "join": "注册账号",
+    "showcase": "本站最新上传",
+    "showcasePopular": "最受欢迎"
   },
   "features": {
     "title": "为玩家和站长而做",
@@ -34,23 +39,29 @@
     "selfhost": {
       "title": "一键自托管",
       "body": "Windows、macOS、Linux 解压即用，也支持 Docker 与 Kubernetes；插件、主题、设置全部热加载。"
-    }
+    },
+    "intro": "玩家在这里管理皮肤和角色；站长用一个程序就能把站点跑起来，从 Blessing Skin 迁移过来也不用改启动器设置。"
   },
   "launcher": {
-    "title": "在启动器中使用",
-    "body": "在支持 authlib-injector 的启动器里添加外置登录服务器，填入下面的地址：",
+    "title": "在游戏里使用",
+    "body": "三步让启动器显示你在本站的皮肤",
     "copy": "复制",
     "copied": "已复制",
     "note": "支持拖拽的启动器（如 HMCL、PCL2、BakaXL）可以直接把\"拖到启动器\"拖进添加外置登录的窗口；也可以只填本站地址，启动器会自动找到上面的接口。",
     "drag": "拖到启动器",
-    "dragHint": "按住拖到启动器的外置登录窗口里"
+    "dragHint": "按住拖到启动器的外置登录窗口里",
+    "step1": "在启动器里添加外置登录",
+    "step1Body": "HMCL、PCL2、BakaXL、Prism Launcher 等启动器都自带 authlib-injector 支持。",
+    "step2": "填入本站的认证服务器地址",
+    "step3": "用本站邮箱和密码登录",
+    "step3Body": "登录后选择要用的角色，进入服务器就能看到皮肤。"
   },
   "announcement": {
     "title": "公告"
   },
   "skinlib": {
     "title": "皮肤库",
-    "description": "浏览、搜索大家分享的皮肤与披风。",
+    "description": "浏览、搜索大家分享的皮肤与披风",
     "upload": "上传材质",
     "category": "分类",
     "sort": "排序",
@@ -66,11 +77,11 @@
       "time": "最新",
       "likes": "最受欢迎"
     },
-    "empty": "皮肤库还是空的，来上传第一个材质吧。",
-    "noMatch": "没有符合条件的材质。",
-    "loadFailed": "加载失败，请稍后重试。",
-    "loading": "加载中…",
-    "more": "加载更多"
+    "empty": "皮肤库还是空的，来上传第一个材质吧",
+    "noMatch": "没有符合条件的材质",
+    "loadFailed": "加载失败，请稍后重试",
+    "more": "加载更多",
+    "clearFilter": "清除筛选"
   },
   "about": {
     "title": "关于云织",
@@ -98,7 +109,6 @@
     "password": "密码",
     "remember": "记住我（30 天）",
     "signIn": "登录",
-    "signingIn": "正在登录…",
     "signInTo": "登录到 {site}",
     "signOut": "退出登录",
     "roles": {
@@ -106,11 +116,11 @@
       "superadmin": "超级管理员"
     },
     "errors": {
-      "invalid": "邮箱或密码不正确。",
-      "disabled": "该账号已被停用，请联系站点管理员。",
-      "tooMany": "失败次数过多，请稍后再试。",
-      "failed": "登录失败，请检查网络后重试。",
-      "captchaDown": "验证码服务暂时不可用，请稍后再试。"
+      "invalid": "邮箱或密码不正确",
+      "disabled": "该账号已被停用，请联系站点管理员",
+      "tooMany": "失败次数过多，请稍后再试",
+      "failed": "登录失败，请检查网络后重试",
+      "captchaDown": "验证码服务暂时不可用，请稍后再试"
     },
     "noAccount": "还没有账号？",
     "register": "注册",
@@ -119,7 +129,7 @@
     "closet": "衣柜",
     "players": "角色",
     "dashboard": "用户中心",
-    "signInToLink": "登录要绑定的账号。"
+    "signInToLink": "登录要绑定的账号"
   },
   "setup": {
     "title": "初始化站点",
@@ -129,39 +139,37 @@
     "site": "站点",
     "siteName": "站点名称",
     "siteUrl": "站点地址",
-    "siteUrlHint": "访问者用来打开本站的地址，之后可在后台修改。",
+    "siteUrlHint": "访问者用来打开本站的地址，之后可在后台修改",
     "admin": "管理员账号",
     "email": "邮箱",
     "nickname": "昵称",
     "password": "密码",
-    "passwordHint": "8 到 128 个字符。",
+    "passwordHint": "8 到 128 个字符",
     "confirm": "确认密码",
     "submit": "完成初始化",
-    "submitting": "正在初始化…",
     "errors": {
       "token": "安装链接无效、已使用或已过期。请重启 SkinLoom 或运行 skinloom setup-link 获取新链接。",
-      "done": "站点已经初始化过了，请直接登录。",
-      "failed": "初始化失败，请检查网络后重试。"
+      "done": "站点已经初始化过了，请直接登录",
+      "failed": "初始化失败，请检查网络后重试"
     }
   },
   "register": {
     "title": "注册",
-    "intro": "创建一个 {site} 账号。",
-    "closed": "本站暂未开放注册，请联系站点管理员。",
+    "intro": "创建一个 {site} 账号",
+    "closed": "本站暂未开放注册，请联系站点管理员",
     "email": "邮箱",
     "nickname": "昵称",
     "password": "密码",
-    "passwordHint": "8 到 128 个字符。",
+    "passwordHint": "8 到 128 个字符",
     "confirm": "确认密码",
     "submit": "注册",
-    "submitting": "正在注册…",
     "haveAccount": "已有账号？",
     "signIn": "登录",
     "errors": {
-      "closed": "本站暂未开放注册。",
-      "tooMany": "这个网络注册的账号太多了，请稍后再试。",
-      "captchaDown": "验证码服务暂时不可用，请稍后再试。",
-      "failed": "注册失败，请检查网络后重试。"
+      "closed": "本站暂未开放注册",
+      "tooMany": "这个网络注册的账号太多了，请稍后再试",
+      "captchaDown": "验证码服务暂时不可用，请稍后再试",
+      "failed": "注册失败，请检查网络后重试"
     }
   },
   "captcha": {
@@ -169,121 +177,120 @@
     "alt": "验证码图片",
     "refresh": "换一张",
     "loading": "正在加载…",
-    "loadFailed": "验证码加载失败，请刷新页面或稍后再试。"
+    "loadFailed": "验证码加载失败，请刷新页面或稍后再试"
   },
   "fieldErrors": {
-    "email": "请输入有效的邮箱地址。",
-    "nickname": "昵称为 1 到 32 个字符。",
-    "password": "密码为 8 到 128 个字符。",
-    "siteName": "站点名称最多 64 个字符。",
-    "siteUrl": "请输入以 http:// 或 https:// 开头的地址，例如 https://skins.example.com。",
-    "passwordMismatch": "两次输入的密码不一致。",
-    "emailTaken": "这个邮箱已经注册过了。",
-    "captchaRequired": "请先完成验证码。",
-    "captchaWrong": "验证码不正确或已过期，请重新验证。",
-    "wrongPassword": "密码不正确。"
+    "email": "请输入有效的邮箱地址",
+    "nickname": "昵称为 1 到 32 个字符",
+    "password": "密码为 8 到 128 个字符",
+    "siteName": "站点名称最多 64 个字符",
+    "siteUrl": "请输入以 http:// 或 https:// 开头的地址，例如 https://skins.example.com",
+    "passwordMismatch": "两次输入的密码不一致",
+    "emailTaken": "这个邮箱已经注册过了",
+    "captchaRequired": "请先完成验证码",
+    "captchaWrong": "验证码不正确或已过期，请重新验证",
+    "wrongPassword": "密码不正确"
   },
   "forgot": {
     "title": "找回密码",
-    "intro": "输入注册时使用的邮箱，我们会发送一封重置密码的邮件。",
+    "intro": "输入注册时使用的邮箱，我们会发送一封重置密码的邮件",
     "noMail": "本站没有配置邮件，无法通过邮件重置密码。请联系站点管理员。",
     "email": "邮箱",
     "submit": "发送重置邮件",
-    "submitting": "正在发送…",
     "back": "返回登录",
     "sent": "如果这个邮箱注册过账号，我们已经发送了一封重置密码的邮件。链接 30 分钟内有效，只能使用一次。没有收到的话，请检查垃圾邮件文件夹。",
     "errors": {
-      "tooMany": "请求太频繁了，请稍后再试。",
-      "unavailable": "邮件或验证码服务暂时不可用，请稍后再试。",
-      "failed": "发送失败，请检查网络后重试。"
+      "tooMany": "请求太频繁了，请稍后再试",
+      "unavailable": "邮件或验证码服务暂时不可用，请稍后再试",
+      "failed": "发送失败，请检查网络后重试"
     }
   },
   "reset": {
     "title": "设置新密码",
-    "intro": "设置新密码后，所有设备上的登录都会失效。",
+    "intro": "设置新密码后，所有设备上的登录都会失效",
     "password": "新密码",
-    "passwordHint": "8 到 128 个字符。",
+    "passwordHint": "8 到 128 个字符",
     "confirm": "确认新密码",
     "submit": "设置新密码",
-    "submitting": "正在保存…",
-    "done": "密码已经更新，请使用新密码登录。",
+    "done": "密码已经更新，请使用新密码登录",
     "signIn": "去登录",
-    "invalid": "这个链接无效、已经用过或已过期（有效期 30 分钟）。",
+    "invalid": "这个链接无效、已经用过或已过期（有效期 30 分钟）",
     "again": "重新发送重置邮件",
     "errors": {
-      "failed": "保存失败，请检查网络后重试。"
+      "failed": "保存失败，请检查网络后重试"
     }
   },
   "verify": {
     "title": "验证邮箱",
-    "intro": "点击下面的按钮，确认这个邮箱属于你。",
+    "intro": "点击下面的按钮，确认这个邮箱属于你",
     "confirm": "确认验证邮箱",
-    "confirming": "正在验证…",
-    "done": "邮箱验证成功。",
+    "done": "邮箱验证成功",
     "invalid": "这个链接无效、已经用过或已过期（有效期 24 小时）。登录后可以重新发送验证邮件。",
-    "failed": "验证失败，请检查网络后重试。",
+    "failed": "验证失败，请检查网络后重试",
     "home": "返回首页",
-    "banner": "你的邮箱 {email} 还没有验证。",
+    "banner": "你的邮箱 {email} 还没有验证",
     "resend": "重新发送验证邮件",
-    "resent": "已发送，请查收邮件。",
+    "resent": "已发送，请查收邮件",
     "wait": "刚刚发送过，请稍后再试",
     "resendFailed": "发送失败，点此重试",
     "bannerRequired": "你的邮箱 {email} 还没有验证。本站要求验证后才能管理角色、上传材质和举报。",
-    "noMail": "本站还没有配置邮件，请联系管理员。"
+    "noMail": "本站还没有配置邮件，请联系管理员"
   },
   "profile": {
     "title": "个人资料",
-    "score": "积分：{score}",
     "profile": "基本资料",
     "nickname": "昵称",
     "language": "语言",
     "followBrowser": "跟随浏览器",
-    "languageHint": "也决定站点发给你的邮件使用的语言。",
+    "languageHint": "也决定站点发给你的邮件使用的语言",
     "save": "保存",
-    "saved": "已保存。",
+    "saved": "已保存",
     "password": "修改密码",
     "passwordHint": "修改后，其它设备上的登录会失效，当前设备保持登录。",
     "currentPassword": "当前密码",
     "newPassword": "新密码",
     "confirmPassword": "确认新密码",
     "changePassword": "修改密码",
-    "passwordChanged": "密码已修改，其它设备已退出登录。",
+    "passwordChanged": "密码已修改，其它设备已退出登录",
     "email": "修改邮箱",
     "currentEmail": "当前邮箱：{email}",
     "newEmail": "新邮箱",
     "emailHint": "修改后，其它设备上的登录会失效；原邮箱会收到通知。",
     "changeEmail": "修改邮箱",
-    "emailChanged": "邮箱已修改。",
-    "emailChangedMail": "邮箱已修改，请到新邮箱查收验证邮件。",
+    "emailChanged": "邮箱已修改",
+    "emailChangedMail": "邮箱已修改，请到新邮箱查收验证邮件",
     "devices": "登录设备",
-    "devicesHint": "在这些设备上，你的账号处于登录状态。",
+    "devicesHint": "在这些设备上，你的账号处于登录状态",
     "thisDevice": "当前设备",
-    "lastSeen": "最近活动 {when}",
+    "lastSeen": "<t></t>活动",
     "signOutDevice": "退出",
     "signOutOthers": "退出其它所有设备",
     "delete": "注销账号",
     "deleteHint": "注销后立即退出登录。30 天内重新登录即可恢复账号，之后账号与资料将被永久删除。",
     "deleteButton": "注销我的账号",
-    "deleteConfirm": "确定要注销账号吗？30 天后将无法恢复。",
-    "deleted": "账号已注销。",
+    "deleteConfirm": "注销后立即退出登录。30 天内重新登录可以恢复，之后账号、角色和衣柜会被永久删除。输入你的邮箱 {email} 确认。",
+    "deleted": "账号已注销",
     "adminNoDelete": "管理员不能注销自己的账号；如需注销，请先让超级管理员把你的角色改为普通用户。",
     "errors": {
-      "tooMany": "密码错误次数太多，请稍后再试。",
-      "failed": "操作失败，请检查网络后重试。"
+      "tooMany": "密码错误次数太多，请稍后再试",
+      "failed": "操作失败，请检查网络后重试"
     },
     "avatar": "头像",
-    "avatarHint": "头像是你衣柜里某个皮肤的头部。",
+    "avatarHint": "头像是你衣柜里某个皮肤的头部",
     "chooseAvatar": "去衣柜选择",
     "removeAvatar": "移除头像",
-    "avatarRemoved": "已移除头像。",
+    "avatarRemoved": "已移除头像",
     "launchers": "游戏启动器",
     "launchersHint": "在支持 authlib-injector 的启动器里添加外置登录，填下面的地址，用本站邮箱（或角色名）和密码登录。",
     "launchersSignedIn": "{count, plural, =0 {目前没有启动器登录。} other {有 # 个启动器登录着这个账号。}}",
     "launchersSignOut": "退出所有启动器",
-    "launchersSignedOut": "已退出所有启动器，需要在启动器里重新登录。",
+    "launchersSignedOut": "已退出所有启动器，需要在启动器里重新登录",
     "setPassword": "设置密码",
     "setPasswordHint": "你的账号通过第三方登录。设置密码后，也可以用邮箱和密码登录，以及在游戏启动器中登录。",
-    "passwordSet": "密码已设置。现在也可以用邮箱和密码登录了。"
+    "passwordSet": "密码已设置。现在也可以用邮箱和密码登录了。",
+    "intro": "头像、昵称、登录方式和账号安全",
+    "launchersAddress": "外置登录地址",
+    "deleteTitle": "注销你的账号？"
   },
   "admin": {
     "title": "管理后台",
@@ -300,15 +307,14 @@
     "registered": "注册",
     "lastLogin": "最近登录",
     "edit": "编辑",
-    "close": "收起",
-    "empty": "没有记录。",
+    "empty": "没有符合条件的用户",
     "more": "加载更多",
     "unverified": "未验证",
     "save": "保存",
     "delete": "删除",
     "passwordHint": "留空则不修改",
     "saveHint": "封禁用户或设置新密码会让该用户在所有设备上退出登录；换了邮箱需要重新验证。",
-    "deleteConfirm": "确定立即删除 {email} 吗？此操作无法撤销。",
+    "deleteConfirm": "账号、角色和衣柜立即永久删除，无法恢复。输入对方的邮箱 {email} 确认。",
     "roles": {
       "user": "普通用户",
       "admin": "管理员",
@@ -337,8 +343,8 @@
     "details": "详情",
     "system": "系统 / 令牌",
     "errors": {
-      "load": "加载失败，请刷新重试。",
-      "save": "保存失败。"
+      "load": "加载失败，请刷新重试",
+      "save": "保存失败"
     },
     "overview": "概览",
     "players": "角色",
@@ -347,7 +353,17 @@
     "settings": "设置",
     "appearance": "外观",
     "translations": "翻译",
-    "systemStatus": "系统状态"
+    "systemStatus": "系统状态",
+    "menu": "{name} 的更多操作",
+    "editTitle": "编辑 {name}",
+    "saved": "已保存",
+    "deleteUser": "删除用户",
+    "deleteTitle": "删除用户 {name}？",
+    "deleted": "已删除用户 {name}",
+    "usersIntro": "搜索、编辑和封禁账号。管理员只能管理普通用户。",
+    "playersIntro": "所有用户的角色：改名、转给其他用户、换装或删除。",
+    "auditIntro": "登录、设置变更和管理操作的记录，最新的在前。",
+    "emptyAudit": "没有记录"
   },
   "texture": {
     "private": "私有",
@@ -360,79 +376,92 @@
     "likes": "收藏数",
     "notAvailable": "材质不可用",
     "privateNotice": "这是一个私有材质，只有上传者可以查看。",
-    "loadFailed": "加载失败，请稍后重试。",
+    "loadFailed": "加载失败，请稍后重试",
     "back": "返回皮肤库",
     "preview": "{name} 的 3D 预览",
     "inCloset": "已在衣柜中",
-    "uploader": "上传者",
     "size": "大小",
-    "uploaded": "上传于",
     "hash": "哈希",
     "download": "下载原图",
     "favorite": "收藏",
     "unfavorite": "取消收藏",
-    "favoriteCost": "收藏需要 {cost} 积分，取消收藏时退还。",
+    "favoriteCost": "收藏需要 {cost} 积分，取消收藏时退还",
     "manage": "管理材质",
     "rename": "重命名",
     "changeType": "材质类型",
     "makePrivate": "设为私有",
     "makePublic": "设为公开",
-    "privateConfirm": "设为私有后，这个材质会从其他用户的衣柜和角色上移除（退还他们的积分），确定吗？",
-    "switchCost": "切换需要 {cost} 积分。",
-    "switchRefund": "切换会退还 {cost} 积分。",
+    "privateConfirm": "其他用户将看不到它，它也会从他们的衣柜和角色上移除，收藏花费的积分会退还给他们。",
+    "switchCost": "切换需要 {cost} 积分",
+    "switchRefund": "切换会退还 {cost} 积分",
     "delete": "删除材质",
-    "deleteConfirm": "确定删除「{name}」吗？此操作无法撤销，它也会从所有用户的衣柜和角色上移除。",
+    "deleteConfirm": "它会从皮肤库、所有衣柜和角色上移除，无法恢复。",
     "errors": {
-      "score": "积分不足。",
-      "duplicate": "皮肤库里已经有相同的公开材质了。",
-      "shape": "这张图片的尺寸不能作为该类型使用。",
-      "name": "名称不符合站点的命名规则。",
-      "failed": "操作失败，请稍后重试。"
+      "score": "积分不足，可以先签到或上传材质获得积分",
+      "duplicate": "皮肤库里已经有相同的公开材质了",
+      "shape": "这张图片的尺寸不能作为该类型使用",
+      "name": "名称不符合站点的命名规则",
+      "failed": "操作失败，请稍后重试"
     },
     "report": {
       "open": "举报",
       "reason": "举报理由",
       "placeholder": "例如：盗用他人作品、内容违规……",
-      "cost": "举报需要 {score} 积分，举报成立后退还。",
+      "cost": "举报需要 {score} 积分，举报成立后退还",
       "earn": "举报可获得 {score} 积分（被驳回时收回）。",
-      "reward": "举报成立另奖励 {score} 积分。",
+      "reward": "举报成立另奖励 {score} 积分",
       "submit": "提交举报",
-      "cancel": "取消",
-      "sent": "已提交，管理员会尽快处理。",
+      "sent": "已提交，管理员会尽快处理",
       "mine": "查看我的举报",
       "errors": {
-        "score": "积分不足。",
-        "own": "不能举报自己的材质。",
-        "tooMany": "举报太频繁，请稍后再试。",
-        "failed": "提交失败，请稍后重试。"
-      }
-    }
+        "score": "积分不足，可以先签到或上传材质获得积分",
+        "own": "不能举报自己的材质",
+        "tooMany": "举报太频繁，请稍后再试",
+        "failed": "提交失败，请稍后重试"
+      },
+      "title": "举报这个材质",
+      "body": "说明问题所在，管理员核实后会处理。"
+    },
+    "uploadedOn": "上传于 {date}",
+    "signInToFavorite": "登录后收藏",
+    "flat": "平面视图",
+    "frontBack": "正面与背面",
+    "name": "名称",
+    "renameTitle": "重命名材质",
+    "renameBody": "新名称会显示在皮肤库和所有收藏了它的衣柜里。",
+    "privateTitle": "将「{name}」设为私有？",
+    "publicTitle": "将「{name}」设为公开？",
+    "madePrivate": "已设为私有",
+    "madePublic": "已设为公开",
+    "deleteTitle": "删除「{name}」？",
+    "deleted": "已删除「{name}」"
   },
   "upload": {
     "title": "上传材质",
     "intro": "支持 PNG 格式的皮肤与披风。你现在有 {score} 积分。",
-    "noPreview": "选择图片后在这里预览",
+    "noPreview": "选择图片后在这里预览 3D 效果",
     "duplicate": "皮肤库里已经有这张图了，没有重复上传，也没有扣除积分。",
     "viewExisting": "去看看",
-    "file": "图片",
     "picked": "{w} × {h} 像素",
     "fileHint": "PNG，最大 {kb} KB，宽度不超过 {width} 像素。",
     "name": "名称",
     "type": "类型",
     "typeHint": "已根据图片自动选择，可以手动修改。纤细皮肤的手臂宽 3 像素。",
-    "public": "公开（在皮肤库中展示；私有材质需要更多积分）",
+    "public": "公开",
     "cost": "预计消耗 {cost} 积分（你有 {score}），以服务器重新压缩后的大小为准。",
     "rates": "每 KB 消耗：公开 {pub} 积分，私有 {priv} 积分。",
-    "uploading": "上传中…",
     "submit": "上传",
     "errors": {
-      "notPng": "只支持 PNG 图片。",
-      "tooLarge": "图片不能超过 {kb} KB。",
-      "unreadable": "无法读取这张图片。",
-      "noFile": "请先选择图片。",
-      "score": "积分不足。",
-      "failed": "上传失败，请稍后重试。"
-    }
+      "notPng": "只支持 PNG 图片",
+      "tooLarge": "图片不能超过 {kb} KB",
+      "unreadable": "无法读取这张图片",
+      "noFile": "请先选择图片",
+      "score": "积分不足，可以先签到或上传材质获得积分",
+      "failed": "上传失败，请稍后重试"
+    },
+    "previewLabel": "所选材质的 3D 预览",
+    "replace": "更换图片",
+    "publicHint": "在皮肤库中展示，所有人都能收藏。私有材质只有你能看到，每 KB 消耗更多积分。"
   },
   "closet": {
     "title": "我的衣柜",
@@ -440,31 +469,36 @@
     "skins": "皮肤",
     "capes": "披风",
     "search": "搜索名称",
-    "loadFailed": "加载失败，请稍后重试。",
-    "noMatch": "没有找到。",
-    "empty": "衣柜还是空的。",
+    "loadFailed": "加载失败，请稍后重试",
+    "noMatch": "没有找到",
+    "empty": "衣柜还是空的",
     "browse": "逛逛皮肤库",
     "upload": "上传材质",
     "more": "加载更多",
     "rename": "重命名",
-    "renamePrompt": "衣柜里的新名称",
     "remove": "移出衣柜",
-    "removeConfirm": "确定把「{name}」移出衣柜吗？穿着它的角色会换下它。",
-    "removed": "已移出衣柜。",
-    "removedRefund": "已移出衣柜，退还 {score} 积分。",
-    "changeFailed": "操作失败，请稍后重试。",
+    "removed": "已移出衣柜",
+    "removedRefund": "已移出衣柜，退还 {score} 积分",
+    "changeFailed": "操作失败，请稍后重试",
     "useAsAvatar": "设为头像",
-    "avatarSet": "已把「{name}」设为头像。"
+    "avatarSet": "已把「{name}」设为头像",
+    "category": "分类",
+    "itemMenu": "{name} 的更多操作",
+    "emptyBody": "在皮肤库里收藏喜欢的材质，或者上传自己的，它们会出现在这里。",
+    "renameTitle": "重命名",
+    "renameBody": "只改变它在你衣柜里的名字，不影响材质本身。",
+    "name": "名称",
+    "removeTitle": "把「{name}」移出衣柜？",
+    "removeBody": "穿着它的角色会换下它。之后可以在皮肤库里再次收藏。"
   },
   "player": {
     "title": "角色",
     "intro": "角色是你在游戏里的名字。给角色穿上衣柜里的皮肤和披风，游戏客户端就能显示它们。",
-    "loadFailed": "加载失败，请稍后重试。",
-    "none": "还没有角色，先创建一个吧。",
-    "newName": "新角色名",
+    "loadFailed": "加载失败，请稍后重试",
+    "none": "还没有角色",
     "create": "创建角色",
     "cost": "创建一个角色需要 {cost} 积分（你有 {score}）。",
-    "refundHint": "删除角色时会退还当时支付的积分。",
+    "refundHint": "删除角色时会退还当时支付的积分",
     "rules": {
       "official": "角色名只能包含英文字母、数字和下划线，长度 {min}–{max} 个字符。",
       "cjk": "角色名可以包含中文、英文字母、数字和下划线，长度 {min}–{max} 个字符。",
@@ -472,70 +506,78 @@
       "custom": "角色名需要符合站点的命名规则，长度 {min}–{max} 个字符。"
     },
     "rename": "改名",
-    "save": "保存",
     "copyUUID": "复制 UUID",
-    "copied": "已复制",
+    "copied": "已复制 UUID",
     "skin": "皮肤",
     "cape": "披风",
-    "noSkin": "没有皮肤",
     "chooseSkin": "选择皮肤",
     "chooseCape": "选择披风",
     "removeSkin": "脱下皮肤",
     "removeCape": "脱下披风",
     "delete": "删除角色",
-    "deleteConfirm": "确定要删除角色 {name} 吗？",
-    "closetEmpty": "衣柜里还没有这类材质。",
+    "closetEmpty": "衣柜里还没有这类材质",
     "profileLink": "查看角色数据（CustomSkinLoader）",
-    "createFirst": "先创建一个角色，才能把材质穿上。",
+    "createFirst": "先创建一个角色，才能把材质穿上",
     "choosePlayer": "选择角色",
     "wearSkin": "穿上这个皮肤",
     "wearCape": "披上这件披风",
-    "worn": "已穿上。",
     "errors": {
-      "score": "积分不足。",
-      "taken": "这个角色名已经被使用了。",
-      "name": "角色名不符合要求。",
-      "failed": "操作失败，请稍后重试。"
-    }
+      "score": "积分不足，可以先签到或上传材质获得积分",
+      "taken": "这个角色名已经被使用了",
+      "name": "角色名不符合要求",
+      "failed": "操作失败，请稍后重试"
+    },
+    "wornOn": "已穿到 {name} 身上",
+    "noneBody": "角色名就是你在游戏里的名字。创建后，从衣柜里挑一件皮肤给它穿上。",
+    "more": "{name} 的更多操作",
+    "createTitle": "创建角色",
+    "createBody": "名字需要和你在游戏里使用的一致，启动器会按名字找到它。",
+    "renameTitle": "重命名 {name}",
+    "renameBody": "改名后，游戏里需要用新名字登录才能显示这套皮肤。",
+    "name": "角色名",
+    "created": "已创建角色 {name}",
+    "deleteTitle": "删除角色 {name}？",
+    "deleteBody": "它穿着的皮肤和披风仍会留在你的衣柜里。",
+    "deleteRefund": "创建时花费的积分会退还给你",
+    "deleted": "已删除角色 {name}",
+    "pickSkinTitle": "给 {name} 换皮肤",
+    "pickCapeTitle": "给 {name} 换披风"
   },
   "dashboard": {
     "title": "用户中心",
-    "welcome": "欢迎回来，{name}。",
-    "loadFailed": "加载失败，请稍后重试。",
+    "welcome": "{name}，你的角色、衣柜和积分都在这里",
+    "loadFailed": "加载失败，请稍后重试",
     "score": "积分",
     "players": "角色",
     "closetItems": "衣柜",
     "uploads": "上传",
-    "storage": "占用空间",
-    "kb": "{kb} KB",
     "sign": {
       "title": "签到",
       "button": "签到",
-      "signing": "签到中…",
       "done": "已签到",
       "range": "每次签到随机获得 {min}–{max} 积分，",
       "fixed": "每次签到获得 {score} 积分，",
-      "daily": "每天可以签到一次。",
-      "gap": "每 {hours} 小时可以签到一次。",
+      "daily": "每天可以签到一次",
+      "gap": "每 {hours} 小时可以签到一次",
       "next": "下次签到：{time}",
-      "gained": "签到成功，获得 {score} 积分！",
-      "tooEarly": "还没到签到时间。",
-      "failed": "签到失败，请稍后重试。"
+      "gained": "签到成功，获得 {score} 积分",
+      "tooEarly": "还没到签到时间",
+      "failed": "签到失败，请稍后重试"
     },
     "announcement": "公告",
     "links": {
-      "title": "快捷入口",
       "players": "管理角色",
-      "closet": "我的衣柜",
-      "upload": "上传材质",
-      "skinlib": "逛逛皮肤库",
-      "profile": "个人资料",
-      "reports": "我的举报",
-      "developer": "应用与令牌"
-    }
+      "upload": "上传材质"
+    },
+    "scoreNote": "上传、收藏和创建角色会用到积分",
+    "storageNote": "共占用 {kb} KB",
+    "myPlayers": "我的角色",
+    "noPlayers": "还没有角色",
+    "noPlayersBody": "角色名就是你在游戏里的名字。创建后，给它穿上衣柜里的皮肤。",
+    "createPlayer": "创建角色"
   },
   "adminOverview": {
-    "loadFailed": "加载失败，请刷新重试。",
+    "loadFailed": "加载失败，请刷新重试",
     "users": "用户",
     "players": "角色",
     "textures": "材质",
@@ -548,7 +590,8 @@
     "registrations": "每日注册",
     "uploads": "每日上传",
     "total": "最近 31 天共 {count}",
-    "table": "查看表格"
+    "table": "查看表格",
+    "intro": "站点的总量、最近 31 天的注册与上传，以及等待处理的举报"
   },
   "adminReports": {
     "status": {
@@ -569,23 +612,35 @@
       "resolve": "标记已处理"
     },
     "confirm": {
-      "delete": "删除材质「{name}」吗？收藏它的用户会拿回积分，此操作无法撤销。",
-      "ban": "封禁上传者 {uploader} 吗？对方会在所有设备上退出登录。"
+      "delete": "收藏它的用户会拿回积分，穿着它的角色会换下它，无法恢复。",
+      "ban": "对方会在所有设备上退出登录，之后无法再登录，直到你解除封禁。"
     },
     "errors": {
-      "load": "加载失败，请刷新重试。",
-      "forbidden": "你没有权限这样做（管理员只能处理普通用户）。",
-      "reviewed": "这条举报已经被处理过了。",
-      "failed": "操作失败，请稍后重试。"
+      "load": "加载失败，请刷新重试",
+      "forbidden": "你没有权限这样做（管理员只能处理普通用户）",
+      "reviewed": "这条举报已经被处理过了",
+      "failed": "操作失败，请稍后重试"
     },
-    "empty": "没有举报。",
+    "empty": "没有举报",
     "textureGone": "材质已删除",
     "private": "私有",
-    "meta": "举报人 {reporter} · 上传者 {uploader} · {time}",
-    "handled": "{handler} 于 {time} 处理",
     "deletedUser": "已注销用户",
     "token": "管理令牌",
-    "more": "加载更多"
+    "more": "加载更多",
+    "intro": "用户对材质的举报。删除材质会退还收藏者的积分，封禁会让上传者在所有设备上退出登录。",
+    "emptyPending": "没有待处理的举报",
+    "reporter": "举报人",
+    "uploader": "上传者",
+    "handler": "处理人",
+    "confirmTitle": {
+      "delete": "删除材质「{name}」？",
+      "ban": "封禁 {uploader}？"
+    },
+    "done": {
+      "delete": "已删除材质",
+      "ban": "已封禁上传者",
+      "reject": "已驳回举报"
+    }
   },
   "adminPlayers": {
     "search": "搜索",
@@ -596,13 +651,11 @@
     "skin": "皮肤",
     "cape": "披风",
     "updated": "更新",
-    "empty": "没有角色。",
+    "empty": "没有角色",
     "more": "加载更多",
     "edit": "编辑",
-    "close": "收起",
     "save": "保存",
     "delete": "删除角色",
-    "deleteConfirm": "确定删除角色 {name} 吗？此操作无法撤销。",
     "editHint": "所属用户填用户 ID；皮肤、披风填材质 ID，留空表示不穿，且必须在所属用户的衣柜里。换了所属用户后，新主人衣柜里没有的材质会被脱下。",
     "fields": {
       "name": "角色名",
@@ -611,31 +664,38 @@
       "cape": "披风材质 ID"
     },
     "errors": {
-      "load": "加载失败，请刷新重试。",
-      "forbidden": "你没有权限管理这个用户的角色。",
-      "taken": "这个角色名已被占用。",
-      "name": "角色名不符合站点规则。",
-      "owner": "没有这个用户。",
-      "texture": "材质不存在、类型不对，或不在所属用户的衣柜里。",
-      "save": "保存失败。"
-    }
+      "load": "加载失败，请刷新重试",
+      "forbidden": "你没有权限管理这个用户的角色",
+      "taken": "这个角色名已被占用",
+      "name": "角色名不符合站点规则",
+      "owner": "没有这个用户",
+      "texture": "材质不存在、类型不对，或不在所属用户的衣柜里",
+      "save": "保存失败"
+    },
+    "menu": "{name} 的更多操作",
+    "editTitle": "编辑角色 {name}",
+    "saved": "已保存",
+    "clearUser": "显示所有用户的角色",
+    "deleteTitle": "删除角色 {name}？",
+    "deleteBody": "使用这个角色名的启动器将无法再显示皮肤，无法恢复。",
+    "deleted": "已删除角色 {name}"
   },
   "myReports": {
     "title": "我的举报",
     "intro": "你提交的举报和处理结果。",
-    "loadFailed": "加载失败，请稍后重试。",
-    "empty": "你还没有举报过材质。",
+    "loadFailed": "加载失败，请稍后重试",
+    "empty": "你还没有举报过材质",
     "textureGone": "材质已删除或不再公开",
     "status": {
       "pending": "待处理",
       "resolved": "已处理",
       "rejected": "已驳回"
     },
-    "submitted": "提交于 {time}",
+    "submitted": "<t></t>提交",
     "outcome": {
-      "delete": "材质已删除",
-      "ban": "上传者已被封禁",
-      "reject": "举报被驳回"
+      "delete": "<t></t>删除了材质",
+      "ban": "<t></t>封禁了上传者",
+      "reject": "<t></t>驳回"
     },
     "more": "加载更多"
   },
@@ -644,8 +704,8 @@
     "bellUnread": "{count} 条未读通知",
     "unread": "{count} 条未读",
     "readAll": "全部标为已读",
-    "loadFailed": "加载失败，请稍后重试。",
-    "empty": "还没有通知。",
+    "loadFailed": "加载失败，请稍后重试",
+    "empty": "还没有通知",
     "announcement": "公告",
     "read": "已读",
     "new": "未读",
@@ -665,13 +725,13 @@
     "content": "正文",
     "contentHint": "Markdown：**加粗**、[链接](https://…)、列表等；HTML 不会生效。",
     "send": "发送",
-    "sentAll": "已发送，用户下次打开通知时就会看到。",
-    "sentOne": "已发送。",
+    "sentAll": "已发送，用户下次打开通知时就会看到",
+    "sentOne": "已发送",
     "errors": {
-      "noUser": "没有这个用户。",
-      "title": "标题需要 1–64 个字。",
-      "content": "正文最多 10000 字。",
-      "failed": "发送失败，请稍后重试。"
+      "noUser": "没有这个用户",
+      "title": "标题需要 1–64 个字",
+      "content": "正文最多 10000 字",
+      "failed": "发送失败，请稍后重试"
     }
   },
   "oauth": {
@@ -684,62 +744,69 @@
     "deny": "拒绝",
     "redirecting": "正在返回应用…",
     "invalidTitle": "无法授权",
-    "invalidHint": "这个授权请求有误，请联系应用的开发者。",
-    "failed": "操作失败，请稍后重试。",
+    "invalidHint": "这个授权请求有误，请联系应用的开发者",
+    "failed": "操作失败，请稍后重试",
     "manageTitle": "应用与令牌",
     "manageHint": "让其它网站和程序用你的账号登录或读取数据（OAuth 2.0），或者为自己的脚本创建个人访问令牌。",
-    "copy": "复制",
-    "copied": "已复制",
-    "shownOnce": "只显示这一次，请立即保存。",
-    "save": "保存",
-    "cancel": "取消",
+    "shownOnce": "只显示这一次，请现在复制保存",
     "edit": "编辑",
-    "delete": "删除",
     "apps": {
       "title": "我的应用",
       "hint": "为你开发的网站或程序注册应用，用户就能通过本站授权登录。接口：",
-      "none": "还没有注册应用。",
-      "new": "注册新应用",
+      "none": "还没有注册应用",
+      "new": "注册应用",
       "name": "应用名称",
       "redirectUris": "回调地址",
-      "redirectHint": "每行一个，最多 10 个，必须完全一致。",
+      "redirectHint": "每行一个，最多 10 个，回调时必须完全一致",
       "kind": "类型",
-      "confidentialHint": "服务端应用（有密钥）",
-      "publicHint": "浏览器或桌面 / 手机应用（无密钥，必须使用 PKCE）",
+      "confidentialHint": "运行在你的服务器上，持有密钥",
+      "publicHint": "浏览器、桌面或手机应用，没有密钥，必须使用 PKCE",
       "confidential": "服务端",
       "public": "公开客户端",
-      "create": "注册",
+      "create": "注册应用",
       "secret": "应用密钥（client_secret）",
       "resetSecret": "重置密钥",
-      "resetConfirm": "重置“{name}”的密钥？旧密钥立即失效。",
-      "deleteConfirm": "删除应用“{name}”？所有用户对它的授权和它的令牌都会失效。"
+      "resetConfirm": "旧密钥立即失效，使用它的服务需要换成新密钥。",
+      "deleteConfirm": "所有用户对它的授权和它签发的令牌都会失效，无法恢复。",
+      "newBody": "注册后会得到 client_id；服务端应用还会得到一次性显示的密钥。",
+      "editTitle": "编辑 {name}",
+      "delete": "删除应用",
+      "deleted": "已删除应用 {name}",
+      "resetTitle": "重置 {name} 的密钥？",
+      "deleteTitle": "删除应用 {name}？"
     },
     "grants": {
       "title": "已授权的应用",
       "hint": "你允许过的应用。撤销后它们无法再访问你的账号，下次使用需要重新授权。",
-      "none": "还没有授权过任何应用。",
-      "since": "最近授权于 {date}",
+      "none": "还没有授权过任何应用",
+      "since": "<t></t>授权",
       "revoke": "撤销授权",
-      "revokeConfirm": "撤销对“{name}”的授权？"
+      "revokeConfirm": "它将无法再访问你的账号，下次使用需要重新授权。",
+      "revokeTitle": "撤销对 {name} 的授权？",
+      "revoked": "已撤销对 {name} 的授权"
     },
     "tokens": {
       "title": "个人访问令牌",
       "hint": "给自己的脚本使用，与应用的令牌一样调用兼容 Blessing Skin 的接口，例如 {api}（请求头 Authorization: Bearer 令牌）。",
-      "none": "还没有令牌。",
+      "none": "还没有令牌",
       "new": "创建令牌",
       "name": "用途",
       "scopes": "权限",
       "expires": "有效期",
       "days": "{days} 天",
       "neverOption": "永不过期",
-      "create": "创建",
+      "create": "创建令牌",
       "created": "新的个人访问令牌",
-      "createdAt": "创建于 {date}",
-      "expiresAt": "{date} 过期",
+      "createdAt": "<t></t>创建",
+      "expiresAt": "<t></t>过期",
       "never": "永不过期",
-      "lastUsed": "最近使用 {date}",
+      "lastUsed": "<t></t>使用过",
       "unused": "从未使用",
-      "deleteConfirm": "删除令牌“{name}”？使用它的脚本将无法再访问。"
+      "deleteConfirm": "使用它的脚本将无法再访问你的账号。",
+      "newBody": "令牌只在创建后显示一次。只勾选脚本需要的权限。",
+      "delete": "删除令牌",
+      "deleted": "已删除令牌 {name}",
+      "deleteTitle": "删除令牌 {name}？"
     },
     "scopes": {
       "User_Read": "读取你的账号信息（昵称、邮箱、积分等）",
@@ -757,61 +824,63 @@
       "ClosetManagement_ReadWrite": "管理用户的衣柜（管理员）",
       "ReportsManagement_Read": "查看举报（管理员）",
       "ReportsManagement_ReadWrite": "处理举报（管理员）"
-    }
+    },
+    "menu": "{name} 的更多操作"
   },
   "social": {
     "or": "或",
     "continueWith": "使用 {name} 登录",
-    "redirecting": "正在跳转…",
     "errors": {
-      "tooMany": "尝试次数过多，请稍后再试。",
-      "unreachable": "无法连接登录服务，请稍后再试。",
-      "failed": "出错了，请检查网络后重试。"
+      "tooMany": "尝试次数过多，请稍后再试",
+      "unreachable": "无法连接登录服务，请稍后再试",
+      "failed": "出错了，请检查网络后重试"
     },
     "callback": {
-      "expired": "这次登录已过期，或是在另一个浏览器中开始的，请重试。",
-      "denied": "已取消登录。",
+      "expired": "这次登录已过期，或是在另一个浏览器中开始的，请重试",
+      "denied": "已取消登录",
       "failed": "第三方登录失败。请重试，或使用其它方式登录。",
-      "disabled": "该账号已被禁用，请联系站点管理员。",
-      "gone": "该账号已被删除。",
-      "taken": "这个账号已绑定到本站的另一位用户。",
-      "already": "你已经绑定过该服务的账号，请先解除绑定。"
+      "disabled": "该账号已被禁用，请联系站点管理员",
+      "gone": "该账号已被删除",
+      "taken": "这个账号已绑定到本站的另一位用户",
+      "already": "你已经绑定过该服务的账号，请先解除绑定"
     },
     "pending": {
       "title": "欢迎",
-      "intro": "还差一步就能使用{site}。",
-      "expired": "这次登录已过期，请重新开始。",
+      "intro": "还差一步就能使用 {site}",
+      "expired": "这次登录已过期，请重新开始",
       "again": "返回登录",
       "signedInWith": "已通过 {provider} 登录：{name}",
       "linkCurrent": "把这个 {provider} 账号绑定到你的账号 {nickname} 吗？之后两种方式都能登录。",
       "linkButton": "绑定到我的账号",
       "createHint": "第一次来？创建一个账号，密码可以以后再设置。",
       "email": "邮箱",
-      "emailVerified": "已由 {provider} 验证。",
-      "emailMail": "我们会向这个地址发送验证链接。",
+      "emailVerified": "已由 {provider} 验证",
+      "emailMail": "我们会向这个地址发送验证链接",
       "nickname": "昵称",
       "create": "创建账号",
-      "closed": "本站已关闭注册，只能绑定已有账号。",
+      "closed": "本站已关闭注册，只能绑定已有账号",
       "haveAccount": "已有账号？",
       "signInToLink": "登录并绑定 {provider}",
       "emailTaken": "该邮箱已注册。请登录后绑定这个账号。",
-      "tooMany": "你的网络注册的账号过多，请稍后再试。"
+      "tooMany": "你的网络注册的账号过多，请稍后再试"
     },
     "section": {
       "title": "已绑定的账号",
-      "hint": "用你在其它网站的账号登录。",
-      "linked": "已绑定，现在可以用它登录了。",
+      "hint": "用你在其它网站的账号登录",
+      "linked": "已绑定，现在可以用它登录了",
       "since": "绑定于 {when}",
       "unlink": "解除绑定",
-      "unlinkConfirm": "解除绑定 {provider}？之后将不能再用它登录。",
+      "unlinkConfirm": "之后不能再用它登录，可以随时重新绑定。",
       "keepLast": "这是你唯一的登录方式。请先设置密码再解除绑定。",
-      "link": "绑定 {name}"
+      "link": "绑定 {name}",
+      "unlinkTitle": "解除绑定 {provider}？"
     }
   },
   "adminSettings": {
-    "loading": "正在加载设置……",
     "intro": "保存后立即在所有节点和已打开的页面生效，不用重启。每个分组单独保存。",
     "sectionsLabel": "设置分组",
+    "searchPlaceholder": "搜索设置名称或说明",
+    "noMatch": "没有匹配的设置项",
     "sections": {
       "site": {
         "title": "站点",
@@ -874,9 +943,7 @@
       "zh-CN": "简体中文",
       "en": "English"
     },
-    "save": "保存",
-    "saved": "已保存并生效。",
-    "unsaved": "有未保存的改动",
+    "saved": "已保存，立即生效",
     "reset": "恢复默认",
     "willReset": "保存后恢复为默认值",
     "clear": "清除",
@@ -893,21 +960,22 @@
       "json": "不是有效的 JSON"
     },
     "errors": {
-      "load": "加载设置失败。",
-      "save": "保存失败，请重试。",
-      "forbidden": "你没有权限修改这些设置。"
+      "load": "加载设置失败",
+      "save": "保存失败，请重试",
+      "forbidden": "你没有权限修改这些设置"
     },
-    "superadminOnly": "仅限超级管理员"
+    "superadminOnly": "仅限超级管理员",
+    "title": "设置"
   },
   "settingKeys": {
     "site": {
       "name": {
         "label": "站点名称",
-        "help": "显示在页头、页面标题和启动器信息里。"
+        "help": "显示在页头、页面标题和启动器信息里"
       },
       "description": {
         "label": "站点简介",
-        "help": "首页和搜索结果里的一句话介绍。"
+        "help": "首页和搜索结果里的一句话介绍"
       },
       "url": {
         "label": "站点地址",
@@ -919,7 +987,7 @@
       },
       "announcement": {
         "label": "站点公告",
-        "help": "显示在首页和用户仪表盘，支持 Markdown。"
+        "help": "显示在首页和用户仪表盘，支持 Markdown"
       },
       "logo": {
         "label": "Logo",
@@ -937,7 +1005,7 @@
     "auth": {
       "registration": {
         "label": "注册",
-        "help": "关闭后只有管理员能创建账号。",
+        "help": "关闭后只有管理员能创建账号",
         "options": {
           "open": "开放注册",
           "closed": "关闭注册"
@@ -965,7 +1033,7 @@
     "captcha": {
       "provider": {
         "label": "验证码",
-        "help": "用在注册页和多次登录失败之后。",
+        "help": "用在注册页和多次登录失败之后",
         "options": {
           "none": "不使用",
           "image": "内置图形验证码",
@@ -977,31 +1045,31 @@
       "turnstile": {
         "site_key": {
           "label": "Turnstile 站点密钥（Site Key）",
-          "help": "公开，前端组件要用它。"
+          "help": "公开，前端组件要用它"
         },
         "secret_key": {
           "label": "Turnstile 私钥（Secret Key）",
-          "help": "只留在服务器上，保存后不再显示。"
+          "help": "只留在服务器上，保存后不再显示"
         }
       },
       "recaptcha": {
         "site_key": {
           "label": "reCAPTCHA 站点密钥（Site Key）",
-          "help": "公开，前端组件要用它。"
+          "help": "公开，前端组件要用它"
         },
         "secret_key": {
           "label": "reCAPTCHA 私钥（Secret Key）",
-          "help": "只留在服务器上，保存后不再显示。"
+          "help": "只留在服务器上，保存后不再显示"
         }
       },
       "hcaptcha": {
         "site_key": {
           "label": "hCaptcha 站点密钥（Site Key）",
-          "help": "公开，前端组件要用它。"
+          "help": "公开，前端组件要用它"
         },
         "secret_key": {
           "label": "hCaptcha 私钥（Secret Key）",
-          "help": "只留在服务器上，保存后不再显示。"
+          "help": "只留在服务器上，保存后不再显示"
         }
       }
     },
@@ -1022,7 +1090,7 @@
       "smtp": {
         "host": {
           "label": "SMTP 服务器",
-          "help": "例如 smtp.qq.com。"
+          "help": "例如 smtp.qq.com"
         },
         "port": {
           "label": "端口",
@@ -1030,7 +1098,7 @@
         },
         "username": {
           "label": "用户名",
-          "help": "通常是邮箱地址。"
+          "help": "通常是邮箱地址"
         },
         "password": {
           "label": "密码",
@@ -1038,7 +1106,7 @@
         },
         "encryption": {
           "label": "加密方式",
-          "help": "不加密只适合同一台机器上的邮件中继。",
+          "help": "不加密只适合同一台机器上的邮件中继",
           "options": {
             "tls": "TLS（连接即加密）",
             "starttls": "STARTTLS（连接后升级）",
@@ -1058,28 +1126,31 @@
       },
       "private_per_storage": {
         "label": "私有材质每 KB 的积分",
-        "help": "上传私有材质或改为私有时按这个价格计算。"
+        "help": "上传私有材质或改为私有时按这个价格计算"
       },
       "per_closet_item": {
         "label": "收藏一个材质的积分",
-        "help": "加入衣柜时扣的积分，上传自己的材质也算一次。"
+        "help": "加入衣柜时扣的积分，上传自己的材质也算一次"
       },
       "award_per_texture": {
         "label": "上传公开材质的奖励",
-        "help": "只有公开材质能得到。"
+        "help": "只有公开材质能得到"
       },
       "per_player": {
-        "label": "创建角色的积分"
+        "label": "创建角色的积分",
+        "help": "每新建一个游戏角色扣除的积分"
       },
       "award_per_like": {
         "label": "材质被收藏的奖励",
-        "help": "别人把材质加入衣柜时，上传者得到的积分。"
+        "help": "别人把材质加入衣柜时，上传者得到的积分"
       },
       "sign_min": {
-        "label": "签到最少得分"
+        "label": "签到最少得分",
+        "help": "每次每日签到至少获得的积分"
       },
       "sign_max": {
-        "label": "签到最多得分"
+        "label": "签到最多得分",
+        "help": "每次每日签到最多获得的积分，不能小于最少得分"
       },
       "sign_gap_hours": {
         "label": "签到间隔（小时）",
@@ -1099,15 +1170,17 @@
       },
       "reporter_reward": {
         "label": "举报成立的奖励",
-        "help": "材质被删除或上传者被封禁时给举报人的积分。"
+        "help": "材质被删除或上传者被封禁时给举报人的积分"
       }
     },
     "texture": {
       "max_size_kb": {
-        "label": "最大文件大小（KB）"
+        "label": "最大文件大小（KB）",
+        "help": "允许上传的单个 PNG 材质文件大小上限"
       },
       "max_width": {
-        "label": "最大宽度（像素）"
+        "label": "最大宽度（像素）",
+        "help": "允许上传的高清皮肤或披风的最大像素宽度（标准皮肤为 64）"
       },
       "name_regexp": {
         "label": "材质名称规则",
@@ -1115,10 +1188,11 @@
       },
       "allow_download": {
         "label": "允许下载原图",
-        "help": "关闭后 /raw 不再提供原文件。"
+        "help": "关闭后 /raw 不再提供原文件"
       },
       "private_status": {
         "label": "他人请求私有材质时的状态码",
+        "help": "其他用户访问非公开材质时返回的 HTTP 状态码",
         "options": {
           "403": "403：禁止访问",
           "404": "404：隐藏它的存在"
@@ -1126,12 +1200,13 @@
       },
       "content_policy": {
         "label": "内容规范",
-        "help": "显示在上传页，支持 Markdown。"
+        "help": "显示在上传页，支持 Markdown"
       }
     },
     "player": {
       "name_rule": {
         "label": "角色名规则",
+        "help": "新建或改名时允许使用的字符范围",
         "options": {
           "official": "字母、数字与下划线（Mojang 的规则）",
           "cjk": "另外允许中文",
@@ -1144,10 +1219,12 @@
         "help": "角色名规则为“自定义正则表达式”时使用（Go RE2 语法）。"
       },
       "name_length_min": {
-        "label": "角色名最短长度"
+        "label": "角色名最短长度",
+        "help": "角色名称的最少字符数"
       },
       "name_length_max": {
-        "label": "角色名最长长度"
+        "label": "角色名最长长度",
+        "help": "角色名称的最多字符数"
       }
     },
     "delivery": {
@@ -1157,6 +1234,7 @@
       },
       "missing_player_status": {
         "label": "不存在的角色返回",
+        "help": "客户端查询不存在的角色名时返回的状态码",
         "options": {
           "404": "404",
           "204": "204：让客户端去试下一个皮肤站"
@@ -1166,6 +1244,7 @@
     "yggdrasil": {
       "uuid_algorithm": {
         "label": "新角色的 UUID",
+        "help": "新角色的 UUID 生成方式：v3 与离线模式服务器一致，改名后变化；v4 随机生成，改名后保持不变",
         "options": {
           "v3": "v3：按名字生成，与离线服务器一致，改名会变",
           "v4": "v4：随机生成，改名不变"
@@ -1173,7 +1252,7 @@
       },
       "token_valid_seconds": {
         "label": "令牌有效期（秒）",
-        "help": "启动器登录得到的令牌有效多久，默认 3 天。"
+        "help": "启动器登录得到的令牌有效多久，默认 3 天"
       },
       "token_refresh_seconds": {
         "label": "令牌可刷新期限（秒）",
@@ -1181,11 +1260,11 @@
       },
       "tokens_per_user": {
         "label": "每个账号的令牌数",
-        "help": "超过后再次登录会注销最早的令牌。"
+        "help": "超过后再次登录会注销最早的令牌"
       },
       "search_profile_max": {
         "label": "批量查询角色的上限",
-        "help": "一次按名字批量查询角色时最多几个名字。"
+        "help": "一次按名字批量查询角色时最多几个名字"
       },
       "skin_domains": {
         "label": "额外的材质域名",
@@ -1241,11 +1320,11 @@
       "cloudflare": {
         "zone_id": {
           "label": "Cloudflare 区域 ID",
-          "help": "在域名的概述页面可以找到 Zone ID。"
+          "help": "在域名的概述页面可以找到 Zone ID"
         },
         "api_token": {
           "label": "Cloudflare API 令牌",
-          "help": "需要“区域 → 缓存清除”权限，保存后不再显示。"
+          "help": "需要“区域 → 缓存清除”权限，保存后不再显示"
         }
       },
       "aliyun": {
@@ -1255,7 +1334,7 @@
         },
         "access_key_secret": {
           "label": "阿里云 AccessKey Secret",
-          "help": "保存后不再显示。"
+          "help": "保存后不再显示"
         }
       },
       "tencent": {
@@ -1265,7 +1344,7 @@
         },
         "secret_key": {
           "label": "腾讯云 SecretKey",
-          "help": "保存后不再显示。"
+          "help": "保存后不再显示"
         }
       },
       "webhook": {
@@ -1281,17 +1360,38 @@
     }
   },
   "appearance": {
-    "loading": "正在加载外观设置……",
     "intro": "保存后立即对所有访客生效，不用重启。",
     "errors": {
-      "load": "加载外观设置失败。"
+      "load": "加载外观设置失败"
     },
     "themes": {
       "title": "主题",
       "intro": "选择站点使用的主题。没有自定义首页时，首页也会换成新主题自带的。",
       "active": "使用中",
       "activate": "启用",
-      "failed": "切换主题失败，请重试。"
+      "failed": "切换主题失败，请重试",
+      "activated": "已切换主题",
+      "builtin": "内置",
+      "local": "本地",
+      "reload": "重新扫描",
+      "reloaded": "已重新扫描主题目录",
+      "extends": "继承自 {parent}"
+    },
+    "tabs": {
+      "themes": "主题",
+      "settings": "主题设置",
+      "colors": "颜色",
+      "home": "首页",
+      "branding": "标识与页脚",
+      "custom": "自定义代码"
+    },
+    "themeSettings": {
+      "title": "主题设置",
+      "intro": "当前启用主题提供的配置项，保存后立即生效",
+      "empty": "当前主题没有提供可调节的设置项",
+      "reset": "恢复默认",
+      "failed": "保存失败，请重试",
+      "saved": "主题设置已保存"
     },
     "colors": {
       "title": "颜色",
@@ -1310,73 +1410,73 @@
         "border": "边框",
         "radius": "圆角"
       },
-      "unsafe": "有的值含有分号、花括号、尖括号或注释，不能保存。",
-      "save": "保存颜色",
+      "unsafe": "有的值含有分号、花括号、尖括号或注释，不能保存",
+      "exportTheme": "导出为主题",
       "clearAll": "全部清除",
-      "unsaved": "有未保存的改动",
-      "failed": "保存失败，请重试。"
+      "failed": "保存失败，请重试",
+      "saved": "颜色已保存"
     },
     "home": {
       "title": "首页",
       "intro": "首页由区块从上到下组成。",
-      "usingTheme": "现在使用的是主题“{theme}”自带的首页。",
-      "custom": "现在使用的是自定义的首页。",
-      "empty": "首页还没有区块。",
-      "addType": "要添加的区块",
+      "usingTheme": "现在使用的是主题“{theme}”自带的首页",
+      "custom": "现在使用的是自定义的首页",
+      "empty": "首页还没有区块",
       "add": "添加区块",
-      "save": "保存首页",
       "useTheme": "改用主题自带的首页",
-      "unsaved": "有未保存的改动",
       "moveUp": "上移",
       "moveDown": "下移",
       "remove": "删除",
-      "unknownType": "没有这种区块，保存前请删除它。",
+      "unknownType": "没有这种区块，保存前请删除它",
       "default": "默认",
       "linkHint": "本站路径（如 /skinlib）或 https:// 地址",
       "addButton": "添加按钮",
       "invalid": "首页有问题：{detail}",
-      "failed": "保存失败，请重试。"
+      "failed": "保存失败，请重试",
+      "saved": "首页已保存",
+      "usingThemeNow": "已改用主题自带的首页",
+      "removeButton": "删除这个按钮"
     },
     "blockTypes": {
       "hero": {
         "name": "大标题",
-        "help": "站点名称、简介和两个按钮，可以设置背景图。"
+        "help": "站点名称、简介和两个按钮，可以设置背景图"
       },
       "announcement": {
         "name": "公告",
-        "help": "显示站点公告；没有公告时不显示。"
+        "help": "显示站点公告；没有公告时不显示"
       },
       "features": {
         "name": "功能介绍",
-        "help": "上传、角色、启动器与自托管四张卡片。"
+        "help": "上传、角色、启动器与自托管四项介绍"
       },
       "stats": {
         "name": "站点数据",
-        "help": "用户、角色和公开材质的数量。"
+        "help": "用户、角色和公开材质的数量"
       },
       "latest-textures": {
         "name": "最新材质",
-        "help": "最近上传的公开材质。"
+        "help": "最近上传的公开材质"
       },
       "popular-textures": {
         "name": "热门材质",
-        "help": "收藏最多的公开材质。"
+        "help": "收藏最多的公开材质"
       },
       "markdown": {
         "name": "文字",
-        "help": "一段 Markdown 文字。"
+        "help": "一段 Markdown 文字"
       },
       "image": {
         "name": "图片",
-        "help": "一张图片，可以加链接。"
+        "help": "一张图片，可以加链接"
       },
       "buttons": {
         "name": "按钮组",
-        "help": "最多 6 个链接按钮，第一个是主按钮。"
+        "help": "最多 6 个链接按钮，第一个是主按钮"
       },
       "launcher-guide": {
         "name": "启动器配置引导",
-        "help": "外置登录的接口地址与配置方法。"
+        "help": "外置登录的接口地址与配置方法"
       }
     },
     "props": {
@@ -1391,26 +1491,35 @@
       "src": "图片地址",
       "alt": "图片说明",
       "href": "链接",
-      "items": "按钮"
+      "items": "按钮",
+      "layout": "版式",
+      "showcase": "展示区"
     },
     "options": {
       "skin": "皮肤",
-      "cape": "披风"
+      "cape": "披风",
+      "split": "左文右图",
+      "centered": "居中文字",
+      "banner": "背景大图",
+      "latest": "最新上传",
+      "popular": "最受欢迎",
+      "none": "不显示"
     }
   },
   "blocks": {
     "latest": "最新材质",
     "popular": "热门材质",
-    "more": "查看更多",
+    "more": "查看全部",
     "stats": {
       "title": "站点数据",
       "users": "用户",
       "players": "角色",
       "textures": "公开材质"
-    }
+    },
+    "latestDesc": "大家刚刚上传的皮肤与披风",
+    "popularDesc": "被收藏最多的皮肤与披风"
   },
   "adminTranslations": {
-    "loading": "正在加载……",
     "intro": "改写界面上的任何文字。按键名或文字搜索，在对应语言下填入新的说法，留空就用原文。保存后所有页面立即生效。",
     "search": "搜索",
     "searchHint": "键名或文字，如 nav.skinlib、皮肤库",
@@ -1418,57 +1527,54 @@
     "count": "已改写 {count} 条",
     "changed": "已改写",
     "keep": "留空使用原文",
-    "none": "没有找到。",
+    "none": "没有找到",
     "more": "再显示 40 条（还有 {left} 条）",
-    "save": "保存",
-    "saved": "已保存并生效。",
-    "unsaved": "有未保存的改动",
+    "saved": "已保存并生效",
     "fixFirst": "有 {count} 处需要先改正",
     "problems": {
       "syntax": "格式不对：请检查花括号是否成对、每种写法是否完整。",
       "placeholders": "要保留原文里花括号中的占位符和标签，页面会把它们换成实际内容。"
     },
     "errors": {
-      "load": "加载失败。",
-      "save": "保存失败，请重试。",
+      "load": "加载失败",
+      "save": "保存失败，请重试",
       "invalid": "保存被拒绝：{detail}"
     },
     "noDefault": "该语言没有这条文字（显示的是服务器提供的说明），改了也不会显示。"
   },
   "adminStatus": {
-    "loading": "正在读取系统状态……",
     "intro": "这台服务器现在的状态。多实例部署时，各实例的版本与启动时间可能不同。",
     "refresh": "刷新",
     "yes": "是",
     "no": "否",
     "errors": {
-      "load": "读取系统状态失败。"
+      "load": "读取系统状态失败"
     },
     "checks": {
       "title": "检查结果",
       "database": {
-        "ok": "数据库连接正常。",
-        "problem": "连不上数据库。"
+        "ok": "数据库连接正常",
+        "problem": "连不上数据库"
       },
       "migrations": {
-        "ok": "数据库结构是最新的。",
-        "problem": "有数据库迁移没有执行，请重启服务。"
+        "ok": "数据库结构是最新的",
+        "problem": "有数据库迁移没有执行，请重启服务"
       },
       "jobs_overdue": {
-        "ok": "后台任务按时执行。",
-        "problem": "有后台任务超过一分钟没有执行，检查服务日志。"
+        "ok": "后台任务按时执行",
+        "problem": "有后台任务超过一分钟没有执行，检查服务日志"
       },
       "jobs_failed": {
-        "ok": "最近 7 天没有失败的后台任务。",
+        "ok": "最近 7 天没有失败的后台任务",
         "problem": "最近 7 天有后台任务重试后仍然失败，检查服务日志。"
       },
       "mail": {
-        "ok": "邮件已配置。",
-        "problem": "没有配置邮件：邮箱验证与找回密码不可用。"
+        "ok": "邮件已配置",
+        "problem": "没有配置邮件：邮箱验证与找回密码不可用"
       },
       "site_url": {
-        "ok": "已设置站点地址。",
-        "problem": "没有设置站点地址：邮件链接与第三方登录不可用。"
+        "ok": "已设置站点地址",
+        "problem": "没有设置站点地址：邮件链接与第三方登录不可用"
       }
     },
     "server": {
@@ -1547,7 +1653,21 @@
     "previousPage": "上一页",
     "nextPage": "下一页",
     "toggleSidebar": "展开或收起侧栏",
-    "navigation": "导航"
+    "navigation": "导航",
+    "mode3d": "3D",
+    "mode2d": "2D",
+    "walk": "行走",
+    "run": "跑步",
+    "fly": "飞行",
+    "idle": "静止",
+    "autoRotate": "自动旋转",
+    "resetView": "重置初始状态",
+    "background": "预览背景",
+    "bgTransparent": "透明背景",
+    "bgWhite": "白色背景",
+    "bgGray": "灰色背景",
+    "bgBlack": "黑色背景",
+    "backEquipment": "切换披风 / 鞘翅"
   },
   "componentPreview": {
     "title": "组件总览",

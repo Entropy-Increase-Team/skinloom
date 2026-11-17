@@ -20,7 +20,28 @@ import {
   type SocialRedirect,
   unlinkSocial,
 } from '@skinloom/api-client'
-import { Badge, Button, ButtonLink, Card, CardContent, CardDescription, CardHeader, CardTitle, Label } from '@skinloom/ui'
+import {
+  Alert,
+  AlertDescription,
+  Badge,
+  Button,
+  ButtonLink,
+  CopyField,
+  FieldDescription,
+  FieldLabel,
+  Field as UiField,
+  RelativeTime,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Skeleton,
+  toast,
+  useConfirm,
+  UserAvatar,
+} from '@skinloom/ui'
+import { CircleCheck } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
@@ -28,32 +49,36 @@ import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from
 
 import { Field, FormError } from '@/components/auth/field'
 import { ProviderIcon, SocialError } from '@/components/auth/social-buttons'
-import { CopyButton } from '@/components/blocks/copy-button'
-import { Avatar } from '@/components/user/avatar'
 import { problemOf } from '@/lib/problem'
 import { describeUA } from '@/lib/ua'
 import type { Viewer } from '@/lib/viewer'
 
-function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
+/** One settings group: what it is on the left (above on phones), the controls in a card. */
+function Section({ title, description, children, danger }: { title: string; description?: string; children: ReactNode; danger?: boolean }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
+    <section className="grid grid-cols-1 gap-4 border-t py-8 first:border-t-0 first:pt-0 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-10">
+      <div className="flex flex-col gap-1">
+        <h2 className={danger ? 'text-base font-medium text-destructive' : 'text-base font-medium'}>{title}</h2>
+        {description && <p className="text-sm text-muted-foreground">{description}</p>}
+      </div>
+      <div className="flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-5">{children}</div>
+    </section>
   )
 }
 
+/** A success that stays on the page (after coming back from a sign-in provider). */
 function Done({ message }: { message: string | null }) {
   if (!message) return null
   return (
-    <p role="status" className="rounded-md border border-success/40 bg-success/10 px-3 py-2 text-sm">
-      {message}
-    </p>
+    <Alert role="status">
+      <CircleCheck className="text-success" />
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
   )
 }
+
+/** The language choice for "follow the browser" (sent as an empty locale). */
+const AUTO = 'auto'
 
 // Changing the password or email signs other devices out; the device list listens for this.
 const SESSIONS_CHANGED = 'skinloom:sessions-changed'
@@ -75,6 +100,7 @@ function useSubmit() {
     try {
       await action()
       setDone(ok)
+      if (ok) toast.success(ok)
       return true
     } catch (err) {
       const p = problemOf(err)
@@ -107,8 +133,8 @@ export function AvatarSection({ viewer }: { viewer: Viewer }) {
   return (
     <Section title={t('avatar')} description={t('avatarHint')}>
       <div className="flex flex-wrap items-center gap-4">
-        <Avatar userId={viewer.id} size={64} version={viewer.avatarTextureId} className="size-16 rounded-md bg-muted" />
-        <Avatar userId={viewer.id} size={64} version={viewer.avatarTextureId} cube className="size-16" />
+        <UserAvatar of={{ user: viewer.id, version: viewer.avatarTextureId }} size={64} />
+        <UserAvatar of={{ user: viewer.id, version: viewer.avatarTextureId }} size={64} cube className="bg-transparent" />
         <div className="flex flex-col gap-2">
           <ButtonLink variant="outline" size="sm" render={<Link href="/user/closet" />}>
             {t('chooseAvatar')}
@@ -117,7 +143,7 @@ export function AvatarSection({ viewer }: { viewer: Viewer }) {
             <Button
               variant="ghost"
               size="sm"
-              disabled={s.pending}
+              loading={s.pending}
               onClick={async () => {
                 if (await s.run(() => setAvatar({ textureId: 0 }), t('avatarRemoved'))) router.refresh()
               }}
@@ -128,7 +154,6 @@ export function AvatarSection({ viewer }: { viewer: Viewer }) {
         </div>
       </div>
       <FormError message={s.error} />
-      <Done message={s.done} />
     </Section>
   )
 }
@@ -137,10 +162,12 @@ export function ProfileSection({ viewer, locales }: { viewer: Viewer; locales: L
   const t = useTranslations('profile')
   const router = useRouter()
   const s = useSubmit()
+  const languages = [{ value: AUTO, label: t('followBrowser') }, ...locales.map((l) => ({ value: l.code, label: l.name }))]
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const f = new FormData(e.currentTarget)
-    const locale = String(f.get('locale') ?? '')
+    const picked = String(f.get('locale') ?? '')
+    const locale = picked === AUTO ? '' : picked
     const ok = await s.run(() => updateMe({ nickname: String(f.get('nickname') ?? ''), locale }), t('saved'))
     if (ok) {
       // The preference also decides the language of mail; apply it to this browser now.
@@ -152,21 +179,24 @@ export function ProfileSection({ viewer, locales }: { viewer: Viewer; locales: L
     <Section title={t('profile')}>
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <FormError message={s.error} />
-        <Done message={s.done} />
         <Field id="nickname" label={t('nickname')} defaultValue={viewer.nickname} maxLength={32} required error={s.fields.nickname} />
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="locale">{t('language')}</Label>
-          <select id="locale" name="locale" defaultValue={viewer.locale} className="h-9 rounded-md border border-input bg-transparent px-3 text-sm">
-            <option value="">{t('followBrowser')}</option>
-            {locales.map((l) => (
-              <option key={l.code} value={l.code}>
-                {l.name}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-muted-foreground">{t('languageHint')}</p>
-        </div>
-        <Button type="submit" className="self-start" disabled={s.pending}>
+        <UiField>
+          <FieldLabel htmlFor="locale">{t('language')}</FieldLabel>
+          <Select name="locale" items={languages} defaultValue={viewer.locale || AUTO}>
+            <SelectTrigger id="locale" className="w-full sm:w-64">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {languages.map((l) => (
+                <SelectItem key={l.value} value={l.value}>
+                  {l.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldDescription>{t('languageHint')}</FieldDescription>
+        </UiField>
+        <Button type="submit" className="self-start" loading={s.pending}>
           {t('save')}
         </Button>
       </form>
@@ -203,7 +233,6 @@ export function PasswordSection({ viewer }: { viewer: Viewer }) {
     <Section title={first ? t('setPassword') : t('password')} description={first ? t('setPasswordHint') : t('passwordHint')}>
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <FormError message={s.error} />
-        <Done message={s.done} />
         {!first && (
           <Field id="password" label={t('currentPassword')} type="password" autoComplete="current-password" required error={s.fields.password} />
         )}
@@ -218,7 +247,7 @@ export function PasswordSection({ viewer }: { viewer: Viewer }) {
           error={s.fields.newPassword}
         />
         <Field id="confirm" label={t('confirmPassword')} type="password" autoComplete="new-password" required error={s.fields.confirm} />
-        <Button type="submit" className="self-start" disabled={s.pending}>
+        <Button type="submit" className="self-start" loading={s.pending}>
           {first ? t('setPassword') : t('changePassword')}
         </Button>
       </form>
@@ -248,13 +277,12 @@ export function EmailSection({ viewer, mail }: { viewer: Viewer; mail: boolean }
     <Section title={t('email')} description={t('currentEmail', { email: viewer.email })}>
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <FormError message={s.error} />
-        <Done message={s.done} />
         <Field id="email" label={t('newEmail')} type="email" autoComplete="email" required error={s.fields.email} />
         {viewer.hasPassword && (
           <Field id="emailPassword" label={t('currentPassword')} type="password" autoComplete="current-password" required error={s.fields.password} />
         )}
-        <p className="text-xs text-muted-foreground">{t('emailHint')}</p>
-        <Button type="submit" className="self-start" disabled={s.pending}>
+        <p className="text-caption text-muted-foreground">{t('emailHint')}</p>
+        <Button type="submit" className="self-start" loading={s.pending}>
           {t('changeEmail')}
         </Button>
       </form>
@@ -265,7 +293,6 @@ export function EmailSection({ viewer, mail }: { viewer: Viewer; mail: boolean }
 /** Game launchers (authlib-injector): the address to give them, how many are signed in, sign them all out. */
 export function LaunchersSection() {
   const t = useTranslations('profile')
-  const tl = useTranslations('launcher')
   const s = useSubmit()
   const [info, setInfo] = useState<YggdrasilTokens | null>(null)
   useEffect(() => {
@@ -278,17 +305,14 @@ export function LaunchersSection() {
   return (
     <Section title={t('launchers')} description={t('launchersHint')}>
       <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <code className="rounded-md bg-muted px-3 py-2 font-mono text-sm">{info.apiUrl}</code>
-          <CopyButton value={info.apiUrl} label={tl('copy')} copiedLabel={tl('copied')} />
-        </div>
+        <CopyField value={info.apiUrl} label={t('launchersAddress')} />
         <p className="text-sm text-muted-foreground">{t('launchersSignedIn', { count: info.tokens })}</p>
         <FormError message={s.error} />
-        <Done message={s.done} />
         <Button
           variant="outline"
           className="self-start"
-          disabled={s.pending || info.tokens === 0}
+          loading={s.pending}
+          disabled={info.tokens === 0}
           onClick={async () => {
             if (await s.run(() => signOutLaunchers(), t('launchersSignedOut'))) setInfo({ ...info, tokens: 0 })
           }}
@@ -302,7 +326,6 @@ export function LaunchersSection() {
 
 export function SessionsSection() {
   const t = useTranslations('profile')
-  const locale = useLocale()
   const [list, setList] = useState<SessionView[] | null>(null)
   const [failed, setFailed] = useState(false)
   const load = useCallback(async () => {
@@ -318,24 +341,22 @@ export function SessionsSection() {
     window.addEventListener(SESSIONS_CHANGED, reload)
     return () => window.removeEventListener(SESSIONS_CHANGED, reload)
   }, [load])
-  const when = (iso: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso))
-
   return (
     <Section title={t('devices')} description={t('devicesHint')}>
       {failed && <p className="text-sm text-destructive">{t('errors.failed')}</p>}
-      {list === null && !failed && <p className="text-sm text-muted-foreground">…</p>}
+      {list === null && !failed && <Skeleton className="h-24" />}
       {list && (
         <div className="flex flex-col gap-3">
-          <ul className="divide-y rounded-md border">
+          <ul className="-my-1 divide-y">
             {list.map((x) => (
-              <li key={x.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+              <li key={x.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 font-medium">
                     {describeUA(x.userAgent)}
                     {x.current && <Badge variant="secondary">{t('thisDevice')}</Badge>}
                   </div>
-                  <div className="truncate text-xs text-muted-foreground">
-                    {x.ip} · {t('lastSeen', { when: when(x.lastSeenAt) })}
+                  <div className="truncate text-caption text-muted-foreground">
+                    {x.ip} · {t.rich('lastSeen', { t: () => <RelativeTime date={x.lastSeenAt} /> })}
                   </div>
                 </div>
                 {!x.current && (
@@ -374,11 +395,18 @@ export function SessionsSection() {
 export function DeleteSection({ viewer }: { viewer: Viewer }) {
   const t = useTranslations('profile')
   const router = useRouter()
+  const confirm = useConfirm()
   const s = useSubmit()
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const f = new FormData(e.currentTarget)
-    if (!window.confirm(t('deleteConfirm'))) return
+    const sure = await confirm({
+      title: t('deleteTitle'),
+      description: t('deleteConfirm', { email: viewer.email }),
+      confirmLabel: t('deleteButton'),
+      requireText: viewer.email,
+    })
+    if (!sure) return
     const ok = await s.run(() => deleteMe({ password: String(f.get('deletePassword') ?? '') }), t('deleted'))
     if (ok) {
       router.replace('/')
@@ -386,13 +414,13 @@ export function DeleteSection({ viewer }: { viewer: Viewer }) {
     }
   }
   return (
-    <Section title={t('delete')} description={t('deleteHint')}>
+    <Section title={t('delete')} description={t('deleteHint')} danger>
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <FormError message={s.error} />
         {viewer.hasPassword && (
           <Field id="deletePassword" label={t('currentPassword')} type="password" autoComplete="current-password" required error={s.fields.password} />
         )}
-        <Button type="submit" variant="destructive" className="self-start" disabled={s.pending}>
+        <Button type="submit" variant="destructive" className="self-start" loading={s.pending}>
           {t('deleteButton')}
         </Button>
       </form>
@@ -404,6 +432,7 @@ export function DeleteSection({ viewer }: { viewer: Viewer }) {
 export function SocialSection({ viewer, linked, error }: { viewer: Viewer; linked: boolean; error?: string }) {
   const t = useTranslations('social')
   const locale = useLocale()
+  const confirm = useConfirm()
   const s = useSubmit()
   const [info, setInfo] = useState<SocialLinks | null>(null)
   const load = useCallback(async () => {
@@ -432,14 +461,14 @@ export function SocialSection({ viewer, linked, error }: { viewer: Viewer; linke
         {linked && <Done message={t('section.linked')} />}
         <FormError message={s.error} />
         {info.links.length > 0 && (
-          <ul className="divide-y rounded-md border">
+          <ul className="-my-1 divide-y">
             {info.links.map((l) => (
-              <li key={l.provider} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+              <li key={l.provider} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                 <div className="flex min-w-0 items-center gap-3">
                   <ProviderIcon type={l.providerType} className="size-5 shrink-0" />
                   <div className="min-w-0">
                     <div className="font-medium">{l.providerName || l.provider}</div>
-                    <div className="truncate text-xs text-muted-foreground">
+                    <div className="truncate text-caption text-muted-foreground">
                       {l.name} · {t('section.since', { when: when(l.createdAt) })}
                     </div>
                   </div>
@@ -449,7 +478,12 @@ export function SocialSection({ viewer, linked, error }: { viewer: Viewer; linke
                   size="sm"
                   disabled={s.pending || (keepLast && Boolean(l.providerType))}
                   onClick={async () => {
-                    if (!window.confirm(t('section.unlinkConfirm', { provider: l.providerName || l.provider }))) return
+                    const ok = await confirm({
+                      title: t('section.unlinkTitle', { provider: l.providerName || l.provider }),
+                      description: t('section.unlinkConfirm'),
+                      confirmLabel: t('section.unlink'),
+                    })
+                    if (!ok) return
                     if (await s.run(() => unlinkSocial(l.provider), '')) await load()
                   }}
                 >
@@ -459,7 +493,7 @@ export function SocialSection({ viewer, linked, error }: { viewer: Viewer; linke
             ))}
           </ul>
         )}
-        {keepLast && <p className="text-xs text-muted-foreground">{t('section.keepLast')}</p>}
+        {keepLast && <p className="text-caption text-muted-foreground">{t('section.keepLast')}</p>}
         {unlinked.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {unlinked.map((p) => (

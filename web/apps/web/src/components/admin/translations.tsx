@@ -1,7 +1,8 @@
 'use client'
 
 import { listSettings, type SettingsList, updateSettings } from '@skinloom/api-client'
-import { Badge, Button, Card, CardContent, Input, Label } from '@skinloom/ui'
+import { Badge, Button, Checkbox, Input, InputGroup, InputGroupAddon, InputGroupInput, Label, SaveBar, Skeleton, toast } from '@skinloom/ui'
+import { Search } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
@@ -36,7 +37,6 @@ export function Translations({ entries }: { entries: TextEntry[] }) {
   const [changedOnly, setChangedOnly] = useState(false)
   const [shown, setShown] = useState(PAGE)
   const [pending, setPending] = useState(false)
-  const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   // Once: a save refreshes the page (router.refresh), which hands out a new t, and
@@ -52,7 +52,7 @@ export function Translations({ entries }: { entries: TextEntry[] }) {
       .catch(() => setError(t('errors.load')))
   }, [])
 
-  if (!saved) return error ? <FormError message={error} /> : <p className="text-sm text-muted-foreground">{t('loading')}</p>
+  if (!saved) return error ? <FormError message={error} /> : <Skeleton className="h-96 rounded-xl" />
 
   const text = (locale: string, key: string) => draft[locale]?.[key] ?? ''
   const q = query.trim().toLowerCase()
@@ -75,7 +75,6 @@ export function Translations({ entries }: { entries: TextEntry[] }) {
 
   function set(locale: string, key: string, value: string) {
     setDraft((d) => ({ ...d, [locale]: { ...(d[locale] ?? {}), [key]: value } }))
-    setStatus(null)
   }
 
   async function save() {
@@ -86,7 +85,7 @@ export function Translations({ entries }: { entries: TextEntry[] }) {
       const v = (list.settings.find((s) => s.key === 'i18n.overrides')?.value ?? {}) as Overrides
       setSaved(v)
       setDraft(v)
-      setStatus(t('saved'))
+      toast.success(t('saved'))
       router.refresh() // this page's own texts
     } catch (err) {
       const detail = problemOf(err).fields['i18n.overrides']
@@ -98,49 +97,50 @@ export function Translations({ entries }: { entries: TextEntry[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-muted-foreground">{t('intro')}</p>
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="text-search">{t('search')}</Label>
-          <Input
-            id="text-search"
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+        <InputGroup className="w-full sm:w-80">
+          <InputGroupAddon>
+            <Search aria-hidden />
+          </InputGroupAddon>
+          <InputGroupInput
+            type="search"
             value={query}
             placeholder={t('searchHint')}
+            aria-label={t('search')}
             onChange={(e) => {
               setQuery(e.target.value)
               setShown(PAGE)
             }}
-            className="w-72"
           />
-        </div>
-        <label className="flex items-center gap-2 pb-2 text-sm">
-          <input type="checkbox" checked={changedOnly} onChange={(e) => setChangedOnly(e.target.checked)} className="size-4" />
+        </InputGroup>
+        <Label className="gap-2 font-normal">
+          <Checkbox checked={changedOnly} onCheckedChange={setChangedOnly} />
           {t('changedOnly')}
-        </label>
-        <span className="pb-2 text-sm text-muted-foreground">{t('count', { count })}</span>
+        </Label>
+        <span className="text-sm text-muted-foreground">{t('count', { count })}</span>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col">
+        <ul className="flex flex-col divide-y rounded-xl border bg-card">
         {matches.slice(0, shown).map((e) => (
-          <Card key={e.key} className="py-4">
-            <CardContent className="flex flex-col gap-3">
-              <code className="font-mono text-xs text-muted-foreground">{e.key}</code>
-              <div className="grid gap-3 md:grid-cols-2">
+          <li key={e.key} className="flex flex-col gap-3 p-4 sm:p-5">
+              <code className="font-mono text-caption break-all text-faint-foreground">{e.key}</code>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {LOCALES.map((l) => {
                   const v = text(l, e.key)
                   const shipped = e.defaults[l]
                   if (shipped === undefined && v === '') {
                     return (
                       <div key={l} className="flex flex-col gap-1">
-                        <div className="text-xs text-muted-foreground">{tl(l)}</div>
-                        <p className="text-sm text-muted-foreground">{t('noDefault')}</p>
+                        <div className="text-caption text-muted-foreground">{tl(l)}</div>
+                        <p className="text-sm text-faint-foreground">{t('noDefault')}</p>
                       </div>
                     )
                   }
                   const p = v.trim() === '' ? null : overrideProblem(shipped ?? '', v)
                   return (
-                    <div key={l} className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div key={l} className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-2 text-caption text-muted-foreground">
                         {tl(l)}
                         {v.trim() !== '' && <Badge variant="secondary">{t('changed')}</Badge>}
                       </div>
@@ -152,34 +152,33 @@ export function Translations({ entries }: { entries: TextEntry[] }) {
                         aria-invalid={p ? true : undefined}
                         onChange={(ev) => set(l, e.key, ev.target.value)}
                       />
-                      {p && <p className="text-xs text-destructive">{t(`problems.${p}`)}</p>}
+                      {p && <p className="text-caption text-destructive">{t(`problems.${p}`)}</p>}
                     </div>
                   )
                 })}
               </div>
-            </CardContent>
-          </Card>
+          </li>
         ))}
-        {matches.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">{t('none')}</p>}
+        {matches.length === 0 && <li className="p-8 text-center text-sm text-muted-foreground">{t('none')}</li>}
+        </ul>
         {matches.length > shown && (
-          <Button variant="outline" className="self-center" onClick={() => setShown((n) => n + PAGE)}>
+          <Button variant="outline" className="mt-4 self-center" onClick={() => setShown((n) => n + PAGE)}>
             {t('more', { left: matches.length - shown })}
           </Button>
         )}
-      </div>
-
-      <div className="sticky bottom-0 flex flex-wrap items-center gap-3 border-t bg-background/95 py-3">
-        <Button disabled={pending || !dirty || problems.length > 0} onClick={() => void save()}>
-          {t('save')}
-        </Button>
-        {problems.length > 0 && <span className="text-xs text-destructive">{t('fixFirst', { count: problems.length })}</span>}
-        {dirty && problems.length === 0 && <span className="text-xs text-muted-foreground">{t('unsaved')}</span>}
-        {status && !dirty && (
-          <span role="status" className="text-sm text-primary">
-            {status}
-          </span>
+        {problems.length > 0 && <p className="mt-4 text-caption text-destructive">{t('fixFirst', { count: problems.length })}</p>}
+        {error && (
+          <div className="mt-4">
+            <FormError message={error} />
+          </div>
         )}
-        <FormError message={error} />
+        {/* Saving waits until every changed text keeps its placeholders. */}
+        <SaveBar
+          count={dirty && problems.length === 0 ? 1 : 0}
+          saving={pending}
+          onSave={() => void save()}
+          onDiscard={() => setDraft(saved)}
+        />
       </div>
     </div>
   )

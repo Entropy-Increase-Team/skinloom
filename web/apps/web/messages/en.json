@@ -10,12 +10,17 @@
     "theme": "Toggle light/dark",
     "language": "Language",
     "backHome": "Back to home",
-    "verifyFirst": "Verify your email address first: this site requires it for this."
+    "verifyFirst": "Verify your email address first: this site requires it for this.",
+    "cancel": "Cancel",
+    "save": "Save",
+    "loading": "Loading…"
   },
   "offline": "The backend is unreachable right now; showing default content.",
   "hero": {
     "browse": "Browse skins",
-    "join": "Sign up free"
+    "join": "Create an account",
+    "showcase": "Latest uploads",
+    "showcasePopular": "Most favourited"
   },
   "features": {
     "title": "Built for players and site owners",
@@ -34,16 +39,22 @@
     "selfhost": {
       "title": "Self-host in minutes",
       "body": "Unzip and run on Windows, macOS or Linux, or deploy with Docker and Kubernetes. Plugins, themes and settings reload live."
-    }
+    },
+    "intro": "Players keep their skins and characters here; site owners run the whole site from one program, and moving over from Blessing Skin needs no launcher changes."
   },
   "launcher": {
-    "title": "Use it in your launcher",
-    "body": "In a launcher that supports authlib-injector, add an external authentication server with this address:",
+    "title": "Use it in the game",
+    "body": "Three steps to show your skin from this site in the launcher",
     "copy": "Copy",
     "copied": "Copied",
     "note": "Launchers with drag and drop (HMCL, PCL2, BakaXL and others) take the \"Drag to launcher\" link dropped into their add-server window; entering just this site’s address also works, the launcher finds the API from it.",
     "drag": "Drag to launcher",
-    "dragHint": "Drag this into your launcher’s external login window"
+    "dragHint": "Drag this into your launcher’s external login window",
+    "step1": "Add an authentication server in the launcher",
+    "step1Body": "HMCL, PCL2, BakaXL, Prism Launcher and others support authlib-injector out of the box.",
+    "step2": "Enter this site's authentication server address",
+    "step3": "Sign in with your email and password here",
+    "step3Body": "Then pick a player; its skin shows on any server."
   },
   "announcement": {
     "title": "Announcement"
@@ -66,11 +77,11 @@
       "time": "Newest",
       "likes": "Most liked"
     },
-    "empty": "The library is empty. Upload the first texture!",
-    "noMatch": "No textures match.",
-    "loadFailed": "Could not load; please try again later.",
-    "loading": "Loading…",
-    "more": "Load more"
+    "empty": "The library is empty, upload the first texture",
+    "noMatch": "No textures match",
+    "loadFailed": "Could not load; please try again later",
+    "more": "Load more",
+    "clearFilter": "Clear filters"
   },
   "about": {
     "title": "About SkinLoom",
@@ -98,7 +109,6 @@
     "password": "Password",
     "remember": "Remember me (30 days)",
     "signIn": "Sign in",
-    "signingIn": "Signing in…",
     "signInTo": "Sign in to {site}",
     "signOut": "Sign out",
     "roles": {
@@ -106,7 +116,7 @@
       "superadmin": "Super admin"
     },
     "errors": {
-      "invalid": "Incorrect email or password.",
+      "invalid": "Incorrect email or password",
       "disabled": "This account has been disabled. Contact the site administrator.",
       "tooMany": "Too many failed attempts. Try again later.",
       "failed": "Sign-in failed. Check your connection and try again.",
@@ -119,7 +129,7 @@
     "closet": "Closet",
     "players": "Players",
     "dashboard": "Dashboard",
-    "signInToLink": "Sign in to the account you want to link it to."
+    "signInToLink": "Sign in to the account you want to link it to"
   },
   "setup": {
     "title": "Set up your site",
@@ -134,10 +144,9 @@
     "email": "Email",
     "nickname": "Nickname",
     "password": "Password",
-    "passwordHint": "8 to 128 characters.",
+    "passwordHint": "8 to 128 characters",
     "confirm": "Confirm password",
     "submit": "Finish setup",
-    "submitting": "Setting up…",
     "errors": {
       "token": "The setup link is invalid, used or expired. Restart SkinLoom or run skinloom setup-link for a new one.",
       "done": "This site is already set up. Sign in instead.",
@@ -146,19 +155,18 @@
   },
   "register": {
     "title": "Register",
-    "intro": "Create your {site} account.",
+    "intro": "Create your {site} account",
     "closed": "Registration is closed on this site. Contact the site administrator.",
     "email": "Email",
     "nickname": "Nickname",
     "password": "Password",
-    "passwordHint": "8 to 128 characters.",
+    "passwordHint": "8 to 128 characters",
     "confirm": "Confirm password",
     "submit": "Register",
-    "submitting": "Registering…",
     "haveAccount": "Already have an account?",
     "signIn": "Sign in",
     "errors": {
-      "closed": "Registration is closed.",
+      "closed": "Registration is closed",
       "tooMany": "Too many accounts were registered from your network. Try again later.",
       "captchaDown": "The captcha service is unavailable. Try again later.",
       "failed": "Registration failed. Check your connection and try again."
@@ -172,24 +180,23 @@
     "loadFailed": "The captcha could not be loaded. Reload the page or try again later."
   },
   "fieldErrors": {
-    "email": "Enter a valid email address.",
-    "nickname": "Nickname must be 1 to 32 characters.",
-    "password": "Password must be 8 to 128 characters.",
-    "siteName": "Site name can be at most 64 characters.",
-    "siteUrl": "Enter an address starting with http:// or https://, e.g. https://skins.example.com.",
-    "passwordMismatch": "The passwords do not match.",
-    "emailTaken": "This email is already registered.",
-    "captchaRequired": "Complete the captcha first.",
+    "email": "Enter a valid email address",
+    "nickname": "Nickname must be 1 to 32 characters",
+    "password": "Password must be 8 to 128 characters",
+    "siteName": "Site name can be at most 64 characters",
+    "siteUrl": "Enter an address starting with http:// or https://, e.g. https://skins.example.com",
+    "passwordMismatch": "The passwords do not match",
+    "emailTaken": "This email is already registered",
+    "captchaRequired": "Complete the captcha first",
     "captchaWrong": "The captcha is wrong or expired. Try again.",
-    "wrongPassword": "Incorrect password."
+    "wrongPassword": "Incorrect password"
   },
   "forgot": {
     "title": "Reset password",
-    "intro": "Enter the email you registered with and we will send you a link to reset your password.",
+    "intro": "Enter the email you registered with and we will send you a link to reset your password",
     "noMail": "This site has no mail configured, so passwords cannot be reset by email. Contact the site administrator.",
     "email": "Email",
     "submit": "Send reset email",
-    "submitting": "Sending…",
     "back": "Back to sign in",
     "sent": "If an account uses this address, we have sent a password reset email. The link works once and expires in 30 minutes. Check your spam folder if it does not arrive.",
     "errors": {
@@ -200,15 +207,14 @@
   },
   "reset": {
     "title": "Choose a new password",
-    "intro": "After you set a new password you will be signed out on every device.",
+    "intro": "After you set a new password you will be signed out on every device",
     "password": "New password",
-    "passwordHint": "8 to 128 characters.",
+    "passwordHint": "8 to 128 characters",
     "confirm": "Confirm new password",
     "submit": "Set new password",
-    "submitting": "Saving…",
     "done": "Your password has been changed. Sign in with the new one.",
     "signIn": "Sign in",
-    "invalid": "This link is invalid, already used or expired (it lasts 30 minutes).",
+    "invalid": "This link is invalid, already used or expired (it lasts 30 minutes)",
     "again": "Send a new reset email",
     "errors": {
       "failed": "Saving failed. Check your connection and try again."
@@ -216,16 +222,15 @@
   },
   "verify": {
     "title": "Verify email",
-    "intro": "Confirm that this email address belongs to you.",
+    "intro": "Confirm that this email address belongs to you",
     "confirm": "Verify my email",
-    "confirming": "Verifying…",
-    "done": "Your email address is verified.",
+    "done": "Your email address is verified",
     "invalid": "This link is invalid, already used or expired (it lasts 24 hours). Sign in to send a new one.",
     "failed": "Verification failed. Check your connection and try again.",
     "home": "Back to home",
-    "banner": "Your email {email} is not verified yet.",
+    "banner": "Your email {email} is not verified yet",
     "resend": "Send the verification email again",
-    "resent": "Sent, check your inbox.",
+    "resent": "Sent, check your inbox",
     "wait": "Just sent one, try again later",
     "resendFailed": "Sending failed, click to retry",
     "bannerRequired": "Your email {email} is not verified yet. This site requires it before you manage players, upload textures or report.",
@@ -233,14 +238,13 @@
   },
   "profile": {
     "title": "Profile",
-    "score": "Score: {score}",
     "profile": "Profile",
     "nickname": "Nickname",
     "language": "Language",
     "followBrowser": "Follow the browser",
     "languageHint": "Also the language of the mail this site sends you.",
     "save": "Save",
-    "saved": "Saved.",
+    "saved": "Saved",
     "password": "Change password",
     "passwordHint": "Your other devices will be signed out; this one stays signed in.",
     "currentPassword": "Current password",
@@ -253,19 +257,19 @@
     "newEmail": "New email",
     "emailHint": "Your other devices will be signed out, and your old address gets a notice.",
     "changeEmail": "Change email",
-    "emailChanged": "Email changed.",
+    "emailChanged": "Email changed",
     "emailChangedMail": "Email changed. Check your new inbox for the verification link.",
     "devices": "Signed-in devices",
-    "devicesHint": "Your account is signed in on these devices.",
+    "devicesHint": "Your account is signed in on these devices",
     "thisDevice": "This device",
-    "lastSeen": "Last active {when}",
+    "lastSeen": "active <t></t>",
     "signOutDevice": "Sign out",
     "signOutOthers": "Sign out all other devices",
     "delete": "Delete account",
     "deleteHint": "You are signed out at once. Sign in within 30 days to restore the account; after that it is deleted for good.",
     "deleteButton": "Delete my account",
-    "deleteConfirm": "Delete your account? After 30 days it cannot be restored.",
-    "deleted": "Account deleted.",
+    "deleteConfirm": "You are signed out at once. Sign in within 30 days to restore it; after that the account, its players and closet are deleted for good. Type your email {email} to confirm.",
+    "deleted": "Account deleted",
     "adminNoDelete": "Administrators cannot delete their own account. Ask a super administrator to make you an ordinary user first.",
     "errors": {
       "tooMany": "Too many wrong passwords. Try again later.",
@@ -275,7 +279,7 @@
     "avatarHint": "Your avatar is the head of a skin in your closet.",
     "chooseAvatar": "Choose in the closet",
     "removeAvatar": "Remove avatar",
-    "avatarRemoved": "Avatar removed.",
+    "avatarRemoved": "Avatar removed",
     "launchers": "Game launchers",
     "launchersHint": "In a launcher that supports authlib-injector, add an external login server with this address and sign in with your email (or a player name) and password.",
     "launchersSignedIn": "{count, plural, =0 {No launcher is signed in.} one {One launcher is signed in to this account.} other {# launchers are signed in to this account.}}",
@@ -283,7 +287,10 @@
     "launchersSignedOut": "All launchers are signed out; sign in again in the launcher.",
     "setPassword": "Set a password",
     "setPasswordHint": "Your account signs in through a provider. With a password you can also sign in with your email, and in game launchers.",
-    "passwordSet": "Password set. You can now sign in with your email and password too."
+    "passwordSet": "Password set. You can now sign in with your email and password too.",
+    "intro": "Avatar, nickname, sign-in methods and account security",
+    "launchersAddress": "Authentication server address",
+    "deleteTitle": "Delete your account?"
   },
   "admin": {
     "title": "Admin",
@@ -300,15 +307,14 @@
     "registered": "Registered",
     "lastLogin": "Last sign-in",
     "edit": "Edit",
-    "close": "Close",
-    "empty": "Nothing here.",
+    "empty": "No users match",
     "more": "Load more",
     "unverified": "unverified",
     "save": "Save",
     "delete": "Delete",
     "passwordHint": "Leave empty to keep",
     "saveHint": "Banning a user or setting a password signs them out everywhere; a new email needs verifying again.",
-    "deleteConfirm": "Delete {email} now? This cannot be undone.",
+    "deleteConfirm": "The account, its players and closet are deleted at once and for good. Type their email {email} to confirm.",
     "roles": {
       "user": "User",
       "admin": "Admin",
@@ -338,7 +344,7 @@
     "system": "System / token",
     "errors": {
       "load": "Loading failed. Reload to try again.",
-      "save": "Saving failed."
+      "save": "Saving failed"
     },
     "overview": "Overview",
     "players": "Players",
@@ -347,7 +353,17 @@
     "settings": "Settings",
     "appearance": "Appearance",
     "translations": "Translations",
-    "systemStatus": "System status"
+    "systemStatus": "System status",
+    "menu": "More actions for {name}",
+    "editTitle": "Edit {name}",
+    "saved": "Saved",
+    "deleteUser": "Delete user",
+    "deleteTitle": "Delete the user {name}?",
+    "deleted": "Deleted {name}",
+    "usersIntro": "Search, edit and ban accounts. Administrators manage ordinary users only.",
+    "playersIntro": "Every user's players: rename, give to another user, dress or delete.",
+    "auditIntro": "Sign-ins, settings changes and admin actions, newest first.",
+    "emptyAudit": "No records"
   },
   "texture": {
     "private": "Private",
@@ -360,33 +376,31 @@
     "likes": "Likes",
     "notAvailable": "Texture not available",
     "privateNotice": "This texture is private; only its uploader can see it.",
-    "loadFailed": "Could not load; please try again later.",
+    "loadFailed": "Could not load; please try again later",
     "back": "Back to the library",
     "preview": "3D preview of {name}",
     "inCloset": "In your closet",
-    "uploader": "Uploader",
     "size": "Size",
-    "uploaded": "Uploaded",
     "hash": "Hash",
     "download": "Download original",
     "favorite": "Add to closet",
     "unfavorite": "Remove from closet",
-    "favoriteCost": "Costs {cost} score, refunded when you remove it.",
+    "favoriteCost": "Costs {cost} score, refunded when you remove it",
     "manage": "Manage texture",
     "rename": "Rename",
     "changeType": "Texture type",
     "makePrivate": "Make private",
     "makePublic": "Make public",
-    "privateConfirm": "Making it private removes it from other users’ closets and players (their score is refunded). Continue?",
-    "switchCost": "Switching costs {cost} score.",
-    "switchRefund": "Switching refunds {cost} score.",
+    "privateConfirm": "Other users will no longer see it. It is taken out of their closets and off their players, and the score they spent on it is refunded.",
+    "switchCost": "Switching costs {cost} score",
+    "switchRefund": "Switching refunds {cost} score",
     "delete": "Delete texture",
-    "deleteConfirm": "Delete “{name}”? This cannot be undone; it is also removed from every closet and player.",
+    "deleteConfirm": "It is removed from the skin library, every closet and every player. This cannot be undone.",
     "errors": {
-      "score": "Not enough score.",
+      "score": "Not enough score: check in or upload textures to earn more",
       "duplicate": "The same image is already public in the skin library.",
       "shape": "An image of this size cannot be used as that type.",
-      "name": "The name does not follow the site’s naming rule.",
+      "name": "The name does not follow the site’s naming rule",
       "failed": "Something went wrong. Please try again."
     },
     "report": {
@@ -395,44 +409,59 @@
       "placeholder": "For example: someone else’s work, inappropriate content…",
       "cost": "Reporting costs {score} score, refunded if the report is upheld.",
       "earn": "Reporting earns {score} score (taken back if it is rejected).",
-      "reward": "An upheld report earns {score} more.",
+      "reward": "An upheld report earns {score} more",
       "submit": "Send report",
-      "cancel": "Cancel",
       "sent": "Sent. An administrator will look at it soon.",
       "mine": "My reports",
       "errors": {
-        "score": "Not enough score.",
-        "own": "You cannot report your own texture.",
-        "tooMany": "Too many reports; try again later.",
+        "score": "Not enough score: check in or upload textures to earn more",
+        "own": "You cannot report your own texture",
+        "tooMany": "Too many reports; try again later",
         "failed": "Could not send. Please try again."
-      }
-    }
+      },
+      "title": "Report this texture",
+      "body": "Say what is wrong; an administrator will look into it."
+    },
+    "uploadedOn": "Uploaded {date}",
+    "signInToFavorite": "Sign in to favorite",
+    "flat": "Flat view",
+    "frontBack": "Front and back",
+    "name": "Name",
+    "renameTitle": "Rename texture",
+    "renameBody": "The new name shows in the skin library and in every closet that has it.",
+    "privateTitle": "Make “{name}” private?",
+    "publicTitle": "Make “{name}” public?",
+    "madePrivate": "Made private",
+    "madePublic": "Made public",
+    "deleteTitle": "Delete “{name}”?",
+    "deleted": "Deleted “{name}”"
   },
   "upload": {
     "title": "Upload a texture",
     "intro": "PNG skins and capes. You have {score} points.",
-    "noPreview": "Pick an image to preview it here",
+    "noPreview": "Pick an image to preview it in 3D here",
     "duplicate": "This image is already in the library: nothing was uploaded or charged.",
     "viewExisting": "View it",
-    "file": "Image",
     "picked": "{w} × {h} pixels",
-    "fileHint": "PNG, at most {kb} KB and {width} pixels wide.",
+    "fileHint": "PNG, at most {kb} KB and {width} pixels wide",
     "name": "Name",
     "type": "Type",
     "typeHint": "Chosen from the image; change it if needed. Slim skins have 3-pixel arms.",
-    "public": "Public (shown in the library; private textures cost more)",
+    "public": "Public",
     "cost": "About {cost} points (you have {score}); the server counts the size after recompressing.",
-    "rates": "Per KB: {pub} points public, {priv} private.",
-    "uploading": "Uploading…",
+    "rates": "Per KB: {pub} points public, {priv} private",
     "submit": "Upload",
     "errors": {
-      "notPng": "Only PNG images are accepted.",
-      "tooLarge": "The image must be at most {kb} KB.",
-      "unreadable": "This image cannot be read.",
-      "noFile": "Pick an image first.",
-      "score": "Not enough points.",
-      "failed": "Upload failed; please try again later."
-    }
+      "notPng": "Only PNG images are accepted",
+      "tooLarge": "The image must be at most {kb} KB",
+      "unreadable": "This image cannot be read",
+      "noFile": "Pick an image first",
+      "score": "Not enough score: check in or upload textures to earn more",
+      "failed": "Upload failed; please try again later"
+    },
+    "previewLabel": "3D preview of the picked texture",
+    "replace": "Replace image",
+    "publicHint": "Shown in the skin library for anyone to favorite. A private texture is visible only to you and costs more score per KB."
   },
   "closet": {
     "title": "My closet",
@@ -440,31 +469,36 @@
     "skins": "Skins",
     "capes": "Capes",
     "search": "Search by name",
-    "loadFailed": "Could not load; please try again later.",
-    "noMatch": "Nothing found.",
-    "empty": "Your closet is empty.",
+    "loadFailed": "Could not load; please try again later",
+    "noMatch": "Nothing found",
+    "empty": "Your closet is empty",
     "browse": "Browse the library",
     "upload": "Upload",
     "more": "Load more",
     "rename": "Rename",
-    "renamePrompt": "New name in your closet",
     "remove": "Remove from closet",
-    "removeConfirm": "Remove “{name}” from your closet? Players wearing it take it off.",
-    "removed": "Removed from your closet.",
-    "removedRefund": "Removed from your closet; {score} score refunded.",
+    "removed": "Removed from your closet",
+    "removedRefund": "Removed from your closet; {score} score refunded",
     "changeFailed": "Something went wrong. Please try again.",
     "useAsAvatar": "Use as avatar",
-    "avatarSet": "“{name}” is now your avatar."
+    "avatarSet": "“{name}” is now your avatar",
+    "category": "Category",
+    "itemMenu": "More actions for {name}",
+    "emptyBody": "Favorite textures in the skin library, or upload your own, and they show up here.",
+    "renameTitle": "Rename",
+    "renameBody": "This only changes its name in your closet, not the texture itself.",
+    "name": "Name",
+    "removeTitle": "Remove “{name}” from your closet?",
+    "removeBody": "Players wearing it take it off. You can favorite it again in the skin library."
   },
   "player": {
     "title": "Players",
     "intro": "A player is your name in the game. Dress your players in skins and capes from your closet and game clients show them.",
-    "loadFailed": "Could not load; please try again later.",
-    "none": "No players yet. Create one first.",
-    "newName": "New player name",
+    "loadFailed": "Could not load; please try again later",
+    "none": "No players yet",
     "create": "Create player",
-    "cost": "A player costs {cost} points (you have {score}).",
-    "refundHint": "Deleting a player gives back what it cost.",
+    "cost": "A player costs {cost} points (you have {score})",
+    "refundHint": "Deleting a player gives back what it cost",
     "rules": {
       "official": "Letters, digits and underscores only, {min} to {max} characters.",
       "cjk": "Chinese characters, letters, digits and underscores, {min} to {max} characters.",
@@ -472,67 +506,75 @@
       "custom": "Must follow the site's naming rule, {min} to {max} characters."
     },
     "rename": "Rename",
-    "save": "Save",
     "copyUUID": "Copy UUID",
-    "copied": "Copied",
+    "copied": "UUID copied",
     "skin": "Skin",
     "cape": "Cape",
-    "noSkin": "No skin",
     "chooseSkin": "Choose skin",
     "chooseCape": "Choose cape",
     "removeSkin": "Take off skin",
     "removeCape": "Take off cape",
     "delete": "Delete player",
-    "deleteConfirm": "Delete the player {name}?",
-    "closetEmpty": "Nothing of this kind in your closet yet.",
+    "closetEmpty": "Nothing of this kind in your closet yet",
     "profileLink": "Player data (CustomSkinLoader)",
-    "createFirst": "Create a player first to wear textures.",
+    "createFirst": "Create a player first to wear textures",
     "choosePlayer": "Choose a player",
     "wearSkin": "Wear this skin",
     "wearCape": "Wear this cape",
-    "worn": "Done.",
     "errors": {
-      "score": "Not enough points.",
-      "taken": "This name is taken.",
-      "name": "This name is not allowed.",
-      "failed": "Something went wrong; please try again later."
-    }
+      "score": "Not enough score: check in or upload textures to earn more",
+      "taken": "This name is taken",
+      "name": "This name is not allowed",
+      "failed": "Something went wrong; please try again later"
+    },
+    "wornOn": "Now worn by {name}",
+    "noneBody": "A player's name is your name in the game. Create one, then dress it in a skin from your closet.",
+    "more": "More actions for {name}",
+    "createTitle": "Create a player",
+    "createBody": "Use the name you play with: launchers find the player by its name.",
+    "renameTitle": "Rename {name}",
+    "renameBody": "After renaming, sign in to the game with the new name to show these textures.",
+    "name": "Player name",
+    "created": "Created {name}",
+    "deleteTitle": "Delete the player {name}?",
+    "deleteBody": "The skin and cape it wears stay in your closet.",
+    "deleteRefund": "The score it cost is refunded",
+    "deleted": "Deleted {name}",
+    "pickSkinTitle": "Choose a skin for {name}",
+    "pickCapeTitle": "Choose a cape for {name}"
   },
   "dashboard": {
     "title": "Dashboard",
-    "welcome": "Welcome back, {name}.",
+    "welcome": "{name}, your players, closet and score, all in one place",
     "loadFailed": "Could not load. Please try again later.",
     "score": "Score",
     "players": "Players",
     "closetItems": "Closet",
     "uploads": "Uploads",
-    "storage": "Storage",
-    "kb": "{kb} KB",
     "sign": {
       "title": "Check in",
       "button": "Check in",
-      "signing": "Checking in…",
       "done": "Checked in",
       "range": "Each check-in gives {min}–{max} score at random; ",
       "fixed": "Each check-in gives {score} score; ",
-      "daily": "you can check in once a day.",
-      "gap": "you can check in every {hours} hours.",
+      "daily": "you can check in once a day",
+      "gap": "you can check in every {hours} hours",
       "next": "Next check-in: {time}",
-      "gained": "Checked in: +{score} score!",
-      "tooEarly": "It is not time to check in yet.",
+      "gained": "Checked in: {score} score added",
+      "tooEarly": "It is not time to check in yet",
       "failed": "Check-in failed. Please try again."
     },
     "announcement": "Announcement",
     "links": {
-      "title": "Shortcuts",
       "players": "Manage players",
-      "closet": "My closet",
-      "upload": "Upload a texture",
-      "skinlib": "Browse the skin library",
-      "profile": "Profile",
-      "reports": "My reports",
-      "developer": "Apps & tokens"
-    }
+      "upload": "Upload"
+    },
+    "scoreNote": "Spent on uploads, favorites and new players",
+    "storageNote": "{kb} KB in total",
+    "myPlayers": "My players",
+    "noPlayers": "No players yet",
+    "noPlayersBody": "A player's name is your name in the game. Create one, then dress it in a skin from your closet.",
+    "createPlayer": "Create a player"
   },
   "adminOverview": {
     "loadFailed": "Could not load. Please refresh.",
@@ -548,7 +590,8 @@
     "registrations": "Registrations per day",
     "uploads": "Uploads per day",
     "total": "{count} in the last 31 days",
-    "table": "Show as a table"
+    "table": "Show as a table",
+    "intro": "The site in totals, sign-ups and uploads over the last 31 days, and reports waiting for review"
   },
   "adminReports": {
     "status": {
@@ -569,23 +612,35 @@
       "resolve": "Mark resolved"
     },
     "confirm": {
-      "delete": "Delete the texture “{name}”? Users who added it get their score back. This cannot be undone.",
-      "ban": "Ban the uploader {uploader}? They are signed out everywhere."
+      "delete": "Users who favorited it get their score back and players wearing it take it off. This cannot be undone.",
+      "ban": "They are signed out on every device and cannot sign in again until you lift the ban."
     },
     "errors": {
       "load": "Could not load. Please refresh.",
       "forbidden": "You may not do this (administrators manage ordinary users only).",
-      "reviewed": "This report has been reviewed already.",
+      "reviewed": "This report has been reviewed already",
       "failed": "Something went wrong. Please try again."
     },
-    "empty": "No reports.",
+    "empty": "No reports",
     "textureGone": "Texture deleted",
     "private": "Private",
-    "meta": "Reported by {reporter} · uploaded by {uploader} · {time}",
-    "handled": "Handled by {handler} at {time}",
     "deletedUser": "deleted user",
     "token": "the admin token",
-    "more": "Load more"
+    "more": "Load more",
+    "intro": "Reports about textures. Deleting a texture refunds those who favorited it; a ban signs the uploader out everywhere.",
+    "emptyPending": "Nothing waiting for review",
+    "reporter": "Reporter",
+    "uploader": "Uploader",
+    "handler": "Handled by",
+    "confirmTitle": {
+      "delete": "Delete the texture “{name}”?",
+      "ban": "Ban {uploader}?"
+    },
+    "done": {
+      "delete": "Texture deleted",
+      "ban": "Uploader banned",
+      "reject": "Report rejected"
+    }
   },
   "adminPlayers": {
     "search": "Search",
@@ -596,13 +651,11 @@
     "skin": "Skin",
     "cape": "Cape",
     "updated": "Updated",
-    "empty": "No players.",
+    "empty": "No players",
     "more": "Load more",
     "edit": "Edit",
-    "close": "Close",
     "save": "Save",
     "delete": "Delete player",
-    "deleteConfirm": "Delete the player {name}? This cannot be undone.",
     "editHint": "Owner is a user id; skin and cape are texture ids (empty: none) from the owner’s closet. After a change of owner, what the new owner’s closet lacks comes off.",
     "fields": {
       "name": "Name",
@@ -612,30 +665,37 @@
     },
     "errors": {
       "load": "Could not load. Please refresh.",
-      "forbidden": "You may not manage this user’s players.",
-      "taken": "That name is taken.",
-      "name": "The name does not follow the site’s rule.",
-      "owner": "There is no such user.",
+      "forbidden": "You may not manage this user’s players",
+      "taken": "That name is taken",
+      "name": "The name does not follow the site’s rule",
+      "owner": "There is no such user",
       "texture": "The texture does not exist, is of the wrong kind, or is not in the owner’s closet.",
-      "save": "Could not save."
-    }
+      "save": "Could not save"
+    },
+    "menu": "More actions for {name}",
+    "editTitle": "Edit the player {name}",
+    "saved": "Saved",
+    "clearUser": "Show every user's players",
+    "deleteTitle": "Delete the player {name}?",
+    "deleteBody": "Launchers using this name can no longer show its skin. This cannot be undone.",
+    "deleted": "Deleted {name}"
   },
   "myReports": {
     "title": "My reports",
     "intro": "The reports you sent and what became of them.",
     "loadFailed": "Could not load. Please try again later.",
-    "empty": "You have not reported any texture.",
+    "empty": "You have not reported any textures",
     "textureGone": "Texture deleted or no longer public",
     "status": {
       "pending": "Pending",
       "resolved": "Resolved",
       "rejected": "Rejected"
     },
-    "submitted": "Sent {time}",
+    "submitted": "Submitted <t></t>",
     "outcome": {
-      "delete": "texture deleted",
-      "ban": "uploader banned",
-      "reject": "rejected"
+      "delete": "Texture deleted <t></t>",
+      "ban": "Uploader banned <t></t>",
+      "reject": "Rejected <t></t>"
     },
     "more": "Load more"
   },
@@ -645,7 +705,7 @@
     "unread": "{count} unread",
     "readAll": "Mark all read",
     "loadFailed": "Could not load. Please try again later.",
-    "empty": "No notifications yet.",
+    "empty": "No notifications yet",
     "announcement": "Announcement",
     "read": "read",
     "new": "unread",
@@ -666,11 +726,11 @@
     "contentHint": "Markdown: **bold**, [links](https://…), lists and so on; HTML is not applied.",
     "send": "Send",
     "sentAll": "Sent. Users see it when they next open their notifications.",
-    "sentOne": "Sent.",
+    "sentOne": "Sent",
     "errors": {
-      "noUser": "There is no such user.",
-      "title": "The title needs 1–64 characters.",
-      "content": "The text can be at most 10000 characters.",
+      "noUser": "There is no such user",
+      "title": "The title needs 1–64 characters",
+      "content": "The text can be at most 10000 characters",
       "failed": "Could not send. Please try again."
     }
   },
@@ -688,58 +748,65 @@
     "failed": "Something went wrong. Try again later.",
     "manageTitle": "Apps & tokens",
     "manageHint": "Let other sites and programs sign in with your account or read your data (OAuth 2.0), or create personal access tokens for your own scripts.",
-    "copy": "Copy",
-    "copied": "Copied",
-    "shownOnce": "Shown only this once: save it now.",
-    "save": "Save",
-    "cancel": "Cancel",
+    "shownOnce": "Shown only this once: copy it now",
     "edit": "Edit",
-    "delete": "Delete",
     "apps": {
       "title": "My applications",
       "hint": "Register the site or program you build, and its users can sign in through this site. Endpoints:",
-      "none": "No applications yet.",
+      "none": "No applications registered",
       "new": "Register an application",
       "name": "Name",
       "redirectUris": "Redirect URIs",
-      "redirectHint": "One per line, up to 10; matched exactly.",
+      "redirectHint": "One per line, at most 10; the callback must match exactly",
       "kind": "Type",
-      "confidentialHint": "Server-side application (with a secret)",
-      "publicHint": "Browser, desktop or mobile app (no secret, PKCE required)",
+      "confidentialHint": "Runs on your server and keeps a secret",
+      "publicHint": "A browser, desktop or phone app without a secret; must use PKCE",
       "confidential": "Server-side",
       "public": "Public client",
       "create": "Register",
       "secret": "Client secret",
       "resetSecret": "Reset secret",
-      "resetConfirm": "Reset the secret of “{name}”? The old one stops working at once.",
-      "deleteConfirm": "Delete “{name}”? Every user’s authorization of it and its tokens stop working."
+      "resetConfirm": "The old secret stops working at once; services using it need the new one.",
+      "deleteConfirm": "Every user's authorization of it and every token it issued stop working. This cannot be undone.",
+      "newBody": "You get a client_id; a server application also gets a secret, shown once.",
+      "editTitle": "Edit {name}",
+      "delete": "Delete application",
+      "deleted": "Deleted {name}",
+      "resetTitle": "Reset the secret of {name}?",
+      "deleteTitle": "Delete the application {name}?"
     },
     "grants": {
       "title": "Authorized applications",
       "hint": "Applications you allowed. Revoked ones lose access and must ask again.",
-      "none": "You have not authorized any application.",
-      "since": "last authorized {date}",
+      "none": "You have not authorized any applications",
+      "since": "authorized <t></t>",
       "revoke": "Revoke",
-      "revokeConfirm": "Revoke access of “{name}”?"
+      "revokeConfirm": "It can no longer access your account; using it again needs a new authorization.",
+      "revokeTitle": "Revoke access for {name}?",
+      "revoked": "Revoked access for {name}"
     },
     "tokens": {
       "title": "Personal access tokens",
       "hint": "For your own scripts: call the Blessing Skin compatible API like applications do, for example {api} (header Authorization: Bearer token).",
-      "none": "No tokens yet.",
+      "none": "No tokens yet",
       "new": "Create a token",
       "name": "What it is for",
       "scopes": "Permissions",
       "expires": "Expires",
       "days": "{days} days",
       "neverOption": "Never",
-      "create": "Create",
+      "create": "Create token",
       "created": "Your new personal access token",
-      "createdAt": "created {date}",
-      "expiresAt": "expires {date}",
+      "createdAt": "created <t></t>",
+      "expiresAt": "expires <t></t>",
       "never": "never expires",
-      "lastUsed": "last used {date}",
+      "lastUsed": "last used <t></t>",
       "unused": "never used",
-      "deleteConfirm": "Delete the token “{name}”? Scripts using it lose access."
+      "deleteConfirm": "Scripts using it can no longer access your account.",
+      "newBody": "The token is shown only once, right after it is created. Tick only the scopes your script needs.",
+      "delete": "Delete token",
+      "deleted": "Deleted the token {name}",
+      "deleteTitle": "Delete the token {name}?"
     },
     "scopes": {
       "User_Read": "Read your account (nickname, email, score…)",
@@ -757,12 +824,12 @@
       "ClosetManagement_ReadWrite": "Manage users’ closets (administrators)",
       "ReportsManagement_Read": "See reports (administrators)",
       "ReportsManagement_ReadWrite": "Handle reports (administrators)"
-    }
+    },
+    "menu": "More actions for {name}"
   },
   "social": {
     "or": "or",
     "continueWith": "Continue with {name}",
-    "redirecting": "Redirecting…",
     "errors": {
       "tooMany": "Too many attempts. Try again later.",
       "unreachable": "The sign-in provider could not be reached. Try again later.",
@@ -770,16 +837,16 @@
     },
     "callback": {
       "expired": "That sign-in expired or was started in another browser. Please try again.",
-      "denied": "Sign-in was cancelled.",
+      "denied": "Sign-in was cancelled",
       "failed": "Signing in with the provider failed. Try again, or use another way to sign in.",
       "disabled": "This account has been disabled. Contact the site administrator.",
-      "gone": "This account has been deleted.",
-      "taken": "That account is already linked to another user of this site.",
+      "gone": "This account has been deleted",
+      "taken": "That account is already linked to another user of this site",
       "already": "You have already linked an account of this provider. Unlink it first."
     },
     "pending": {
       "title": "Welcome",
-      "intro": "One more step to use {site}.",
+      "intro": "One more step to use {site}",
       "expired": "This sign-in has expired. Please start again.",
       "again": "Back to sign in",
       "signedInWith": "Signed in with {provider} as {name}",
@@ -787,7 +854,7 @@
       "linkButton": "Link to my account",
       "createHint": "New here? Create an account. You can set a password later.",
       "email": "Email",
-      "emailVerified": "Verified by {provider}.",
+      "emailVerified": "Verified by {provider}",
       "emailMail": "We will send a verification link to this address.",
       "nickname": "Nickname",
       "create": "Create account",
@@ -799,19 +866,21 @@
     },
     "section": {
       "title": "Linked accounts",
-      "hint": "Sign in with an account you have elsewhere.",
+      "hint": "Sign in with an account you have elsewhere",
       "linked": "Account linked. You can now sign in with it.",
       "since": "linked {when}",
       "unlink": "Unlink",
-      "unlinkConfirm": "Unlink {provider}? You will no longer be able to sign in with it.",
+      "unlinkConfirm": "You can no longer sign in with it. You can link it again at any time.",
       "keepLast": "This is your only way to sign in. Set a password before unlinking it.",
-      "link": "Link {name}"
+      "link": "Link {name}",
+      "unlinkTitle": "Unlink {provider}?"
     }
   },
   "adminSettings": {
-    "loading": "Loading settings…",
     "intro": "Changes apply at once on every node and in every open page, without a restart. Each section saves on its own.",
     "sectionsLabel": "Setting sections",
+    "searchPlaceholder": "Search settings by name or description",
+    "noMatch": "No matching settings",
     "sections": {
       "site": {
         "title": "Site",
@@ -874,9 +943,7 @@
       "zh-CN": "简体中文",
       "en": "English"
     },
-    "save": "Save",
-    "saved": "Saved and applied.",
-    "unsaved": "Unsaved changes",
+    "saved": "Saved; in effect now",
     "reset": "Reset to default",
     "willReset": "Resets to the default when saved",
     "clear": "Clear",
@@ -893,11 +960,12 @@
       "json": "Not valid JSON"
     },
     "errors": {
-      "load": "Could not load the settings.",
-      "save": "Could not save; try again.",
-      "forbidden": "You may not change these settings."
+      "load": "Could not load the settings",
+      "save": "Could not save; try again",
+      "forbidden": "You may not change these settings"
     },
-    "superadminOnly": "Super administrators only"
+    "superadminOnly": "Super administrators only",
+    "title": "Settings"
   },
   "settingKeys": {
     "site": {
@@ -1218,17 +1286,38 @@
     }
   },
   "appearance": {
-    "loading": "Loading the appearance settings…",
     "intro": "Changes reach every visitor as soon as they are saved, without a restart.",
     "errors": {
-      "load": "Could not load the appearance settings."
+      "load": "Could not load the appearance settings"
     },
     "themes": {
       "title": "Theme",
       "intro": "Pick the theme of the site. Without a custom home page, the home page changes to the new theme's too.",
       "active": "In use",
       "activate": "Use",
-      "failed": "Could not switch the theme; try again."
+      "failed": "Could not switch the theme; try again",
+      "activated": "Theme switched",
+      "builtin": "Built-in",
+      "local": "Local",
+      "reload": "Rescan",
+      "reloaded": "Themes directory rescanned",
+      "extends": "Extends {parent}"
+    },
+    "tabs": {
+      "themes": "Themes",
+      "settings": "Theme settings",
+      "colors": "Colours",
+      "home": "Home page",
+      "branding": "Branding & footer",
+      "custom": "Custom code"
+    },
+    "themeSettings": {
+      "title": "Theme settings",
+      "intro": "Options declared by the active theme, applied immediately when saved",
+      "empty": "This theme has no configurable settings",
+      "reset": "Reset to defaults",
+      "failed": "Could not save; try again",
+      "saved": "Theme settings saved"
     },
     "colors": {
       "title": "Colours",
@@ -1247,32 +1336,32 @@
         "border": "Borders",
         "radius": "Corner radius"
       },
-      "unsafe": "Some values contain semicolons, braces, angle brackets or comments, which cannot be saved.",
-      "save": "Save colours",
+      "unsafe": "Some values contain semicolons, braces, angle brackets or comments, which cannot be saved",
+      "exportTheme": "Export as theme",
       "clearAll": "Clear all",
-      "unsaved": "Unsaved changes",
-      "failed": "Could not save; try again."
+      "failed": "Could not save; try again",
+      "saved": "Colors saved"
     },
     "home": {
       "title": "Home page",
       "intro": "The home page is made of blocks, top to bottom.",
-      "usingTheme": "It is the home page of the theme “{theme}”.",
-      "custom": "It is a custom home page.",
-      "empty": "The home page has no blocks yet.",
-      "addType": "Block to add",
+      "usingTheme": "It is the home page of the theme “{theme}”",
+      "custom": "It is a custom home page",
+      "empty": "The home page has no blocks",
       "add": "Add block",
-      "save": "Save home page",
       "useTheme": "Use the theme's home page",
-      "unsaved": "Unsaved changes",
       "moveUp": "Move up",
       "moveDown": "Move down",
       "remove": "Remove",
-      "unknownType": "There is no such block; remove it before saving.",
+      "unknownType": "There is no such block; remove it before saving",
       "default": "Default",
       "linkHint": "A path on this site (like /skinlib) or an https:// address",
       "addButton": "Add button",
       "invalid": "The home page has a problem: {detail}",
-      "failed": "Could not save; try again."
+      "failed": "Could not save; try again",
+      "saved": "Home page saved",
+      "usingThemeNow": "Now using the theme's home page",
+      "removeButton": "Remove this button"
     },
     "blockTypes": {
       "hero": {
@@ -1285,7 +1374,7 @@
       },
       "features": {
         "name": "Features",
-        "help": "Four cards: uploads, players, launchers, self-hosting."
+        "help": "Uploads, players, launchers and self-hosting"
       },
       "stats": {
         "name": "Site figures",
@@ -1293,19 +1382,19 @@
       },
       "latest-textures": {
         "name": "Latest textures",
-        "help": "Public textures uploaded most recently."
+        "help": "Public textures uploaded most recently"
       },
       "popular-textures": {
         "name": "Popular textures",
-        "help": "Public textures in the most closets."
+        "help": "Public textures in the most closets"
       },
       "markdown": {
         "name": "Text",
-        "help": "A piece of Markdown."
+        "help": "A piece of Markdown"
       },
       "image": {
         "name": "Image",
-        "help": "An image, optionally a link."
+        "help": "An image, optionally a link"
       },
       "buttons": {
         "name": "Buttons",
@@ -1328,26 +1417,35 @@
       "src": "Image address",
       "alt": "Image description",
       "href": "Link",
-      "items": "Buttons"
+      "items": "Buttons",
+      "layout": "Layout",
+      "showcase": "Showcase"
     },
     "options": {
       "skin": "Skins",
-      "cape": "Capes"
+      "cape": "Capes",
+      "split": "Text beside the showcase",
+      "centered": "Centred text",
+      "banner": "Background image",
+      "latest": "Latest uploads",
+      "popular": "Most favourited",
+      "none": "Hidden"
     }
   },
   "blocks": {
     "latest": "Latest textures",
     "popular": "Popular textures",
-    "more": "See more",
+    "more": "See all",
     "stats": {
       "title": "Site figures",
       "users": "Accounts",
       "players": "Players",
       "textures": "Public textures"
-    }
+    },
+    "latestDesc": "Skins and capes uploaded just now",
+    "popularDesc": "The skins and capes saved most often"
   },
   "adminTranslations": {
-    "loading": "Loading…",
     "intro": "Reword any text of the interface. Search by key or text, type the new wording in a language, or leave it empty for the original. Saving applies everywhere at once.",
     "search": "Search",
     "searchHint": "Key or text, like nav.skinlib",
@@ -1355,56 +1453,53 @@
     "count": "{count} reworded",
     "changed": "Reworded",
     "keep": "Empty keeps the original",
-    "none": "Nothing found.",
+    "none": "Nothing found",
     "more": "Show 40 more ({left} left)",
-    "save": "Save",
-    "saved": "Saved and applied.",
-    "unsaved": "Unsaved changes",
+    "saved": "Saved and applied",
     "fixFirst": "{count} to fix first",
     "problems": {
       "syntax": "This text is not well-formed: check that the braces pair up and each form is complete.",
       "placeholders": "Keep the placeholders in braces and the tags of the original: the page fills them in."
     },
     "errors": {
-      "load": "Could not load.",
-      "save": "Could not save; try again.",
+      "load": "Could not load",
+      "save": "Could not save; try again",
       "invalid": "Not saved: {detail}"
     },
     "noDefault": "This language has no such text (the server's description is shown); a reworded one would not appear."
   },
   "adminStatus": {
-    "loading": "Reading the system status…",
     "intro": "The state of this server. With several instances, their versions and start times may differ.",
     "refresh": "Refresh",
     "yes": "Yes",
     "no": "No",
     "errors": {
-      "load": "Could not read the system status."
+      "load": "Could not read the system status"
     },
     "checks": {
       "title": "Checks",
       "database": {
-        "ok": "The database answers.",
-        "problem": "The database cannot be reached."
+        "ok": "The database answers",
+        "problem": "The database cannot be reached"
       },
       "migrations": {
-        "ok": "The database schema is up to date.",
+        "ok": "The database schema is up to date",
         "problem": "Some migrations have not run; restart the server."
       },
       "jobs_overdue": {
-        "ok": "Background jobs run on time.",
+        "ok": "Background jobs run on time",
         "problem": "Background jobs are over a minute late; see the server log."
       },
       "jobs_failed": {
-        "ok": "No background job failed in the last 7 days.",
+        "ok": "No background job failed in the last 7 days",
         "problem": "Background jobs failed after their retries in the last 7 days; see the server log."
       },
       "mail": {
-        "ok": "Mail is set up.",
+        "ok": "Mail is set up",
         "problem": "Mail is not set up: no email verification or password reset."
       },
       "site_url": {
-        "ok": "The site URL is set.",
+        "ok": "The site URL is set",
         "problem": "The site URL is not set: no mail links or social sign-in."
       }
     },
@@ -1484,7 +1579,21 @@
     "previousPage": "Go to the previous page",
     "nextPage": "Go to the next page",
     "toggleSidebar": "Show or hide the sidebar",
-    "navigation": "Navigation"
+    "navigation": "Navigation",
+    "mode3d": "3D",
+    "mode2d": "2D",
+    "walk": "Walk",
+    "run": "Run",
+    "fly": "Fly",
+    "idle": "Idle",
+    "autoRotate": "Auto rotate",
+    "resetView": "Reset view",
+    "background": "Preview background",
+    "bgTransparent": "Transparent background",
+    "bgWhite": "White background",
+    "bgGray": "Gray background",
+    "bgBlack": "Black background",
+    "backEquipment": "Switch cape / elytra"
   },
   "componentPreview": {
     "title": "Components",

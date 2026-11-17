@@ -128,6 +128,7 @@ skinloom settings set site.name null                     # 恢复默认
 | 键 | 默认 | 说明 |
 |---|---|---|
 | `theme.active` | `default` | 当前主题 |
+| `theme.settings` | `{}` | 主题设置项，按主题 id 分开存储 |
 | `theme.overrides` | `{}` | 颜色与圆角覆盖 |
 | `home.blocks` | 空 | 首页区块，空表示用主题自带的首页 |
 | `i18n.overrides` | `{}` | 改写的界面文字 |

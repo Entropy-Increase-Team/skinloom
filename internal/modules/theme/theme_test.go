@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"testing/fstest"
 
@@ -47,6 +50,9 @@ func TestAssetHandler(t *testing.T) {
 		if rec.Code != c.want {
 			t.Errorf("%s: status %d, want %d", c.path, rec.Code, c.want)
 			continue
+		}
+		if c.want == http.StatusOK && rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+			t.Errorf("%s: X-Content-Type-Options = %q, want nosniff", c.path, rec.Header().Get("X-Content-Type-Options"))
 		}
 		cc := rec.Header().Get("Cache-Control")
 		if c.immutable && cc != "public, max-age=31536000, immutable" {
@@ -179,20 +185,269 @@ func TestValidateOverrides(t *testing.T) {
 
 func TestLoadRejectsBadManifests(t *testing.T) {
 	cases := map[string]string{
-		"not a theme":    `{"id":"x","kind":"plugin","version":"1"}`,
-		"no version":     `{"id":"x","kind":"theme"}`,
-		"missing css":    `{"id":"x","kind":"theme","version":"1","theme":{"css":"nope.css"}}`,
-		"bad json":       `{`,
-		"bad id":         `{"id":"_custom","kind":"theme","version":"1"}`,
-		"unknown layout": `{"id":"x","kind":"theme","version":"1","theme":{"layout":{"auth":"fullscreen"}}}`,
-		"unknown block":  `{"id":"x","kind":"theme","version":"1","theme":{"home":[{"type":"carousel"}]}}`,
-		"unsafe token":   `{"id":"x","kind":"theme","version":"1","theme":{"tokens":{"light":{"primary":"red;}"}}}}`,
+		"not a theme":      `{"id":"x","kind":"plugin","version":"1"}`,
+		"no version":       `{"id":"x","kind":"theme"}`,
+		"missing css":      `{"id":"x","kind":"theme","version":"1","theme":{"css":"nope.css"}}`,
+		"bad json":         `{`,
+		"bad id":           `{"id":"_custom","kind":"theme","version":"1"}`,
+		"unknown layout":   `{"id":"x","kind":"theme","version":"1","theme":{"layout":{"auth":"fullscreen"}}}`,
+		"unknown block":    `{"id":"x","kind":"theme","version":"1","theme":{"home":[{"type":"carousel"}]}}`,
+		"unsafe token":     `{"id":"x","kind":"theme","version":"1","theme":{"tokens":{"light":{"primary":"red;}"}}}}`,
+		"bad colorScheme":  `{"id":"x","kind":"theme","version":"1","theme":{"colorScheme":"sepia"}}`,
+		"self extends":     `{"id":"x","kind":"theme","version":"1","extends":"x"}`,
+		"missing asset":    `{"id":"x","kind":"theme","version":"1","theme":{"tokens":{"viewer":{"background":"assets/nope.webp"}}}}`,
+		"js in screenshot": `{"id":"x","kind":"theme","version":"1","screenshot":"a.js"}`,
+		"bad setting type": `{"id":"x","kind":"theme","version":"1","theme":{"settings":{"a":{"type":"script"}}}}`,
 	}
 	for name, manifest := range cases {
-		fsys := fstest.MapFS{"x/plugin.json": {Data: []byte(manifest)}}
+		fsys := fstest.MapFS{"x/plugin.json": {Data: []byte(manifest)}, "x/a.js": {Data: []byte("alert(1)")}}
 		if err := NewRegistry().LoadDir(fsys, "test"); err == nil {
 			t.Errorf("%s: want error", name)
 		}
+	}
+}
+
+func TestLocalThemesExtendsAssetsAndSettings(t *testing.T) {
+	dir := t.TempDir()
+	themesDir := filepath.Join(dir, "themes")
+
+	// 1. Valid local theme extending default, with screenshot, relative assets, colorScheme, layout & settings.
+	myDir := filepath.Join(themesDir, "my-site")
+	if err := os.MkdirAll(filepath.Join(myDir, "assets"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(myDir, "screenshot.webp"), "webp")
+	writeFile(t, filepath.Join(myDir, "theme.css"), ".sl-header { border-bottom-width: 2px; }")
+	writeFile(t, filepath.Join(myDir, "assets/sky.webp"), "sky")
+	writeFile(t, filepath.Join(myDir, "assets/hero.webp"), "hero")
+	writeFile(t, filepath.Join(myDir, "assets/badge.svg"), "<svg></svg>")
+	writeFile(t, filepath.Join(myDir, "assets/evil.js"), "alert(1)")
+	writeFile(t, filepath.Join(myDir, "plugin.json"), `{
+		"id": "my-site",
+		"kind": "theme",
+		"version": "1.0.0",
+		"name": {"zh-CN": "我的站", "en": "My Site"},
+		"apiVersion": 1,
+		"extends": "default",
+		"screenshot": "screenshot.webp",
+		"theme": {
+			"colorScheme": "dark",
+			"tokens": {
+				"light": {"primary": "oklch(0.55 0.15 150)"},
+				"dark": {"primary": "oklch(0.75 0.13 150)"},
+				"fonts": {"display": "'My Display', var(--sl-font-sans)"},
+				"viewer": {"background": "url(assets/sky.webp) center / cover"}
+			},
+			"css": "theme.css",
+			"layout": {"user": "tabs", "texture": "stacked"},
+			"home": [{"type": "hero", "props": {"layout": "banner", "background": "assets/hero.webp"}}],
+			"settings": {
+				"accent": {"type": "color", "label": {"zh-CN": "主色"}, "token": "primary"},
+				"heroImage": {"type": "image", "label": "Hero", "default": "assets/hero.webp"},
+				"density": {"type": "choice", "options": ["comfortable", "compact"], "default": "comfortable"},
+				"compactHeader": {"type": "boolean", "default": true}
+			}
+		}
+	}`)
+
+	// 2. Broken local theme (duplicate built-in id) and multi-level extends.
+	dupDir := filepath.Join(themesDir, "dup-default")
+	_ = os.MkdirAll(dupDir, 0o755)
+	writeFile(t, filepath.Join(dupDir, "plugin.json"), `{"id":"default","kind":"theme","version":"1.0.0"}`)
+
+	grandDir := filepath.Join(themesDir, "grandchild")
+	_ = os.MkdirAll(grandDir, 0o755)
+	writeFile(t, filepath.Join(grandDir, "plugin.json"), `{"id":"grandchild","kind":"theme","version":"1.0.0","extends":"my-site"}`)
+
+	r := builtin(t)
+	r.SetLocalDir(themesDir, nil)
+
+	// Valid theme is installed; broken ones are listed with Error but not returned by Get.
+	my, ok := r.Get("my-site")
+	if !ok {
+		t.Fatal("my-site not loaded")
+	}
+	if _, ok := r.Get("grandchild"); ok {
+		t.Fatal("multi-level extends must be rejected")
+	}
+	def, _ := r.Get("default")
+	if def.Source != "builtin" {
+		t.Fatal("local theme overwrote built-in default")
+	}
+	all := r.List()
+	if len(all) != 5 { // default, brocade, my-site + 2 broken
+		t.Fatalf("List len = %d, want 5", len(all))
+	}
+
+	// Local asset URL uses content hash, not Version.
+	if strings.Contains(my.ScreenshotURL, "/1.0.0/") || !strings.HasPrefix(my.ScreenshotURL, "/themes-assets/my-site/") {
+		t.Fatalf("screenshot URL = %q", my.ScreenshotURL)
+	}
+	// CSS includes parent (default) first, then child (my-site).
+	if len(my.CSSFiles) != 2 || !strings.HasPrefix(my.CSSFiles[0], "/themes-assets/default/") || !strings.HasPrefix(my.CSSFiles[1], "/themes-assets/my-site/") {
+		t.Fatalf("inherited CSS = %v", my.CSSFiles)
+	}
+
+	// AssetHandler serves allowed extensions, sandboxes SVG, and blocks .js.
+	h := r.AssetHandler()
+	svgURL := AssetURL(my, "assets/badge.svg")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, svgURL, nil))
+	if rec.Code != http.StatusOK || rec.Header().Get("Content-Security-Policy") != "sandbox" {
+		t.Fatalf("svg: %d csp=%q", rec.Code, rec.Header().Get("Content-Security-Policy"))
+	}
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, AssetURL(my, "assets/evil.js"), nil))
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("evil.js served with status %d", rec.Code)
+	}
+
+	// Resolve applies inherited tokens, rewritten relative URLs, and theme.settings.
+	snap := snapshotWith(t, map[string]string{
+		"theme.active":   `"my-site"`,
+		"theme.settings": `{"my-site":{"accent":"oklch(0.6 0.16 200)","density":"compact"}}`,
+	})
+	got := r.Resolve(snap)
+	if got.ColorScheme != "dark" || got.Layout["user"] != "tabs" || got.Layout["texture"] != "stacked" || got.Layout["auth"] != "card" {
+		t.Fatalf("resolved layout/colorScheme: %+v", got)
+	}
+	if got.Tokens.Light["primary"] != "oklch(0.6 0.16 200)" || got.Tokens.Dark["primary"] != "oklch(0.6 0.16 200)" {
+		t.Fatalf("token-bound setting not applied: %v / %v", got.Tokens.Light["primary"], got.Tokens.Dark["primary"])
+	}
+	if got.Tokens.Light["background"] != def.Theme.Tokens.Light["background"] {
+		t.Fatalf("inherited token missing: %v", got.Tokens.Light["background"])
+	}
+	if !strings.Contains(got.Tokens.Viewer["background"], "/themes-assets/my-site/") {
+		t.Fatalf("viewer.background relative asset not rewritten: %q", got.Tokens.Viewer["background"])
+	}
+	if got.Settings["density"] != "compact" || got.Settings["compactHeader"] != "true" || !strings.HasPrefix(got.Settings["heroImage"], "/themes-assets/my-site/") {
+		t.Fatalf("resolved settings = %+v", got.Settings)
+	}
+	if bg, _ := got.Home[0].Props["background"].(string); !strings.HasPrefix(bg, "/themes-assets/my-site/") {
+		t.Fatalf("hero background prop not rewritten: %q", bg)
+	}
+
+	// Editing a local file changes the content hash on Reload without changing Version.
+	oldCSS := my.CSSFiles[1]
+	writeFile(t, filepath.Join(myDir, "theme.css"), ".sl-header { border-bottom-width: 4px; }")
+	r.Reload()
+	myAfter, _ := r.Get("my-site")
+	if myAfter.CSSFiles[1] == oldCSS {
+		t.Fatalf("content hash did not change after file edit: %q", myAfter.CSSFiles[1])
+	}
+}
+
+func TestScaffoldAndCheck(t *testing.T) {
+	r := builtin(t)
+	dir := t.TempDir()
+	created, err := Scaffold(dir, "indigo-custom", "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	th, warnings, err := Check(os.DirFS(created), r)
+	if err != nil || th.ID != "indigo-custom" || len(warnings) != 0 {
+		t.Fatalf("Check scaffolded theme: th=%v warnings=%v err=%v", th, warnings, err)
+	}
+
+	// Low-contrast override triggers a warning from Check.
+	lowContrast := fstest.MapFS{
+		"plugin.json": {Data: []byte(`{
+			"id": "low-contrast",
+			"kind": "theme",
+			"version": "0.1.0",
+			"extends": "default",
+			"theme": {
+				"tokens": {
+					"light": {"primary": "#f0f0f0", "primary-foreground": "#ffffff"}
+				}
+			}
+		}`)},
+	}
+	_, warnings, err = Check(lowContrast, r)
+	if err != nil || len(warnings) == 0 {
+		t.Fatalf("want contrast warnings, got warnings=%v err=%v", warnings, err)
+	}
+}
+
+func TestLocalThemeRejectsAlphabeticallySortedGrandchildAndSkipsHiddenHash(t *testing.T) {
+	dir := t.TempDir()
+	aDir := filepath.Join(dir, "a-parent")
+	_ = os.MkdirAll(aDir, 0o755)
+	writeFile(t, filepath.Join(aDir, "plugin.json"), `{
+		"id": "a-parent",
+		"kind": "theme",
+		"version": "1.0.0",
+		"extends": "default"
+	}`)
+	hBefore := hashFS(os.DirFS(aDir))
+	_ = os.MkdirAll(filepath.Join(aDir, ".git"), 0o755)
+	writeFile(t, filepath.Join(aDir, ".DS_Store"), "noise")
+	writeFile(t, filepath.Join(aDir, ".git", "HEAD"), "ref: refs/heads/main\n")
+	if hAfter := hashFS(os.DirFS(aDir)); hAfter != hBefore {
+		t.Fatalf("hashFS changed after hidden files added: %q -> %q", hBefore, hAfter)
+	}
+
+	bDir := filepath.Join(dir, "b-grand")
+	_ = os.MkdirAll(bDir, 0o755)
+	writeFile(t, filepath.Join(bDir, "plugin.json"), `{
+		"id": "b-grand",
+		"kind": "theme",
+		"version": "1.0.0",
+		"extends": "a-parent"
+	}`)
+
+	r := builtin(t)
+	r.SetLocalDir(dir, nil)
+
+	if _, ok := r.Get("a-parent"); !ok {
+		t.Fatal("a-parent should load")
+	}
+	if _, ok := r.Get("b-grand"); ok {
+		t.Fatal("b-grand extending a-parent (even sorting after it) must be rejected")
+	}
+	var brokenErr string
+	for _, th := range r.List() {
+		if th.ID == "b-grand" {
+			brokenErr = th.Error
+		}
+	}
+	if !strings.Contains(brokenErr, "single-level") {
+		t.Fatalf("expected single-level inheritance error in List(), got %q", brokenErr)
+	}
+}
+
+func TestValidateDeclaredSettingsImageDefaultError(t *testing.T) {
+	r := builtin(t)
+	bad := fstest.MapFS{
+		"plugin.json": {Data: []byte(`{
+			"id": "bad-img-default",
+			"kind": "theme",
+			"version": "0.1.0",
+			"extends": "default",
+			"theme": {
+				"settings": {
+					"hero": {
+						"type": "image",
+						"label": {"en": "Hero"},
+						"default": "https://example.com/a;b.png"
+					}
+				}
+			}
+		}`)},
+	}
+	_, _, err := Check(bad, r)
+	if err == nil {
+		t.Fatal("expected error for image default with forbidden CSS token characters")
+	}
+	if strings.Contains(err.Error(), "%!w") || !strings.Contains(err.Error(), "forbidden characters") {
+		t.Fatalf("unexpected error formatting: %v", err)
+	}
+}
+
+func writeFile(t *testing.T, p, content string) {
+	t.Helper()
+	if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
 	}
 }
 

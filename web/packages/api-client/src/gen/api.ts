@@ -960,6 +960,50 @@ export const listThemes = async ( options?: Parameters<typeof apiFetch>[1]): Pro
 
 
 
+export type reloadThemesResponse200 = {
+  data: ThemeView[]
+  status: 200
+}
+
+export type reloadThemesResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type reloadThemesResponseSuccess = (reloadThemesResponse200) & {
+  headers: Headers;
+};
+export type reloadThemesResponseError = (reloadThemesResponseDefault) & {
+  headers: Headers;
+};
+
+export type reloadThemesResponse = (reloadThemesResponseSuccess | reloadThemesResponseError)
+
+export const getReloadThemesUrl = () => {
+
+
+
+
+  return `/api/v1/admin/themes/reload`
+}
+
+/**
+ * Reloads themes from <data>/themes and broadcasts a config version bump.
+ * @summary Rescan local themes
+ */
+export const reloadThemes = async ( options?: Parameters<typeof apiFetch>[1]): Promise<reloadThemesResponse> => {
+
+  return apiFetch<reloadThemesResponse>(getReloadThemesUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
 export type listUsersResponse200 = {
   data: UserPage
   status: 200

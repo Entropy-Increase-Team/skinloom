@@ -1,10 +1,12 @@
 'use client'
 
-import { listPlayers, type PlayerView, wearTextures } from '@skinloom/api-client'
-import { Button } from '@skinloom/ui'
+import { type PlayerView, wearTextures } from '@skinloom/api-client'
+import { useListPlayers } from '@skinloom/api-client/query'
+import { Button, ButtonLink, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from '@skinloom/ui'
+import { Shirt } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { problemOf } from '@/lib/problem'
 
@@ -12,64 +14,51 @@ import { problemOf } from '@/lib/problem'
 export function WearOnPlayer({ textureId, kind }: { textureId: number; kind: 'skin' | 'cape' }) {
   const t = useTranslations('player')
   const tc = useTranslations('common')
-  const [players, setPlayers] = useState<PlayerView[] | null>(null)
-  const [chosen, setChosen] = useState<number>(0)
-  const [state, setState] = useState<'idle' | 'pending' | 'done' | 'failed' | 'unverified'>('idle')
+  const { data: players } = useListPlayers({ query: { select: (r) => r.data as PlayerView[] } })
+  const [chosen, setChosen] = useState<string | null>(null)
+  const [pending, setPending] = useState(false)
 
-  useEffect(() => {
-    listPlayers()
-      .then((r) => {
-        const list = r.data as PlayerView[]
-        setPlayers(list)
-        if (list[0]) setChosen(list[0].id)
-      })
-      .catch(() => setPlayers([]))
-  }, [])
-
-  if (players === null) return null
+  if (!players) return null
   if (players.length === 0) {
     return (
-      <Link href="/user/player" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+      <ButtonLink variant="outline" size="sm" className="w-fit" render={<Link href="/user/player" />}>
         {t('createFirst')}
-      </Link>
+      </ButtonLink>
     )
   }
+  const value = chosen ?? String(players[0]!.id)
+  const items = players.map((p) => ({ value: String(p.id), label: p.name }))
+
+  async function wear() {
+    setPending(true)
+    try {
+      await wearTextures(Number(value), kind === 'skin' ? { skin: textureId } : { cape: textureId })
+      toast.success(t('wornOn', { name: items.find((i) => i.value === value)?.label ?? '' }))
+    } catch (err) {
+      toast.error(problemOf(err).unverified ? tc('verifyFirst') : t('errors.failed'))
+    } finally {
+      setPending(false)
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex gap-2">
-        <select
-          value={chosen}
-          onChange={(e) => {
-            setChosen(Number(e.target.value))
-            setState('idle')
-          }}
-          aria-label={t('choosePlayer')}
-          className="h-9 min-w-0 flex-1 rounded-md border border-input bg-transparent px-2 text-sm"
-        >
-          {players.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
+    <div className="flex gap-2">
+      <Select items={items} value={value} onValueChange={(v) => v && setChosen(String(v))}>
+        <SelectTrigger className="min-w-0 flex-1" aria-label={t('choosePlayer')}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {items.map((i) => (
+            <SelectItem key={i.value} value={i.value}>
+              {i.label}
+            </SelectItem>
           ))}
-        </select>
-        <Button
-          disabled={state === 'pending'}
-          onClick={async () => {
-            setState('pending')
-            try {
-              await wearTextures(chosen, kind === 'skin' ? { skin: textureId } : { cape: textureId })
-              setState('done')
-            } catch (err) {
-              setState(problemOf(err).unverified ? 'unverified' : 'failed')
-            }
-          }}
-        >
-          {kind === 'skin' ? t('wearSkin') : t('wearCape')}
-        </Button>
-      </div>
-      {state === 'done' && <p className="text-xs text-muted-foreground">{t('worn')}</p>}
-      {state === 'failed' && <p className="text-xs text-destructive">{t('errors.failed')}</p>}
-      {state === 'unverified' && <p className="text-xs text-destructive">{tc('verifyFirst')}</p>}
+        </SelectContent>
+      </Select>
+      <Button variant="outline" loading={pending} onClick={() => void wear()}>
+        <Shirt />
+        {kind === 'skin' ? t('wearSkin') : t('wearCape')}
+      </Button>
     </div>
   )
 }

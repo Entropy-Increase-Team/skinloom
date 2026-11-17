@@ -68,7 +68,7 @@ export function SetupForm({ token, siteName }: { token: string; siteName: string
       )}
 
       <fieldset className="flex flex-col gap-4">
-        <legend className="mb-2 text-sm font-semibold">{t('site')}</legend>
+        <legend className="mb-2 text-sm font-medium">{t('site')}</legend>
         <Field id="siteName" label={t('siteName')} defaultValue={siteName} maxLength={64} error={fields.siteName} />
         <Field
           id="siteUrl"
@@ -82,7 +82,7 @@ export function SetupForm({ token, siteName }: { token: string; siteName: string
       </fieldset>
 
       <fieldset className="flex flex-col gap-4">
-        <legend className="mb-2 text-sm font-semibold">{t('admin')}</legend>
+        <legend className="mb-2 text-sm font-medium">{t('admin')}</legend>
         <Field id="email" label={t('email')} type="email" autoComplete="username" required error={fields.email} />
         <Field id="nickname" label={t('nickname')} autoComplete="nickname" required maxLength={32} error={fields.nickname} />
         <Field
@@ -99,8 +99,8 @@ export function SetupForm({ token, siteName }: { token: string; siteName: string
         <Field id="confirm" label={t('confirm')} type="password" autoComplete="new-password" required error={fields.confirm} />
       </fieldset>
 
-      <Button type="submit" size="lg" disabled={pending}>
-        {pending ? t('submitting') : t('submit')}
+      <Button type="submit" size="lg" loading={pending}>
+        {t('submit')}
       </Button>
     </form>
   )

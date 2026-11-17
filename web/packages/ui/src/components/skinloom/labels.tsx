@@ -41,6 +41,20 @@ export interface UiLabels {
   nextPage: string
   toggleSidebar: string
   navigation: string
+  mode3d: string
+  mode2d: string
+  walk: string
+  run: string
+  fly: string
+  idle: string
+  autoRotate: string
+  resetView: string
+  background: string
+  bgTransparent: string
+  bgWhite: string
+  bgGray: string
+  bgBlack: string
+  backEquipment: string
 }
 
 export const defaultLabels: UiLabels = {
@@ -73,6 +87,20 @@ export const defaultLabels: UiLabels = {
   nextPage: 'Go to the next page',
   toggleSidebar: 'Show or hide the sidebar',
   navigation: 'Navigation',
+  mode3d: '3D',
+  mode2d: '2D',
+  walk: 'Walk',
+  run: 'Run',
+  fly: 'Fly',
+  idle: 'Idle',
+  autoRotate: 'Auto rotate',
+  resetView: 'Reset view',
+  background: 'Preview background',
+  bgTransparent: 'Transparent background',
+  bgWhite: 'White background',
+  bgGray: 'Gray background',
+  bgBlack: 'Black background',
+  backEquipment: 'Switch cape / elytra',
 }
 
 const LabelsContext = createContext<UiLabels>(defaultLabels)

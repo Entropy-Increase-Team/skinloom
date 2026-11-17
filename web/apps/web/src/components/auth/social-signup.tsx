@@ -103,7 +103,7 @@ export function SocialSignup({ signedInAs, mail }: { signedInAs?: string; mail: 
       {signedInAs ? (
         <div className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">{t('pending.linkCurrent', { provider, nickname: signedInAs })}</p>
-          <Button className="self-start" disabled={busy} onClick={() => void link()}>
+          <Button className="self-start" loading={busy} onClick={() => void link()}>
             {t('pending.linkButton')}
           </Button>
         </div>
@@ -124,7 +124,7 @@ export function SocialSignup({ signedInAs, mail }: { signedInAs?: string; mail: 
                 error={fields.email}
               />
               <Field id="nickname" label={t('pending.nickname')} defaultValue={pending.nickname.slice(0, 32)} maxLength={32} required error={fields.nickname} />
-              <Button type="submit" disabled={busy}>
+              <Button type="submit" size="lg" loading={busy}>
                 {t('pending.create')}
               </Button>
             </form>

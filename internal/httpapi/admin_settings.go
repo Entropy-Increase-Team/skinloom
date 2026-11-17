@@ -57,15 +57,20 @@ type updateSettingsInput struct {
 // ThemeView is one installed theme, with what it brings before the administrator's
 // overrides: the appearance page shows these as the defaults.
 type ThemeView struct {
-	ID          string            `json:"id"`
-	Version     string            `json:"version"`
-	Name        map[string]string `json:"name"`
-	Description map[string]string `json:"description,omitempty"`
-	Source      string            `json:"source"`
-	Active      bool              `json:"active"`
-	Tokens      theme.Tokens      `json:"tokens"`
-	Layout      map[string]string `json:"layout"`
-	Home        []theme.Block     `json:"home" doc:"The theme's home page, used while home.blocks is null"`
+	ID          string                   `json:"id"`
+	Version     string                   `json:"version"`
+	Name        map[string]string        `json:"name"`
+	Description map[string]string        `json:"description,omitempty"`
+	Source      string                   `json:"source"`
+	Active      bool                     `json:"active"`
+	Extends     string                   `json:"extends,omitempty"`
+	Screenshot  string                   `json:"screenshot,omitempty"`
+	ColorScheme string                   `json:"colorScheme"`
+	Tokens      theme.Tokens             `json:"tokens"`
+	Layout      map[string]string        `json:"layout"`
+	Home        []theme.Block            `json:"home" doc:"The theme's home page, used while home.blocks is null"`
+	Settings    map[string]theme.Setting `json:"settings,omitempty"`
+	Error       string                   `json:"error,omitempty"`
 }
 
 type blockTypesOutput struct {
@@ -144,17 +149,26 @@ func registerAdmin(api huma.API, d Deps) {
 		if _, err := checkAdmin(ctx, d, in.Authorization); err != nil {
 			return nil, err
 		}
-		active := d.Settings.Current().String("theme.active")
-		var out []ThemeView
-		for _, t := range d.Themes.List() {
-			home := t.Theme.Home
-			if home == nil {
-				home = []theme.Block{}
-			}
-			out = append(out, ThemeView{ID: t.ID, Version: t.Version, Name: t.Name, Description: t.Description,
-				Source: t.Source, Active: t.ID == active, Tokens: t.Theme.Tokens, Layout: t.Theme.Layout, Home: home})
+		return &themesOutput{Body: themeViews(d)}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "reloadThemes",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/admin/themes/reload",
+		Summary:     "Rescan local themes",
+		Description: "Reloads themes from <data>/themes and broadcasts a config version bump.",
+		Tags:        []string{"admin"},
+		Security:    adminSecurity,
+	}, func(ctx context.Context, in *adminAuth) (*themesOutput, error) {
+		if _, err := checkAdmin(ctx, d, in.Authorization); err != nil {
+			return nil, err
 		}
-		return &themesOutput{Body: out}, nil
+		d.Themes.Reload()
+		if _, err := d.Settings.Touch(ctx); err != nil {
+			return nil, err
+		}
+		return &themesOutput{Body: themeViews(d)}, nil
 	})
 
 	huma.Register(api, huma.Operation{
@@ -171,6 +185,41 @@ func registerAdmin(api huma.API, d Deps) {
 		}
 		return &blockTypesOutput{Body: theme.BlockTypes}, nil
 	})
+}
+
+func themeViews(d Deps) []ThemeView {
+	active := d.Settings.Current().String("theme.active")
+	if _, ok := d.Themes.Get(active); !ok {
+		active = theme.DefaultID
+	}
+	var out []ThemeView
+	for _, t := range d.Themes.List() {
+		home := t.Theme.Home
+		if home == nil {
+			home = []theme.Block{}
+		}
+		cs := t.Theme.ColorScheme
+		if cs == "" {
+			cs = "both"
+		}
+		out = append(out, ThemeView{
+			ID:          t.ID,
+			Version:     t.Version,
+			Name:        t.Name,
+			Description: t.Description,
+			Source:      t.Source,
+			Active:      t.Error == "" && t.ID == active,
+			Extends:     t.Extends,
+			Screenshot:  t.ScreenshotURL,
+			ColorScheme: cs,
+			Tokens:      t.Theme.Tokens,
+			Layout:      t.Theme.Layout,
+			Home:        home,
+			Settings:    t.Theme.Settings,
+			Error:       t.Error,
+		})
+	}
+	return out
 }
 
 // checkSuperadminKeys refuses an administrator who is not a super administrator to

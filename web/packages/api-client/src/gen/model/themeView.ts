@@ -9,16 +9,22 @@ import type { Block } from './block';
 import type { ThemeViewDescription } from './themeViewDescription';
 import type { ThemeViewLayout } from './themeViewLayout';
 import type { ThemeViewName } from './themeViewName';
+import type { ThemeViewSettings } from './themeViewSettings';
 import type { Tokens } from './tokens';
 
 export interface ThemeView {
   active: boolean;
+  colorScheme: string;
   description?: ThemeViewDescription;
+  error?: string;
+  extends?: string;
   /** The theme's home page, used while home.blocks is null */
   home: Block[];
   id: string;
   layout: ThemeViewLayout;
   name: ThemeViewName;
+  screenshot?: string;
+  settings?: ThemeViewSettings;
   source: string;
   tokens: Tokens;
   version: string;

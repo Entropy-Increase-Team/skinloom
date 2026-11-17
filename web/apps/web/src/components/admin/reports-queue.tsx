@@ -1,13 +1,29 @@
 'use client'
 
 import { type AdminReportPage, type AdminReportView, type ListReportsParams, listReports, reviewReport } from '@skinloom/api-client'
-import { Badge, Button } from '@skinloom/ui'
+import {
+  Badge,
+  Button,
+  cn,
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  PageHeader,
+  PixelBackdrop,
+  RelativeTime,
+  Skeleton,
+  type Status as Dot,
+  StatusDot,
+  TexturePreview,
+  toast,
+  useConfirm,
+} from '@skinloom/ui'
+import { Ban, Check, FlagOff, ImageOff, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { FormError } from '@/components/auth/field'
-import { TexturePreview } from '@/components/texture/texture-preview'
 import { problemOf } from '@/lib/problem'
 
 type Status = NonNullable<ListReportsParams['status']> | ''
@@ -30,125 +46,168 @@ export function afterReview(list: AdminReportView[], updated: AdminReportView, a
   })
 }
 
+const DOT: Record<AdminReportView['status'], Dot> = { pending: 'warn', resolved: 'ok', rejected: 'off' }
+const TABS = ['pending', 'resolved', 'rejected', ''] as const
+
 /** The review queue: pending reports first, with the three actions. */
 export function ReportsQueue() {
   const t = useTranslations('adminReports')
-  const locale = useLocale()
+  const ta = useTranslations('admin')
+  const confirm = useConfirm()
   const [status, setStatus] = useState<Status>('pending')
-  const [reports, setReports] = useState<AdminReportView[]>([])
+  const [reports, setReports] = useState<AdminReportView[] | null>(null)
   const [next, setNext] = useState(0)
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(0)
-  const [error, setError] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
   const latest = useRef(0)
 
   const load = useCallback(
     async (before?: number) => {
       const seq = ++latest.current
       setLoading(true)
-      setError(null)
+      setFailed(false)
+      if (!before) setReports(null)
       try {
         const page = (await listReports({ limit: 20, ...(status ? { status } : {}), ...(before ? { before } : {}) })).data as AdminReportPage
         if (seq !== latest.current) return
-        setReports((prev) => (before ? [...prev, ...page.reports] : page.reports))
+        setReports((prev) => (before && prev ? [...prev, ...page.reports] : page.reports))
         setNext(page.next)
       } catch {
-        if (seq === latest.current) setError(t('errors.load'))
+        if (seq === latest.current) setFailed(true)
       } finally {
         if (seq === latest.current) setLoading(false)
       }
     },
-    [status, t],
+    [status],
   )
   useEffect(() => {
     void load()
   }, [load])
 
   async function review(r: AdminReportView, action: Action) {
-    const asks = action === 'ban' || (action === 'delete' && r.texture)
-    if (asks && !window.confirm(t(`confirm.${action}`, { name: r.texture?.name ?? `#${r.id}`, uploader: r.uploader?.nickname ?? '—' }))) return
+    if (action === 'ban' || (action === 'delete' && r.texture)) {
+      const name = r.texture?.name ?? `#${r.id}`
+      const uploader = r.uploader?.nickname ?? t('deletedUser')
+      const ok = await confirm({
+        title: t(`confirmTitle.${action}`, { name, uploader }),
+        description: t(`confirm.${action}`),
+        confirmLabel: t(`do.${action}`),
+      })
+      if (!ok) return
+    }
     setBusy(r.id)
-    setError(null)
     try {
       const updated = (await reviewReport(r.id, { action })).data as AdminReportView
-      setReports((list) => afterReview(list, updated, action, status, r.texture?.id))
+      setReports((list) => list && afterReview(list, updated, action, status, r.texture?.id))
+      toast.success(t(`done.${action}`))
     } catch (err) {
       const p = problemOf(err)
-      setError(p.status === 403 ? t('errors.forbidden') : p.status === 409 ? t('errors.reviewed') : t('errors.failed'))
+      toast.error(p.status === 403 ? t('errors.forbidden') : p.status === 409 ? t('errors.reviewed') : t('errors.failed'))
       if (p.status === 409) void load()
     } finally {
       setBusy(0)
     }
   }
 
-  const date = (iso?: string) => (iso ? new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso)) : '—')
-  const tab = (active: boolean) =>
-    `rounded-full px-3 py-1 text-sm transition-colors ${active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`
+  const person = (u?: AdminReportView['reporter']) => (u ? `${u.nickname} · ${u.email}` : t('deletedUser'))
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex gap-1" role="tablist">
-        {(['pending', 'resolved', 'rejected', ''] as const).map((s) => (
-          <button key={s || 'all'} type="button" role="tab" aria-selected={status === s} className={tab(status === s)} onClick={() => setStatus(s)}>
-            {t(`status.${s || 'all'}`)}
-          </button>
-        ))}
+    <div className="flex flex-col gap-6">
+      <PageHeader title={ta('reports')} description={t('intro')} />
+      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className="flex w-max gap-0.5 rounded-lg bg-muted p-0.5" role="group" aria-label={ta('status')}>
+          {TABS.map((s) => (
+            <button
+              key={s || 'all'}
+              type="button"
+              aria-pressed={status === s}
+              onClick={() => setStatus(s)}
+              className={cn(
+                'inline-flex h-8 items-center rounded-md px-3 text-sm transition-colors pointer-coarse:h-9',
+                status === s ? 'bg-card font-medium text-foreground shadow-xs ring-1 ring-border' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {t(`status.${s || 'all'}`)}
+            </button>
+          ))}
+        </div>
       </div>
-      <FormError message={error} />
-      {reports.length === 0 && !loading && <p className="py-12 text-center text-sm text-muted-foreground">{t('empty')}</p>}
-      <ul className="flex flex-col gap-3">
-        {reports.map((r) => (
-          <li key={r.id} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row">
-            <div className="flex h-24 w-20 shrink-0 items-center justify-center rounded-md bg-muted/40">
-              {r.texture ? (
-                <TexturePreview src={`/textures/${r.texture.hash}`} type={r.texture.type} height={88} />
-              ) : (
-                <span className="px-1 text-center text-xs text-muted-foreground">{t('textureGone')}</span>
-              )}
-            </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
-              <div className="flex flex-wrap items-center gap-2">
+      {failed && <p className="text-center text-sm text-destructive">{t('errors.load')}</p>}
+      {reports === null && !failed && <Skeleton className="h-48 rounded-xl" />}
+      {reports?.length === 0 && (
+        <Empty className="border border-dashed py-16">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <FlagOff />
+            </EmptyMedia>
+            <EmptyTitle>{status === 'pending' ? t('emptyPending') : t('empty')}</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
+      )}
+      {reports && reports.length > 0 && (
+        <ul className="flex flex-col divide-y rounded-xl border bg-card">
+          {reports.map((r) => (
+            <li key={r.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:p-5">
+              <PixelBackdrop className="h-28 w-full shrink-0 rounded-lg sm:w-36">
                 {r.texture ? (
-                  <Link href={`/skinlib/show/${r.texture.id}`} className="font-medium hover:underline">
-                    {r.texture.name}
-                  </Link>
+                  <TexturePreview texture={{ id: r.texture.id }} type={r.texture.type} height={88} />
                 ) : (
-                  <span className="font-medium text-muted-foreground">{t('textureGone')}</span>
+                  <ImageOff className="size-5 text-faint-foreground" aria-hidden />
                 )}
-                {r.texture && !r.texture.public && <Badge variant="outline">{t('private')}</Badge>}
-                <Badge variant={r.status === 'pending' ? 'default' : 'secondary'}>{t(`status.${r.status}`)}</Badge>
-                {r.action && <span className="text-xs text-muted-foreground">{t(`action.${r.action}`)}</span>}
+              </PixelBackdrop>
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {r.texture ? (
+                    <Link href={`/skinlib/show/${r.texture.id}`} className="truncate font-medium hover:text-primary">
+                      {r.texture.name}
+                    </Link>
+                  ) : (
+                    <span className="text-muted-foreground">{t('textureGone')}</span>
+                  )}
+                  {r.texture && !r.texture.public && <Badge variant="outline">{t('private')}</Badge>}
+                  <StatusDot status={DOT[r.status]}>{r.action ? t(`action.${r.action}`) : t(`status.${r.status}`)}</StatusDot>
+                </div>
+                <p className="text-sm break-words whitespace-pre-line">{r.reason}</p>
+                <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-caption">
+                  <dt className="text-faint-foreground">{t('reporter')}</dt>
+                  <dd className="truncate text-muted-foreground">
+                    {person(r.reporter)} · <RelativeTime date={r.createdAt} />
+                  </dd>
+                  <dt className="text-faint-foreground">{t('uploader')}</dt>
+                  <dd className="truncate text-muted-foreground">{person(r.uploader)}</dd>
+                  {r.handledAt && (
+                    <>
+                      <dt className="text-faint-foreground">{t('handler')}</dt>
+                      <dd className="truncate text-muted-foreground">
+                        {r.handler?.nickname ?? t('token')} · <RelativeTime date={r.handledAt} />
+                      </dd>
+                    </>
+                  )}
+                </dl>
               </div>
-              <p className="whitespace-pre-line break-words">{r.reason}</p>
-              <p className="text-xs text-muted-foreground">
-                {t('meta', {
-                  reporter: r.reporter ? `${r.reporter.nickname} <${r.reporter.email}>` : t('deletedUser'),
-                  uploader: r.uploader ? `${r.uploader.nickname} <${r.uploader.email}>` : t('deletedUser'),
-                  time: date(r.createdAt),
-                })}
-              </p>
-              {r.handledAt && (
-                <p className="text-xs text-muted-foreground">{t('handled', { handler: r.handler?.nickname ?? t('token'), time: date(r.handledAt) })}</p>
+              {r.status === 'pending' && (
+                <div className="flex shrink-0 flex-wrap gap-2 sm:w-36 sm:flex-col sm:flex-nowrap">
+                  <Button size="sm" variant={r.texture ? 'destructive' : 'outline'} disabled={busy === r.id} onClick={() => void review(r, 'delete')}>
+                    {r.texture ? <Trash2 /> : <Check />}
+                    {r.texture ? t('do.delete') : t('do.resolve')}
+                  </Button>
+                  <Button size="sm" variant="outline" disabled={busy === r.id || !r.uploader} onClick={() => void review(r, 'ban')}>
+                    <Ban />
+                    {t('do.ban')}
+                  </Button>
+                  <Button size="sm" variant="ghost" disabled={busy === r.id} onClick={() => void review(r, 'reject')}>
+                    <X />
+                    {t('do.reject')}
+                  </Button>
+                </div>
               )}
-            </div>
-            {r.status === 'pending' && (
-              <div className="flex shrink-0 flex-row gap-2 sm:flex-col">
-                <Button size="sm" variant={r.texture ? 'destructive' : 'outline'} disabled={busy === r.id} onClick={() => void review(r, 'delete')}>
-                  {r.texture ? t('do.delete') : t('do.resolve')}
-                </Button>
-                <Button size="sm" variant="outline" disabled={busy === r.id || !r.uploader} onClick={() => void review(r, 'ban')}>
-                  {t('do.ban')}
-                </Button>
-                <Button size="sm" variant="ghost" disabled={busy === r.id} onClick={() => void review(r, 'reject')}>
-                  {t('do.reject')}
-                </Button>
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      )}
       {next > 0 && (
-        <Button variant="outline" className="self-center" disabled={loading} onClick={() => void load(next)}>
+        <Button variant="outline" className="self-center" loading={loading} onClick={() => void load(next)}>
           {t('more')}
         </Button>
       )}

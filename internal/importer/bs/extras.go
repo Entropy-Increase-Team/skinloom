@@ -32,7 +32,7 @@ var textTerms = map[string][]string{
 	"front-end.general.skinlib":    {"nav.skinlib", "skinlib.title"},
 	"general.user-center":          {"auth.dashboard", "dashboard.title"},
 	"general.login":                {"nav.login", "auth.signIn"},
-	"general.my-closet":            {"closet.title", "dashboard.links.closet"},
+	"general.my-closet":            {"closet.title", "userNav.closet"},
 	"general.admin-panel":          {"admin.title"},
 	"general.user.score":           {"dashboard.score", "admin.score", "admin.fields.score", "adminSettings.sections.score.title"},
 	"front-end.general.user.score": {"dashboard.score", "admin.score", "admin.fields.score", "adminSettings.sections.score.title"},

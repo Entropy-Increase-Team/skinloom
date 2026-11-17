@@ -65,6 +65,10 @@ var BlockTypes = []BlockType{
 	{Type: "hero", Props: []Prop{
 		{Name: "title", Type: PropText}, {Name: "subtitle", Type: PropText}, {Name: "background", Type: PropImage},
 		{Name: "primaryAction", Type: PropLink}, {Name: "secondaryAction", Type: PropLink},
+		// split: text beside the showcase; centered: text only; banner: text over the background image.
+		{Name: "layout", Type: PropChoice, Options: []string{"split", "centered", "banner"}},
+		// Which skins walk in the showcase (layout split); none hides it.
+		{Name: "showcase", Type: PropChoice, Options: []string{"latest", "popular", "none"}},
 	}},
 	{Type: "announcement", Props: []Prop{}},
 	{Type: "features", Props: []Prop{}},

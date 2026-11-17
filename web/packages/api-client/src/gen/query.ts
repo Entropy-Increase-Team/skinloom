@@ -2015,6 +2015,100 @@ export function useListThemes<TData = Awaited<ReturnType<typeof listThemes>>, TE
 
 
 
+export type reloadThemesResponse200 = {
+  data: ThemeView[]
+  status: 200
+}
+
+export type reloadThemesResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type reloadThemesResponseSuccess = (reloadThemesResponse200) & {
+  headers: Headers;
+};
+export type reloadThemesResponseError = (reloadThemesResponseDefault) & {
+  headers: Headers;
+};
+
+export type reloadThemesResponse = (reloadThemesResponseSuccess | reloadThemesResponseError)
+
+export const getReloadThemesUrl = () => {
+
+
+
+
+  return `/api/v1/admin/themes/reload`
+}
+
+/**
+ * Reloads themes from <data>/themes and broadcasts a config version bump.
+ * @summary Rescan local themes
+ */
+export const reloadThemes = async ( options?: Parameters<typeof apiFetch>[1]): Promise<reloadThemesResponse> => {
+
+  return apiFetch<reloadThemesResponse>(getReloadThemesUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getReloadThemesMutationKey = () => ['reloadThemes'] as const;
+
+export const getReloadThemesMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reloadThemes>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reloadThemes>>, TError,void, TContext> => {
+
+const mutationKey = getReloadThemesMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reloadThemes>>, void> = () => {
+
+
+          return  reloadThemes(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReloadThemesMutationResult = NonNullable<Awaited<ReturnType<typeof reloadThemes>>>
+
+    export type ReloadThemesMutationError = ErrorModel
+
+
+    /**
+ * @summary Rescan local themes
+ */
+export const useReloadThemes = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reloadThemes>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof reloadThemes>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getReloadThemesMutationOptions(options), queryClient);
+    }
+
 export type listUsersResponse200 = {
   data: UserPage
   status: 200

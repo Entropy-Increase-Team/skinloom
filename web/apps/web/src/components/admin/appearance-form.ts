@@ -1,4 +1,4 @@
-import type { Block, BlockType } from '@skinloom/api-client'
+import type { Block, BlockType, ThemeView } from '@skinloom/api-client'
 
 import { safeTokenValue } from '@/lib/theme'
 
@@ -81,4 +81,128 @@ export function moved<T>(list: T[], i: number, delta: -1 | 1): T[] {
   const next = [...list]
   ;[next[i], next[j]] = [next[j], next[i]]
   return next
+}
+
+/** theme.settings: configured values per theme ID. */
+export type ThemeSettingsMap = Record<string, Record<string, string | boolean>>
+
+/** Updates one setting of themeId in theme.settings, dropping empty theme objects. */
+export function withThemeSetting(all: ThemeSettingsMap, themeId: string, name: string, value: string | boolean | null): ThemeSettingsMap {
+  const cur = { ...(all[themeId] ?? {}) }
+  if (value === null || (typeof value === 'string' && value.trim() === '')) delete cur[name]
+  else cur[name] = typeof value === 'string' ? value.trim() : value
+  const next: ThemeSettingsMap = { ...all, [themeId]: cur }
+  if (Object.keys(cur).length === 0) delete next[themeId]
+  return next
+}
+
+/**
+ * Packages the current token overrides into a local theme zip archive that extends
+ * base (ADR 0043: "颜色 → 导出为主题"). When base itself already extends a parent
+ * theme, flatten its resolved tokens under overrides and inherit directly from its
+ * parent so the exported package obeys single-level inheritance.
+ */
+export function buildThemeZip(
+  base: string | Pick<ThemeView, 'id' | 'extends' | 'tokens'>,
+  overrides: Overrides,
+): Uint8Array {
+  const baseId = typeof base === 'string' ? base : base.id
+  const parentExtends = typeof base === 'string' ? undefined : base.extends
+  const parentTokens = typeof base === 'string' ? undefined : base.tokens
+  const id = `${baseId}-custom`.slice(0, 32)
+  const extendsId = parentExtends || baseId
+  const light = parentExtends ? { ...parentTokens?.light, ...(overrides.light ?? {}) } : (overrides.light ?? {})
+  const dark = parentExtends ? { ...parentTokens?.dark, ...(overrides.dark ?? {}) } : (overrides.dark ?? {})
+  const fonts = parentExtends && parentTokens?.fonts ? { ...parentTokens.fonts, ...(overrides.fonts ?? {}) } : overrides.fonts
+  const viewer = parentExtends && parentTokens?.viewer ? { ...parentTokens.viewer, ...(overrides.viewer ?? {}) } : overrides.viewer
+  const manifest = {
+    $schema: 'https://skinloom.cn/schema/plugin.v1.json',
+    id,
+    kind: 'theme',
+    version: '0.1.0',
+    name: { 'zh-CN': `${baseId} 定制`, en: `${baseId} Custom` },
+    description: { 'zh-CN': '从后台颜色调整导出的主题', en: 'Exported from appearance color adjustments' },
+    license: 'MIT',
+    apiVersion: 1,
+    extends: extendsId,
+    theme: {
+      tokens: {
+        light,
+        dark,
+        ...(fonts && Object.keys(fonts).length > 0 ? { fonts } : {}),
+        ...(viewer && Object.keys(viewer).length > 0 ? { viewer } : {}),
+      },
+      css: 'theme.css',
+    },
+  }
+  const enc = new TextEncoder()
+  return storeZip([
+    { name: `${id}/plugin.json`, data: enc.encode(`${JSON.stringify(manifest, null, 2)}\n`) },
+    { name: `${id}/theme.css`, data: enc.encode(`/* ${id}: extra styles on top of token variables. */\n`) },
+    {
+      name: `${id}/README.md`,
+      data: enc.encode(`# ${id}\n\nUnpack into \`data/themes/${id}\` and click Rescan in Admin -> Appearance.\n`),
+    },
+  ])
+}
+
+function crc32(bytes: Uint8Array): number {
+  let c = 0xffffffff
+  for (let i = 0; i < bytes.length; i++) {
+    c ^= bytes[i]!
+    for (let k = 0; k < 8; k++) c = (c >>> 1) ^ (c & 1 ? 0xedb88320 : 0)
+  }
+  return (c ^ 0xffffffff) >>> 0
+}
+
+function storeZip(files: { name: string; data: Uint8Array }[]): Uint8Array {
+  const enc = new TextEncoder()
+  const locals: Uint8Array[] = []
+  const centrals: Uint8Array[] = []
+  let offset = 0
+  for (const f of files) {
+    const nameBytes = enc.encode(f.name)
+    const crc = crc32(f.data)
+    const local = new Uint8Array(30 + nameBytes.length + f.data.length)
+    const lv = new DataView(local.buffer)
+    lv.setUint32(0, 0x04034b50, true)
+    lv.setUint16(4, 20, true)
+    lv.setUint32(14, crc, true)
+    lv.setUint32(18, f.data.length, true)
+    lv.setUint32(22, f.data.length, true)
+    lv.setUint16(26, nameBytes.length, true)
+    local.set(nameBytes, 30)
+    local.set(f.data, 30 + nameBytes.length)
+    locals.push(local)
+
+    const central = new Uint8Array(46 + nameBytes.length)
+    const cv = new DataView(central.buffer)
+    cv.setUint32(0, 0x02014b50, true)
+    cv.setUint16(4, 20, true)
+    cv.setUint16(6, 20, true)
+    cv.setUint32(16, crc, true)
+    cv.setUint32(20, f.data.length, true)
+    cv.setUint32(24, f.data.length, true)
+    cv.setUint16(28, nameBytes.length, true)
+    cv.setUint32(42, offset, true)
+    central.set(nameBytes, 46)
+    centrals.push(central)
+    offset += local.length
+  }
+  const cdSize = centrals.reduce((s, b) => s + b.length, 0)
+  const eocd = new Uint8Array(22)
+  const ev = new DataView(eocd.buffer)
+  ev.setUint32(0, 0x06054b50, true)
+  ev.setUint16(8, files.length, true)
+  ev.setUint16(10, files.length, true)
+  ev.setUint32(12, cdSize, true)
+  ev.setUint32(16, offset, true)
+
+  const out = new Uint8Array(offset + cdSize + 22)
+  let pos = 0
+  for (const b of [...locals, ...centrals, eocd]) {
+    out.set(b, pos)
+    pos += b.length
+  }
+  return out
 }

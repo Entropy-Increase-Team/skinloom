@@ -1,3 +1,4 @@
+import { PageHeader } from '@skinloom/ui'
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 
@@ -8,6 +9,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('audit') }
 }
 
-export default function AdminAuditPage() {
-  return <AuditTable />
+export default async function AdminAuditPage() {
+  const t = await getTranslations('admin')
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader title={t('audit')} description={t('auditIntro')} />
+      <AuditTable />
+    </div>
+  )
 }

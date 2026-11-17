@@ -1,3 +1,4 @@
+import { PageHeader } from '@skinloom/ui'
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 
@@ -11,7 +12,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** The default texts of every language, read here so the editor can show and search them. */
 export default async function AdminTranslationsPage() {
-  const [zh, en] = await Promise.all([
+  const [t, ta, zh, en] = await Promise.all([
+    getTranslations('admin'),
+    getTranslations('adminTranslations'),
     import('../../../../../messages/zh-CN.json').then((m) => m.default as Messages),
     import('../../../../../messages/en.json').then((m) => m.default as Messages),
   ])
@@ -22,5 +25,10 @@ export default async function AdminTranslationsPage() {
     const en = english.get(key)
     return { key, defaults: en === undefined ? { 'zh-CN': text } : { 'zh-CN': text, en } }
   })
-  return <Translations entries={entries} />
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader title={t('translations')} description={ta('intro')} />
+      <Translations entries={entries} />
+    </div>
+  )
 }

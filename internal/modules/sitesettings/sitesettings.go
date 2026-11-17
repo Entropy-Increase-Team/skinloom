@@ -43,6 +43,7 @@ func Registry(themes *theme.Registry) (*settings.Registry, error) {
 	}
 	reg.SetValidator("theme.active", themes.ValidateActive)
 	reg.SetValidator("theme.overrides", theme.ValidateOverrides)
+	reg.SetValidator("theme.settings", themes.ValidateSettings)
 	reg.SetValidator("home.blocks", theme.ValidateHome)
 	return reg, nil
 }

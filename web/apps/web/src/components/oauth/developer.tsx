@@ -9,6 +9,7 @@ import {
   listOAuthGrants,
   listOAuthScopes,
   listPersonalTokens,
+  type NewPersonalToken,
   type OAuthClientList,
   type OAuthClientSecret,
   type OAuthClientView,
@@ -17,53 +18,81 @@ import {
   type OAuthScopes,
   type PersonalTokenList,
   type PersonalTokenView,
-  type NewPersonalToken,
   resetOAuthClientSecret,
   revokeOAuthGrant,
   updateOAuthClient,
 } from '@skinloom/api-client'
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Label } from '@skinloom/ui'
-import { useLocale, useTranslations } from 'next-intl'
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Badge,
+  Button,
+  Checkbox,
+  CopyField,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  Field as UiField,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+  RadioGroup,
+  RadioGroupItem,
+  RelativeTime,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Skeleton,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  Textarea,
+  toast,
+  useConfirm,
+} from '@skinloom/ui'
+import { AppWindow, KeyRound, KeySquare, MoreHorizontal, Pencil, Plus, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from 'react'
 
 import { Field, FormError } from '@/components/auth/field'
-import { CopyButton } from '@/components/blocks/copy-button'
 import { ScopeList, scopeKey } from '@/components/oauth/scopes'
 import { problemOf } from '@/lib/problem'
 
-const selectClass = 'h-9 rounded-md border border-input bg-transparent px-2 text-sm'
-const textareaClass = 'rounded-md border border-input bg-transparent px-3 py-2 font-mono text-sm'
-
-function Section({ title, description, children }: { title: string; description?: ReactNode; children: ReactNode }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">{children}</CardContent>
-    </Card>
-  )
-}
-
-/** A secret shown once, with a copy button. */
+/** A secret shown once: copy it now. */
 function OneTimeSecret({ label, value }: { label: string; value: string }) {
   const t = useTranslations('oauth')
   return (
-    <div role="status" className="flex flex-col gap-2 rounded-md border border-success/40 bg-success/10 p-3">
-      <p className="text-sm font-medium">{label}</p>
-      <div className="flex flex-wrap items-center gap-2">
-        <code className="break-all rounded bg-background px-2 py-1 font-mono text-sm">{value}</code>
-        <CopyButton value={value} label={t('copy')} copiedLabel={t('copied')} />
-      </div>
-      <p className="text-xs text-muted-foreground">{t('shownOnce')}</p>
-    </div>
+    <Alert role="status">
+      <KeyRound />
+      <AlertTitle>{label}</AlertTitle>
+      <AlertDescription className="flex flex-col gap-2">
+        <CopyField value={value} label={label} className="bg-background" />
+        <span>{t('shownOnce')}</span>
+      </AlertDescription>
+    </Alert>
   )
-}
-
-function useDate() {
-  const locale = useLocale()
-  return (iso: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso))
 }
 
 /** Field errors of a failed request, and a general message for anything else. */
@@ -87,30 +116,85 @@ function useFailure() {
   }
 }
 
+/** A toast for a failure outside a form. */
+function useToastFailure() {
+  const t = useTranslations('oauth')
+  const tc = useTranslations('common')
+  return (err: unknown) => toast.error(problemOf(err).unverified ? tc('verifyFirst') : t('failed'))
+}
+
 const lines = (s: string) =>
   s
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean)
 
-export function Developer({ admin, origin }: { admin: boolean; origin: string }) {
+/** A list row: what it is, facts underneath, actions on the right. */
+function Row({ title, badges, meta, actions, children }: { title: ReactNode; badges?: ReactNode; meta?: ReactNode; actions?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="flex flex-col gap-6">
-      <AppsSection origin={origin} />
-      <GrantsSection />
-      <TokensSection admin={admin} origin={origin} />
-    </div>
+    <li className="flex flex-col gap-3 p-4 sm:p-5">
+      <div className="flex items-start gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="truncate font-medium">{title}</span>
+            {badges}
+          </div>
+          {meta && <p className="flex flex-wrap gap-x-1.5 text-caption text-muted-foreground">{meta}</p>}
+        </div>
+        {actions}
+      </div>
+      {children}
+    </li>
+  )
+}
+
+function Loading() {
+  return <Skeleton className="h-32 rounded-xl" />
+}
+
+function Nothing({ icon, title, body, action }: { icon: ReactNode; title: string; body?: string; action?: ReactNode }) {
+  return (
+    <Empty className="border border-dashed py-12">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">{icon}</EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        {body && <EmptyDescription>{body}</EmptyDescription>}
+      </EmptyHeader>
+      {action && <EmptyContent>{action}</EmptyContent>}
+    </Empty>
+  )
+}
+
+/** Applications you registered, applications you allowed, personal access tokens: one tab each. */
+export function Developer({ admin, origin }: { admin: boolean; origin: string }) {
+  const t = useTranslations('oauth')
+  return (
+    <Tabs defaultValue="apps" className="gap-5">
+      <TabsList>
+        <TabsTrigger value="apps">{t('apps.title')}</TabsTrigger>
+        <TabsTrigger value="grants">{t('grants.title')}</TabsTrigger>
+        <TabsTrigger value="tokens">{t('tokens.title')}</TabsTrigger>
+      </TabsList>
+      <TabsContent value="apps">
+        <AppsSection origin={origin} />
+      </TabsContent>
+      <TabsContent value="grants">
+        <GrantsSection />
+      </TabsContent>
+      <TabsContent value="tokens">
+        <TokensSection admin={admin} origin={origin} />
+      </TabsContent>
+    </Tabs>
   )
 }
 
 function AppsSection({ origin }: { origin: string }) {
   const t = useTranslations('oauth')
-  const when = useDate()
-  const f = useFailure()
+  const confirm = useConfirm()
+  const failed = useToastFailure()
   const [apps, setApps] = useState<OAuthClientView[] | null>(null)
   const [secret, setSecret] = useState<{ id: number; value: string } | null>(null)
-  const [editing, setEditing] = useState<number | null>(null)
-  const [pending, setPending] = useState(false)
+  const [editing, setEditing] = useState<OAuthClientView | 'new' | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -121,169 +205,213 @@ function AppsSection({ origin }: { origin: string }) {
   }, [])
   useEffect(() => void load(), [load])
 
-  const create = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const form = e.currentTarget
-    const data = new FormData(form)
-    setPending(true)
-    f.clear()
-    try {
-      const res = (
-        await createOAuthClient({
-          name: String(data.get('name') ?? ''),
-          redirectUris: lines(String(data.get('redirectUris') ?? '')),
-          confidential: data.get('kind') === 'confidential',
-        })
-      ).data as OAuthClientSecret
-      if (res.secret) setSecret({ id: res.client.id, value: res.secret })
-      form.reset()
-      await load()
-    } catch (err) {
-      f.fail(err)
-    } finally {
-      setPending(false)
-    }
-  }
-
-  const save = async (app: OAuthClientView, e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const data = new FormData(e.currentTarget)
-    setPending(true)
-    f.clear()
-    try {
-      await updateOAuthClient(app.id, { name: String(data.get('name') ?? ''), redirectUris: lines(String(data.get('redirectUris') ?? '')) })
-      setEditing(null)
-      await load()
-    } catch (err) {
-      f.fail(err)
-    } finally {
-      setPending(false)
-    }
-  }
-
   const reset = async (app: OAuthClientView) => {
-    if (!window.confirm(t('apps.resetConfirm', { name: app.name }))) return
+    const ok = await confirm({ title: t('apps.resetTitle', { name: app.name }), description: t('apps.resetConfirm'), confirmLabel: t('apps.resetSecret') })
+    if (!ok) return
     try {
       const res = (await resetOAuthClientSecret(app.id)).data as OAuthClientSecret
       setSecret({ id: app.id, value: res.secret })
     } catch (err) {
-      f.fail(err)
+      failed(err)
     }
   }
 
   const remove = async (app: OAuthClientView) => {
-    if (!window.confirm(t('apps.deleteConfirm', { name: app.name }))) return
+    const ok = await confirm({ title: t('apps.deleteTitle', { name: app.name }), description: t('apps.deleteConfirm'), confirmLabel: t('apps.delete') })
+    if (!ok) return
     try {
       await deleteOAuthClient(app.id)
       if (secret?.id === app.id) setSecret(null)
+      toast.success(t('apps.deleted', { name: app.name }))
       await load()
     } catch (err) {
+      failed(err)
+    }
+  }
+
+  const create = (
+    <Button onClick={() => setEditing('new')}>
+      <Plus />
+      {t('apps.new')}
+    </Button>
+  )
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <p className="text-sm text-muted-foreground">{t('apps.hint')}</p>
+          <p className="font-mono text-caption break-all text-faint-foreground">
+            {origin}/oauth/authorize · {origin}/oauth/token · {origin}/api
+          </p>
+        </div>
+        {apps && apps.length > 0 && create}
+      </div>
+      {apps === null && <Loading />}
+      {apps?.length === 0 && <Nothing icon={<AppWindow />} title={t('apps.none')} action={create} />}
+      {apps && apps.length > 0 && (
+        <ul className="flex flex-col divide-y rounded-xl border bg-card">
+          {apps.map((app) => (
+            <Row
+              key={app.id}
+              title={app.name}
+              badges={<Badge variant="outline">{app.confidential ? t('apps.confidential') : t('apps.public')}</Badge>}
+              meta={<RelativeTime date={app.createdAt} />}
+              actions={
+                <DropdownMenu>
+                  <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t('menu', { name: app.name })} title={t('menu', { name: app.name })} />}>
+                    <MoreHorizontal />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem onClick={() => setEditing(app)}>
+                      <Pencil />
+                      {t('edit')}
+                    </DropdownMenuItem>
+                    {app.confidential && (
+                      <DropdownMenuItem onClick={() => void reset(app)}>
+                        <RotateCcw />
+                        {t('apps.resetSecret')}
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem variant="destructive" onClick={() => void remove(app)}>
+                      <Trash2 />
+                      {t('apps.delete')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              }
+            >
+              <div className="flex flex-col gap-1.5">
+                <span className="text-caption text-muted-foreground">client_id</span>
+                <CopyField value={String(app.id)} label="client_id" className="sm:max-w-xs" />
+              </div>
+              <ul className="flex flex-col gap-0.5 font-mono text-caption break-all text-muted-foreground">
+                {app.redirectUris.map((u) => (
+                  <li key={u}>{u}</li>
+                ))}
+              </ul>
+              {secret?.id === app.id && <OneTimeSecret label={t('apps.secret')} value={secret.value} />}
+            </Row>
+          ))}
+        </ul>
+      )}
+      <AppDialog
+        editing={editing}
+        onClose={() => setEditing(null)}
+        onSaved={async (created) => {
+          if (created?.secret) setSecret({ id: created.client.id, value: created.secret })
+          await load()
+        }}
+      />
+    </div>
+  )
+}
+
+/** Register an application, or edit its name and redirect URIs. */
+function AppDialog({
+  editing,
+  onClose,
+  onSaved,
+}: {
+  editing: OAuthClientView | 'new' | null
+  onClose: () => void
+  onSaved: (created: OAuthClientSecret | null) => Promise<void>
+}) {
+  const t = useTranslations('oauth')
+  const tc = useTranslations('common')
+  const f = useFailure()
+  const [pending, setPending] = useState(false)
+  const [kind, setKind] = useState('confidential')
+  const app = editing === 'new' ? null : editing
+
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const data = new FormData(e.currentTarget)
+    const body = { name: String(data.get('name') ?? ''), redirectUris: lines(String(data.get('redirectUris') ?? '')) }
+    setPending(true)
+    f.clear()
+    try {
+      if (app) {
+        await updateOAuthClient(app.id, body)
+        await onSaved(null)
+      } else {
+        await onSaved((await createOAuthClient({ ...body, confidential: kind === 'confidential' })).data as OAuthClientSecret)
+      }
+      onClose()
+    } catch (err) {
       f.fail(err)
+    } finally {
+      setPending(false)
     }
   }
 
   return (
-    <Section
-      title={t('apps.title')}
-      description={
-        <>
-          {t('apps.hint')}{' '}
-          <span className="font-mono text-xs">
-            {origin}/oauth/authorize · {origin}/oauth/token · {origin}/api
-          </span>
-        </>
-      }
+    <Dialog
+      open={editing !== null}
+      onOpenChange={(open) => {
+        if (!open) {
+          setKind('confidential')
+          onClose()
+        }
+        f.clear()
+      }}
     >
-      {apps === null && <p className="text-sm text-muted-foreground">…</p>}
-      {apps?.length === 0 && <p className="text-sm text-muted-foreground">{t('apps.none')}</p>}
-      <ul className="flex flex-col divide-y">
-        {apps?.map((app) => (
-          <li key={app.id} className="flex flex-col gap-3 py-3">
-            {editing === app.id ? (
-              <form onSubmit={(e) => void save(app, e)} className="flex flex-col gap-3">
-                <Field id={`name-${app.id}`} name="name" label={t('apps.name')} defaultValue={app.name} required maxLength={64} error={f.fields.name} />
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor={`uris-${app.id}`}>{t('apps.redirectUris')}</Label>
-                  <textarea id={`uris-${app.id}`} name="redirectUris" rows={3} defaultValue={app.redirectUris.join('\n')} className={textareaClass} />
-                  {f.fields.redirectUris && <p className="text-xs text-destructive">{f.fields.redirectUris}</p>}
-                </div>
-                <div className="flex gap-2">
-                  <Button type="submit" size="sm" disabled={pending}>
-                    {t('save')}
-                  </Button>
-                  <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(null)}>
-                    {t('cancel')}
-                  </Button>
-                </div>
-              </form>
-            ) : (
-              <>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{app.name}</span>
-                  <Badge variant="outline">{app.confidential ? t('apps.confidential') : t('apps.public')}</Badge>
-                  <span className="text-xs text-muted-foreground">{when(app.createdAt)}</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">client_id</span>
-                  <code className="rounded bg-muted px-2 py-0.5 font-mono">{app.id}</code>
-                  <CopyButton value={String(app.id)} label={t('copy')} copiedLabel={t('copied')} />
-                </div>
-                <ul className="flex flex-col gap-1 font-mono text-xs text-muted-foreground">
-                  {app.redirectUris.map((u) => (
-                    <li key={u} className="break-all">
-                      {u}
-                    </li>
-                  ))}
-                </ul>
-                {secret?.id === app.id && <OneTimeSecret label={t('apps.secret')} value={secret.value} />}
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" onClick={() => setEditing(app.id)}>
-                    {t('edit')}
-                  </Button>
-                  {app.confidential && (
-                    <Button size="sm" variant="outline" onClick={() => void reset(app)}>
-                      {t('apps.resetSecret')}
-                    </Button>
-                  )}
-                  <Button size="sm" variant="destructive" onClick={() => void remove(app)}>
-                    {t('delete')}
-                  </Button>
-                </div>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
-      <form onSubmit={(e) => void create(e)} className="flex flex-col gap-3 border-t pt-4">
-        <p className="font-medium">{t('apps.new')}</p>
-        <Field id="app-name" name="name" label={t('apps.name')} required maxLength={64} error={editing === null ? f.fields.name : undefined} />
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="app-uris">{t('apps.redirectUris')}</Label>
-          <textarea id="app-uris" name="redirectUris" rows={2} required placeholder="https://example.com/callback" className={textareaClass} />
-          <p className="text-xs text-muted-foreground">{t('apps.redirectHint')}</p>
-          {editing === null && f.fields.redirectUris && <p className="text-xs text-destructive">{f.fields.redirectUris}</p>}
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="app-kind">{t('apps.kind')}</Label>
-          <select id="app-kind" name="kind" defaultValue="confidential" className={selectClass}>
-            <option value="confidential">{t('apps.confidentialHint')}</option>
-            <option value="public">{t('apps.publicHint')}</option>
-          </select>
-        </div>
-        <FormError message={f.error} />
-        <Button type="submit" className="self-start" disabled={pending}>
-          {t('apps.create')}
-        </Button>
-      </form>
-    </Section>
+      <DialogContent className="sm:max-w-md">
+        <form key={editing === null ? 'closed' : (app?.id ?? 'new')} onSubmit={(e) => void submit(e)} className="flex flex-col gap-5">
+          <DialogHeader>
+            <DialogTitle>{app ? t('apps.editTitle', { name: app.name }) : t('apps.new')}</DialogTitle>
+            {!app && <DialogDescription>{t('apps.newBody')}</DialogDescription>}
+          </DialogHeader>
+          <FormError message={f.error} />
+          <Field id="app-name" name="name" label={t('apps.name')} defaultValue={app?.name} required maxLength={64} error={f.fields.name} />
+          <UiField data-invalid={f.fields.redirectUris ? true : undefined}>
+            <FieldLabel htmlFor="app-uris">{t('apps.redirectUris')}</FieldLabel>
+            <Textarea
+              id="app-uris"
+              name="redirectUris"
+              rows={3}
+              required
+              defaultValue={app?.redirectUris.join('\n')}
+              placeholder="https://example.com/callback"
+              className="font-mono text-caption"
+              aria-invalid={f.fields.redirectUris ? true : undefined}
+            />
+            {f.fields.redirectUris ? <FieldError>{f.fields.redirectUris}</FieldError> : <FieldDescription>{t('apps.redirectHint')}</FieldDescription>}
+          </UiField>
+          {!app && (
+            <FieldSet>
+              <FieldLegend variant="label">{t('apps.kind')}</FieldLegend>
+              <RadioGroup value={kind} onValueChange={(v) => setKind(String(v))}>
+                {(['confidential', 'public'] as const).map((k) => (
+                  <UiField key={k} orientation="horizontal">
+                    <RadioGroupItem value={k} id={`kind-${k}`} />
+                    <FieldContent>
+                      <FieldLabel htmlFor={`kind-${k}`}>{t(`apps.${k}`)}</FieldLabel>
+                      <FieldDescription>{t(`apps.${k}Hint`)}</FieldDescription>
+                    </FieldContent>
+                  </UiField>
+                ))}
+              </RadioGroup>
+            </FieldSet>
+          )}
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</DialogClose>
+            <Button type="submit" loading={pending}>
+              {app ? tc('save') : t('apps.create')}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
 function GrantsSection() {
   const t = useTranslations('oauth')
-  const when = useDate()
+  const confirm = useConfirm()
+  const failed = useToastFailure()
   const [grants, setGrants] = useState<OAuthGrantView[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const load = useCallback(async () => {
     try {
       setGrants(((await listOAuthGrants()).data as OAuthGrantList).grants)
@@ -294,37 +422,47 @@ function GrantsSection() {
   useEffect(() => void load(), [load])
 
   const revoke = async (g: OAuthGrantView) => {
-    if (!window.confirm(t('grants.revokeConfirm', { name: g.client.name }))) return
+    const ok = await confirm({ title: t('grants.revokeTitle', { name: g.client.name }), description: t('grants.revokeConfirm'), confirmLabel: t('grants.revoke') })
+    if (!ok) return
     try {
       await revokeOAuthGrant(g.client.id)
+      toast.success(t('grants.revoked', { name: g.client.name }))
       await load()
-    } catch {
-      setError(t('failed'))
+    } catch (err) {
+      failed(err)
     }
   }
 
   return (
-    <Section title={t('grants.title')} description={t('grants.hint')}>
-      {grants === null && <p className="text-sm text-muted-foreground">…</p>}
-      {grants?.length === 0 && <p className="text-sm text-muted-foreground">{t('grants.none')}</p>}
-      <FormError message={error} />
-      <ul className="flex flex-col divide-y">
-        {grants?.map((g) => (
-          <li key={g.client.id} className="flex flex-col gap-2 py-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium">{g.client.name}</span>
-              <span className="text-xs text-muted-foreground">
-                {t('by', { owner: g.client.owner })} · {t('grants.since', { date: when(g.updatedAt) })}
-              </span>
-            </div>
-            <ScopeList scopes={g.scopes} />
-            <Button size="sm" variant="outline" className="self-start" onClick={() => void revoke(g)}>
-              {t('grants.revoke')}
-            </Button>
-          </li>
-        ))}
-      </ul>
-    </Section>
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-muted-foreground">{t('grants.hint')}</p>
+      {grants === null && <Loading />}
+      {grants?.length === 0 && <Nothing icon={<ShieldCheck />} title={t('grants.none')} />}
+      {grants && grants.length > 0 && (
+        <ul className="flex flex-col divide-y rounded-xl border bg-card">
+          {grants.map((g) => (
+            <Row
+              key={g.client.id}
+              title={g.client.name}
+              meta={
+                <>
+                  <span>{t('by', { owner: g.client.owner })}</span>
+                  <span aria-hidden>·</span>
+                  <span>{t.rich('grants.since', { t: () => <RelativeTime date={g.updatedAt} /> })}</span>
+                </>
+              }
+              actions={
+                <Button size="sm" variant="outline" onClick={() => void revoke(g)}>
+                  {t('grants.revoke')}
+                </Button>
+              }
+            >
+              <ScopeList scopes={g.scopes} />
+            </Row>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 
@@ -332,13 +470,12 @@ const expiries = [7, 30, 90, 365, 0]
 
 function TokensSection({ admin, origin }: { admin: boolean; origin: string }) {
   const t = useTranslations('oauth')
-  const ts = useTranslations('oauth.scopes')
-  const when = useDate()
-  const f = useFailure()
+  const confirm = useConfirm()
+  const failed = useToastFailure()
   const [tokens, setTokens] = useState<PersonalTokenView[] | null>(null)
   const [scopes, setScopes] = useState<OAuthScopes['scopes']>([])
   const [created, setCreated] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
+  const [creating, setCreating] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -355,23 +492,109 @@ function TokensSection({ admin, origin }: { admin: boolean; origin: string }) {
     )
   }, [load, admin])
 
-  const create = async (e: FormEvent<HTMLFormElement>) => {
+  const remove = async (tok: PersonalTokenView) => {
+    const ok = await confirm({ title: t('tokens.deleteTitle', { name: tok.name }), description: t('tokens.deleteConfirm'), confirmLabel: t('tokens.delete') })
+    if (!ok) return
+    try {
+      await deletePersonalToken(tok.id)
+      toast.success(t('tokens.deleted', { name: tok.name }))
+      await load()
+    } catch (err) {
+      failed(err)
+    }
+  }
+
+  const create = (
+    <Button onClick={() => setCreating(true)}>
+      <Plus />
+      {t('tokens.new')}
+    </Button>
+  )
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-end gap-3">
+        <p className="min-w-0 flex-1 text-sm text-muted-foreground">{t('tokens.hint', { api: `${origin}/api/user` })}</p>
+        {tokens && tokens.length > 0 && create}
+      </div>
+      {created && <OneTimeSecret label={t('tokens.created')} value={created} />}
+      {tokens === null && <Loading />}
+      {tokens?.length === 0 && <Nothing icon={<KeySquare />} title={t('tokens.none')} action={create} />}
+      {tokens && tokens.length > 0 && (
+        <ul className="flex flex-col divide-y rounded-xl border bg-card">
+          {tokens.map((tok) => (
+            <Row
+              key={tok.id}
+              title={tok.name}
+              meta={
+                <>
+                  <span>{t.rich('tokens.createdAt', { t: () => <RelativeTime date={tok.createdAt} /> })}</span>
+                  <span aria-hidden>·</span>
+                  <span>{tok.expiresAt ? t.rich('tokens.expiresAt', { t: () => <RelativeTime date={tok.expiresAt!} /> }) : t('tokens.never')}</span>
+                  <span aria-hidden>·</span>
+                  <span>{tok.lastUsedAt ? t.rich('tokens.lastUsed', { t: () => <RelativeTime date={tok.lastUsedAt!} /> }) : t('tokens.unused')}</span>
+                </>
+              }
+              actions={
+                <Button size="icon-sm" variant="ghost" aria-label={t('tokens.deleteTitle', { name: tok.name })} title={t('tokens.delete')} onClick={() => void remove(tok)}>
+                  <Trash2 />
+                </Button>
+              }
+            >
+              <div className="flex flex-wrap gap-1.5">
+                {tok.scopes.map((s) => (
+                  <Badge key={s} variant="secondary" className="font-mono">
+                    {s}
+                  </Badge>
+                ))}
+              </div>
+            </Row>
+          ))}
+        </ul>
+      )}
+      <TokenDialog
+        open={creating}
+        scopes={scopes}
+        onClose={() => setCreating(false)}
+        onCreated={async (token) => {
+          setCreated(token)
+          await load()
+        }}
+      />
+    </div>
+  )
+}
+
+function TokenDialog({
+  open,
+  scopes,
+  onClose,
+  onCreated,
+}: {
+  open: boolean
+  scopes: OAuthScopes['scopes']
+  onClose: () => void
+  onCreated: (token: string) => Promise<void>
+}) {
+  const t = useTranslations('oauth')
+  const ts = useTranslations('oauth.scopes')
+  const tc = useTranslations('common')
+  const f = useFailure()
+  const [pending, setPending] = useState(false)
+  const [picked, setPicked] = useState<string[]>([])
+  const expiryItems = expiries.map((days) => ({ value: String(days), label: days === 0 ? t('tokens.neverOption') : t('tokens.days', { days }) }))
+
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const form = e.currentTarget
-    const data = new FormData(form)
+    const data = new FormData(e.currentTarget)
     setPending(true)
     f.clear()
     try {
-      const res = (
-        await createPersonalToken({
-          name: String(data.get('name') ?? ''),
-          scopes: data.getAll('scopes').map(String),
-          expiresInDays: Number(data.get('expires') ?? 30),
-        })
-      ).data as NewPersonalToken
-      setCreated(res.token)
-      form.reset()
-      await load()
+      const res = (await createPersonalToken({ name: String(data.get('name') ?? ''), scopes: picked, expiresInDays: Number(data.get('expires') ?? 30) }))
+        .data as NewPersonalToken
+      await onCreated(res.token)
+      setPicked([])
+      onClose()
     } catch (err) {
       f.fail(err)
     } finally {
@@ -379,74 +602,71 @@ function TokensSection({ admin, origin }: { admin: boolean; origin: string }) {
     }
   }
 
-  const remove = async (tok: PersonalTokenView) => {
-    if (!window.confirm(t('tokens.deleteConfirm', { name: tok.name }))) return
-    try {
-      await deletePersonalToken(tok.id)
-      await load()
-    } catch (err) {
-      f.fail(err)
-    }
-  }
-
   return (
-    <Section title={t('tokens.title')} description={t('tokens.hint', { api: `${origin}/api/user` })}>
-      {created && <OneTimeSecret label={t('tokens.created')} value={created} />}
-      {tokens === null && <p className="text-sm text-muted-foreground">…</p>}
-      {tokens?.length === 0 && <p className="text-sm text-muted-foreground">{t('tokens.none')}</p>}
-      <ul className="flex flex-col divide-y">
-        {tokens?.map((tok) => (
-          <li key={tok.id} className="flex flex-col gap-2 py-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium">{tok.name}</span>
-              {tok.scopes.map((s) => (
-                <Badge key={s} variant="secondary" className="font-mono">
-                  {s}
-                </Badge>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {t('tokens.createdAt', { date: when(tok.createdAt) })} ·{' '}
-              {tok.expiresAt ? t('tokens.expiresAt', { date: when(tok.expiresAt) }) : t('tokens.never')} ·{' '}
-              {tok.lastUsedAt ? t('tokens.lastUsed', { date: when(tok.lastUsedAt) }) : t('tokens.unused')}
-            </p>
-            <Button size="sm" variant="outline" className="self-start" onClick={() => void remove(tok)}>
-              {t('delete')}
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) {
+          setPicked([])
+          onClose()
+        }
+        f.clear()
+      }}
+    >
+      <DialogContent className="flex max-h-[90dvh] flex-col sm:max-w-md">
+        <form key={open ? 'open' : 'closed'} onSubmit={(e) => void submit(e)} className="flex min-h-0 flex-col gap-5">
+          <DialogHeader>
+            <DialogTitle>{t('tokens.new')}</DialogTitle>
+            <DialogDescription>{t('tokens.newBody')}</DialogDescription>
+          </DialogHeader>
+          <div className="-mx-1 flex min-h-0 flex-col gap-5 overflow-y-auto px-1">
+            <FormError message={f.error} />
+            <Field id="token-name" name="name" label={t('tokens.name')} required maxLength={64} error={f.fields.name} />
+            <FieldSet data-invalid={f.fields.scopes ? true : undefined}>
+              <FieldLegend variant="label">{t('tokens.scopes')}</FieldLegend>
+              <div className="flex flex-col gap-3">
+                {scopes.map((s) => (
+                  <UiField key={s.name} orientation="horizontal">
+                    <Checkbox
+                      id={`scope-${s.name}`}
+                      checked={picked.includes(s.name)}
+                      onCheckedChange={(on) => setPicked((l) => (on ? [...l, s.name] : l.filter((x) => x !== s.name)))}
+                    />
+                    <FieldContent>
+                      <FieldLabel htmlFor={`scope-${s.name}`} className="font-mono text-caption">
+                        {s.name}
+                      </FieldLabel>
+                      {ts.has(scopeKey(s.name)) && <FieldDescription>{ts(scopeKey(s.name) as 'User_Read')}</FieldDescription>}
+                    </FieldContent>
+                  </UiField>
+                ))}
+              </div>
+              {f.fields.scopes && <FieldError>{f.fields.scopes}</FieldError>}
+            </FieldSet>
+            <UiField>
+              <FieldLabel htmlFor="token-expires">{t('tokens.expires')}</FieldLabel>
+              <Select name="expires" items={expiryItems} defaultValue="30">
+                <SelectTrigger id="token-expires" className="w-full sm:w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {expiryItems.map((i) => (
+                    <SelectItem key={i.value} value={i.value}>
+                      {i.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </UiField>
+          </div>
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</DialogClose>
+            <Button type="submit" loading={pending}>
+              {t('tokens.create')}
             </Button>
-          </li>
-        ))}
-      </ul>
-      <form onSubmit={(e) => void create(e)} className="flex flex-col gap-3 border-t pt-4">
-        <p className="font-medium">{t('tokens.new')}</p>
-        <Field id="token-name" name="name" label={t('tokens.name')} required maxLength={64} error={f.fields.name} />
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 text-sm font-medium">{t('tokens.scopes')}</legend>
-          {scopes.map((s) => (
-            <label key={s.name} className="flex items-start gap-2 text-sm">
-              <input type="checkbox" name="scopes" value={s.name} className="mt-0.5 size-4 accent-primary" />
-              <span>
-                <span className="font-mono">{s.name}</span>
-                <span className="text-muted-foreground"> — {ts.has(scopeKey(s.name)) ? ts(scopeKey(s.name) as 'User_Read') : ''}</span>
-              </span>
-            </label>
-          ))}
-          {f.fields.scopes && <p className="text-xs text-destructive">{f.fields.scopes}</p>}
-        </fieldset>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="token-expires">{t('tokens.expires')}</Label>
-          <select id="token-expires" name="expires" defaultValue="30" className={selectClass}>
-            {expiries.map((days) => (
-              <option key={days} value={days}>
-                {days === 0 ? t('tokens.neverOption') : t('tokens.days', { days })}
-              </option>
-            ))}
-          </select>
-        </div>
-        <FormError message={f.error} />
-        <Button type="submit" className="self-start" disabled={pending}>
-          {t('tokens.create')}
-        </Button>
-      </form>
-    </Section>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

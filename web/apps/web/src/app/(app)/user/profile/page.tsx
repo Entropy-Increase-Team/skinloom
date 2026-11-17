@@ -1,3 +1,4 @@
+import { PageHeader } from '@skinloom/ui'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
@@ -29,11 +30,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   const admin = viewer.role !== 'user'
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('score', { score: viewer.score })}</p>
-      </div>
+    <div className="flex flex-col gap-8">
+      <PageHeader title={t('title')} description={t('intro')} />
+      <div className="flex flex-col">
       <AvatarSection viewer={viewer} />
       <ProfileSection viewer={viewer} locales={boot.locales} />
       <PasswordSection viewer={viewer} />
@@ -45,7 +44,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       />
       <SessionsSection />
       <LaunchersSection />
-      {admin ? <p className="text-sm text-muted-foreground">{t('adminNoDelete')}</p> : <DeleteSection viewer={viewer} />}
+      {admin ? <p className="border-t pt-8 text-sm text-muted-foreground">{t('adminNoDelete')}</p> : <DeleteSection viewer={viewer} />}
+      </div>
     </div>
   )
 }

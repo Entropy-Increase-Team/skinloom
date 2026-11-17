@@ -61,9 +61,9 @@ export function SocialButtons({ providers, next, remember }: { providers: Social
       </div>
       <FormError message={error} />
       {providers.map((p) => (
-        <Button key={p.id} type="button" variant="outline" disabled={pending !== null} onClick={() => void go(p.id)}>
+        <Button key={p.id} type="button" variant="outline" loading={pending === p.id} disabled={pending !== null} onClick={() => void go(p.id)}>
           <ProviderIcon type={p.type} />
-          {pending === p.id ? t('redirecting') : t('continueWith', { name: p.name })}
+          {t('continueWith', { name: p.name })}
         </Button>
       ))}
     </div>

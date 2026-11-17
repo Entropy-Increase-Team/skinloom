@@ -104,7 +104,7 @@ export function Consent({ params }: { params: GetAuthorizationParams }) {
         <Button variant="outline" disabled={pending} onClick={() => void answer(false)}>
           {t('deny')}
         </Button>
-        <Button disabled={pending} onClick={() => void answer(true)}>
+        <Button loading={pending} onClick={() => void answer(true)}>
           {t('allow')}
         </Button>
       </CardFooter>

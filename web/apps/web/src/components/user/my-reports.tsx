@@ -1,17 +1,17 @@
 'use client'
 
 import { listMyReports, type ReportPage, type ReportView } from '@skinloom/api-client'
-import { Badge, Button } from '@skinloom/ui'
+import { Button, Empty, EmptyHeader, EmptyMedia, EmptyTitle, PixelBackdrop, RelativeTime, Skeleton, type Status, StatusDot, TexturePreview } from '@skinloom/ui'
+import { Flag, ImageOff } from 'lucide-react'
 import Link from 'next/link'
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
 
-import { TexturePreview } from '@/components/texture/texture-preview'
+const STATUS: Record<ReportView['status'], Status> = { pending: 'warn', resolved: 'ok', rejected: 'off' }
 
 /** The signed-in user's reports and what became of them. */
 export function MyReports() {
   const t = useTranslations('myReports')
-  const locale = useLocale()
   const [reports, setReports] = useState<ReportView[] | null>(null)
   const [next, setNext] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -34,44 +34,59 @@ export function MyReports() {
     void load()
   }, [load])
 
-  const date = (iso: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso))
-
+  if (failed) return <p className="text-center text-sm text-destructive">{t('loadFailed')}</p>
+  if (reports === null) return <Skeleton className="h-40 rounded-xl" />
+  if (reports.length === 0) {
+    return (
+      <Empty className="border border-dashed py-16">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Flag />
+          </EmptyMedia>
+          <EmptyTitle>{t('empty')}</EmptyTitle>
+        </EmptyHeader>
+      </Empty>
+    )
+  }
   return (
     <div className="flex flex-col gap-4">
-      {failed && <p className="text-center text-sm text-destructive">{t('loadFailed')}</p>}
-      {reports?.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">{t('empty')}</p>}
-      <ul className="flex flex-col gap-3">
-        {reports?.map((r) => (
-          <li key={r.id} className="flex gap-4 rounded-lg border p-4">
-            <div className="flex h-20 w-16 shrink-0 items-center justify-center rounded-md bg-muted/40">
+      <ul className="flex flex-col divide-y overflow-hidden rounded-xl border bg-card">
+        {reports.map((r) => (
+          <li key={r.id} className="flex gap-4 p-4">
+            <PixelBackdrop className="h-20 w-20 shrink-0 rounded-md">
               {r.texture ? (
-                <TexturePreview src={`/textures/${r.texture.hash}`} type={r.texture.type} height={72} />
+                <TexturePreview texture={{ hash: r.texture.hash }} type={r.texture.type} height={64} />
               ) : (
-                <span className="px-1 text-center text-xs text-muted-foreground">{t('textureGone')}</span>
+                <ImageOff className="size-5 text-faint-foreground" aria-hidden />
               )}
-            </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
-              <div className="flex flex-wrap items-center gap-2">
+            </PixelBackdrop>
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 {r.texture ? (
-                  <Link href={`/skinlib/show/${r.texture.id}`} className="font-medium hover:underline">
+                  <Link href={`/skinlib/show/${r.texture.id}`} className="truncate text-sm font-medium hover:text-primary">
                     {r.texture.name}
                   </Link>
                 ) : (
-                  <span className="font-medium text-muted-foreground">{t('textureGone')}</span>
+                  <span className="text-sm text-muted-foreground">{t('textureGone')}</span>
                 )}
-                <Badge variant={r.status === 'pending' ? 'default' : r.status === 'resolved' ? 'secondary' : 'outline'}>{t(`status.${r.status}`)}</Badge>
+                <StatusDot status={STATUS[r.status]}>{t(`status.${r.status}`)}</StatusDot>
               </div>
-              <p className="whitespace-pre-line break-words">{r.reason}</p>
-              <p className="text-xs text-muted-foreground">
-                {t('submitted', { time: date(r.createdAt) })}
-                {r.handledAt && ` · ${t(`outcome.${r.action ?? 'reject'}`)} · ${date(r.handledAt)}`}
+              <p className="text-sm break-words whitespace-pre-line">{r.reason}</p>
+              <p className="flex flex-wrap gap-x-1.5 text-caption text-faint-foreground">
+                <span>{t.rich('submitted', { t: () => <RelativeTime date={r.createdAt} /> })}</span>
+                {r.handledAt && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span>{t.rich(`outcome.${r.action ?? 'reject'}`, { t: () => <RelativeTime date={r.handledAt!} /> })}</span>
+                  </>
+                )}
               </p>
             </div>
           </li>
         ))}
       </ul>
       {next > 0 && (
-        <Button variant="outline" className="self-center" disabled={loading} onClick={() => void load(next)}>
+        <Button variant="outline" className="self-center" loading={loading} onClick={() => void load(next)}>
           {t('more')}
         </Button>
       )}

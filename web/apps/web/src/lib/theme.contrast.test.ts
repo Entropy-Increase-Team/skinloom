@@ -87,3 +87,11 @@ describe('globals.css fallback tokens', () => {
     for (const [name, value] of Object.entries(tokens)) expect(fallback[mode][name], `${mode}.${name}`).toBe(value)
   })
 })
+
+describe('brocade dark brand surface contrast', () => {
+  it('overrides dark brand surfaces away from dark primary-foreground ink', () => {
+    const css = readFileSync(path.join(themesDir, 'brocade/theme.css'), 'utf8')
+    expect(css).toMatch(/\.dark\s+\.sl-auth-panel[\s\S]*?color:\s*var\(--foreground\)/)
+    expect(css).toMatch(/\.dark\s+\.sl-hero[\s\S]*?color:\s*var\(--foreground\)/)
+  })
+})

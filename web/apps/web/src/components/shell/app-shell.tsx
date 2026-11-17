@@ -4,9 +4,10 @@ import { getTranslations } from 'next-intl/server'
 import type * as React from 'react'
 
 import { getBootstrap } from '@/lib/bootstrap'
+import { layoutOf } from '@/lib/theme'
 import type { Viewer } from '@/lib/viewer'
 
-import { AppSidebar, AppSidebarProvider, type SidebarLink, type SidebarSection } from './app-sidebar'
+import { AppSidebar, AppSidebarProvider, AppTabNav, type SidebarLink, type SidebarSection } from './app-sidebar'
 import { SiteHeader } from './site-header'
 
 /**
@@ -70,6 +71,17 @@ export async function AppShell({ area, viewer, children }: { area: 'user' | 'adm
     ]
     if (plugin.length) sections.push({ label: t('adminNav.plugins'), links: plugin })
     footer = { href: '/user', label: t('shell.backToUser'), icon: 'arrow-left', exact: true }
+  }
+
+  const useTabs = area === 'user' && layoutOf(boot.theme.layout, 'user') === 'tabs'
+  if (useTabs) {
+    return (
+      <div data-sl-area={area} className="flex min-h-svh flex-col">
+        <SiteHeader variant="public" />
+        <AppTabNav sections={sections} footer={footer} />
+        <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col px-4 py-6 sm:px-6 lg:px-8 lg:py-7">{children}</main>
+      </div>
+    )
   }
 
   return (

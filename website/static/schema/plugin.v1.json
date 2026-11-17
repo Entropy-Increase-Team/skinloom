@@ -1,0 +1,252 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://skinloom.cn/schema/plugin.v1.json",
+  "title": "SkinLoom Plugin & Theme Manifest (v1)",
+  "description": "Manifest file (plugin.json) for SkinLoom themes and plugins (ADR 0005, ADR 0043).",
+  "type": "object",
+  "required": ["id", "kind", "version", "name", "apiVersion"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
+      "description": "Unique identifier (1-32 lowercase letters, digits or hyphens)."
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["theme", "plugin"]
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version (e.g. 1.0.0)."
+    },
+    "name": {
+      "$ref": "#/definitions/localizedString"
+    },
+    "description": {
+      "$ref": "#/definitions/localizedString"
+    },
+    "authors": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "license": {
+      "type": "string"
+    },
+    "homepage": {
+      "type": "string"
+    },
+    "repository": {
+      "type": "string"
+    },
+    "engines": {
+      "type": "object",
+      "properties": {
+        "skinloom": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "apiVersion": {
+      "type": "integer",
+      "enum": [1]
+    },
+    "extends": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
+      "description": "Parent theme ID for single-level theme inheritance (ADR 0043)."
+    },
+    "screenshot": {
+      "type": "string",
+      "description": "Relative path to a 16:10 preview image in the theme package (e.g. screenshot.webp)."
+    },
+    "settings": {
+      "$ref": "#/definitions/themeSettings"
+    },
+    "theme": {
+      "type": "object",
+      "properties": {
+        "colorScheme": {
+          "type": "string",
+          "enum": ["both", "light", "dark"],
+          "default": "both",
+          "description": "Supported colour mode(s). When light or dark, hides the visitor switcher and forces that mode."
+        },
+        "tokens": {
+          "type": "object",
+          "properties": {
+            "light": { "$ref": "#/definitions/colorTokens" },
+            "dark": { "$ref": "#/definitions/colorTokens" },
+            "fonts": {
+              "type": "object",
+              "properties": {
+                "sans": { "type": "string", "description": "Body and UI font stack (--sl-font-sans)." },
+                "mono": { "type": "string", "description": "Monospace font stack (--sl-font-mono)." },
+                "display": { "type": "string", "description": "Display / hero heading font stack (--sl-font-display)." }
+              },
+              "additionalProperties": { "type": "string" }
+            },
+            "viewer": {
+              "type": "object",
+              "properties": {
+                "background": {
+                  "type": "string",
+                  "description": "CSS background value or relative asset path (assets/...) for the 3D skin viewer."
+                }
+              },
+              "additionalProperties": { "type": "string" }
+            }
+          },
+          "additionalProperties": false
+        },
+        "css": {
+          "type": "string",
+          "description": "Relative path to the theme's stylesheet (e.g. theme.css)."
+        },
+        "layout": {
+          "type": "object",
+          "properties": {
+            "auth": { "type": "string", "enum": ["card", "split"] },
+            "skinlib": { "type": "string", "enum": ["comfortable", "compact"] },
+            "user": { "type": "string", "enum": ["sidebar", "tabs"] },
+            "texture": { "type": "string", "enum": ["split", "stacked"] }
+          },
+          "additionalProperties": { "type": "string" }
+        },
+        "home": {
+          "type": "array",
+          "description": "Default home page blocks when home.blocks is not customised.",
+          "items": { "$ref": "#/definitions/block" }
+        },
+        "settings": {
+          "$ref": "#/definitions/themeSettings"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "definitions": {
+    "localizedString": {
+      "type": "object",
+      "properties": {
+        "zh-CN": { "type": "string" },
+        "en": { "type": "string" }
+      },
+      "additionalProperties": { "type": "string" }
+    },
+    "colorTokens": {
+      "type": "object",
+      "properties": {
+        "background": { "type": "string" },
+        "foreground": { "type": "string" },
+        "card": { "type": "string" },
+        "card-foreground": { "type": "string" },
+        "popover": { "type": "string" },
+        "popover-foreground": { "type": "string" },
+        "muted": { "type": "string" },
+        "muted-foreground": { "type": "string" },
+        "faint-foreground": { "type": "string" },
+        "secondary": { "type": "string" },
+        "secondary-foreground": { "type": "string" },
+        "accent": { "type": "string" },
+        "accent-foreground": { "type": "string" },
+        "primary": { "type": "string" },
+        "primary-foreground": { "type": "string" },
+        "highlight": { "type": "string" },
+        "highlight-foreground": { "type": "string" },
+        "warning": { "type": "string" },
+        "warning-foreground": { "type": "string" },
+        "success": { "type": "string" },
+        "success-foreground": { "type": "string" },
+        "destructive": { "type": "string" },
+        "destructive-foreground": { "type": "string" },
+        "border": { "type": "string" },
+        "input": { "type": "string" },
+        "overlay": { "type": "string" },
+        "ring": { "type": "string" },
+        "chart-1": { "type": "string" },
+        "chart-2": { "type": "string" },
+        "chart-3": { "type": "string" },
+        "chart-4": { "type": "string" },
+        "chart-5": { "type": "string" },
+        "sidebar": { "type": "string" },
+        "sidebar-foreground": { "type": "string" },
+        "sidebar-primary": { "type": "string" },
+        "sidebar-primary-foreground": { "type": "string" },
+        "sidebar-accent": { "type": "string" },
+        "sidebar-accent-foreground": { "type": "string" },
+        "sidebar-border": { "type": "string" },
+        "sidebar-ring": { "type": "string" },
+        "pixel-a": { "type": "string" },
+        "pixel-b": { "type": "string" },
+        "shadow-popover": { "type": "string" },
+        "shadow-dialog": { "type": "string" },
+        "radius": { "type": "string" },
+        "brand-gradient": { "type": "string" }
+      },
+      "additionalProperties": { "type": "string" }
+    },
+    "themeSettings": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["color", "image", "choice", "text", "boolean"]
+          },
+          "label": {
+            "oneOf": [
+              { "type": "string" },
+              { "$ref": "#/definitions/localizedString" }
+            ]
+          },
+          "default": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "boolean" }
+            ]
+          },
+          "options": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "token": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,64}$",
+            "description": "When set on a color or text setting, writes the setting's value directly to this token."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "block": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "hero",
+            "announcement",
+            "features",
+            "stats",
+            "latest-textures",
+            "popular-textures",
+            "markdown",
+            "image",
+            "buttons",
+            "launcher-guide"
+          ]
+        },
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

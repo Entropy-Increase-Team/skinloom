@@ -69,8 +69,8 @@ export function ResetForm({ token }: { token: string }) {
         error={fields.password}
       />
       <Field id="confirm" label={t('confirm')} type="password" autoComplete="new-password" required error={fields.confirm} />
-      <Button type="submit" disabled={pending}>
-        {pending ? t('submitting') : t('submit')}
+      <Button type="submit" size="lg" loading={pending}>
+        {t('submit')}
       </Button>
     </form>
   )

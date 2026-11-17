@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import en from '../../messages/en.json'
+import zh from '../../messages/zh-CN.json'
 import { flatten, overrideProblem, savedOverrides, withOverrides } from './messages'
 
 describe('withOverrides', () => {
@@ -57,4 +59,22 @@ describe('savedOverrides', () => {
     expect(savedOverrides({ en: { a: '' } })).toBeNull()
   })
 })
+
+describe('shipped messages', () => {
+  it('have the same keys in zh-CN and en (except settingKeys.*.help, which falls back to v.doc) and matching placeholders', () => {
+    const zhMap = new Map(flatten(zh))
+    const enMap = new Map(flatten(en))
+    const zhKeys = [...zhMap.keys()].filter((k) => !k.startsWith('settingKeys.'))
+    const enKeys = [...enMap.keys()].filter((k) => !k.startsWith('settingKeys.'))
+    expect(enKeys).toEqual(zhKeys)
+    for (const [k, zhText] of zhMap) {
+      expect(overrideProblem(zhText, zhText), `zh-CN ${k}`).toBeNull()
+      const enText = enMap.get(k)
+      if (enText !== undefined) {
+        expect(overrideProblem(zhText, enText), `${k}: zh-CN vs en`).toBeNull()
+      }
+    }
+  })
+})
+
 

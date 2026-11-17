@@ -83,8 +83,8 @@ export function RegisterForm({ captcha }: { captcha: CaptchaInfo }) {
       />
       <Field id="confirm" label={t('confirm')} type="password" autoComplete="new-password" required error={fields.confirm} />
       <Captcha config={captcha} onChange={setAnswer} resetKey={resetKey} error={fields.captcha} />
-      <Button type="submit" disabled={pending}>
-        {pending ? t('submitting') : t('submit')}
+      <Button type="submit" size="lg" loading={pending}>
+        {t('submit')}
       </Button>
     </form>
   )

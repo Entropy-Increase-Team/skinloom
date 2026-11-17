@@ -118,13 +118,18 @@ func PickLocalized(m map[string]string, locale string) string {
 
 // Service loads, stores and broadcasts settings.
 type Service struct {
-	reg    *Registry
-	client *ent.Client
-	broker *pubsub.Broker
-	bus    *hook.Bus
-	log    *slog.Logger
-	cur    atomic.Pointer[Snapshot]
+	reg      *Registry
+	client   *ent.Client
+	broker   *pubsub.Broker
+	bus      *hook.Bus
+	log      *slog.Logger
+	cur      atomic.Pointer[Snapshot]
+	onReload func()
 }
+
+// SetOnReload registers a callback run when Watch detects a config version bump from
+// another process (such as `skinloom theme reload`).
+func (s *Service) SetOnReload(fn func()) { s.onReload = fn }
 
 // NewService builds the service; call Load before use.
 func NewService(reg *Registry, client *ent.Client, broker *pubsub.Broker, bus *hook.Bus, log *slog.Logger) *Service {
@@ -365,6 +370,9 @@ func (s *Service) Watch(ctx context.Context, interval time.Duration) {
 			if err := s.Load(ctx); err != nil {
 				s.log.Warn("reload settings", "err", err)
 				continue
+			}
+			if s.onReload != nil {
+				s.onReload()
 			}
 			s.log.Info("settings changed elsewhere; reloaded", "version", v)
 			s.announce(v, nil)

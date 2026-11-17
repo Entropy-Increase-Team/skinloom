@@ -7,7 +7,7 @@ import { LiveRefresh } from '@/components/live-refresh'
 import { Providers } from '@/components/providers'
 import { getBootstrap } from '@/lib/bootstrap'
 import { safeImageUrl } from '@/lib/safe-url'
-import { themeStyle } from '@/lib/theme'
+import { themeSettingAttrs, themeStyle } from '@/lib/theme'
 
 // Interface fonts, self-hosted from npm and served from /_next/static (ADR 0042): Inter for
 // Latin and figures, Noto Sans SC for Chinese (unicode-range slices: only the parts a page
@@ -42,10 +42,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const messages = await getMessages()
   // Set by src/proxy.ts with the page's Content-Security-Policy (ADR 0039).
   const nonce = (await headers()).get('x-nonce') ?? undefined
+  const forcedClass = boot.theme.colorScheme === 'dark' ? 'dark' : boot.theme.colorScheme === 'light' ? 'light' : undefined
   return (
-    <html lang={locale} suppressHydrationWarning data-sl-theme={boot.theme.id}>
-      <head>
-        <style id="sl-theme-tokens" dangerouslySetInnerHTML={{ __html: themeStyle(boot.theme.tokens) }} />
+    <html lang={locale} className={forcedClass} suppressHydrationWarning data-sl-theme={boot.theme.id} {...themeSettingAttrs(boot.theme.settings)}>
+      <head suppressHydrationWarning>
+        <style id="sl-theme-tokens" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: themeStyle(boot.theme.tokens, boot.theme.settings) }} />
         {boot.theme.css.map((href) => (
           <link key={href} rel="stylesheet" href={href} />
         ))}

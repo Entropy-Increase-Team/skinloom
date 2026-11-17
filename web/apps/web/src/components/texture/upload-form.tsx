@@ -1,14 +1,33 @@
 'use client'
 
 import { type TextureRules, uploadTextureFile } from '@skinloom/api-client'
-import { Button, Label } from '@skinloom/ui'
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Dropzone,
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+  Input,
+  PixelBackdrop,
+  RadioGroup,
+  RadioGroupItem,
+  SkinViewer,
+  Switch,
+} from '@skinloom/ui'
+import { Coins, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { inferModelType, loadSkinToCanvas } from 'skinview-utils'
 
-import { Field, FormError } from '@/components/auth/field'
+import { FormError } from '@/components/auth/field'
 import { problemOf } from '@/lib/problem'
 import { looksLikeCape, uploadCost } from '@/lib/skin'
 
@@ -45,6 +64,11 @@ async function inspect(file: File): Promise<{ url: string; width: number; height
   return { url, width: w, height: h, guess }
 }
 
+/**
+ * Pick a PNG (drop or choose), name it, check the type guessed from the image, choose
+ * public or private, and see what it costs before uploading. Large screens show the
+ * picked skin in 3D beside the form; the drop zone shows it flat everywhere.
+ */
 export function UploadForm({ rules, score }: { rules: TextureRules; score: number }) {
   const t = useTranslations('upload')
   const tt = useTranslations('texture')
@@ -65,14 +89,12 @@ export function UploadForm({ rules, score }: { rules: TextureRules; score: numbe
     return () => URL.revokeObjectURL(picked.url)
   }, [picked])
 
-  async function onPick(e: ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0] ?? null
+  async function onPick(f: File) {
     setFields({})
     setError(null)
     setDuplicate(null)
     setFile(null)
     setPicked(null)
-    if (!f) return
     // Some systems give no type for .png files; the server checks the content anyway.
     if (f.type !== 'image/png' && !(f.type === '' && /\.png$/i.test(f.name))) {
       setFields({ file: t('errors.notPng') })
@@ -125,68 +147,96 @@ export function UploadForm({ rules, score }: { rules: TextureRules; score: numbe
   const types: TextureType[] = ['steve', 'alex', 'cape']
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-6 md:grid-cols-[12rem_1fr]" noValidate>
-      <div className="flex h-64 items-center justify-center rounded-lg border bg-muted/40">
+    <form onSubmit={onSubmit} className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]" noValidate>
+      <PixelBackdrop className="hidden h-[32rem] rounded-xl border lg:flex">
         {picked ? (
-          <TexturePreview key={`${picked.url}-${type}`} src={picked.url} type={type} height={224} />
-        ) : (
-          <span className="px-4 text-center text-sm text-muted-foreground">{t('noPreview')}</span>
-        )}
-      </div>
-      <div className="flex flex-col gap-4">
-        <FormError message={error} />
-        {duplicate !== null && (
-          <p role="status" className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
-            {t('duplicate')}{' '}
-            <Link href={`/skinlib/show/${duplicate}`} className="font-medium underline underline-offset-4">
-              {t('viewExisting')}
-            </Link>
-          </p>
-        )}
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="file">{t('file')}</Label>
-          <input
-            id="file"
-            type="file"
-            accept="image/png"
-            onChange={(e) => void onPick(e)}
-            aria-invalid={fields.file ? true : undefined}
-            className="text-sm file:mr-3 file:rounded-md file:border file:bg-transparent file:px-3 file:py-1.5 file:text-sm"
+          <SkinViewer
+            key={`${picked.url}-${type}`}
+            skin={type === 'cape' ? null : picked.url}
+            cape={type === 'cape' ? picked.url : null}
+            model={type === 'alex' ? 'slim' : 'default'}
+            label={t('previewLabel')}
           />
-          {fields.file ? (
-            <p className="text-xs text-destructive">{fields.file}</p>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              {picked ? t('picked', { w: picked.width, h: picked.height }) : t('fileHint', { kb: rules.maxSizeKb, width: rules.maxWidth })}
-            </p>
-          )}
-        </div>
-        <Field id="name" label={t('name')} value={name} onChange={(e) => setName(e.target.value)} maxLength={50} required error={fields.name} />
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 text-sm font-medium">{t('type')}</legend>
-          <div className="flex flex-wrap gap-4">
-            {types.map((v) => (
-              <label key={v} className="flex items-center gap-2 text-sm">
-                <input type="radio" name="type" value={v} checked={type === v} onChange={() => setType(v)} className="size-4" />
-                {tt(`types.${v}`)}
-              </label>
-            ))}
-          </div>
-          {fields.type && <p className="text-xs text-destructive">{fields.type}</p>}
-          <p className="text-xs text-muted-foreground">{t('typeHint')}</p>
-        </fieldset>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={isPublic} onChange={(e) => setPublic(e.target.checked)} className="size-4" />
-          {t('public')}
-        </label>
-        <p className="text-sm text-muted-foreground">
-          {file ? t('cost', { cost, score }) : t('rates', { pub: rules.rates.perStorage, priv: rules.rates.privatePerStorage })}
-        </p>
-        {rules.contentPolicy && (
-          <div className="whitespace-pre-line rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">{rules.contentPolicy}</div>
+        ) : (
+          <span className="rounded-md bg-card/90 px-3 py-1.5 text-sm text-muted-foreground">{t('noPreview')}</span>
         )}
-        <Button type="submit" className="self-start" disabled={pending || !file}>
-          {pending ? t('uploading') : t('submit')}
+      </PixelBackdrop>
+
+      <div className="flex flex-col gap-6">
+        <Dropzone
+          accept="image/png"
+          onFile={(f) => void onPick(f)}
+          disabled={pending}
+          hint={t('fileHint', { kb: rules.maxSizeKb, width: rules.maxWidth })}
+          error={fields.file}
+        >
+          {picked ? (
+            <>
+              <TexturePreview key={`${picked.url}-${type}`} src={picked.url} type={type} height={128} />
+              <span className="flex flex-col items-center gap-0.5">
+                <span className="max-w-60 truncate text-sm font-medium">{file?.name}</span>
+                <span className="text-caption text-muted-foreground">{t('picked', { w: picked.width, h: picked.height })}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-caption font-medium text-primary">
+                <RefreshCw className="size-3.5" aria-hidden />
+                {t('replace')}
+              </span>
+            </>
+          ) : undefined}
+        </Dropzone>
+
+        {duplicate !== null && (
+          <Alert>
+            <AlertDescription>
+              {t('duplicate')}{' '}
+              <Link href={`/skinlib/show/${duplicate}`} className="font-medium text-primary underline-offset-4 hover:underline">
+                {t('viewExisting')}
+              </Link>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <Field data-invalid={fields.name ? true : undefined}>
+          <FieldLabel htmlFor="name">{t('name')}</FieldLabel>
+          <Input id="name" name="name" value={name} onChange={(e) => setName(e.target.value)} maxLength={50} required aria-invalid={fields.name ? true : undefined} />
+          {fields.name && <FieldError>{fields.name}</FieldError>}
+        </Field>
+
+        <FieldSet data-invalid={fields.type ? true : undefined}>
+          <FieldLegend variant="label">{t('type')}</FieldLegend>
+          <RadioGroup value={type} onValueChange={(v) => setType(v as TextureType)} className="flex flex-wrap gap-x-5 gap-y-2">
+            {types.map((v) => (
+              <Field key={v} orientation="horizontal" className="w-auto">
+                <RadioGroupItem value={v} id={`type-${v}`} />
+                <FieldLabel htmlFor={`type-${v}`} className="font-normal">
+                  {tt(`types.${v}`)}
+                </FieldLabel>
+              </Field>
+            ))}
+          </RadioGroup>
+          {fields.type ? <FieldError>{fields.type}</FieldError> : <FieldDescription>{t('typeHint')}</FieldDescription>}
+        </FieldSet>
+
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldLabel htmlFor="public">{t('public')}</FieldLabel>
+            <FieldDescription>{t('publicHint')}</FieldDescription>
+          </FieldContent>
+          <Switch id="public" checked={isPublic} onCheckedChange={setPublic} />
+        </Field>
+
+        <div className="flex items-start gap-2.5 rounded-lg bg-muted px-3.5 py-3 text-sm">
+          <Coins className="mt-0.5 size-4 shrink-0 text-highlight" aria-hidden />
+          <p className="text-muted-foreground">
+            {file ? t('cost', { cost, score }) : t('rates', { pub: rules.rates.perStorage, priv: rules.rates.privatePerStorage })}
+          </p>
+        </div>
+
+        {rules.contentPolicy && <p className="text-caption whitespace-pre-line text-muted-foreground">{rules.contentPolicy}</p>}
+
+        <FormError message={error} />
+        <Button type="submit" size="lg" loading={pending} disabled={!file}>
+          {t('submit')}
         </Button>
       </div>
     </form>

@@ -157,6 +157,7 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 	if err := c.Themes.LoadDir(themes.Builtin, "builtin"); err != nil {
 		return nil, fmt.Errorf("load built-in themes: %w", err)
 	}
+	c.Themes.SetLocalDir(filepath.Join(p.DataDir, "themes"), log.With("component", "theme"))
 	store, err := openStore(ctx, cfg.Storage, p.DataDir)
 	if err != nil {
 		return nil, err
@@ -166,6 +167,7 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 		return nil, err
 	}
 	c.Settings = settings.NewService(reg, client, c.Broker, c.Bus, log.With("component", "settings"))
+	c.Settings.SetOnReload(c.Themes.Reload)
 	if err := c.Settings.Load(ctx); err != nil {
 		return nil, err
 	}

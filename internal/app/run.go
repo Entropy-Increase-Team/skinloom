@@ -75,6 +75,9 @@ func Run(ctx context.Context, o RunOptions) error {
 	runCtx, stop := context.WithCancel(ctx)
 	defer stop()
 	go core.Settings.Watch(runCtx, 2*time.Second)
+	if cfg.Web.Mode == "dev" {
+		go core.Themes.Watch(runCtx, func() { _, _ = core.Settings.Touch(runCtx) })
+	}
 	go core.Jobs.Run(runCtx, 5*time.Second)
 	go purgeDeletedAccounts(runCtx, core)
 	go dailyUpkeep(runCtx, core)

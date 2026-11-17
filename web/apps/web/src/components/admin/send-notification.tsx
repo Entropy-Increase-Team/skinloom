@@ -1,31 +1,51 @@
 'use client'
 
 import { sendNotification, type SendNotificationInputBodyTo } from '@skinloom/api-client'
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from '@skinloom/ui'
+import {
+  Button,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+  toast,
+} from '@skinloom/ui'
+import { Send } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { type FormEvent, useState } from 'react'
 
 import { FormError } from '@/components/auth/field'
 import { problemOf } from '@/lib/problem'
 
-const selectClass = 'h-9 rounded-md border border-input bg-transparent px-2 text-sm'
-
-/** Sends a notification to everyone, to ordinary users, or to one user (by id or email). */
+/** Sends a notification to everyone, to ordinary users, or to one user (by id or email): a button and its dialog. */
 export function SendNotification() {
   const t = useTranslations('adminNotify')
+  const tc = useTranslations('common')
+  const [open, setOpen] = useState(false)
   const [to, setTo] = useState<SendNotificationInputBodyTo>('all')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [sent, setSent] = useState<string | null>(null)
+  const targets = (['all', 'users', 'user'] as const).map((v) => ({ value: v, label: t(v === 'all' ? 'toAll' : v === 'users' ? 'toUsers' : 'toUser') }))
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const form = e.currentTarget
-    const f = new FormData(form)
+    const f = new FormData(e.currentTarget)
     const target = String(f.get('target') ?? '').trim()
     setPending(true)
     setError(null)
-    setSent(null)
     try {
       await sendNotification({
         to,
@@ -33,8 +53,8 @@ export function SendNotification() {
         content: String(f.get('content') ?? ''),
         ...(to === 'user' ? (/^\d+$/.test(target) ? { userId: Number(target) } : { email: target }) : {}),
       })
-      setSent(to === 'user' ? t('sentOne') : t('sentAll'))
-      form.reset()
+      toast.success(to === 'user' ? t('sentOne') : t('sentAll'))
+      setOpen(false)
       setTo('all')
     } catch (err) {
       const p = problemOf(err)
@@ -45,49 +65,65 @@ export function SendNotification() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('title')}</CardTitle>
-        <CardDescription>{t('intro')}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={onSubmit} className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-end gap-2">
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="notify-to">{t('to')}</Label>
-              <select id="notify-to" value={to} onChange={(e) => setTo(e.target.value as SendNotificationInputBodyTo)} className={selectClass}>
-                <option value="all">{t('toAll')}</option>
-                <option value="users">{t('toUsers')}</option>
-                <option value="user">{t('toUser')}</option>
-              </select>
-            </div>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        setError(null)
+      }}
+    >
+      <DialogTrigger render={<Button variant="outline" />}>
+        <Send />
+        {t('title')}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <form onSubmit={(e) => void onSubmit(e)} className="flex flex-col gap-5">
+          <DialogHeader>
+            <DialogTitle>{t('title')}</DialogTitle>
+            <DialogDescription>{t('intro')}</DialogDescription>
+          </DialogHeader>
+          <FormError message={error} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[12rem_minmax(0,1fr)]">
+            <Field>
+              <FieldLabel htmlFor="notify-to">{t('to')}</FieldLabel>
+              <Select items={targets} value={to} onValueChange={(v) => v && setTo(v as SendNotificationInputBodyTo)}>
+                <SelectTrigger id="notify-to" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {targets.map((x) => (
+                    <SelectItem key={x.value} value={x.value}>
+                      {x.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
             {to === 'user' && (
-              <div className="flex flex-1 flex-col gap-1">
-                <Label htmlFor="notify-target">{t('target')}</Label>
+              <Field>
+                <FieldLabel htmlFor="notify-target">{t('target')}</FieldLabel>
                 <Input id="notify-target" name="target" required placeholder={t('targetHint')} maxLength={255} />
-              </div>
+              </Field>
             )}
           </div>
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="notify-title">{t('titleField')}</Label>
+          <Field>
+            <FieldLabel htmlFor="notify-title">{t('titleField')}</FieldLabel>
             <Input id="notify-title" name="title" required maxLength={64} />
-          </div>
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="notify-content">{t('content')}</Label>
-            <textarea id="notify-content" name="content" rows={4} maxLength={10000} className="rounded-md border border-input bg-transparent px-3 py-2 text-sm" />
-            <p className="text-xs text-muted-foreground">{t('contentHint')}</p>
-          </div>
-          <FormError message={error} />
-          {sent && (
-            <p role="status" className="text-sm text-primary">
-              {sent}
-            </p>
-          )}
-          <Button type="submit" className="self-start" disabled={pending}>
-            {t('send')}
-          </Button>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="notify-content">{t('content')}</FieldLabel>
+            <Textarea id="notify-content" name="content" rows={5} maxLength={10000} />
+            <FieldDescription>{t('contentHint')}</FieldDescription>
+          </Field>
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</DialogClose>
+            <Button type="submit" loading={pending}>
+              <Send />
+              {t('send')}
+            </Button>
+          </DialogFooter>
         </form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -29,7 +29,7 @@ export type SectionId = (typeof SECTIONS)[number]['id']
 export type SettingsPage = (typeof SECTIONS)[number]['page']
 
 /** Settings edited on pages of their own (appearance, translations), not as form fields. */
-const OWN_EDITORS = new Set(['theme.active', 'theme.overrides', 'home.blocks', 'i18n.overrides'])
+const OWN_EDITORS = new Set(['theme.active', 'theme.overrides', 'theme.settings', 'home.blocks', 'i18n.overrides'])
 
 /** Text settings that hold code, edited in a monospaced text area. */
 export const CODE = new Set(['theme.custom_css', 'theme.custom_js'])

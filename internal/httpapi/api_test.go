@@ -66,6 +66,7 @@ func newTestDepsDir(t *testing.T) (Deps, string) {
 	if err := themeReg.LoadDir(themes.Builtin, "builtin"); err != nil {
 		t.Fatal(err)
 	}
+	themeReg.SetLocalDir(dir+"/themes", log)
 	reg := settings.NewRegistry()
 	if err := reg.Register(slices.Concat(account.SettingDefs(), captcha.SettingDefs(), mail.SettingDefs(),
 		score.SettingDefs(), texture.SettingDefs(), player.SettingDefs(), yggdrasil.SettingDefs(), oauth.SettingDefs(), social.SettingDefs(), cdn.SettingDefs())...); err != nil {
@@ -73,6 +74,7 @@ func newTestDepsDir(t *testing.T) (Deps, string) {
 	}
 	reg.SetValidator("theme.active", themeReg.ValidateActive)
 	reg.SetValidator("theme.overrides", theme.ValidateOverrides)
+	reg.SetValidator("theme.settings", themeReg.ValidateSettings)
 	reg.SetValidator("home.blocks", theme.ValidateHome)
 	svc := settings.NewService(reg, database.Ent, broker, bus, log)
 	if err := svc.Load(ctx); err != nil {

@@ -44,6 +44,8 @@ export const THEMES = ['light', 'dark', 'system'] as const
 export function SettingsMenuItems() {
   const t = useTranslations('shell')
   const lang = useLocaleSwitch()
+  const { theme: activeTheme } = useBootstrap()
+  const canSwitchColor = !activeTheme.colorScheme || activeTheme.colorScheme === 'both'
   const { theme = 'system', setTheme } = useTheme()
   return (
     <>
@@ -57,17 +59,21 @@ export function SettingsMenuItems() {
           ))}
         </DropdownMenuRadioGroup>
       </DropdownMenuGroup>
-      <DropdownMenuSeparator />
-      <DropdownMenuGroup>
-        <DropdownMenuLabel>{t('appearance')}</DropdownMenuLabel>
-        <DropdownMenuRadioGroup value={theme} onValueChange={(v) => setTheme(String(v))}>
-          {THEMES.map((m) => (
-            <DropdownMenuRadioItem key={m} value={m}>
-              {t(m)}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuGroup>
+      {canSwitchColor && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>{t('appearance')}</DropdownMenuLabel>
+            <DropdownMenuRadioGroup value={theme} onValueChange={(v) => setTheme(String(v))}>
+              {THEMES.map((m) => (
+                <DropdownMenuRadioItem key={m} value={m}>
+                  {t(m)}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuGroup>
+        </>
+      )}
     </>
   )
 }
@@ -91,6 +97,8 @@ export function SettingsMenu() {
 export function SettingsToggles() {
   const t = useTranslations('shell')
   const lang = useLocaleSwitch()
+  const { theme: activeTheme } = useBootstrap()
+  const canSwitchColor = !activeTheme.colorScheme || activeTheme.colorScheme === 'both'
   const { theme = 'system', setTheme } = useTheme()
   return (
     <div className="flex flex-col gap-4">
@@ -104,16 +112,18 @@ export function SettingsToggles() {
           ))}
         </ToggleGroup>
       </div>
-      <div className="flex flex-col gap-2">
-        <span className="text-xs text-faint-foreground">{t('appearance')}</span>
-        <ToggleGroup variant="outline" value={[theme]} onValueChange={(v) => v[0] && setTheme(v[0])} className="w-full">
-          {THEMES.map((m) => (
-            <ToggleGroupItem key={m} value={m} className="flex-1">
-              {t(m)}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </div>
+      {canSwitchColor && (
+        <div className="flex flex-col gap-2">
+          <span className="text-xs text-faint-foreground">{t('appearance')}</span>
+          <ToggleGroup variant="outline" value={[theme]} onValueChange={(v) => v[0] && setTheme(v[0])} className="w-full">
+            {THEMES.map((m) => (
+              <ToggleGroupItem key={m} value={m} className="flex-1">
+                {t(m)}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </div>
+      )}
     </div>
   )
 }

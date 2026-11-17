@@ -7,14 +7,17 @@
  */
 import type { Block } from './block';
 import type { ResolvedThemeLayout } from './resolvedThemeLayout';
+import type { ResolvedThemeSettings } from './resolvedThemeSettings';
 import type { Tokens } from './tokens';
 
 export interface ResolvedTheme {
+  colorScheme: string;
   css: string[];
   home: Block[];
   id: string;
   js: string[];
   layout: ResolvedThemeLayout;
+  settings?: ResolvedThemeSettings;
   tokens: Tokens;
   version: string;
 }

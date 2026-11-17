@@ -52,7 +52,7 @@ export function StatCard({
         {icon}
         {label}
       </p>
-      <p className="text-3xl leading-none font-medium tabular-nums">{value}</p>
+      <p className="text-3xl leading-none font-medium whitespace-nowrap tabular-nums">{value}</p>
       {note && <p className="text-xs text-faint-foreground">{note}</p>}
     </div>
   )

@@ -174,4 +174,16 @@ func TestAppearanceAPI(t *testing.T) {
 	if rec.Code != http.StatusOK || s != (SiteStats{}) || rec.Header().Get("Cache-Control") != "public, max-age=60" {
 		t.Fatalf("stats: %d %s", rec.Code, rec.Body)
 	}
+
+	// Theme settings and reloadThemes endpoint.
+	if rec := do(t, h, "PATCH", "/api/v1/admin/settings", auth, `{"theme.settings": {"brocade": {"lattice": false}}}`); rec.Code != http.StatusOK {
+		t.Fatalf("theme.settings: %d %s", rec.Code, rec.Body)
+	}
+	_ = json.Unmarshal(do(t, h, "GET", "/api/v1/site/bootstrap", "", "").Body.Bytes(), &b)
+	if b.Theme.Settings["lattice"] != "false" {
+		t.Fatalf("bootstrap theme.settings %+v", b.Theme.Settings)
+	}
+	if rec := do(t, h, "POST", "/api/v1/admin/themes/reload", auth, ""); rec.Code != http.StatusOK {
+		t.Fatalf("reloadThemes: %d %s", rec.Code, rec.Body)
+	}
 }

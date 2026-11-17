@@ -15,3 +15,6 @@ export function str(v: unknown): string | undefined {
 export function num(v: unknown, min: number, max: number, fallback: number): number {
   return typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max ? v : fallback
 }
+
+/** The public pages' column (design.md §4): 1200px, 16 / 24 / 32px gutters. */
+export const CONTAINER = 'mx-auto w-full max-w-[75rem] px-4 sm:px-6 lg:px-8'

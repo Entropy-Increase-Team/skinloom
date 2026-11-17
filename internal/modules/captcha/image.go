@@ -23,22 +23,24 @@ const (
 	imageH = 64
 )
 
-var faceOnce = sync.OnceValues(func() (font.Face, error) {
-	f, err := opentype.Parse(gobold.TTF)
-	if err != nil {
-		return nil, err
-	}
-	return opentype.NewFace(f, &opentype.FaceOptions{Size: 36, DPI: 72, Hinting: font.HintingNone})
+var fontOnce = sync.OnceValues(func() (*opentype.Font, error) {
+	return opentype.Parse(gobold.TTF)
 })
 
 // render draws text as a PNG: each character rotated, scaled and placed with
 // jitter, crossed by curves, the whole image bent by a sine wave, plus speckles.
 // Visual randomness uses math/rand; the answer itself comes from crypto/rand.
 func render(text string) ([]byte, error) {
-	face, err := faceOnce()
+	f, err := fontOnce()
 	if err != nil {
 		return nil, err
 	}
+	// opentype.Face holds a mutable glyph buffer and is not safe for concurrent use.
+	face, err := opentype.NewFace(f, &opentype.FaceOptions{Size: 36, DPI: 72, Hinting: font.HintingNone})
+	if err != nil {
+		return nil, err
+	}
+	defer face.Close()
 	img := image.NewRGBA(image.Rect(0, 0, imageW, imageH))
 	bg := color.RGBA{uint8(225 + rand.IntN(30)), uint8(225 + rand.IntN(30)), uint8(225 + rand.IntN(30)), 255}
 	draw.Draw(img, img.Bounds(), image.NewUniform(bg), image.Point{}, draw.Src)

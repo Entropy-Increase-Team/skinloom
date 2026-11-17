@@ -15,17 +15,6 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function PlayersPage() {
   const viewer = await getViewer()
   if (!viewer) redirect('/auth/login?next=/user/player')
-  const [t, rules] = await Promise.all([
-    getTranslations('player'),
-    getPlayerRules(await asVisitor()).then((r) => r.data as PlayerRules),
-  ])
-  return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t('intro')}</p>
-      </div>
-      <PlayersManager rules={rules} initialScore={viewer.score} />
-    </div>
-  )
+  const rules = await getPlayerRules(await asVisitor()).then((r) => r.data as PlayerRules)
+  return <PlayersManager rules={rules} initialScore={viewer.score} />
 }
