@@ -247,7 +247,6 @@ func SkinPreview(skin *image.NRGBA, slim bool, height int) *image.NRGBA {
 type vec3 struct{ x, y, z float64 }
 
 func (v vec3) add(o vec3) vec3    { return vec3{v.x + o.x, v.y + o.y, v.z + o.z} }
-func (v vec3) sub(o vec3) vec3    { return vec3{v.x - o.x, v.y - o.y, v.z - o.z} }
 func (v vec3) mul(s float64) vec3 { return vec3{v.x * s, v.y * s, v.z * s} }
 
 type boxSpec struct {

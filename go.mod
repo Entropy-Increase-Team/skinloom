@@ -2,7 +2,7 @@ module github.com/Entropy-Increase-Team/skinloom
 
 go 1.26.10
 
-toolchain go1.27.3
+toolchain go1.27.4
 
 require (
 	ariga.io/atlas v0.36.2-0.20250730182955-2c6300d0a3e1
