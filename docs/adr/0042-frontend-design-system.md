@@ -47,3 +47,16 @@
 - 共享组件自己显示的文字由宿主通过 `UiLabelsProvider` 提供（消息里的 `ui` 命名空间），插件拿到的是同一套译文。
 - 新 token `overlay`（遮罩），由默认与织锦主题定义。
 - Recharts 不进 `@skinloom/ui` 的总出口，用到时从 `@skinloom/ui/components/ui/chart` 引入；包标了 `sideEffects`，未用的组件可以被摇掉。
+
+## 实施记录（P5 收尾，2026-11-17）
+
+- **包体积与 Tree-shaking 优化**：将 `@skinloom/ui`（`packages/ui/src/index.ts`）从 `export *` 改为显式命名导出，并在 `apps/web/next.config.ts` 中启用 `experimental.optimizePackageImports: ['@skinloom/ui']`，防止引用 `Empty` / `InputGroup` 等组件时把未使用的 `cmdk`（`Command`）和 `Accordion` 等基础组件打入 `/skinlib` 等公开页面（`/skinlib` 实测从 `1148.5 KB` 降至 `888.3 KB`，减少 `260.2 KB`）。
+- **无障碍（A11y）审计与修复**：
+  - `(site)`、`(app)` 外壳与 `not-found.tsx` 统一抽出 `<SkipLink />`（`#main`，使用 `bg-popover` / `--shadow-popover` 与 `scroll-mt-14`），并将 `<SidebarInset>` 与内层容器合并为单层 `<main id="main" tabIndex={-1}>`，消除侧栏布局下嵌套 `<main>` 问题；
+  - `HeaderNav`、`MobileMenu`、`AppSidebar`、`AppTabNav`、`ComponentPreview` 的 `<nav>` 补齐 `aria-label`，`AppSidebar` 补齐 `aria-current="page"`，`SettingsCenter` 导航按钮补 `aria-current`；
+  - `UsageMeter` 通过 `useId()` 关联 `aria-labelledby` 并输出格式化 `aria-valuetext`；`CardTitle` 新增 `as` 属性并在登录、注册、找回/重设密码、邮箱验证、社交绑定、首次安装与 OAuth 授权页统一输出 `<h1>` 标题。
+- **首屏 JS 与中文字体实测（Chromium 无缓存冷启动，对比 P0 前 `7a7f569`）**：
+  - 基础共享 JS：`/about` 由 `559.4 KB`（gzip `165.3 KB`）增至 `876.6 KB`（gzip `272.2 KB`，`+56.7%`）；`/skinlib` 由 `567.1 KB`（gzip `168.3 KB`）增至 `888.4 KB`（gzip `276.0 KB`，`+56.6%`）；`/auth/login` 由 `568.1 KB`（gzip `168.8 KB`）增至 `896.9 KB`（gzip `279.8 KB`，`+57.9%`）。增幅主要来自 ADR 0042 引入的 Base UI 交互原语、`@tanstack/react-query` 与 `sonner` 运行时（约 `+317 KB` 原始 / `+107 KB` gzip），未能压低至设计文档 07 §9 原定的 `+20%` 以内，已通过上述优化去除多余组件泄露。
+  - 含 3D 场景路由：首页 `/` 由 `565.3 KB`（无 3D 展示区）增至 `1594.4 KB`（gzip `454.8 KB`，含异步动态加载的 `three` + `skinview3d` 约 `620 KB`）；材质详情 `/skinlib/show/1` 由 `1083.1 KB` 增至 `1633.0 KB`（gzip `468.1 KB`）。
+  - **字体评估结果**：思源黑体（`@fontsource-variable/noto-sans-sc`）在各页面首屏按 `unicode-range` 实测加载 `10–13` 个切片、共 `565.1–743.7 KB`（首页 `12` 片 `688.8 KB`），全部字体合计 `612.2–830.2 KB`；单份可变字体切片同时覆盖 `400 / 500 / 600` 字重，若改用双档静态字重（400 + 500）反而会引发双倍切片下载，因此维持可变字体按需分片方案。
+- **多宽度/多主题冒烟验证**：新增可复用的 `web/scripts/smoke.mjs`（`bun run smoke`），在 `375 / 768 / 1280` 宽度、亮/暗双模式、`default / brocade` 双主题下对 28 个主要公开、404 及登录后路由（共 336 个视图组合）验证无左右溢出、无控制台/页面异常、核心无障碍不变量，以及 Skip Link Tab 激活和 `375px` 移动端抽屉开关交互，全部通过。

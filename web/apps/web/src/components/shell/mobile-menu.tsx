@@ -29,7 +29,7 @@ export function MobileMenu({ links, signIn, register }: { links: NavLink[]; sign
         <SheetHeader className="h-14 justify-center border-b px-4">
           <SheetTitle className="text-base font-medium">{t('menu')}</SheetTitle>
         </SheetHeader>
-        <nav className="flex flex-col gap-0.5 p-2">
+        <nav aria-label={t('mainNav')} className="flex flex-col gap-0.5 p-2">
           {links.map((l) => {
             const current = isCurrent(pathname, l.href)
             return (

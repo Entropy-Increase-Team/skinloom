@@ -25,7 +25,7 @@ export default async function RegisterPage() {
     <AuthShell>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{t('title')}</CardTitle>
+          <CardTitle as="h1" className="text-2xl">{t('title')}</CardTitle>
           <CardDescription>{open ? t('intro', { site: boot.site.name }) : t('closed')}</CardDescription>
         </CardHeader>
         {open && (

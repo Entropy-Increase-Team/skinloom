@@ -18,7 +18,7 @@ export default async function SocialPage() {
     <AuthShell>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{t('pending.title')}</CardTitle>
+          <CardTitle as="h1" className="text-2xl">{t('pending.title')}</CardTitle>
           <CardDescription>{t('pending.intro', { site: boot.site.name })}</CardDescription>
         </CardHeader>
         <CardContent>

@@ -1769,7 +1769,10 @@
     "admin": "管理后台",
     "backToUser": "返回用户中心",
     "toggleSidebar": "展开或收起侧栏",
-    "home": "首页"
+    "home": "首页",
+    "skipToContent": "跳到正文",
+    "mainNav": "主导航",
+    "sectionNav": "分区导航"
   },
   "userNav": {
     "overview": "概览",

@@ -63,7 +63,7 @@ export function Consent({ params }: { params: GetAuthorizationParams }) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{t('invalidTitle')}</CardTitle>
+          <CardTitle as="h1">{t('invalidTitle')}</CardTitle>
           <CardDescription>{t('invalidHint')}</CardDescription>
         </CardHeader>
         <CardContent>
@@ -91,7 +91,7 @@ export function Consent({ params }: { params: GetAuthorizationParams }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">{t('title', { app: info.client.name })}</CardTitle>
+        <CardTitle as="h1" className="text-xl">{t('title', { app: info.client.name })}</CardTitle>
         <CardDescription>{t('by', { owner: info.client.owner })}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

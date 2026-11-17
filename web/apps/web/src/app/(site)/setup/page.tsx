@@ -22,7 +22,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
     <div className="mx-auto flex max-w-xl flex-col gap-6 px-4 py-12">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{t('title')}</CardTitle>
+          <CardTitle as="h1" className="text-2xl">{t('title')}</CardTitle>
           <CardDescription>{t('intro')}</CardDescription>
         </CardHeader>
         <CardContent>

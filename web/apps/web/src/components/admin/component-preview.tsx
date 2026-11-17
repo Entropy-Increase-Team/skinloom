@@ -102,7 +102,7 @@ export function ComponentPreview({ textures }: { textures: TextureView[] }) {
         }
       />
 
-      <nav className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
+      <nav aria-label={t('title')} className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
         {(['colors', 'type', 'buttons', 'forms', 'feedback', 'overlays', 'display', 'skins', 'patterns', 'icons'] as const).map((k) => (
           <a key={k} href={`#${k}`} className="hover:text-foreground">
             {t(`sections.${k}`)}

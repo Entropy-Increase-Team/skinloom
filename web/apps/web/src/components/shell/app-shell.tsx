@@ -9,6 +9,7 @@ import type { Viewer } from '@/lib/viewer'
 
 import { AppSidebar, AppSidebarProvider, AppTabNav, type SidebarLink, type SidebarSection } from './app-sidebar'
 import { SiteHeader } from './site-header'
+import { SkipLink } from './skip-link'
 
 /**
  * The frame of the user center and the admin area (design.md §9.2): the full-width
@@ -73,13 +74,17 @@ export async function AppShell({ area, viewer, children }: { area: 'user' | 'adm
     footer = { href: '/user', label: t('shell.backToUser'), icon: 'arrow-left', exact: true }
   }
 
+  const skip = <SkipLink label={t('shell.skipToContent')} />
   const useTabs = area === 'user' && layoutOf(boot.theme.layout, 'user') === 'tabs'
   if (useTabs) {
     return (
       <div data-sl-area={area} className="flex min-h-svh flex-col">
+        {skip}
         <SiteHeader variant="public" />
         <AppTabNav sections={sections} footer={footer} />
-        <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col px-4 py-6 sm:px-6 lg:px-8 lg:py-7">{children}</main>
+        <main id="main" tabIndex={-1} className="mx-auto flex w-full max-w-[90rem] flex-1 scroll-mt-14 flex-col px-4 py-6 outline-none sm:px-6 lg:px-8 lg:py-7">
+          {children}
+        </main>
       </div>
     )
   }
@@ -87,11 +92,12 @@ export async function AppShell({ area, viewer, children }: { area: 'user' | 'adm
   return (
     <div data-sl-area={area} className="contents">
       <AppSidebarProvider initialOpen={saved === undefined ? undefined : saved === 'true'}>
+        {skip}
         <SiteHeader variant="app" />
         <div className="flex flex-1">
           <AppSidebar sections={sections} footer={footer} />
-          <SidebarInset className="min-w-0 bg-background">
-            <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col px-4 py-6 sm:px-6 lg:px-8 lg:py-7">{children}</main>
+          <SidebarInset id="main" tabIndex={-1} className="min-w-0 scroll-mt-14 bg-background outline-none">
+            <div className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col px-4 py-6 sm:px-6 lg:px-8 lg:py-7">{children}</div>
           </SidebarInset>
         </div>
       </AppSidebarProvider>

@@ -3,6 +3,7 @@
 import { cn } from '@skinloom/ui'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 export interface NavLink {
   href: string
@@ -18,8 +19,9 @@ export function isCurrent(pathname: string, href: string, exact = false): boolea
 /** The header's site links, the current section in the foreground. */
 export function HeaderNav({ links, className }: { links: NavLink[]; className?: string }) {
   const pathname = usePathname()
+  const t = useTranslations('shell')
   return (
-    <nav className={cn('flex items-center gap-1', className)}>
+    <nav aria-label={t('mainNav')} className={cn('flex items-center gap-1', className)}>
       {links.map((l) => {
         const current = isCurrent(pathname, l.href)
         return (

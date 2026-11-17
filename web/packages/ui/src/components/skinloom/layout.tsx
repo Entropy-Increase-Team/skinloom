@@ -1,4 +1,4 @@
-import type * as React from 'react'
+import * as React from 'react'
 
 import { cn } from '../../lib/utils'
 
@@ -75,21 +75,26 @@ export function UsageMeter({
   format?: (n: number) => string
   className?: string
 }) {
-  const ratio = max > 0 ? Math.min(1, value / max) : 0
+  const labelId = React.useId()
+  const safeMax = Math.max(0, max)
+  const ratio = safeMax > 0 ? Math.min(1, Math.max(0, value / safeMax)) : 0
   const tone = ratio >= 1 ? 'bg-destructive' : ratio >= 0.8 ? 'bg-warning' : 'bg-primary'
+  const textValue = `${format(value)} / ${format(max)}`
   return (
     <div data-slot="usage-meter" className={cn('flex flex-col gap-2', className)}>
       <div className="flex items-baseline justify-between gap-3 text-sm">
-        <span className="text-muted-foreground">{label}</span>
-        <span className="font-mono text-xs text-muted-foreground tabular-nums">
-          {format(value)} / {format(max)}
+        <span id={labelId} className="text-muted-foreground">
+          {label}
         </span>
+        <span className="font-mono text-xs text-muted-foreground tabular-nums">{textValue}</span>
       </div>
       <div
         role="meter"
+        aria-labelledby={labelId}
         aria-valuemin={0}
-        aria-valuemax={max}
+        aria-valuemax={safeMax}
         aria-valuenow={value}
+        aria-valuetext={textValue}
         className="h-1.5 overflow-hidden rounded-full bg-muted"
       >
         <div className={cn('h-full rounded-full transition-[width] duration-300 ease-out', tone)} style={{ width: `${ratio * 100}%` }} />

@@ -30,7 +30,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <AuthShell>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{t('signIn')}</CardTitle>
+          <CardTitle as="h1" className="text-2xl">{t('signIn')}</CardTitle>
           <CardDescription>{linkPending ? t('signInToLink') : t('signInTo', { site: boot.site.name })}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">

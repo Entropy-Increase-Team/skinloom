@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### 优化与无障碍（前端重构 P5，ADR 0042）
+- 包体积与树摇优化：`@skinloom/ui` 改用显式命名导出并在 Next.js 启用 `optimizePackageImports`，消除 `/skinlib` 等公开页面打包未使用的 `command`/`accordion` 组件（`/skinlib` 首屏 JS 减少 260 KB）。
+- 无障碍与语义结构完善：公开页、用户/后台外壳及 404 页面统一新增「跳到正文」快捷链接（`#main`），修复侧栏布局下嵌套 `<main>` 地标问题；补齐全站顶栏、移动端抽屉、用户/后台侧栏与选项卡导航的 `aria-label` 与 `aria-current="page"`、设置分组 `aria-current`，以及 `UsageMeter` 的 `aria-labelledby`/`aria-valuetext`；`CardTitle` 支持 `as="h1"`，补齐认证、首次安装与 OAuth 授权页面的主标题层级。
+- 自动化回归：`web/scripts/smoke.mjs`（`bun run smoke`）支持按 `375 / 768 / 1280` 宽度 × 亮暗模式 × 多主题自动校验横向溢出、键盘跳过导航与移动端抽屉交互、404 页面、核心无障碍结构及首屏资源体积（本地实测 28 个路由共 336 个视图组合全部通过）。
+
 ### 新增（主题系统扩展 P4，ADR 0043）
 - 本地主题目录与热加载：除内置主题外，启动时自动加载 `<数据目录>/themes/*/plugin.json`；单个本地主题出错只跳过并在后台卡片上提示原因，不阻断启动；本地主题资源以内容哈希命名（`/themes-assets/<id>/<哈希>/<文件>`），修改样式无需手动递增版本号，SVG 自动附带 `Content-Security-Policy: sandbox`。支持后台"重新扫描"（`POST /api/v1/admin/themes/reload`）、命令行 `skinloom theme reload` 以及 `web.mode = dev` 下监听目录自动热加载。
 - 主题清单扩展（`apiVersion: 1`）：新增单层继承 `extends`、预览图 `screenshot`、色彩模式 `theme.colorScheme`（`both` / `light` / `dark`，仅支持单模式时自动隐藏亮暗切换并锁定该模式）、布局变体 `user`（`sidebar` / `tabs`）与 `texture`（`split` / `stacked`）、主题内相对资源路径（`assets/...` 与 `url(assets/...)`）自动重写，以及主题设置项 `theme.settings`（`color`、`image`、`choice`、`text`、`boolean`；可绑定到 token 或注入为 `--sl-setting-<名称>` 与 `html[data-sl-setting-<名称>]`）。

@@ -19,7 +19,7 @@ export default async function ForgotPage() {
     <AuthShell>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{t('title')}</CardTitle>
+          <CardTitle as="h1" className="text-2xl">{t('title')}</CardTitle>
           <CardDescription>{boot.auth.mail ? t('intro') : t('noMail')}</CardDescription>
         </CardHeader>
         {boot.auth.mail && (

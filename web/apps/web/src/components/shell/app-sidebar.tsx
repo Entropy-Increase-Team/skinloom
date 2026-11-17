@@ -74,31 +74,42 @@ export function AppSidebarTrigger() {
  */
 export function AppSidebar({ sections, footer }: { sections: SidebarSection[]; footer?: SidebarLink }) {
   const pathname = usePathname()
+  const t = useTranslations('shell')
   const { isMobile, setOpenMobile } = useSidebar()
   useEffect(() => {
     if (isMobile) setOpenMobile(false) // a link was followed: put the sheet away
   }, [pathname, isMobile, setOpenMobile])
 
-  const item = (l: SidebarLink) => (
-    <SidebarMenuItem key={l.href}>
-      <SidebarMenuButton isActive={isCurrent(pathname, l.href, l.exact)} tooltip={l.label} render={<Link href={l.href} />}>
-        <MenuIcon name={l.icon} />
-        <span>{l.label}</span>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  )
+  const item = (l: SidebarLink) => {
+    const active = isCurrent(pathname, l.href, l.exact)
+    return (
+      <SidebarMenuItem key={l.href}>
+        <SidebarMenuButton
+          isActive={active}
+          aria-current={active ? 'page' : undefined}
+          tooltip={l.label}
+          render={<Link href={l.href} />}
+        >
+          <MenuIcon name={l.icon} />
+          <span>{l.label}</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    )
+  }
 
   return (
     <Sidebar collapsible="icon" className="sl-sidebar top-14! h-[calc(100svh-3.5rem)]!">
       <SidebarContent className="gap-0 py-2">
-        {sections.map((s, i) => (
-          <SidebarGroup key={s.label ?? i} className="py-1">
-            {s.label && <SidebarGroupLabel className="text-faint-foreground">{s.label}</SidebarGroupLabel>}
-            <SidebarGroupContent>
-              <SidebarMenu className="gap-0.5">{s.links.map(item)}</SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        <nav aria-label={t('sectionNav')} className="flex flex-col">
+          {sections.map((s, i) => (
+            <SidebarGroup key={s.label ?? i} className="py-1">
+              {s.label && <SidebarGroupLabel className="text-faint-foreground">{s.label}</SidebarGroupLabel>}
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-0.5">{s.links.map(item)}</SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
+        </nav>
       </SidebarContent>
       {footer && (
         <SidebarFooter className="border-t">
@@ -115,9 +126,10 @@ export function AppSidebar({ sections, footer }: { sections: SidebarSection[]; f
  */
 export function AppTabNav({ sections, footer }: { sections: SidebarSection[]; footer?: SidebarLink }) {
   const pathname = usePathname()
+  const t = useTranslations('shell')
   const links = sections.flatMap((s) => s.links)
   return (
-    <nav className="sl-sidebar border-b bg-background">
+    <nav aria-label={t('sectionNav')} className="sl-sidebar border-b bg-background">
       <div className="no-scrollbar mx-auto flex w-full max-w-[90rem] items-center gap-1 overflow-x-auto px-4 py-2 sm:px-6 lg:px-8">
         {links.map((l) => {
           const active = isCurrent(pathname, l.href, l.exact)

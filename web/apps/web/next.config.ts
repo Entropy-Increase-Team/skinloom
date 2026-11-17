@@ -14,6 +14,11 @@ const config: NextConfig = {
   // Skins and avatars are rendered and cached by the Go backend.
   images: { unoptimized: true },
   transpilePackages: ['@skinloom/ui', '@skinloom/api-client'],
+  experimental: {
+    // @skinloom/ui re-exports all 44 shadcn components + SkinLoom blocks from one barrel;
+    // keep unused components (e.g. cmdk, accordion) out of public routes like /skinlib.
+    optimizePackageImports: ['@skinloom/ui'],
+  },
   poweredByHeader: false,
   reactStrictMode: true,
 }

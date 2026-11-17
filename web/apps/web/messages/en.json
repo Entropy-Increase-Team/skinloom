@@ -1695,7 +1695,10 @@
     "admin": "Administration",
     "backToUser": "Back to my account",
     "toggleSidebar": "Show or hide the sidebar",
-    "home": "Home"
+    "home": "Home",
+    "skipToContent": "Skip to content",
+    "mainNav": "Primary navigation",
+    "sectionNav": "Section navigation"
   },
   "userNav": {
     "overview": "Overview",

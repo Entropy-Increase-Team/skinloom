@@ -143,6 +143,7 @@ export function SettingsCenter({ superadmin }: { superadmin: boolean }) {
                 <button
                   key={g.id}
                   type="button"
+                  aria-current={selected ? 'true' : undefined}
                   onClick={() => {
                     setActiveId(g.id)
                     if (q) setQuery('')

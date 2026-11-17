@@ -17,7 +17,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
     <AuthShell>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{t('title')}</CardTitle>
+          <CardTitle as="h1" className="text-2xl">{t('title')}</CardTitle>
           <CardDescription>{t('intro')}</CardDescription>
         </CardHeader>
         <CardContent>
