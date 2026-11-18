@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 )
@@ -105,6 +107,7 @@ func serveCSL(d Deps) http.HandlerFunc {
 		if p == nil {
 			return
 		}
+		applyProfileTextures(r.Context(), d, p, "csl")
 		writeProfile(w, r, d, p, cslProfile{Username: p.Name, Skins: map[string]*string{p.Model(): nullable(p.Skin)}, Cape: nullable(p.Cape)})
 	}
 }
@@ -128,9 +131,29 @@ func serveUSM(d Deps) http.HandlerFunc {
 		if p == nil {
 			return
 		}
+		applyProfileTextures(r.Context(), d, p, "usm")
 		writeProfile(w, r, d, p, usmProfile{PlayerName: p.Name, LastUpdate: p.Modified.Unix(), ModelPreference: []string{p.Model()},
 			Skins: map[string]*string{p.Model(): nullable(p.Skin)}, Cape: nullable(p.Cape)})
 	}
+}
+
+func applyProfileTextures(ctx context.Context, d Deps, p *player.Profile, protocol string) {
+	if p == nil || d.Bus == nil {
+		return
+	}
+	filtered := hook.FilterProfileTextures.Apply(ctx, d.Bus, hook.ProfileTextures{
+		SkinHash:  p.Skin,
+		SkinModel: p.Model(),
+		CapeHash:  p.Cape,
+	}, hook.ProfileTexturesFilterContext{
+		PlayerID: p.ID,
+		Name:     p.Name,
+		UUID:     p.UUID,
+		Protocol: protocol,
+	})
+	p.Skin = filtered.SkinHash
+	p.Slim = filtered.SkinModel == "slim" || filtered.SkinModel == "alex"
+	p.Cape = filtered.CapeHash
 }
 
 // serveLegacy answers /skin/{name}.png and /cape/{name}.png with the image itself.
@@ -140,6 +163,7 @@ func serveLegacy(d Deps, cape bool) http.HandlerFunc {
 		if p == nil {
 			return
 		}
+		applyProfileTextures(r.Context(), d, p, "legacy")
 		hash := p.Skin
 		if cape {
 			hash = p.Cape

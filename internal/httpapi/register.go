@@ -22,6 +22,7 @@ type registerInput struct {
 		Nickname string          `json:"nickname" maxLength:"128"`
 		Password string          `json:"password" maxLength:"1024"`
 		Captcha  *captcha.Answer `json:"captcha,omitempty" doc:"Required unless captcha.provider is none"`
+		Form     map[string]any  `json:"form,omitempty" doc:"Optional plugin extension form fields"`
 	}
 }
 
@@ -93,7 +94,7 @@ func registerAccounts(api huma.API, d Deps) {
 				return nil, err
 			}
 		}
-		u, sess, err := d.Accounts.Register(ctx, account.RegisterInput{Email: b.Email, Nickname: b.Nickname, Password: b.Password},
+		u, sess, err := d.Accounts.Register(ctx, account.RegisterInput{Email: b.Email, Nickname: b.Nickname, Password: b.Password, Form: b.Form},
 			policy, mailContext(d, ri), ri.meta(in.UserAgent))
 		switch {
 		case errors.Is(err, account.ErrRegistrationClosed):
@@ -106,7 +107,7 @@ func registerAccounts(api huma.API, d Deps) {
 			return nil, apiError(err)
 		}
 		replaceSession(context.WithoutCancel(ctx), d, in.Session)
-		return &userOutput{SetCookie: sessionCookie(sess, ri), Body: userView(u)}, nil
+		return &userOutput{SetCookie: sessionCookie(sess, ri), Body: userViewWithBadges(ctx, d, u)}, nil
 	})
 }
 

@@ -12,6 +12,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 )
 
 // ErrInsufficient means the user's score does not cover a negative delta.
@@ -44,7 +45,8 @@ type Change struct {
 	// RefType and RefID name what the change is about, e.g. "texture" and "42".
 	RefType string
 	RefID   string
-	Actor   *int64 // the administrator making it; nil for the user or the system
+	Actor   *int64    // the administrator making it; nil for the user or the system
+	Hooks   *hook.Bus // optional; when non-nil and listening, publishes score.changed in tx
 }
 
 // Last returns the user's newest ledger entry with reason about ref (nil if none):
@@ -133,5 +135,16 @@ func Apply(ctx context.Context, tx *ent.Client, c Change) (int64, error) {
 		SetRefID(c.RefID).
 		SetNillableActorID(c.Actor).
 		Exec(ctx)
-	return u.Score, err
+	if err != nil {
+		return 0, err
+	}
+	if err := hook.OnScoreChanged.Publish(ctx, c.Hooks, tx, hook.ScoreChangedEvent{
+		UserID:       c.UserID,
+		Delta:        c.Delta,
+		BalanceAfter: u.Score,
+		Reason:       c.Reason,
+	}); err != nil {
+		return 0, err
+	}
+	return u.Score, nil
 }

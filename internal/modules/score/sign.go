@@ -8,6 +8,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 )
@@ -61,7 +62,14 @@ func (p SignPolicy) Next(last *time.Time) time.Time {
 // period. The period is enforced by one conditional update of users.last_sign_at,
 // so concurrent check-ins earn once (Blessing Skin read, compared and wrote it, C03).
 // It returns what was earned, the new balance and the next check-in time.
-func SignIn(ctx context.Context, client *ent.Client, userID int64, p SignPolicy, now time.Time) (int64, int64, time.Time, error) {
+func SignIn(ctx context.Context, client *ent.Client, userID int64, p SignPolicy, now time.Time, hooks ...*hook.Bus) (int64, int64, time.Time, error) {
+	var bus *hook.Bus
+	if len(hooks) > 0 {
+		bus = hooks[0]
+	}
+	if err := hook.GuardScoreCheckin.Check(ctx, bus, hook.ScoreCheckinGuard{UserID: userID}); err != nil {
+		return 0, 0, time.Time{}, err
+	}
 	// A check-in at or before cutoff is from an earlier period.
 	cutoff := now.Add(-p.Gap)
 	if p.Daily {
@@ -75,6 +83,9 @@ func SignIn(ctx context.Context, client *ent.Client, userID int64, p SignPolicy,
 	if p.Max > p.Min {
 		gained += rand.Int64N(p.Max - p.Min + 1)
 	}
+	gained = hook.FilterScoreCheckinAmount.Apply(ctx, bus, gained, hook.CheckinFilterContext{
+		UserID: userID,
+	})
 	var balance int64
 	err := db.WithTx(ctx, client, func(tx *ent.Client) error {
 		n, err := tx.User.Update().
@@ -90,7 +101,7 @@ func SignIn(ctx context.Context, client *ent.Client, userID int64, p SignPolicy,
 			}
 			return &TooEarlyError{Next: p.Next(u.LastSignAt)}
 		}
-		balance, err = Apply(ctx, tx, Change{UserID: userID, Delta: gained, Reason: ReasonSignIn})
+		balance, err = Apply(ctx, tx, Change{UserID: userID, Delta: gained, Reason: ReasonSignIn, Hooks: bus})
 		return err
 	})
 	if err != nil {

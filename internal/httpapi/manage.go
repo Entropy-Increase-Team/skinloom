@@ -122,7 +122,7 @@ func registerManage(api huma.API, d Deps) {
 			if err != nil {
 				return nil, err
 			}
-			return &struct{ Body Favorited }{Favorited{Item: ClosetItemView{ID: item.ID, Name: item.Name, AddedAt: item.CreatedAt, Texture: textureView(t)}, Score: balance}}, nil
+			return &struct{ Body Favorited }{Favorited{Item: ClosetItemView{ID: item.ID, Name: item.Name, AddedAt: item.CreatedAt, Texture: textureViewWithBadges(ctx, d, t)}, Score: balance}}, nil
 		})
 
 	huma.Register(api, op("renameClosetItem", http.MethodPatch, "/api/v1/me/closet/{textureId}", "Rename a texture in your closet", "me", 0),
@@ -135,7 +135,7 @@ func registerManage(api huma.API, d Deps) {
 			if err != nil {
 				return nil, manageError(d, err)
 			}
-			return &struct{ Body ClosetItemView }{ClosetItemView{ID: it.ID, Name: it.Name, AddedAt: it.CreatedAt, Texture: textureView(it.Edges.Texture)}}, nil
+			return &struct{ Body ClosetItemView }{ClosetItemView{ID: it.ID, Name: it.Name, AddedAt: it.CreatedAt, Texture: textureViewWithBadges(ctx, d, it.Edges.Texture)}}, nil
 		})
 
 	huma.Register(api, op("removeFromCloset", http.MethodDelete, "/api/v1/me/closet/{textureId}", "Remove a texture from your closet", "me", 0),
@@ -166,7 +166,7 @@ func registerManage(api huma.API, d Deps) {
 			if err != nil {
 				return nil, manageError(d, err)
 			}
-			return &struct{ Body TextureView }{textureView(t)}, nil
+			return &struct{ Body TextureView }{textureViewWithBadges(ctx, d, t)}, nil
 		})
 
 	huma.Register(api, op("deleteTexture", http.MethodDelete, "/api/v1/textures/{id}", "Delete a texture (its uploader or an administrator)", "textures", http.StatusNoContent),
@@ -189,7 +189,7 @@ func registerManage(api huma.API, d Deps) {
 			if err != nil {
 				return nil, err
 			}
-			gained, balance, next, err := score.SignIn(ctx, d.DB.Ent, v.User.ID, score.SignPolicyFrom(d.Settings.Current()), time.Now())
+			gained, balance, next, err := score.SignIn(ctx, d.DB.Ent, v.User.ID, score.SignPolicyFrom(d.Settings.Current()), time.Now(), d.Bus)
 			if err != nil {
 				return nil, manageError(d, err)
 			}

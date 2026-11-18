@@ -11319,6 +11319,9 @@ export const uploadTexture = async (uploadTextureBody?: UploadTextureBody, optio
 if(uploadTextureBody?.file !== undefined) {
  formData.append(`file`, uploadTextureBody.file);
  }
+if(uploadTextureBody?.form !== undefined) {
+ formData.append(`form`, uploadTextureBody.form instanceof Blob ? uploadTextureBody.form : new Blob([uploadTextureBody.form], { type: 'text/plain' }));
+ }
 if(uploadTextureBody?.name !== undefined) {
  formData.append(`name`, uploadTextureBody.name instanceof Blob ? uploadTextureBody.name : new Blob([uploadTextureBody.name], { type: 'text/plain' }));
  }

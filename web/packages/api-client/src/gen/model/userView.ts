@@ -5,6 +5,7 @@
  * SkinLoom (云织) REST API. Game protocols (CSL/USM/Legacy/Yggdrasil) are documented separately.
  * OpenAPI spec version: 0.0.0-dev
  */
+import type { UserBadge } from './userBadge';
 import type { UserViewRole } from './userViewRole';
 
 export interface UserView {
@@ -12,6 +13,8 @@ export interface UserView {
   readonly $schema?: string;
   /** The skin whose head is the avatar, /avatar/user/{id} */
   avatarTextureId?: number;
+  /** Custom badges injected by plugins */
+  badges?: UserBadge[];
   createdAt: string;
   email: string;
   emailVerified: boolean;

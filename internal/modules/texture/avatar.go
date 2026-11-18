@@ -7,6 +7,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	tex "github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 )
 
@@ -17,9 +18,23 @@ var ErrNotSkin = errors.New("only a skin can be an avatar")
 // avatar"); 0 clears it.
 func (s *Service) SetAvatar(ctx context.Context, v Viewer, id int64) error {
 	if id == 0 {
-		return s.db.User.UpdateOneID(v.UserID).ClearAvatarTextureID().Exec(ctx)
+		if err := hook.GuardUserAvatarUpdate.Check(ctx, s.hooks, hook.UserAvatarUpdateGuard{UserID: v.UserID}); err != nil {
+			return err
+		}
+		return db.WithTx(ctx, s.db, func(tx *ent.Client) error {
+			if err := tx.User.UpdateOneID(v.UserID).ClearAvatarTextureID().Exec(ctx); err != nil {
+				return err
+			}
+			return hook.OnUserUpdated.Publish(ctx, s.hooks, tx, hook.UserUpdatedEvent{UserID: v.UserID, Fields: []string{"avatar"}})
+		})
 	}
 	if _, err := s.Get(ctx, id, v); err != nil { // the usual not found / private answers
+		return err
+	}
+	if err := hook.GuardUserAvatarUpdate.Check(ctx, s.hooks, hook.UserAvatarUpdateGuard{
+		UserID:    v.UserID,
+		TextureID: &id,
+	}); err != nil {
 		return err
 	}
 	// The texture first, then the user (see score.Lock): a deletion clears the avatars
@@ -35,7 +50,10 @@ func (s *Service) SetAvatar(ctx context.Context, v Viewer, id int64) error {
 		if t.Type == tex.TypeCape {
 			return ErrNotSkin
 		}
-		return tx.User.UpdateOneID(v.UserID).SetAvatarTextureID(id).Exec(ctx)
+		if err := tx.User.UpdateOneID(v.UserID).SetAvatarTextureID(id).Exec(ctx); err != nil {
+			return err
+		}
+		return hook.OnUserUpdated.Publish(ctx, s.hooks, tx, hook.UserUpdatedEvent{UserID: v.UserID, Fields: []string{"avatar"}})
 	})
 }
 

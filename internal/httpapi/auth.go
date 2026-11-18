@@ -15,6 +15,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/captcha"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/realip"
@@ -137,7 +138,9 @@ func csrfGuard(d Deps) func(http.Handler) http.Handler {
 			// Setup endpoints act on the one-time setup token or skinloom_setup cookie.
 			flow := strings.HasPrefix(r.URL.Path, "/api/v1/auth/social/")
 			setupRoute := r.URL.Path == "/api/v1/setup" || strings.HasPrefix(r.URL.Path, "/api/v1/setup/")
-			if !strings.HasPrefix(r.URL.Path, "/api/v1/") || (cookieErr != nil && setupErr != nil && !sessionEndpoints[r.URL.Path] && !flow && !setupRoute) {
+			isAPIv1 := strings.HasPrefix(r.URL.Path, "/api/v1/")
+			isPluginAPI := strings.HasPrefix(r.URL.Path, "/api/plugins/")
+			if (!isAPIv1 && !isPluginAPI) || (cookieErr != nil && setupErr != nil && !sessionEndpoints[r.URL.Path] && !flow && !setupRoute) {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -179,21 +182,42 @@ func writeProblem(w http.ResponseWriter, status int, detail string) {
 
 // UserView is the signed-in user as shown to themselves.
 type UserView struct {
-	ID            int64     `json:"id"`
-	Email         string    `json:"email"`
-	Nickname      string    `json:"nickname"`
-	Role          string    `json:"role" enum:"user,admin,superadmin"`
-	EmailVerified bool      `json:"emailVerified"`
-	HasPassword   bool      `json:"hasPassword" doc:"False for an account created through a sign-in provider until a password is set; it then needs no current password"`
-	Locale        string    `json:"locale" doc:"Preferred UI language; empty = follow the browser"`
-	Score         int64     `json:"score"`
-	AvatarID      *int64    `json:"avatarTextureId,omitempty" doc:"The skin whose head is the avatar, /avatar/user/{id}"`
-	CreatedAt     time.Time `json:"createdAt"`
+	ID            int64            `json:"id"`
+	Email         string           `json:"email"`
+	Nickname      string           `json:"nickname"`
+	Role          string           `json:"role" enum:"user,admin,superadmin"`
+	EmailVerified bool             `json:"emailVerified"`
+	HasPassword   bool             `json:"hasPassword" doc:"False for an account created through a sign-in provider until a password is set; it then needs no current password"`
+	Locale        string           `json:"locale" doc:"Preferred UI language; empty = follow the browser"`
+	Score         int64            `json:"score"`
+	AvatarID      *int64           `json:"avatarTextureId,omitempty" doc:"The skin whose head is the avatar, /avatar/user/{id}"`
+	Badges        []hook.UserBadge `json:"badges,omitempty" doc:"Custom badges injected by plugins"`
+	CreatedAt     time.Time        `json:"createdAt"`
 }
 
 func userView(u *ent.User) UserView {
 	return UserView{ID: u.ID, Email: u.Email, Nickname: u.Nickname, Role: string(u.Role),
 		EmailVerified: u.EmailVerifiedAt != nil, HasPassword: account.HasPassword(u), Locale: u.Locale, Score: u.Score, AvatarID: u.AvatarTextureID, CreatedAt: u.CreatedAt}
+}
+
+func userBadges(ctx context.Context, d Deps, userID int64, role string) []hook.UserBadge {
+	if d.Bus == nil || userID == 0 {
+		return nil
+	}
+	badges := hook.FilterUserBadges.Apply(ctx, d.Bus, nil, hook.UserBadgeFilterContext{
+		UserID: userID,
+		Role:   role,
+	})
+	if len(badges) == 0 {
+		return nil
+	}
+	return badges
+}
+
+func userViewWithBadges(ctx context.Context, d Deps, u *ent.User) UserView {
+	v := userView(u)
+	v.Badges = userBadges(ctx, d, u.ID, string(u.Role))
+	return v
 }
 
 type userOutput struct {
@@ -229,6 +253,7 @@ type loginInput struct {
 		Password string          `json:"password" maxLength:"1024"`
 		Remember bool            `json:"remember,omitempty" doc:"Keep the session for 30 days instead of until the browser closes"`
 		Captcha  *captcha.Answer `json:"captcha,omitempty" doc:"Needed after failed attempts; a 422 on body.captcha asks for it"`
+		Form     map[string]any  `json:"form,omitempty" doc:"Optional plugin extension form fields"`
 	}
 }
 
@@ -330,7 +355,7 @@ func registerAuth(api huma.API, d Deps) {
 		ri := requestInfo(ctx)
 		cc := captcha.ConfigFrom(d.Settings.Current())
 		_, policy := account.PoliciesFrom(d.Settings.Current(), cc.Enabled())
-		login := account.LoginInput{Email: in.Body.Email, Password: in.Body.Password, Remember: in.Body.Remember}
+		login := account.LoginInput{Email: in.Body.Email, Password: in.Body.Password, Remember: in.Body.Remember, Form: in.Body.Form}
 		if d.Accounts.CaptchaRequired(in.Body.Email, ri.client.ClientIP, policy) {
 			if err := checkCaptcha(ctx, d, cc, in.Body.Captcha, ri.client.ClientIP); err != nil {
 				return nil, err
@@ -348,10 +373,10 @@ func registerAuth(api huma.API, d Deps) {
 		case errors.Is(err, account.ErrAccountDisabled):
 			return nil, huma.Error403Forbidden("this account has been disabled")
 		case err != nil:
-			return nil, err
+			return nil, apiError(err)
 		}
 		replaceSession(context.WithoutCancel(ctx), d, in.Session)
-		return &userOutput{SetCookie: sessionCookie(sess, ri), Body: userView(u)}, nil
+		return &userOutput{SetCookie: sessionCookie(sess, ri), Body: userViewWithBadges(ctx, d, u)}, nil
 	})
 
 	huma.Register(api, huma.Operation{
@@ -380,7 +405,7 @@ func registerAuth(api huma.API, d Deps) {
 		if v == nil {
 			return nil, huma.Error401Unauthorized("not signed in")
 		}
-		return &struct{ Body UserView }{Body: userView(v.User)}, nil
+		return &struct{ Body UserView }{Body: userViewWithBadges(ctx, d, v.User)}, nil
 	})
 }
 
@@ -437,8 +462,11 @@ func siteSettings(name, siteURL string) (map[string]json.RawMessage, error) {
 	return changes, nil
 }
 
-// apiError maps account validation errors to 422 with one detail per field.
+// apiError maps hook rejections and account validation errors to RFC 9457 422 responses.
 func apiError(err error) error {
+	if r, ok := hook.AsRejection(err); ok {
+		return huma.Error422UnprocessableEntity(r.Reason)
+	}
 	if fields := account.FieldErrors(err); len(fields) > 0 {
 		details := make([]error, 0, len(fields))
 		for _, f := range fields {

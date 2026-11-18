@@ -138,7 +138,7 @@ export function UploadForm({ rules, score }: { rules: TextureRules; score: numbe
       setFields(p.fields)
       if (p.unverified) setError(tc('verifyFirst'))
       else if (p.status === 402) setError(t('errors.score'))
-      else if (Object.keys(p.fields).length === 0) setError(t('errors.failed'))
+      else if (Object.keys(p.fields).length === 0) setError(p.status === 422 && p.detail ? p.detail : t('errors.failed'))
       setPending(false)
     }
   }

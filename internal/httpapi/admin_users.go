@@ -9,29 +9,37 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
 )
 
 // AdminUserView is a user as shown in the admin panel.
 type AdminUserView struct {
-	ID            int64      `json:"id"`
-	Email         string     `json:"email"`
-	Nickname      string     `json:"nickname"`
-	Role          string     `json:"role" enum:"user,admin,superadmin"`
-	Status        string     `json:"status" enum:"active,banned,deleted"`
-	Score         int64      `json:"score"`
-	EmailVerified bool       `json:"emailVerified"`
-	Locale        string     `json:"locale"`
-	RegisterIP    string     `json:"registerIp"`
-	CreatedAt     time.Time  `json:"createdAt"`
-	LastLoginAt   *time.Time `json:"lastLoginAt,omitempty"`
-	DeletedAt     *time.Time `json:"deletedAt,omitempty" doc:"Set while a self-deleted account waits out its grace period"`
+	ID            int64            `json:"id"`
+	Email         string           `json:"email"`
+	Nickname      string           `json:"nickname"`
+	Role          string           `json:"role" enum:"user,admin,superadmin"`
+	Status        string           `json:"status" enum:"active,banned,deleted"`
+	Score         int64            `json:"score"`
+	EmailVerified bool             `json:"emailVerified"`
+	Locale        string           `json:"locale"`
+	RegisterIP    string           `json:"registerIp"`
+	Badges        []hook.UserBadge `json:"badges,omitempty"`
+	CreatedAt     time.Time        `json:"createdAt"`
+	LastLoginAt   *time.Time       `json:"lastLoginAt,omitempty"`
+	DeletedAt     *time.Time       `json:"deletedAt,omitempty" doc:"Set while a self-deleted account waits out its grace period"`
 }
 
 func adminUserView(u *ent.User) AdminUserView {
 	return AdminUserView{ID: u.ID, Email: u.Email, Nickname: u.Nickname, Role: string(u.Role), Status: string(u.Status),
 		Score: u.Score, EmailVerified: u.EmailVerifiedAt != nil, Locale: u.Locale, RegisterIP: u.RegisterIP,
 		CreatedAt: u.CreatedAt, LastLoginAt: u.LastLoginAt, DeletedAt: u.DeletedAt}
+}
+
+func adminUserViewWithBadges(ctx context.Context, d Deps, u *ent.User) AdminUserView {
+	v := adminUserView(u)
+	v.Badges = userBadges(ctx, d, u.ID, string(u.Role))
+	return v
 }
 
 // UserPage is one page of the user list.
@@ -133,7 +141,7 @@ func registerAdminUsers(api huma.API, d Deps) {
 			}
 			page := UserPage{Users: make([]AdminUserView, 0, len(list)), Next: next}
 			for _, u := range list {
-				page.Users = append(page.Users, adminUserView(u))
+				page.Users = append(page.Users, adminUserViewWithBadges(ctx, d, u))
 			}
 			return &struct{ Body UserPage }{page}, nil
 		})
@@ -147,7 +155,7 @@ func registerAdminUsers(api huma.API, d Deps) {
 			if err != nil {
 				return nil, adminError(err)
 			}
-			return &struct{ Body AdminUserView }{adminUserView(u)}, nil
+			return &struct{ Body AdminUserView }{adminUserViewWithBadges(ctx, d, u)}, nil
 		})
 
 	huma.Register(api, op("updateUser", http.MethodPatch, "/api/v1/admin/users/{id}", "Change a user", 0),
@@ -164,7 +172,7 @@ func registerAdminUsers(api huma.API, d Deps) {
 			if err != nil {
 				return nil, adminError(err)
 			}
-			return &struct{ Body AdminUserView }{adminUserView(u)}, nil
+			return &struct{ Body AdminUserView }{adminUserViewWithBadges(ctx, d, u)}, nil
 		})
 
 	huma.Register(api, op("deleteUser", http.MethodDelete, "/api/v1/admin/users/{id}", "Delete a user now", http.StatusNoContent),

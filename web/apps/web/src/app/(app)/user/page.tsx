@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import { getFormatter, getTranslations } from 'next-intl/server'
 
 import { SignInCard } from '@/components/user/sign-in-card'
+import { UserBadges } from '@/components/user/user-badges'
 import { kb } from '@/lib/skin'
 import { getViewer } from '@/lib/viewer'
 import { asVisitor } from '@/lib/visitor'
@@ -39,10 +40,13 @@ export default async function DashboardPage() {
         title={t('title')}
         description={t('welcome', { name: viewer.nickname })}
         actions={
-          <ButtonLink render={<Link href="/skinlib/upload" />}>
-            <Upload />
-            {t('links.upload')}
-          </ButtonLink>
+          <div className="flex flex-wrap items-center gap-2">
+            <UserBadges badges={viewer.badges} />
+            <ButtonLink render={<Link href="/skinlib/upload" />}>
+              <Upload />
+              {t('links.upload')}
+            </ButtonLink>
+          </div>
         }
       />
 

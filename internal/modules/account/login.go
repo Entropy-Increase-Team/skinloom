@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"strconv"
+	"strings"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
@@ -21,6 +22,7 @@ type LoginInput struct {
 	Password      string
 	Remember      bool
 	CaptchaSolved bool
+	Form          map[string]any
 }
 
 // CaptchaRequired reports whether a login for email from ip must come with a solved
@@ -144,6 +146,15 @@ func (s *Service) Login(ctx context.Context, in LoginInput, p LoginPolicy, meta 
 	}
 	att.succeed()
 
+	if err := hook.GuardAuthLogin.Check(ctx, s.hooks, hook.AuthLoginGuard{
+		Identifier: strings.TrimSpace(in.Email),
+		UserID:     u.ID,
+		IP:         meta.IP,
+		Form:       in.Form,
+	}); err != nil {
+		return nil, nil, err
+	}
+
 	var newHash string
 	if rehash {
 		// Upgrade imported Blessing Skin hashes (and outdated argon2 parameters), before
@@ -176,6 +187,13 @@ func (s *Service) Login(ctx context.Context, in LoginInput, p LoginPolicy, meta 
 			if err := s.announcePlayers(ctx, tx, u.ID, hook.OnPlayerUpdated); err != nil {
 				return err
 			}
+		}
+		if err := hook.OnUserLoggedIn.Publish(ctx, s.hooks, tx, hook.UserLoginEvent{
+			UserID: u.ID,
+			IP:     meta.IP,
+			Method: "password",
+		}); err != nil {
+			return err
 		}
 		return audit(ctx, tx, &u.ID, "auth.login", "user", strconv.FormatInt(u.ID, 10), meta.IP, nil)
 	})

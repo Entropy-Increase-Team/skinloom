@@ -38,6 +38,12 @@ type Tx struct {
 	OAuthToken *OAuthTokenClient
 	// Player is the client for interacting with the Player builders.
 	Player *PlayerClient
+	// Plugin is the client for interacting with the Plugin builders.
+	Plugin *PluginClient
+	// PluginDoc is the client for interacting with the PluginDoc builders.
+	PluginDoc *PluginDocClient
+	// PluginKV is the client for interacting with the PluginKV builders.
+	PluginKV *PluginKVClient
 	// Report is the client for interacting with the Report builders.
 	Report *ReportClient
 	// ScoreEntry is the client for interacting with the ScoreEntry builders.
@@ -205,6 +211,9 @@ func (tx *Tx) init() {
 	tx.OAuthGrant = NewOAuthGrantClient(tx.config)
 	tx.OAuthToken = NewOAuthTokenClient(tx.config)
 	tx.Player = NewPlayerClient(tx.config)
+	tx.Plugin = NewPluginClient(tx.config)
+	tx.PluginDoc = NewPluginDocClient(tx.config)
+	tx.PluginKV = NewPluginKVClient(tx.config)
 	tx.Report = NewReportClient(tx.config)
 	tx.ScoreEntry = NewScoreEntryClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)

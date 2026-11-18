@@ -17,6 +17,9 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
+	"github.com/Entropy-Increase-Team/skinloom/ent/plugin"
+	"github.com/Entropy-Increase-Team/skinloom/ent/plugindoc"
+	"github.com/Entropy-Increase-Team/skinloom/ent/pluginkv"
 	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/schema"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
@@ -422,6 +425,200 @@ func init() {
 	player.DefaultUpdatedAt = playerDescUpdatedAt.Default.(func() time.Time)
 	// player.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	player.UpdateDefaultUpdatedAt = playerDescUpdatedAt.UpdateDefault.(func() time.Time)
+	pluginFields := schema.Plugin{}.Fields()
+	_ = pluginFields
+	// pluginDescVersion is the schema descriptor for version field.
+	pluginDescVersion := pluginFields[2].Descriptor()
+	// plugin.VersionValidator is a validator for the "version" field. It is called by the builders before save.
+	plugin.VersionValidator = func() func(string) error {
+		validators := pluginDescVersion.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(version string) error {
+			for _, fn := range fns {
+				if err := fn(version); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// pluginDescError is the schema descriptor for error field.
+	pluginDescError := pluginFields[6].Descriptor()
+	// plugin.DefaultError holds the default value on creation for the error field.
+	plugin.DefaultError = pluginDescError.Default.(string)
+	// plugin.ErrorValidator is a validator for the "error" field. It is called by the builders before save.
+	plugin.ErrorValidator = pluginDescError.Validators[0].(func(string) error)
+	// pluginDescSource is the schema descriptor for source field.
+	pluginDescSource := pluginFields[7].Descriptor()
+	// plugin.DefaultSource holds the default value on creation for the source field.
+	plugin.DefaultSource = pluginDescSource.Default.(string)
+	// plugin.SourceValidator is a validator for the "source" field. It is called by the builders before save.
+	plugin.SourceValidator = pluginDescSource.Validators[0].(func(string) error)
+	// pluginDescPackageSha256 is the schema descriptor for package_sha256 field.
+	pluginDescPackageSha256 := pluginFields[8].Descriptor()
+	// plugin.PackageSha256Validator is a validator for the "package_sha256" field. It is called by the builders before save.
+	plugin.PackageSha256Validator = pluginDescPackageSha256.Validators[0].(func(string) error)
+	// pluginDescInstalledAt is the schema descriptor for installed_at field.
+	pluginDescInstalledAt := pluginFields[9].Descriptor()
+	// plugin.DefaultInstalledAt holds the default value on creation for the installed_at field.
+	plugin.DefaultInstalledAt = pluginDescInstalledAt.Default.(func() time.Time)
+	// pluginDescUpdatedAt is the schema descriptor for updated_at field.
+	pluginDescUpdatedAt := pluginFields[10].Descriptor()
+	// plugin.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	plugin.DefaultUpdatedAt = pluginDescUpdatedAt.Default.(func() time.Time)
+	// plugin.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	plugin.UpdateDefaultUpdatedAt = pluginDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// pluginDescID is the schema descriptor for id field.
+	pluginDescID := pluginFields[0].Descriptor()
+	// plugin.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	plugin.IDValidator = func() func(string) error {
+		validators := pluginDescID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(id string) error {
+			for _, fn := range fns {
+				if err := fn(id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	plugindocFields := schema.PluginDoc{}.Fields()
+	_ = plugindocFields
+	// plugindocDescPlugin is the schema descriptor for plugin field.
+	plugindocDescPlugin := plugindocFields[1].Descriptor()
+	// plugindoc.PluginValidator is a validator for the "plugin" field. It is called by the builders before save.
+	plugindoc.PluginValidator = func() func(string) error {
+		validators := plugindocDescPlugin.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(plugin string) error {
+			for _, fn := range fns {
+				if err := fn(plugin); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// plugindocDescCollection is the schema descriptor for collection field.
+	plugindocDescCollection := plugindocFields[2].Descriptor()
+	// plugindoc.CollectionValidator is a validator for the "collection" field. It is called by the builders before save.
+	plugindoc.CollectionValidator = func() func(string) error {
+		validators := plugindocDescCollection.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(collection string) error {
+			for _, fn := range fns {
+				if err := fn(collection); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// plugindocDescDocID is the schema descriptor for doc_id field.
+	plugindocDescDocID := plugindocFields[3].Descriptor()
+	// plugindoc.DocIDValidator is a validator for the "doc_id" field. It is called by the builders before save.
+	plugindoc.DocIDValidator = func() func(string) error {
+		validators := plugindocDescDocID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(doc_id string) error {
+			for _, fn := range fns {
+				if err := fn(doc_id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// plugindocDescU1 is the schema descriptor for u1 field.
+	plugindocDescU1 := plugindocFields[5].Descriptor()
+	// plugindoc.U1Validator is a validator for the "u1" field. It is called by the builders before save.
+	plugindoc.U1Validator = plugindocDescU1.Validators[0].(func(string) error)
+	// plugindocDescU2 is the schema descriptor for u2 field.
+	plugindocDescU2 := plugindocFields[6].Descriptor()
+	// plugindoc.U2Validator is a validator for the "u2" field. It is called by the builders before save.
+	plugindoc.U2Validator = plugindocDescU2.Validators[0].(func(string) error)
+	// plugindocDescS1 is the schema descriptor for s1 field.
+	plugindocDescS1 := plugindocFields[7].Descriptor()
+	// plugindoc.S1Validator is a validator for the "s1" field. It is called by the builders before save.
+	plugindoc.S1Validator = plugindocDescS1.Validators[0].(func(string) error)
+	// plugindocDescS2 is the schema descriptor for s2 field.
+	plugindocDescS2 := plugindocFields[8].Descriptor()
+	// plugindoc.S2Validator is a validator for the "s2" field. It is called by the builders before save.
+	plugindoc.S2Validator = plugindocDescS2.Validators[0].(func(string) error)
+	// plugindocDescS3 is the schema descriptor for s3 field.
+	plugindocDescS3 := plugindocFields[9].Descriptor()
+	// plugindoc.S3Validator is a validator for the "s3" field. It is called by the builders before save.
+	plugindoc.S3Validator = plugindocDescS3.Validators[0].(func(string) error)
+	// plugindocDescCreatedAt is the schema descriptor for created_at field.
+	plugindocDescCreatedAt := plugindocFields[15].Descriptor()
+	// plugindoc.DefaultCreatedAt holds the default value on creation for the created_at field.
+	plugindoc.DefaultCreatedAt = plugindocDescCreatedAt.Default.(func() time.Time)
+	// plugindocDescUpdatedAt is the schema descriptor for updated_at field.
+	plugindocDescUpdatedAt := plugindocFields[16].Descriptor()
+	// plugindoc.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	plugindoc.DefaultUpdatedAt = plugindocDescUpdatedAt.Default.(func() time.Time)
+	// plugindoc.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	plugindoc.UpdateDefaultUpdatedAt = plugindocDescUpdatedAt.UpdateDefault.(func() time.Time)
+	pluginkvFields := schema.PluginKV{}.Fields()
+	_ = pluginkvFields
+	// pluginkvDescPlugin is the schema descriptor for plugin field.
+	pluginkvDescPlugin := pluginkvFields[1].Descriptor()
+	// pluginkv.PluginValidator is a validator for the "plugin" field. It is called by the builders before save.
+	pluginkv.PluginValidator = func() func(string) error {
+		validators := pluginkvDescPlugin.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(plugin string) error {
+			for _, fn := range fns {
+				if err := fn(plugin); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// pluginkvDescKey is the schema descriptor for key field.
+	pluginkvDescKey := pluginkvFields[2].Descriptor()
+	// pluginkv.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	pluginkv.KeyValidator = func() func(string) error {
+		validators := pluginkvDescKey.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(key string) error {
+			for _, fn := range fns {
+				if err := fn(key); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// pluginkvDescUpdatedAt is the schema descriptor for updated_at field.
+	pluginkvDescUpdatedAt := pluginkvFields[5].Descriptor()
+	// pluginkv.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	pluginkv.DefaultUpdatedAt = pluginkvDescUpdatedAt.Default.(func() time.Time)
+	// pluginkv.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	pluginkv.UpdateDefaultUpdatedAt = pluginkvDescUpdatedAt.UpdateDefault.(func() time.Time)
 	reportFields := schema.Report{}.Fields()
 	_ = reportFields
 	// reportDescReason is the schema descriptor for reason field.

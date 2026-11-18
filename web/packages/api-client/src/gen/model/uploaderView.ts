@@ -5,8 +5,10 @@
  * SkinLoom (云织) REST API. Game protocols (CSL/USM/Legacy/Yggdrasil) are documented separately.
  * OpenAPI spec version: 0.0.0-dev
  */
+import type { UserBadge } from './userBadge';
 
 export interface UploaderView {
+  badges?: UserBadge[];
   id: number;
   nickname: string;
 }

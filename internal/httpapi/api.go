@@ -13,6 +13,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/captcha"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/cdn"
@@ -32,6 +34,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/httpx"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/pubsub"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/realip"
+	"github.com/Entropy-Increase-Team/skinloom/internal/plugin"
 )
 
 // Deps are the services the API needs.
@@ -43,6 +46,7 @@ type Deps struct {
 	SettingsReg *settings.Registry
 	Themes      *theme.Registry
 	Broker      *pubsub.Broker
+	Bus         *hook.Bus
 	Accounts    *account.Service
 	Captcha     *captcha.Service
 	Mailer      *mail.Mailer
@@ -55,6 +59,7 @@ type Deps struct {
 	OAuth       *oauth.Service
 	Social      *social.Service
 	CDN         *cdn.Service
+	Plugins     *plugin.Manager
 	// ClientInfo resolves the client address and public host behind trusted proxies
 	// (the gateway's live resolver). Nil = trust no proxy.
 	ClientInfo func(*http.Request) realip.Info
@@ -183,7 +188,45 @@ func New(d Deps) (http.Handler, huma.API) {
 			}))
 		r.Handle("/themes-assets/*", d.Themes.AssetHandler())
 	}
+	if d.Plugins != nil {
+		servePlug := func(w http.ResponseWriter, r *http.Request) {
+			id := chi.URLParam(r, "id")
+			subpath := "/"
+			if rest := chi.URLParam(r, "*"); rest != "" {
+				subpath = "/" + strings.TrimPrefix(rest, "/")
+			}
+			ri := requestInfo(r.Context())
+			d.Plugins.ServePluginAPI(w, r, id, subpath, pluginViewerFromReq(r, d), ri.locale)
+		}
+		r.HandleFunc("/api/plugins/{id}", servePlug)
+		r.HandleFunc("/api/plugins/{id}/*", servePlug)
+		r.Handle("/plugins-assets/*", d.Plugins.AssetHandler())
+	}
 	return r, api
+}
+
+func pluginViewerFromReq(r *http.Request, d Deps) plugin.Viewer {
+	if v := requestInfo(r.Context()).viewer(); v != nil && v.User != nil {
+		return plugin.Viewer{
+			Authenticated: true,
+			UserID:        v.User.ID,
+			Email:         v.User.Email,
+			Nickname:      v.User.Nickname,
+			Role:          string(v.User.Role),
+			Admin:         v.IsAdmin(),
+			Superadmin:    v.User.Role == user.RoleSuperadmin,
+		}
+	}
+	if token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer "); ok &&
+		d.AdminToken != "" && subtle.ConstantTimeCompare([]byte(token), []byte(d.AdminToken)) == 1 {
+		return plugin.Viewer{
+			Authenticated: true,
+			Role:          "superadmin",
+			Admin:         true,
+			Superadmin:    true,
+		}
+	}
+	return plugin.Viewer{}
 }
 
 // setupModeGuard refuses all business, game, and OAuth routes while the server is in

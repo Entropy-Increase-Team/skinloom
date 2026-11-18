@@ -57,6 +57,7 @@ import { useTranslations } from 'next-intl'
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 
 import { FormError } from '@/components/auth/field'
+import { UserBadges } from '@/components/user/user-badges'
 import { problemOf } from '@/lib/problem'
 
 import { FilterSelect } from './filter-select'
@@ -160,7 +161,10 @@ export function UsersTable({ viewerId, superadmin }: { viewerId: number; superad
     <div className="flex min-w-0 items-center gap-2.5">
       <UserAvatar of={{ user: u.id }} size={28} />
       <div className="flex min-w-0 flex-col">
-        <span className="truncate font-medium">{u.nickname}</span>
+        <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+          <span className="truncate font-medium">{u.nickname}</span>
+          <UserBadges badges={u.badges} />
+        </span>
         <span className="flex min-w-0 items-center gap-1.5 text-caption text-muted-foreground">
           <span className="truncate">{u.email}</span>
           {!u.emailVerified && (

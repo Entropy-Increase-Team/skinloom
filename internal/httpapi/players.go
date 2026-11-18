@@ -54,7 +54,8 @@ type PlayerRules struct {
 
 type playerNameInput struct {
 	Body struct {
-		Name string `json:"name" maxLength:"64"`
+		Name string         `json:"name" maxLength:"64"`
+		Form map[string]any `json:"form,omitempty" doc:"Optional plugin extension form fields"`
 	}
 }
 
@@ -140,7 +141,7 @@ func registerPlayers(api huma.API, d Deps) {
 				return nil, err
 			}
 			snap := d.Settings.Current()
-			p, balance, err := d.Players.Create(ctx, v.User.ID, in.Body.Name, player.PolicyFrom(snap), score.RatesFrom(snap))
+			p, balance, err := d.Players.Create(ctx, v.User.ID, in.Body.Name, player.PolicyFrom(snap), score.RatesFrom(snap), in.Body.Form)
 			if err != nil {
 				return nil, playerError(err)
 			}

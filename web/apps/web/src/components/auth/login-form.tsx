@@ -73,6 +73,8 @@ export function LoginForm({
       if (p.fields.captcha) {
         setCaptchaError(needCaptcha ? tf('captchaWrong') : tf('captchaRequired'))
         setNeedCaptcha(true)
+      } else if (p.status === 422 && p.detail) {
+        setError(p.detail)
       } else {
         // The server deliberately gives one answer for unknown accounts and wrong passwords.
         const key = { 401: 'invalid', 403: 'disabled', 429: 'tooMany', 503: 'captchaDown' }[p.status] ?? 'failed'

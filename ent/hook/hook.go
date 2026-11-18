@@ -153,6 +153,42 @@ func (f PlayerFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlayerMutation", m)
 }
 
+// The PluginFunc type is an adapter to allow the use of ordinary
+// function as Plugin mutator.
+type PluginFunc func(context.Context, *ent.PluginMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PluginFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PluginMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PluginMutation", m)
+}
+
+// The PluginDocFunc type is an adapter to allow the use of ordinary
+// function as PluginDoc mutator.
+type PluginDocFunc func(context.Context, *ent.PluginDocMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PluginDocFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PluginDocMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PluginDocMutation", m)
+}
+
+// The PluginKVFunc type is an adapter to allow the use of ordinary
+// function as PluginKV mutator.
+type PluginKVFunc func(context.Context, *ent.PluginKVMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PluginKVFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PluginKVMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PluginKVMutation", m)
+}
+
 // The ReportFunc type is an adapter to allow the use of ordinary
 // function as Report mutator.
 type ReportFunc func(context.Context, *ent.ReportMutation) (ent.Value, error)

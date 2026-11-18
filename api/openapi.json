@@ -336,6 +336,12 @@
             "readOnly": true,
             "type": "string"
           },
+          "badges": {
+            "items": {
+              "$ref": "#/components/schemas/UserBadge"
+            },
+            "type": "array"
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -2215,6 +2221,11 @@
             "maxLength": 255,
             "type": "string"
           },
+          "form": {
+            "additionalProperties": {},
+            "description": "Optional plugin extension form fields",
+            "type": "object"
+          },
           "password": {
             "maxLength": 1024,
             "type": "string"
@@ -2853,6 +2864,11 @@
             "readOnly": true,
             "type": "string"
           },
+          "form": {
+            "additionalProperties": {},
+            "description": "Optional plugin extension form fields",
+            "type": "object"
+          },
           "name": {
             "maxLength": 64,
             "type": "string"
@@ -3088,6 +3104,11 @@
           "email": {
             "maxLength": 255,
             "type": "string"
+          },
+          "form": {
+            "additionalProperties": {},
+            "description": "Optional plugin extension form fields",
+            "type": "object"
           },
           "nickname": {
             "maxLength": 128,
@@ -4381,6 +4402,11 @@
             "maxLength": 255,
             "type": "string"
           },
+          "form": {
+            "additionalProperties": {},
+            "description": "Optional plugin extension form fields",
+            "type": "object"
+          },
           "nickname": {
             "maxLength": 255,
             "type": "string"
@@ -5285,6 +5311,11 @@
             "readOnly": true,
             "type": "string"
           },
+          "form": {
+            "additionalProperties": {},
+            "description": "Optional plugin extension form fields",
+            "type": "object"
+          },
           "locale": {
             "description": "One of the site's languages, or empty to follow the browser",
             "maxLength": 16,
@@ -5424,6 +5455,12 @@
       "UploaderView": {
         "additionalProperties": false,
         "properties": {
+          "badges": {
+            "items": {
+              "$ref": "#/components/schemas/UserBadge"
+            },
+            "type": "array"
+          },
           "id": {
             "format": "int64",
             "type": "integer"
@@ -5435,6 +5472,24 @@
         "required": [
           "id",
           "nickname"
+        ],
+        "type": "object"
+      },
+      "UserBadge": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
         ],
         "type": "object"
       },
@@ -5484,6 +5539,13 @@
             "description": "The skin whose head is the avatar, /avatar/user/{id}",
             "format": "int64",
             "type": "integer"
+          },
+          "badges": {
+            "description": "Custom badges injected by plugins",
+            "items": {
+              "$ref": "#/components/schemas/UserBadge"
+            },
+            "type": "array"
           },
           "createdAt": {
             "format": "date-time",
@@ -10937,6 +10999,9 @@
                 "file": {
                   "contentType": "image/png,application/octet-stream"
                 },
+                "form": {
+                  "contentType": "text/plain"
+                },
                 "name": {
                   "contentType": "text/plain"
                 },
@@ -10954,6 +11019,10 @@
                     "contentMediaType": "application/octet-stream",
                     "description": "PNG image",
                     "format": "binary",
+                    "type": "string"
+                  },
+                  "form": {
+                    "description": "Optional JSON-encoded object of plugin extension form fields",
                     "type": "string"
                   },
                   "name": {

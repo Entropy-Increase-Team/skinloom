@@ -38,6 +38,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/pubsub"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
+	"github.com/Entropy-Increase-Team/skinloom/internal/plugin"
 	"github.com/Entropy-Increase-Team/skinloom/themes"
 )
 
@@ -94,6 +95,7 @@ type Core struct {
 	OAuth     *oauth.Service
 	Social    *social.Service
 	CDN       *cdn.Service
+	Plugins   *plugin.Manager
 	// FreshConfig is true when this start wrote the default config file.
 	FreshConfig bool
 
@@ -256,8 +258,23 @@ func OpenCoreWithOptions(ctx context.Context, p Paths, opts CoreOptions) (*Core,
 	c.Textures.SetHooks(c.Bus)
 	c.Players.SetHooks(c.Bus)
 	c.Reports.SetHooks(c.Bus)
+	c.Yggdrasil.SetHooks(c.Bus)
 	c.CDN = cdn.NewService(c.Bus, c.Settings, log.With("component", "cdn"))
 	if err := c.CDN.Start(); err != nil {
+		return nil, err
+	}
+	c.Plugins, err = plugin.NewManager(plugin.ManagerDeps{
+		DB:       client,
+		Bus:      c.Bus,
+		Settings: c.Settings,
+		Notify:   c.Notify,
+		DataDir:  p.DataDir,
+		Log:      log.With("component", "plugin"),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := c.Plugins.Start(ctx); err != nil {
 		return nil, err
 	}
 	ok = true
@@ -274,6 +291,7 @@ func (c *Core) APIDeps(log *slog.Logger) httpapi.Deps {
 		SettingsReg: c.Settings.Registry(),
 		Themes:      c.Themes,
 		Broker:      c.Broker,
+		Bus:         c.Bus,
 		Accounts:    c.Accounts,
 		Captcha:     c.Captcha,
 		Mailer:      c.Mailer,
@@ -286,6 +304,7 @@ func (c *Core) APIDeps(log *slog.Logger) httpapi.Deps {
 		OAuth:       c.OAuth,
 		Social:      c.Social,
 		CDN:         c.CDN,
+		Plugins:     c.Plugins,
 	}
 }
 
@@ -318,6 +337,9 @@ func (c *Core) SetupLink(ctx context.Context, base string) (string, error) {
 
 // Close releases resources, also those of a Core that OpenCore did not finish.
 func (c *Core) Close(ctx context.Context) {
+	if c.Plugins != nil {
+		_ = c.Plugins.Shutdown(ctx)
+	}
 	if c.ownsBroker && c.Broker != nil {
 		c.Broker.Close()
 	}

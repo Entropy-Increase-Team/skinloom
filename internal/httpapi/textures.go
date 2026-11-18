@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
@@ -19,8 +21,9 @@ import (
 
 // UploaderView is who uploaded a texture.
 type UploaderView struct {
-	ID       int64  `json:"id"`
-	Nickname string `json:"nickname"`
+	ID       int64            `json:"id"`
+	Nickname string           `json:"nickname"`
+	Badges   []hook.UserBadge `json:"badges,omitempty"`
 }
 
 // TextureView is a texture in the skin library.
@@ -43,6 +46,34 @@ func textureView(t *ent.Texture) TextureView {
 		v.Uploader = &UploaderView{ID: u.ID, Nickname: u.Nickname}
 	}
 	return v
+}
+
+func textureViewWithBadges(ctx context.Context, d Deps, t *ent.Texture) TextureView {
+	v := textureView(t)
+	if v.Uploader != nil {
+		if u := t.Edges.Uploader; u != nil {
+			v.Uploader.Badges = userBadges(ctx, d, u.ID, string(u.Role))
+		}
+	}
+	return v
+}
+
+func badgeLookup(ctx context.Context, d Deps) func(*ent.Texture) TextureView {
+	memo := map[int64][]hook.UserBadge{}
+	return func(t *ent.Texture) TextureView {
+		v := textureView(t)
+		if v.Uploader != nil {
+			if u := t.Edges.Uploader; u != nil {
+				badges, seen := memo[u.ID]
+				if !seen {
+					badges = userBadges(ctx, d, u.ID, string(u.Role))
+					memo[u.ID] = badges
+				}
+				v.Uploader.Badges = badges
+			}
+		}
+		return v
+	}
 }
 
 // TexturePage is one page of the skin library.
@@ -109,6 +140,7 @@ type uploadForm struct {
 	Name   string        `form:"name" doc:"1 to 50 characters"`
 	Type   string        `form:"type" doc:"steve, alex or cape"`
 	Public bool          `form:"public" doc:"Shown in the skin library; private textures cost more"`
+	Form   string        `form:"form" required:"false" doc:"Optional JSON-encoded object of plugin extension form fields"`
 }
 
 type uploadInput struct {
@@ -207,18 +239,25 @@ func registerTextures(api huma.API, d Deps) {
 			return nil, rateLimitError(&account.RateLimitError{RetryAfter: wait}, "too many uploads, try again later")
 		}
 		form := in.RawBody.Data()
+		var extForm map[string]any
+		if form.Form != "" {
+			if err := json.Unmarshal([]byte(form.Form), &extForm); err != nil {
+				return nil, huma.Error422UnprocessableEntity("invalid form extension payload",
+					&huma.ErrorDetail{Location: "body.form", Message: "must be valid JSON object"})
+			}
+		}
 		snap := d.Settings.Current()
 		p := texture.PolicyFrom(snap)
 		data, err := io.ReadAll(io.LimitReader(form.File, p.MaxBytes+1))
 		if err != nil {
 			return nil, err
 		}
-		res, err := d.Textures.Upload(ctx, v.User.ID, texture.UploadInput{Name: form.Name, Type: form.Type, Public: form.Public, Data: data},
+		res, err := d.Textures.Upload(ctx, v.User.ID, texture.UploadInput{Name: form.Name, Type: form.Type, Public: form.Public, Data: data, Form: extForm},
 			p, score.RatesFrom(snap))
 		if err != nil {
 			return nil, textureError(d, err)
 		}
-		out := UploadView{Texture: textureView(res.Texture), Duplicate: res.Duplicate, Cost: res.Cost, Score: res.Balance}
+		out := UploadView{Texture: textureViewWithBadges(ctx, d, res.Texture), Duplicate: res.Duplicate, Cost: res.Cost, Score: res.Balance}
 		if res.Duplicate {
 			out.Score = v.User.Score
 		}
@@ -239,8 +278,9 @@ func registerTextures(api huma.API, d Deps) {
 			return nil, apiError(err)
 		}
 		page := TexturePage{Textures: make([]TextureView, 0, len(list)), Next: next}
+		toView := badgeLookup(ctx, d)
 		for _, t := range list {
-			page.Textures = append(page.Textures, textureView(t))
+			page.Textures = append(page.Textures, toView(t))
 		}
 		return &struct{ Body TexturePage }{page}, nil
 	})
@@ -258,7 +298,7 @@ func registerTextures(api huma.API, d Deps) {
 		if err != nil {
 			return nil, textureError(d, err)
 		}
-		out := TextureDetail{TextureView: textureView(t)}
+		out := TextureDetail{TextureView: textureViewWithBadges(ctx, d, t)}
 		if tv.UserID != 0 {
 			out.Mine = t.UploaderID != nil && *t.UploaderID == tv.UserID
 			if out.InCloset, err = d.Textures.InCloset(ctx, tv.UserID, t.ID); err != nil {
@@ -286,8 +326,9 @@ func registerTextures(api huma.API, d Deps) {
 			return nil, err
 		}
 		page := ClosetPage{Items: make([]ClosetItemView, 0, len(items)), Next: next}
+		toView := badgeLookup(ctx, d)
 		for _, it := range items {
-			page.Items = append(page.Items, ClosetItemView{ID: it.ID, Name: it.Name, AddedAt: it.CreatedAt, Texture: textureView(it.Edges.Texture)})
+			page.Items = append(page.Items, ClosetItemView{ID: it.ID, Name: it.Name, AddedAt: it.CreatedAt, Texture: toView(it.Edges.Texture)})
 		}
 		return &struct{ Body ClosetPage }{page}, nil
 	})

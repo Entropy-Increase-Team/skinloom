@@ -41,7 +41,18 @@ func (s *Service) Favorite(ctx context.Context, v Viewer, id int64, name string,
 	if name = strings.TrimSpace(name); name == "" {
 		name = t.Name
 	}
+	name = strings.TrimSpace(hook.FilterClosetItemName.Apply(ctx, s.hooks, name, hook.ClosetNameFilterContext{
+		UserID:    v.UserID,
+		TextureID: id,
+	}))
 	if err := ValidateName(name, nil); err != nil {
+		return nil, 0, err
+	}
+	if err := hook.GuardClosetAdd.Check(ctx, s.hooks, hook.ClosetAddGuard{
+		UserID:    v.UserID,
+		TextureID: id,
+		Name:      name,
+	}); err != nil {
 		return nil, 0, err
 	}
 	var (
@@ -79,12 +90,12 @@ func (s *Service) Favorite(ctx context.Context, v Viewer, id int64, name string,
 		}
 		ref := closetRef(item.ID)
 		if balance, err = score.Apply(ctx, tx, score.Change{UserID: v.UserID, Delta: -r.PerClosetItem,
-			Reason: score.ReasonClosetAdd, RefType: "closet", RefID: ref}); err != nil {
+			Reason: score.ReasonClosetAdd, RefType: "closet", RefID: ref, Hooks: s.hooks}); err != nil {
 			return err
 		}
 		if up := t.UploaderID; up != nil && *up != v.UserID && r.AwardPerLike > 0 {
 			if _, err = score.Apply(ctx, tx, score.Change{UserID: *up, Delta: r.AwardPerLike,
-				Reason: score.ReasonLikeAward, RefType: "closet", RefID: ref}); err != nil {
+				Reason: score.ReasonLikeAward, RefType: "closet", RefID: ref, Hooks: s.hooks}); err != nil {
 				return err
 			}
 		}
@@ -99,8 +110,21 @@ func (s *Service) Favorite(ctx context.Context, v Viewer, id int64, name string,
 // if not nil, is written to the audit log in the same transaction (an administrator
 // taking it out).
 func (s *Service) Unfavorite(ctx context.Context, userID, id int64, refund bool, rec *audit.Entry) (int64, error) {
+	exists, err := s.db.ClosetItem.Query().Where(closetitem.UserID(userID), closetitem.TextureID(id)).Exist(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if !exists {
+		return 0, ErrNotInCloset
+	}
+	if err := hook.GuardClosetRemove.Check(ctx, s.hooks, hook.ClosetRemoveGuard{
+		UserID:    userID,
+		TextureID: id,
+	}); err != nil {
+		return 0, err
+	}
 	var returned int64
-	err := db.WithTx(ctx, s.db, func(tx *ent.Client) error {
+	err = db.WithTx(ctx, s.db, func(tx *ent.Client) error {
 		t, err := lockAndGet(ctx, tx, id)
 		if errors.Is(err, ErrNotFound) {
 			return ErrNotInCloset
@@ -157,7 +181,7 @@ func (s *Service) release(ctx context.Context, tx *ent.Client, t *ent.Texture, i
 		if paid != nil && paid.Delta < 0 {
 			returned = -paid.Delta
 			if _, err := score.Apply(ctx, tx, score.Change{UserID: userID, Delta: returned,
-				Reason: score.ReasonClosetRemove, RefType: "closet", RefID: ref}); err != nil {
+				Reason: score.ReasonClosetRemove, RefType: "closet", RefID: ref, Hooks: s.hooks}); err != nil {
 				return 0, err
 			}
 		}
@@ -169,7 +193,7 @@ func (s *Service) release(ctx context.Context, tx *ent.Client, t *ent.Texture, i
 		}
 		if award != nil && award.Delta > 0 {
 			_, err := score.Apply(ctx, tx, score.Change{UserID: *up, Delta: -award.Delta,
-				Reason: score.ReasonLikeTakeBack, RefType: "closet", RefID: ref})
+				Reason: score.ReasonLikeTakeBack, RefType: "closet", RefID: ref, Hooks: s.hooks})
 			if err != nil && !errors.Is(err, score.ErrInsufficient) { // spent already: let it be
 				return 0, err
 			}
@@ -261,9 +285,29 @@ func (s *Service) GiveToCloset(ctx context.Context, userID, id int64, rec *audit
 
 // RenameClosetItem renames a texture in the user's closet.
 func (s *Service) RenameClosetItem(ctx context.Context, userID, id int64, name string) (*ent.ClosetItem, error) {
-	name = strings.TrimSpace(name)
+	cur, err := s.db.ClosetItem.Query().Where(closetitem.UserID(userID), closetitem.TextureID(id)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, ErrNotInCloset
+	}
+	if err != nil {
+		return nil, err
+	}
+	name = strings.TrimSpace(hook.FilterClosetItemName.Apply(ctx, s.hooks, strings.TrimSpace(name), hook.ClosetNameFilterContext{
+		UserID:    userID,
+		TextureID: id,
+	}))
 	if err := ValidateName(name, nil); err != nil {
 		return nil, err
+	}
+	if name != cur.Name {
+		if err := hook.GuardClosetRename.Check(ctx, s.hooks, hook.ClosetRenameGuard{
+			UserID:    userID,
+			TextureID: id,
+			OldName:   cur.Name,
+			NewName:   name,
+		}); err != nil {
+			return nil, err
+		}
 	}
 	n, err := s.db.ClosetItem.Update().Where(closetitem.UserID(userID), closetitem.TextureID(id)).SetName(name).Save(ctx)
 	if err != nil {

@@ -7,10 +7,12 @@
  */
 import type { AdminUserViewRole } from './adminUserViewRole';
 import type { AdminUserViewStatus } from './adminUserViewStatus';
+import type { UserBadge } from './userBadge';
 
 export interface AdminUserView {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
+  badges?: UserBadge[];
   createdAt: string;
   /** Set while a self-deleted account waits out its grace period */
   deletedAt?: string;

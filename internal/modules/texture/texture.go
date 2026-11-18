@@ -72,6 +72,7 @@ type UploadInput struct {
 	Type   string
 	Public bool
 	Data   []byte
+	Form   map[string]any
 }
 
 // UploadResult is the uploaded texture, or the existing one when the same image is
@@ -105,6 +106,10 @@ func ValidateName(name string, rule *regexp.Regexp) error {
 // closet. The same image already in the library (public, or the uploader's own)
 // is returned instead of stored twice.
 func (s *Service) Upload(ctx context.Context, uploader int64, in UploadInput, p Policy, r score.Rates) (*UploadResult, error) {
+	in.Name = strings.TrimSpace(hook.FilterTextureName.Apply(ctx, s.hooks, strings.TrimSpace(in.Name), hook.TextureNameFilterContext{
+		UserID: uploader,
+		Type:   in.Type,
+	}))
 	errs := []error{ValidateName(in.Name, p.NameRule)}
 	typ := tex.Type(in.Type)
 	if tex.TypeValidator(typ) != nil {
@@ -118,6 +123,20 @@ func (s *Service) Upload(ctx context.Context, uploader int64, in UploadInput, p 
 	}
 	img, err := s.checkImage(ctx, in.Data, typ, p.MaxWidth)
 	if err != nil {
+		return nil, err
+	}
+	name := strings.TrimSpace(in.Name)
+	if err := hook.GuardTextureUpload.Check(ctx, s.hooks, hook.TextureUploadGuard{
+		UserID:    uploader,
+		Name:      name,
+		Type:      in.Type,
+		Public:    in.Public,
+		Width:     img.width,
+		Height:    img.height,
+		SizeBytes: int64(len(img.png)),
+		Hash:      img.hash,
+		Form:      in.Form,
+	}); err != nil {
 		return nil, err
 	}
 
@@ -144,7 +163,6 @@ func (s *Service) Upload(ctx context.Context, uploader int64, in UploadInput, p 
 	if in.Public {
 		visibility = tex.VisibilityPublic
 	}
-	name := strings.TrimSpace(in.Name)
 	res := &UploadResult{Cost: cost}
 	err = db.WithTx(ctx, s.db, func(tx *ent.Client) error {
 		if err := score.Lock(ctx, tx, uploader); err != nil { // before the inserts: see score.Lock
@@ -173,7 +191,7 @@ func (s *Service) Upload(ctx context.Context, uploader int64, in UploadInput, p 
 		}
 		res.Texture = t
 		res.Balance, err = score.Apply(ctx, tx, score.Change{UserID: uploader, Delta: -cost,
-			Reason: score.ReasonTextureUpload, RefType: "texture", RefID: strconv.FormatInt(t.ID, 10)})
+			Reason: score.ReasonTextureUpload, RefType: "texture", RefID: strconv.FormatInt(t.ID, 10), Hooks: s.hooks})
 		if err != nil {
 			return err
 		}
@@ -231,7 +249,9 @@ func (s *Service) Get(ctx context.Context, id int64, v Viewer) (*ent.Texture, er
 	return t, nil
 }
 
-func selectUploader(q *ent.UserQuery) { q.Select(user.FieldID, user.FieldNickname, user.FieldStatus) }
+func selectUploader(q *ent.UserQuery) {
+	q.Select(user.FieldID, user.FieldNickname, user.FieldStatus, user.FieldRole)
+}
 
 // InCloset reports whether the texture is in the user's closet.
 func (s *Service) InCloset(ctx context.Context, userID, textureID int64) (bool, error) {

@@ -77,7 +77,11 @@ func (s *Service) Update(ctx context.Context, v Viewer, id int64, e Edit, p Poli
 	var errs []error
 	var newName string
 	if e.Name != nil {
-		newName = strings.TrimSpace(*e.Name)
+		newName = strings.TrimSpace(hook.FilterTextureName.Apply(ctx, s.hooks, strings.TrimSpace(*e.Name), hook.TextureNameFilterContext{
+			UserID:    v.UserID,
+			TextureID: &id,
+			Type:      string(t.Type),
+		}))
 		errs = append(errs, ValidateName(newName, p.NameRule))
 	}
 	var newType tex.Type
@@ -95,6 +99,35 @@ func (s *Service) Update(ctx context.Context, v Viewer, id int64, e Edit, p Poli
 	}
 	if err := errors.Join(errs...); err != nil {
 		return nil, err
+	}
+	if newName != "" && newName != t.Name {
+		if err := hook.GuardTextureRename.Check(ctx, s.hooks, hook.TextureRenameGuard{
+			ActorID:   v.UserID,
+			TextureID: t.ID,
+			OldName:   t.Name,
+			NewName:   newName,
+		}); err != nil {
+			return nil, err
+		}
+	}
+	if e.Public != nil && (*e.Public != (t.Visibility == tex.VisibilityPublic)) {
+		if err := hook.GuardTextureVisibility.Check(ctx, s.hooks, hook.TextureVisibilityGuard{
+			ActorID:   v.UserID,
+			TextureID: t.ID,
+			Public:    *e.Public,
+		}); err != nil {
+			return nil, err
+		}
+	}
+	if newType != "" && newType != t.Type {
+		if err := hook.GuardTextureType.Check(ctx, s.hooks, hook.TextureTypeGuard{
+			ActorID:   v.UserID,
+			TextureID: t.ID,
+			OldType:   string(t.Type),
+			NewType:   string(newType),
+		}); err != nil {
+			return nil, err
+		}
 	}
 	err = db.WithTx(ctx, s.db, func(tx *ent.Client) error {
 		// The texture is locked first (see score.Lock) and everything the edit decides
@@ -158,7 +191,7 @@ func (s *Service) Update(ctx context.Context, v Viewer, id int64, e Edit, p Poli
 					delta = diff
 				}
 				if _, err := score.Apply(ctx, tx, score.Change{UserID: v.UserID, Delta: delta,
-					Reason: score.ReasonVisibility, RefType: "texture", RefID: strconv.FormatInt(t.ID, 10)}); err != nil {
+					Reason: score.ReasonVisibility, RefType: "texture", RefID: strconv.FormatInt(t.ID, 10), Hooks: s.hooks}); err != nil {
 					return err
 				}
 			}
@@ -222,6 +255,13 @@ func (s *Service) Delete(ctx context.Context, v Viewer, id int64, refund bool, r
 	if err != nil {
 		return err
 	}
+	if err := hook.GuardTextureDelete.Check(ctx, s.hooks, hook.TextureDeleteGuard{
+		ActorID:   v.UserID,
+		TextureID: t.ID,
+		Hash:      t.Hash,
+	}); err != nil {
+		return err
+	}
 	if t.UploaderID != nil && *t.UploaderID == v.UserID {
 		rec = nil // the uploader's own deletion (the uploader never changes, only goes)
 	}
@@ -263,7 +303,7 @@ func (s *Service) deleteIn(ctx context.Context, tx *ent.Client, id int64, refund
 		}
 		if net != 0 {
 			_, err := score.Apply(ctx, tx, score.Change{UserID: *up, Delta: -net,
-				Reason: score.ReasonTextureDelete, RefType: "texture", RefID: ref})
+				Reason: score.ReasonTextureDelete, RefType: "texture", RefID: ref, Hooks: s.hooks})
 			if err != nil && !errors.Is(err, score.ErrInsufficient) {
 				return err
 			}

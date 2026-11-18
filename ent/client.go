@@ -27,6 +27,9 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
+	"github.com/Entropy-Increase-Team/skinloom/ent/plugin"
+	"github.com/Entropy-Increase-Team/skinloom/ent/plugindoc"
+	"github.com/Entropy-Increase-Team/skinloom/ent/pluginkv"
 	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
@@ -72,6 +75,12 @@ type Client struct {
 	OAuthToken *OAuthTokenClient
 	// Player is the client for interacting with the Player builders.
 	Player *PlayerClient
+	// Plugin is the client for interacting with the Plugin builders.
+	Plugin *PluginClient
+	// PluginDoc is the client for interacting with the PluginDoc builders.
+	PluginDoc *PluginDocClient
+	// PluginKV is the client for interacting with the PluginKV builders.
+	PluginKV *PluginKVClient
 	// Report is the client for interacting with the Report builders.
 	Report *ReportClient
 	// ScoreEntry is the client for interacting with the ScoreEntry builders.
@@ -119,6 +128,9 @@ func (c *Client) init() {
 	c.OAuthGrant = NewOAuthGrantClient(c.config)
 	c.OAuthToken = NewOAuthTokenClient(c.config)
 	c.Player = NewPlayerClient(c.config)
+	c.Plugin = NewPluginClient(c.config)
+	c.PluginDoc = NewPluginDocClient(c.config)
+	c.PluginKV = NewPluginKVClient(c.config)
 	c.Report = NewReportClient(c.config)
 	c.ScoreEntry = NewScoreEntryClient(c.config)
 	c.Session = NewSessionClient(c.config)
@@ -235,6 +247,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		OAuthGrant:    NewOAuthGrantClient(cfg),
 		OAuthToken:    NewOAuthTokenClient(cfg),
 		Player:        NewPlayerClient(cfg),
+		Plugin:        NewPluginClient(cfg),
+		PluginDoc:     NewPluginDocClient(cfg),
+		PluginKV:      NewPluginKVClient(cfg),
 		Report:        NewReportClient(cfg),
 		ScoreEntry:    NewScoreEntryClient(cfg),
 		Session:       NewSessionClient(cfg),
@@ -278,6 +293,9 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		OAuthGrant:    NewOAuthGrantClient(cfg),
 		OAuthToken:    NewOAuthTokenClient(cfg),
 		Player:        NewPlayerClient(cfg),
+		Plugin:        NewPluginClient(cfg),
+		PluginDoc:     NewPluginDocClient(cfg),
+		PluginKV:      NewPluginKVClient(cfg),
 		Report:        NewReportClient(cfg),
 		ScoreEntry:    NewScoreEntryClient(cfg),
 		Session:       NewSessionClient(cfg),
@@ -321,9 +339,9 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.Announcement, c.AuditLog, c.AuthToken, c.Blob, c.ClosetItem, c.Job,
 		c.Notification, c.OAuthClient, c.OAuthCode, c.OAuthGrant, c.OAuthToken,
-		c.Player, c.Report, c.ScoreEntry, c.Session, c.Setting, c.SiteSecret,
-		c.SocialAccount, c.SocialFlow, c.SystemState, c.Texture, c.User, c.YggSession,
-		c.YggToken,
+		c.Player, c.Plugin, c.PluginDoc, c.PluginKV, c.Report, c.ScoreEntry, c.Session,
+		c.Setting, c.SiteSecret, c.SocialAccount, c.SocialFlow, c.SystemState,
+		c.Texture, c.User, c.YggSession, c.YggToken,
 	} {
 		n.Use(hooks...)
 	}
@@ -335,9 +353,9 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.Announcement, c.AuditLog, c.AuthToken, c.Blob, c.ClosetItem, c.Job,
 		c.Notification, c.OAuthClient, c.OAuthCode, c.OAuthGrant, c.OAuthToken,
-		c.Player, c.Report, c.ScoreEntry, c.Session, c.Setting, c.SiteSecret,
-		c.SocialAccount, c.SocialFlow, c.SystemState, c.Texture, c.User, c.YggSession,
-		c.YggToken,
+		c.Player, c.Plugin, c.PluginDoc, c.PluginKV, c.Report, c.ScoreEntry, c.Session,
+		c.Setting, c.SiteSecret, c.SocialAccount, c.SocialFlow, c.SystemState,
+		c.Texture, c.User, c.YggSession, c.YggToken,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -370,6 +388,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.OAuthToken.mutate(ctx, m)
 	case *PlayerMutation:
 		return c.Player.mutate(ctx, m)
+	case *PluginMutation:
+		return c.Plugin.mutate(ctx, m)
+	case *PluginDocMutation:
+		return c.PluginDoc.mutate(ctx, m)
+	case *PluginKVMutation:
+		return c.PluginKV.mutate(ctx, m)
 	case *ReportMutation:
 		return c.Report.mutate(ctx, m)
 	case *ScoreEntryMutation:
@@ -2360,6 +2384,405 @@ func (c *PlayerClient) mutate(ctx context.Context, m *PlayerMutation) (Value, er
 		return (&PlayerDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Player mutation op: %q", m.Op())
+	}
+}
+
+// PluginClient is a client for the Plugin schema.
+type PluginClient struct {
+	config
+}
+
+// NewPluginClient returns a client for the Plugin from the given config.
+func NewPluginClient(c config) *PluginClient {
+	return &PluginClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `plugin.Hooks(f(g(h())))`.
+func (c *PluginClient) Use(hooks ...Hook) {
+	c.hooks.Plugin = append(c.hooks.Plugin, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `plugin.Intercept(f(g(h())))`.
+func (c *PluginClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Plugin = append(c.inters.Plugin, interceptors...)
+}
+
+// Create returns a builder for creating a Plugin entity.
+func (c *PluginClient) Create() *PluginCreate {
+	mutation := newPluginMutation(c.config, OpCreate)
+	return &PluginCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Plugin entities.
+func (c *PluginClient) CreateBulk(builders ...*PluginCreate) *PluginCreateBulk {
+	return &PluginCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PluginClient) MapCreateBulk(slice any, setFunc func(*PluginCreate, int)) *PluginCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PluginCreateBulk{err: fmt.Errorf("calling to PluginClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PluginCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PluginCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Plugin.
+func (c *PluginClient) Update() *PluginUpdate {
+	mutation := newPluginMutation(c.config, OpUpdate)
+	return &PluginUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PluginClient) UpdateOne(_m *Plugin) *PluginUpdateOne {
+	mutation := newPluginMutation(c.config, OpUpdateOne, withPlugin(_m))
+	return &PluginUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PluginClient) UpdateOneID(id string) *PluginUpdateOne {
+	mutation := newPluginMutation(c.config, OpUpdateOne, withPluginID(id))
+	return &PluginUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Plugin.
+func (c *PluginClient) Delete() *PluginDelete {
+	mutation := newPluginMutation(c.config, OpDelete)
+	return &PluginDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PluginClient) DeleteOne(_m *Plugin) *PluginDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PluginClient) DeleteOneID(id string) *PluginDeleteOne {
+	builder := c.Delete().Where(plugin.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PluginDeleteOne{builder}
+}
+
+// Query returns a query builder for Plugin.
+func (c *PluginClient) Query() *PluginQuery {
+	return &PluginQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlugin},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Plugin entity by its id.
+func (c *PluginClient) Get(ctx context.Context, id string) (*Plugin, error) {
+	return c.Query().Where(plugin.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PluginClient) GetX(ctx context.Context, id string) *Plugin {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PluginClient) Hooks() []Hook {
+	return c.hooks.Plugin
+}
+
+// Interceptors returns the client interceptors.
+func (c *PluginClient) Interceptors() []Interceptor {
+	return c.inters.Plugin
+}
+
+func (c *PluginClient) mutate(ctx context.Context, m *PluginMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PluginCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PluginUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PluginUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PluginDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Plugin mutation op: %q", m.Op())
+	}
+}
+
+// PluginDocClient is a client for the PluginDoc schema.
+type PluginDocClient struct {
+	config
+}
+
+// NewPluginDocClient returns a client for the PluginDoc from the given config.
+func NewPluginDocClient(c config) *PluginDocClient {
+	return &PluginDocClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `plugindoc.Hooks(f(g(h())))`.
+func (c *PluginDocClient) Use(hooks ...Hook) {
+	c.hooks.PluginDoc = append(c.hooks.PluginDoc, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `plugindoc.Intercept(f(g(h())))`.
+func (c *PluginDocClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PluginDoc = append(c.inters.PluginDoc, interceptors...)
+}
+
+// Create returns a builder for creating a PluginDoc entity.
+func (c *PluginDocClient) Create() *PluginDocCreate {
+	mutation := newPluginDocMutation(c.config, OpCreate)
+	return &PluginDocCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PluginDoc entities.
+func (c *PluginDocClient) CreateBulk(builders ...*PluginDocCreate) *PluginDocCreateBulk {
+	return &PluginDocCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PluginDocClient) MapCreateBulk(slice any, setFunc func(*PluginDocCreate, int)) *PluginDocCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PluginDocCreateBulk{err: fmt.Errorf("calling to PluginDocClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PluginDocCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PluginDocCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PluginDoc.
+func (c *PluginDocClient) Update() *PluginDocUpdate {
+	mutation := newPluginDocMutation(c.config, OpUpdate)
+	return &PluginDocUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PluginDocClient) UpdateOne(_m *PluginDoc) *PluginDocUpdateOne {
+	mutation := newPluginDocMutation(c.config, OpUpdateOne, withPluginDoc(_m))
+	return &PluginDocUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PluginDocClient) UpdateOneID(id int64) *PluginDocUpdateOne {
+	mutation := newPluginDocMutation(c.config, OpUpdateOne, withPluginDocID(id))
+	return &PluginDocUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PluginDoc.
+func (c *PluginDocClient) Delete() *PluginDocDelete {
+	mutation := newPluginDocMutation(c.config, OpDelete)
+	return &PluginDocDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PluginDocClient) DeleteOne(_m *PluginDoc) *PluginDocDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PluginDocClient) DeleteOneID(id int64) *PluginDocDeleteOne {
+	builder := c.Delete().Where(plugindoc.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PluginDocDeleteOne{builder}
+}
+
+// Query returns a query builder for PluginDoc.
+func (c *PluginDocClient) Query() *PluginDocQuery {
+	return &PluginDocQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePluginDoc},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PluginDoc entity by its id.
+func (c *PluginDocClient) Get(ctx context.Context, id int64) (*PluginDoc, error) {
+	return c.Query().Where(plugindoc.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PluginDocClient) GetX(ctx context.Context, id int64) *PluginDoc {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PluginDocClient) Hooks() []Hook {
+	return c.hooks.PluginDoc
+}
+
+// Interceptors returns the client interceptors.
+func (c *PluginDocClient) Interceptors() []Interceptor {
+	return c.inters.PluginDoc
+}
+
+func (c *PluginDocClient) mutate(ctx context.Context, m *PluginDocMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PluginDocCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PluginDocUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PluginDocUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PluginDocDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PluginDoc mutation op: %q", m.Op())
+	}
+}
+
+// PluginKVClient is a client for the PluginKV schema.
+type PluginKVClient struct {
+	config
+}
+
+// NewPluginKVClient returns a client for the PluginKV from the given config.
+func NewPluginKVClient(c config) *PluginKVClient {
+	return &PluginKVClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `pluginkv.Hooks(f(g(h())))`.
+func (c *PluginKVClient) Use(hooks ...Hook) {
+	c.hooks.PluginKV = append(c.hooks.PluginKV, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `pluginkv.Intercept(f(g(h())))`.
+func (c *PluginKVClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PluginKV = append(c.inters.PluginKV, interceptors...)
+}
+
+// Create returns a builder for creating a PluginKV entity.
+func (c *PluginKVClient) Create() *PluginKVCreate {
+	mutation := newPluginKVMutation(c.config, OpCreate)
+	return &PluginKVCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PluginKV entities.
+func (c *PluginKVClient) CreateBulk(builders ...*PluginKVCreate) *PluginKVCreateBulk {
+	return &PluginKVCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PluginKVClient) MapCreateBulk(slice any, setFunc func(*PluginKVCreate, int)) *PluginKVCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PluginKVCreateBulk{err: fmt.Errorf("calling to PluginKVClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PluginKVCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PluginKVCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PluginKV.
+func (c *PluginKVClient) Update() *PluginKVUpdate {
+	mutation := newPluginKVMutation(c.config, OpUpdate)
+	return &PluginKVUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PluginKVClient) UpdateOne(_m *PluginKV) *PluginKVUpdateOne {
+	mutation := newPluginKVMutation(c.config, OpUpdateOne, withPluginKV(_m))
+	return &PluginKVUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PluginKVClient) UpdateOneID(id int64) *PluginKVUpdateOne {
+	mutation := newPluginKVMutation(c.config, OpUpdateOne, withPluginKVID(id))
+	return &PluginKVUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PluginKV.
+func (c *PluginKVClient) Delete() *PluginKVDelete {
+	mutation := newPluginKVMutation(c.config, OpDelete)
+	return &PluginKVDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PluginKVClient) DeleteOne(_m *PluginKV) *PluginKVDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PluginKVClient) DeleteOneID(id int64) *PluginKVDeleteOne {
+	builder := c.Delete().Where(pluginkv.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PluginKVDeleteOne{builder}
+}
+
+// Query returns a query builder for PluginKV.
+func (c *PluginKVClient) Query() *PluginKVQuery {
+	return &PluginKVQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePluginKV},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PluginKV entity by its id.
+func (c *PluginKVClient) Get(ctx context.Context, id int64) (*PluginKV, error) {
+	return c.Query().Where(pluginkv.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PluginKVClient) GetX(ctx context.Context, id int64) *PluginKV {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PluginKVClient) Hooks() []Hook {
+	return c.hooks.PluginKV
+}
+
+// Interceptors returns the client interceptors.
+func (c *PluginKVClient) Interceptors() []Interceptor {
+	return c.inters.PluginKV
+}
+
+func (c *PluginKVClient) mutate(ctx context.Context, m *PluginKVMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PluginKVCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PluginKVUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PluginKVUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PluginKVDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PluginKV mutation op: %q", m.Op())
 	}
 }
 
@@ -4523,15 +4946,15 @@ func (c *YggTokenClient) mutate(ctx context.Context, m *YggTokenMutation) (Value
 type (
 	hooks struct {
 		Announcement, AuditLog, AuthToken, Blob, ClosetItem, Job, Notification,
-		OAuthClient, OAuthCode, OAuthGrant, OAuthToken, Player, Report, ScoreEntry,
-		Session, Setting, SiteSecret, SocialAccount, SocialFlow, SystemState, Texture,
-		User, YggSession, YggToken []ent.Hook
+		OAuthClient, OAuthCode, OAuthGrant, OAuthToken, Player, Plugin, PluginDoc,
+		PluginKV, Report, ScoreEntry, Session, Setting, SiteSecret, SocialAccount,
+		SocialFlow, SystemState, Texture, User, YggSession, YggToken []ent.Hook
 	}
 	inters struct {
 		Announcement, AuditLog, AuthToken, Blob, ClosetItem, Job, Notification,
-		OAuthClient, OAuthCode, OAuthGrant, OAuthToken, Player, Report, ScoreEntry,
-		Session, Setting, SiteSecret, SocialAccount, SocialFlow, SystemState, Texture,
-		User, YggSession, YggToken []ent.Interceptor
+		OAuthClient, OAuthCode, OAuthGrant, OAuthToken, Player, Plugin, PluginDoc,
+		PluginKV, Report, ScoreEntry, Session, Setting, SiteSecret, SocialAccount,
+		SocialFlow, SystemState, Texture, User, YggSession, YggToken []ent.Interceptor
 	}
 )
 

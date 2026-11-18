@@ -350,6 +350,7 @@ type RegisterInput struct {
 	Cookie   string
 	Email    string
 	Nickname string
+	Form     map[string]any
 }
 
 // Register creates an account for the pending provider account and signs it in. The
@@ -365,7 +366,7 @@ func (s *Service) Register(ctx context.Context, p Policy, in RegisterInput, rp a
 	id := &Identity{Subject: f.Subject, Email: f.Email, Name: f.Name}
 	verified := f.EmailVerified && account.NormalizeEmail(in.Email) == account.NormalizeEmail(f.Email)
 	u, sess, err := s.accounts.RegisterExternal(ctx, account.ExternalInput{
-		Email: in.Email, Nickname: in.Nickname, EmailVerified: verified, Remember: f.Remember, Method: "social:" + f.Provider,
+		Email: in.Email, Nickname: in.Nickname, EmailVerified: verified, Remember: f.Remember, Method: "social:" + f.Provider, Form: in.Form,
 		Created: func(ctx context.Context, tx *ent.Client, u *ent.User) error {
 			if n, err := tx.SocialFlow.Delete().Where(socialflow.ID(f.ID)).Exec(ctx); err != nil || n == 0 {
 				return errorOr(err, ErrNoFlow) // used by another request meanwhile

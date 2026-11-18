@@ -84,6 +84,13 @@ func (s *Service) Submit(ctx context.Context, v texture.Viewer, textureID int64,
 	if t.UploaderID != nil && *t.UploaderID == v.UserID {
 		return nil, 0, ErrOwnTexture
 	}
+	if err := hook.GuardReportSubmit.Check(ctx, s.hooks, hook.ReportSubmitGuard{
+		ReporterID: v.UserID,
+		TextureID:  t.ID,
+		Reason:     reason,
+	}); err != nil {
+		return nil, 0, err
+	}
 	var (
 		rep     *ent.Report
 		balance int64
@@ -113,7 +120,7 @@ func (s *Service) Submit(ctx context.Context, v texture.Viewer, textureID int64,
 			return err
 		}
 		balance, err = score.Apply(ctx, tx, score.Change{UserID: v.UserID, Delta: r.ReporterModification,
-			Reason: score.ReasonReportSubmit, RefType: "report", RefID: ref(rep.ID)})
+			Reason: score.ReasonReportSubmit, RefType: "report", RefID: ref(rep.ID), Hooks: s.hooks})
 		if err != nil {
 			return err
 		}
@@ -360,13 +367,13 @@ func (s *Service) settle(ctx context.Context, tx *ent.Client, rep *ent.Report, r
 	}
 	if paid != nil && paid.Delta < 0 {
 		if _, err := score.Apply(ctx, tx, score.Change{UserID: *rep.ReporterID, Delta: -paid.Delta,
-			Reason: score.ReasonReportRefund, RefType: "report", RefID: ref(rep.ID)}); err != nil {
+			Reason: score.ReasonReportRefund, RefType: "report", RefID: ref(rep.ID), Hooks: s.hooks}); err != nil {
 			return err
 		}
 	}
 	if reward && r.ReporterReward > 0 {
 		_, err := score.Apply(ctx, tx, score.Change{UserID: *rep.ReporterID, Delta: r.ReporterReward,
-			Reason: score.ReasonReportReward, RefType: "report", RefID: ref(rep.ID)})
+			Reason: score.ReasonReportReward, RefType: "report", RefID: ref(rep.ID), Hooks: s.hooks})
 		return err
 	}
 	return nil
@@ -383,7 +390,7 @@ func (s *Service) takeBackReward(ctx context.Context, tx *ent.Client, rep *ent.R
 		return err
 	}
 	_, err = score.Apply(ctx, tx, score.Change{UserID: *rep.ReporterID, Delta: -got.Delta,
-		Reason: score.ReasonReportReject, RefType: "report", RefID: ref(rep.ID)})
+		Reason: score.ReasonReportReject, RefType: "report", RefID: ref(rep.ID), Hooks: s.hooks})
 	if errors.Is(err, score.ErrInsufficient) {
 		return nil // spent already: let it be
 	}

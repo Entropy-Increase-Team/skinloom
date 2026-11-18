@@ -79,7 +79,8 @@ export function PlayersManager({ rules, initialScore }: { rules: PlayerRules; in
       replace((await wearTextures(player.id, body)).data as PlayerView)
       return true
     } catch (err) {
-      toast.error(problemOf(err).unverified ? tc('verifyFirst') : t('errors.failed'))
+      const p = problemOf(err)
+      toast.error(p.unverified ? tc('verifyFirst') : p.status === 422 && p.detail ? p.detail : t('errors.failed'))
       return false
     }
   }
@@ -97,7 +98,8 @@ export function PlayersManager({ rules, initialScore }: { rules: PlayerRules; in
       setScore((s) => s + refunded)
       toast.success(t('deleted', { name: player.name }))
     } catch (err) {
-      toast.error(problemOf(err).unverified ? tc('verifyFirst') : t('errors.failed'))
+      const p = problemOf(err)
+      toast.error(p.unverified ? tc('verifyFirst') : p.status === 422 && p.detail ? p.detail : t('errors.failed'))
     }
   }
 
@@ -289,7 +291,9 @@ function NameDialog({
               ? t('errors.taken')
               : p.fields.name
                 ? t('errors.name')
-                : t('errors.failed'),
+                : p.status === 422 && p.detail
+                  ? p.detail
+                  : t('errors.failed'),
       )
     } finally {
       setPending(false)

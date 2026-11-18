@@ -56,6 +56,13 @@ func (s *Service) SignIn(ctx context.Context, u *ent.User, remember bool, method
 				return err
 			}
 		}
+		if err := hook.OnUserLoggedIn.Publish(ctx, s.hooks, tx, hook.UserLoginEvent{
+			UserID: u.ID,
+			IP:     meta.IP,
+			Method: method,
+		}); err != nil {
+			return err
+		}
 		return audit(ctx, tx, &u.ID, "auth.login", "user", id, meta.IP, map[string]any{"method": method})
 	})
 	if err != nil {
@@ -74,6 +81,7 @@ type ExternalInput struct {
 	Remember      bool
 	// Method names the provider, for the audit log.
 	Method string
+	Form   map[string]any
 	// Created runs in the transaction that creates the account (to link it).
 	Created func(ctx context.Context, tx *ent.Client, u *ent.User) error
 }
@@ -94,6 +102,14 @@ func (s *Service) RegisterExternal(ctx context.Context, in ExternalInput, p Regi
 	}
 	if wait, err := s.registrationWait(ctx, meta.IP, p.PerIPPerDay); err != nil || wait > 0 {
 		return nil, nil, cmp.Or(err, error(&RateLimitError{RetryAfter: wait}))
+	}
+	if err := hook.GuardAuthRegister.Check(ctx, s.hooks, hook.AuthRegisterGuard{
+		Email:    strings.TrimSpace(in.Email),
+		Nickname: strings.TrimSpace(in.Nickname),
+		IP:       meta.IP,
+		Form:     in.Form,
+	}); err != nil {
+		return nil, nil, err
 	}
 	var (
 		u    *ent.User
@@ -119,7 +135,7 @@ func (s *Service) RegisterExternal(ctx context.Context, in ExternalInput, p Regi
 			return err
 		}
 		if p.InitialScore > 0 {
-			if u.Score, err = score.Apply(ctx, tx, score.Change{UserID: u.ID, Delta: p.InitialScore, Reason: score.ReasonRegister}); err != nil {
+			if u.Score, err = score.Apply(ctx, tx, score.Change{UserID: u.ID, Delta: p.InitialScore, Reason: score.ReasonRegister, Hooks: s.hooks}); err != nil {
 				return err
 			}
 		}
@@ -136,7 +152,11 @@ func (s *Service) RegisterExternal(ctx context.Context, in ExternalInput, p Regi
 				return err
 			}
 		}
-		if err := hook.OnUserRegistered.Publish(ctx, s.hooks, tx, hook.UserEvent{UserID: u.ID, Method: in.Method}); err != nil {
+		if err := hook.OnUserRegistered.Publish(ctx, s.hooks, tx, hook.UserEvent{
+			UserID: u.ID,
+			Method: in.Method,
+			Form:   hook.RedactForm(in.Form),
+		}); err != nil {
 			return err
 		}
 		return audit(ctx, tx, &u.ID, "auth.register", "user", strconv.FormatInt(u.ID, 10), meta.IP, map[string]any{"method": in.Method})

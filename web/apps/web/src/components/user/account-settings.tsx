@@ -49,6 +49,7 @@ import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from
 
 import { Field, FormError } from '@/components/auth/field'
 import { ProviderIcon, SocialError } from '@/components/auth/social-buttons'
+import { UserBadges } from '@/components/user/user-badges'
 import { problemOf } from '@/lib/problem'
 import { describeUA } from '@/lib/ua'
 import type { Viewer } from '@/lib/viewer'
@@ -116,6 +117,7 @@ function useSubmit() {
       )
       if (p.status === 429) setError(t('errors.tooMany'))
       else if (p.status === 403) setError(p.detail ?? t('errors.failed'))
+      else if (p.status === 422 && Object.keys(p.fields).length === 0) setError(p.detail ?? t('errors.failed'))
       else if (p.status !== 422) setError(t('errors.failed'))
       return false
     } finally {
@@ -136,6 +138,7 @@ export function AvatarSection({ viewer }: { viewer: Viewer }) {
         <UserAvatar of={{ user: viewer.id, version: viewer.avatarTextureId }} size={64} />
         <UserAvatar of={{ user: viewer.id, version: viewer.avatarTextureId }} size={64} cube className="bg-transparent" />
         <div className="flex flex-col gap-2">
+          <UserBadges badges={viewer.badges} />
           <ButtonLink variant="outline" size="sm" render={<Link href="/user/closet" />}>
             {t('chooseAvatar')}
           </ButtonLink>

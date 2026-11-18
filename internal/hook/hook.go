@@ -73,8 +73,13 @@ var catalog = struct {
 	sync.Mutex
 	defs map[string]Def
 	// decode turns an event's stored payload back into its type, for Bus.Deliver.
-	decode map[string]func(json.RawMessage) (any, error)
-}{defs: map[string]Def{}, decode: map[string]func(json.RawMessage) (any, error){}}
+	decode    map[string]func(json.RawMessage) (any, error)
+	dynFilter map[string]func(ctx context.Context, in any, fn func(context.Context, any, any) (any, error)) (any, error)
+}{
+	defs:      map[string]Def{},
+	decode:    map[string]func(json.RawMessage) (any, error){},
+	dynFilter: map[string]func(ctx context.Context, in any, fn func(context.Context, any, any) (any, error)) (any, error){},
+}
 
 func declare(d Def) Def {
 	if d.Timeout == 0 {
@@ -267,6 +272,9 @@ func (g Guard[P]) Handle(order int, fn func(ctx context.Context, p P) error) Reg
 // Check runs handlers in order. The first Rejection is returned as-is; other errors
 // follow the guard's fail policy.
 func (g Guard[P]) Check(ctx context.Context, b *Bus, p P) error {
+	if b == nil {
+		return nil
+	}
 	for _, h := range b.handlers(g.def.Name) {
 		_, err := b.call(ctx, g.def, h, p)
 		if err == nil {
@@ -294,8 +302,30 @@ type filterIn[V, P any] struct {
 
 // NewFilter declares a filter hook.
 func NewFilter[V, P any](name string, version int, doc string) Filter[V, P] {
-	return Filter[V, P]{def: declare(Def{Kind: KindFilter, Name: name, Version: version, Doc: doc,
-		Payload: reflect.TypeFor[P](), Value: reflect.TypeFor[V]()})}
+	d := declare(Def{Kind: KindFilter, Name: name, Version: version, Doc: doc,
+		Payload: reflect.TypeFor[P](), Value: reflect.TypeFor[V]()})
+	catalog.Lock()
+	catalog.dynFilter[name] = func(ctx context.Context, in any, fn func(context.Context, any, any) (any, error)) (any, error) {
+		x := in.(filterIn[V, P])
+		out, err := fn(ctx, x.v, x.p)
+		if err != nil {
+			return x.v, err
+		}
+		if typed, ok := out.(V); ok {
+			return typed, nil
+		}
+		raw, err := json.Marshal(out)
+		if err != nil {
+			return x.v, err
+		}
+		var typed V
+		if err := json.Unmarshal(raw, &typed); err != nil {
+			return x.v, err
+		}
+		return typed, nil
+	}
+	catalog.Unlock()
+	return Filter[V, P]{def: d}
 }
 
 // Def returns the catalog entry.
@@ -311,6 +341,9 @@ func (f Filter[V, P]) Handle(order int, fn func(ctx context.Context, v V, p P) (
 
 // Apply threads v through every handler; a failing handler is skipped (value unchanged).
 func (f Filter[V, P]) Apply(ctx context.Context, b *Bus, v V, p P) V {
+	if b == nil {
+		return v
+	}
 	for _, h := range b.handlers(f.def.Name) {
 		out, err := b.call(ctx, f.def, h, filterIn[V, P]{v: v, p: p})
 		if err != nil {
@@ -353,6 +386,9 @@ func (e Event[P]) Handle(order int, fn func(ctx context.Context, p P) error) Reg
 // best-effort: for process-local notices (settings.changed reaches each node through
 // its own reload). Changes to data use Publish.
 func (e Event[P]) Emit(b *Bus, p P) {
+	if b == nil {
+		return
+	}
 	hs := b.handlers(e.def.Name)
 	if len(hs) == 0 {
 		return
@@ -447,4 +483,75 @@ func (b *Bus) Deliver(ctx context.Context, payload json.RawMessage) error {
 		}
 	}
 	return errors.Join(errs...)
+}
+
+// DeclarePluginEvent registers a plugin-defined event ("plugin:<id>.<name>") idempotently
+// so plugins can emit and subscribe to custom cross-plugin events.
+func DeclarePluginEvent(name string) {
+	catalog.Lock()
+	defer catalog.Unlock()
+	if _, ok := catalog.defs[name]; ok {
+		return
+	}
+	catalog.defs[name] = Def{
+		Kind:    KindEvent,
+		Name:    name,
+		Version: 1,
+		Timeout: 30 * time.Second,
+		Payload: reflect.TypeFor[map[string]any](),
+	}
+	catalog.decode[name] = func(raw json.RawMessage) (any, error) {
+		var m map[string]any
+		err := json.Unmarshal(raw, &m)
+		return m, err
+	}
+}
+
+// EmitDynamic asynchronously emits a plugin-defined event to subscribed listeners.
+func EmitDynamic(b *Bus, name string, payload any) {
+	if b == nil {
+		return
+	}
+	DeclarePluginEvent(name)
+	e := Event[any]{def: Def{Kind: KindEvent, Name: name, Version: 1, Timeout: 30 * time.Second}}
+	e.Emit(b, payload)
+}
+
+// HandleGuardDynamic builds a Registration for a catalog guard by name.
+func HandleGuardDynamic(name string, order int, fn func(ctx context.Context, payload any) error) (Registration, error) {
+	d, ok := lookup(name)
+	if !ok || d.Kind != KindGuard {
+		return Registration{}, fmt.Errorf("unknown guard hook %q", name)
+	}
+	return Registration{h: handler{hook: name, order: order, fn: func(ctx context.Context, in any) (any, error) {
+		return nil, fn(ctx, in)
+	}}}, nil
+}
+
+// HandleFilterDynamic builds a Registration for a catalog filter by name.
+func HandleFilterDynamic(name string, order int, fn func(ctx context.Context, value, payload any) (any, error)) (Registration, error) {
+	catalog.Lock()
+	d, ok := catalog.defs[name]
+	wrap := catalog.dynFilter[name]
+	catalog.Unlock()
+	if !ok || d.Kind != KindFilter || wrap == nil {
+		return Registration{}, fmt.Errorf("unknown filter hook %q", name)
+	}
+	return Registration{h: handler{hook: name, order: order, fn: func(ctx context.Context, in any) (any, error) {
+		return wrap(ctx, in, fn)
+	}}}, nil
+}
+
+// HandleEventDynamic builds a Registration for a catalog or plugin-defined event by name.
+func HandleEventDynamic(name string, order int, fn func(ctx context.Context, payload any) error) (Registration, error) {
+	if strings.HasPrefix(name, "plugin:") {
+		DeclarePluginEvent(name)
+	}
+	d, ok := lookup(name)
+	if !ok || d.Kind != KindEvent {
+		return Registration{}, fmt.Errorf("unknown event hook %q", name)
+	}
+	return Registration{h: handler{hook: name, order: order, fn: func(ctx context.Context, in any) (any, error) {
+		return nil, fn(ctx, in)
+	}}}, nil
 }

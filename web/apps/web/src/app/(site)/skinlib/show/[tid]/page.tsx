@@ -10,6 +10,7 @@ import { cache } from 'react'
 import { WearOnPlayer } from '@/components/player/wear-on-player'
 import { ReportButton } from '@/components/texture/report-button'
 import { FavoriteButton, OwnerMenu } from '@/components/texture/texture-actions'
+import { UserBadges } from '@/components/user/user-badges'
 import { getBootstrap } from '@/lib/bootstrap'
 import { kb } from '@/lib/skin'
 import { layoutOf } from '@/lib/theme'
@@ -119,7 +120,10 @@ export default async function TexturePage({ params }: { params: Promise<{ tid: s
             >
               <UserAvatar of={{ user: x.uploader.id }} size={36} />
               <div className="flex min-w-0 flex-col">
-                <span className="truncate text-sm font-medium group-hover:text-primary">{x.uploader.nickname}</span>
+                <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                  <span className="truncate text-sm font-medium group-hover:text-primary">{x.uploader.nickname}</span>
+                  <UserBadges badges={x.uploader.badges} />
+                </span>
                 <span className="text-caption text-muted-foreground">
                   {t('uploadedOn', { date: format.dateTime(new Date(x.createdAt), { dateStyle: 'medium' }) })}
                 </span>

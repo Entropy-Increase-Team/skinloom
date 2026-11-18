@@ -24,6 +24,9 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
+	"github.com/Entropy-Increase-Team/skinloom/ent/plugin"
+	"github.com/Entropy-Increase-Team/skinloom/ent/plugindoc"
+	"github.com/Entropy-Increase-Team/skinloom/ent/pluginkv"
 	"github.com/Entropy-Increase-Team/skinloom/ent/report"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
@@ -108,6 +111,9 @@ func checkColumn(t, c string) error {
 			oauthgrant.Table:    oauthgrant.ValidColumn,
 			oauthtoken.Table:    oauthtoken.ValidColumn,
 			player.Table:        player.ValidColumn,
+			plugin.Table:        plugin.ValidColumn,
+			plugindoc.Table:     plugindoc.ValidColumn,
+			pluginkv.Table:      pluginkv.ValidColumn,
 			report.Table:        report.ValidColumn,
 			scoreentry.Table:    scoreentry.ValidColumn,
 			session.Table:       session.ValidColumn,

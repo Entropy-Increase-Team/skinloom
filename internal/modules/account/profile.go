@@ -33,30 +33,63 @@ var (
 type ProfileUpdate struct {
 	Nickname *string
 	Locale   *string
+	Form     map[string]any
 }
 
 // UpdateProfile changes a user's nickname and language preference. The language must
 // be one the site offers, or empty for "follow the browser" (S04: Blessing Skin stored
 // any ?lang value and then failed on every request).
 func (s *Service) UpdateProfile(ctx context.Context, userID int64, up ProfileUpdate, locales []string) (*ent.User, error) {
-	upd := s.db.User.UpdateOneID(userID)
 	var errs []error
+	var changed []string
+	var checks []hook.UserProfileUpdateGuard
 	if up.Nickname != nil {
-		if err := ValidateNickname(*up.Nickname); err != nil {
+		trimmed := strings.TrimSpace(*up.Nickname)
+		if err := ValidateNickname(trimmed); err != nil {
 			errs = append(errs, err)
 		}
-		upd.SetNickname(strings.TrimSpace(*up.Nickname))
+		changed = append(changed, "nickname")
+		checks = append(checks, hook.UserProfileUpdateGuard{UserID: userID, Field: "nickname", Value: trimmed, Form: up.Form})
 	}
 	if up.Locale != nil {
 		if *up.Locale != "" && !slices.Contains(locales, *up.Locale) {
 			errs = append(errs, &FieldError{Field: "locale", Message: "unsupported language"})
 		}
-		upd.SetLocale(*up.Locale)
+		changed = append(changed, "locale")
+		checks = append(checks, hook.UserProfileUpdateGuard{UserID: userID, Field: "locale", Value: *up.Locale, Form: up.Form})
 	}
 	if err := errors.Join(errs...); err != nil {
 		return nil, err
 	}
-	return upd.Save(ctx)
+	if len(checks) == 0 && len(up.Form) > 0 {
+		checks = append(checks, hook.UserProfileUpdateGuard{UserID: userID, Field: "form", Form: up.Form})
+	}
+	for _, c := range checks {
+		if err := hook.GuardUserProfileUpdate.Check(ctx, s.hooks, c); err != nil {
+			return nil, err
+		}
+	}
+	var u *ent.User
+	err := db.WithTx(ctx, s.db, func(tx *ent.Client) error {
+		upd := tx.User.UpdateOneID(userID)
+		if up.Nickname != nil {
+			upd.SetNickname(strings.TrimSpace(*up.Nickname))
+		}
+		if up.Locale != nil {
+			upd.SetLocale(*up.Locale)
+		}
+		var err error
+		if u, err = upd.Save(ctx); err != nil {
+			return err
+		}
+		if len(changed) > 0 {
+			if err := hook.OnUserUpdated.Publish(ctx, s.hooks, tx, hook.UserUpdatedEvent{UserID: userID, Fields: changed}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	return u, err
 }
 
 // checkPassword verifies the signed-in user's password before a sensitive change.
@@ -93,6 +126,12 @@ func (s *Service) ChangePassword(ctx context.Context, v *Viewer, current, next s
 	if err := ValidatePassword(next); err != nil {
 		return &FieldError{Field: "newPassword", Message: err.(*FieldError).Message}
 	}
+	if err := hook.GuardUserProfileUpdate.Check(ctx, s.hooks, hook.UserProfileUpdateGuard{
+		UserID: v.User.ID,
+		Field:  "password",
+	}); err != nil {
+		return err
+	}
 	hash, err := s.hasher.Hash(ctx, next)
 	if err != nil {
 		return err
@@ -107,6 +146,9 @@ func (s *Service) ChangePassword(ctx context.Context, v *Viewer, current, next s
 			return err
 		}
 		if err := spendTokens(ctx, tx, v.User.ID, now, authtoken.PurposeResetPassword); err != nil {
+			return err
+		}
+		if err := hook.OnUserUpdated.Publish(ctx, s.hooks, tx, hook.UserUpdatedEvent{UserID: v.User.ID, Fields: []string{"password"}}); err != nil {
 			return err
 		}
 		return audit(ctx, tx, &v.User.ID, "account.password_changed", "user", strconv.FormatInt(v.User.ID, 10), meta.IP, nil)
@@ -126,6 +168,13 @@ func (s *Service) ChangeEmail(ctx context.Context, v *Viewer, password, email st
 	old := v.User
 	if email == old.Email {
 		return nil, &FieldError{Field: "email", Message: "this is already your email"}
+	}
+	if err := hook.GuardUserProfileUpdate.Check(ctx, s.hooks, hook.UserProfileUpdateGuard{
+		UserID: old.ID,
+		Field:  "email",
+		Value:  email,
+	}); err != nil {
+		return nil, err
 	}
 	sameAddress := NormalizeEmail(email) == old.EmailNormalized // only the case changed
 	// "Already registered" tells whether an address has an account; without a budget
@@ -167,6 +216,9 @@ func (s *Service) ChangeEmail(ctx context.Context, v *Viewer, password, email st
 					return err
 				}
 			}
+		}
+		if err := hook.OnUserUpdated.Publish(ctx, s.hooks, tx, hook.UserUpdatedEvent{UserID: old.ID, Fields: []string{"email"}}); err != nil {
+			return err
 		}
 		return audit(ctx, tx, &old.ID, "account.email_changed", "user", strconv.FormatInt(old.ID, 10), meta.IP,
 			map[string]any{"from": old.Email, "to": email})

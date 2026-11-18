@@ -20,6 +20,7 @@ type RegisterInput struct {
 	Email    string
 	Nickname string
 	Password string
+	Form     map[string]any
 }
 
 // Register creates an ordinary account and signs it in. The caller has already
@@ -51,6 +52,14 @@ func (s *Service) Register(ctx context.Context, in RegisterInput, p RegisterPoli
 	if taken, err := s.db.User.Query().Where(user.EmailNormalized(NormalizeEmail(in.Email))).Exist(ctx); err != nil || taken {
 		return nil, nil, cmp.Or(err, error(&FieldError{Field: "email", Message: "already registered"}))
 	}
+	if err := hook.GuardAuthRegister.Check(ctx, s.hooks, hook.AuthRegisterGuard{
+		Email:    strings.TrimSpace(in.Email),
+		Nickname: strings.TrimSpace(in.Nickname),
+		IP:       meta.IP,
+		Form:     in.Form,
+	}); err != nil {
+		return nil, nil, err
+	}
 	hash, err := s.hasher.Hash(ctx, in.Password)
 	if err != nil {
 		return nil, nil, err
@@ -77,7 +86,7 @@ func (s *Service) Register(ctx context.Context, in RegisterInput, p RegisterPoli
 			return err
 		}
 		if p.InitialScore > 0 {
-			if u.Score, err = score.Apply(ctx, tx, score.Change{UserID: u.ID, Delta: p.InitialScore, Reason: score.ReasonRegister}); err != nil {
+			if u.Score, err = score.Apply(ctx, tx, score.Change{UserID: u.ID, Delta: p.InitialScore, Reason: score.ReasonRegister, Hooks: s.hooks}); err != nil {
 				return err
 			}
 		}
@@ -89,7 +98,11 @@ func (s *Service) Register(ctx context.Context, in RegisterInput, p RegisterPoli
 				return err
 			}
 		}
-		if err := hook.OnUserRegistered.Publish(ctx, s.hooks, tx, hook.UserEvent{UserID: u.ID, Method: "password"}); err != nil {
+		if err := hook.OnUserRegistered.Publish(ctx, s.hooks, tx, hook.UserEvent{
+			UserID: u.ID,
+			Method: "password",
+			Form:   hook.RedactForm(in.Form),
+		}); err != nil {
 			return err
 		}
 		return audit(ctx, tx, &u.ID, "auth.register", "user", strconv.FormatInt(u.ID, 10), meta.IP, nil)

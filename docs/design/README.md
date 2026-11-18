@@ -11,3 +11,5 @@ SkinLoom 立项阶段的分析与方案，记录的是动工前的设想。实�
 | [05 插件与主题开发体系](05-plugin-theme-standard.md) | 插件 API 1.0 规范草案 |
 | [06 文档与日志体系](06-docs-and-logs.md) | 文档、更新日志、开发日志、ADR 的维护规则 |
 | [07 前端重构方案](07-frontend-redesign.md) | 设计系统、组件库、页面重构与主题系统扩展（草案）；规则见 `web/design.md` |
+| [08 安装与迁移引导方案](08-setup-wizard-plan.md) | Pre-Core 启动模式、交互式安装向导与 BS 只读桥接迁移方案 |
+| [09 插件平台与主题系统实施方案](09-plugin-platform-plan.md) | v2.0 插件平台、JS 沙箱、SDK/CLI、组件覆盖、静态签名市场与首批官方插件完整开发顺序与执行方案 |

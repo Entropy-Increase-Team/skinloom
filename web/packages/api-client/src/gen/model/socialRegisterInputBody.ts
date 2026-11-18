@@ -5,12 +5,15 @@
  * SkinLoom (云织) REST API. Game protocols (CSL/USM/Legacy/Yggdrasil) are documented separately.
  * OpenAPI spec version: 0.0.0-dev
  */
+import type { SocialRegisterInputBodyForm } from './socialRegisterInputBodyForm';
 
 export interface SocialRegisterInputBody {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
   /** @maxLength 255 */
   email: string;
+  /** Optional plugin extension form fields */
+  form?: SocialRegisterInputBodyForm;
   /** @maxLength 255 */
   nickname: string;
 }

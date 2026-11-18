@@ -284,7 +284,7 @@ func (s *Service) AdminUpdateUser(ctx context.Context, a Actor, id int64, up Adm
 		// the administrator as the actor (design 02 F31).
 		if up.Score != nil && *up.Score != u.Score {
 			if u.Score, err = score.Apply(ctx, tx, score.Change{UserID: id, Delta: *up.Score - u.Score,
-				Reason: score.ReasonAdmin, Actor: actorID(a)}); err != nil {
+				Reason: score.ReasonAdmin, Actor: actorID(a), Hooks: s.hooks}); err != nil {
 				return err
 			}
 		}
@@ -326,6 +326,11 @@ func (s *Service) AdminUpdateUser(ctx context.Context, a Actor, id int64, up Adm
 		// must see the change either way.
 		if up.Status != nil && user.Status(*up.Status) != target.Status {
 			if err := s.announcePlayers(ctx, tx, id, hook.OnPlayerUpdated); err != nil {
+				return err
+			}
+		}
+		if len(changed) > 0 {
+			if err := hook.OnUserUpdated.Publish(ctx, s.hooks, tx, hook.UserUpdatedEvent{UserID: id, Fields: changed}); err != nil {
 				return err
 			}
 		}

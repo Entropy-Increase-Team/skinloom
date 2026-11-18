@@ -107,8 +107,9 @@ type socialRegisterInput struct {
 	Session   string `cookie:"skinloom_session"`
 	Cookie    string `cookie:"skinloom_social"`
 	Body      struct {
-		Email    string `json:"email" maxLength:"255"`
-		Nickname string `json:"nickname" maxLength:"255"`
+		Email    string         `json:"email" maxLength:"255"`
+		Nickname string         `json:"nickname" maxLength:"255"`
+		Form     map[string]any `json:"form,omitempty" doc:"Optional plugin extension form fields"`
 	}
 }
 
@@ -207,7 +208,7 @@ func registerSocial(api huma.API, d Deps) {
 			snap := d.Settings.Current()
 			policy, _ := account.PoliciesFrom(snap, captcha.ConfigFrom(snap).Enabled())
 			u, sess, _, err := d.Social.Register(ctx, social.PolicyFrom(snap),
-				social.RegisterInput{Cookie: in.Cookie, Email: in.Body.Email, Nickname: in.Body.Nickname},
+				social.RegisterInput{Cookie: in.Cookie, Email: in.Body.Email, Nickname: in.Body.Nickname, Form: in.Body.Form},
 				policy, mailContext(d, ri), ri.meta(in.UserAgent))
 			switch {
 			case errors.Is(err, account.ErrRegistrationClosed):
@@ -222,7 +223,7 @@ func registerSocial(api huma.API, d Deps) {
 				return nil, apiError(err)
 			}
 			replaceSession(context.WithoutCancel(ctx), d, in.Session)
-			return &userOutput{SetCookie: sessionCookie(sess, ri), Body: userView(u)}, nil
+			return &userOutput{SetCookie: sessionCookie(sess, ri), Body: userViewWithBadges(ctx, d, u)}, nil
 		})
 
 	huma.Register(api, op("linkSocialPending", http.MethodPost, "/api/v1/auth/social/pending/link", "Link the provider account to yours",

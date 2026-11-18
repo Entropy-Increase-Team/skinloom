@@ -20,9 +20,11 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/ent/yggsession"
 	"github.com/Entropy-Increase-Team/skinloom/ent/yggtoken"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
 )
 
@@ -90,30 +92,64 @@ func byUUID(id string) func(*ent.PlayerQuery) {
 func (s *Service) profile(ctx context.Context, p *ent.Player, base string, signed bool) (*Profile, error) {
 	payload := texturesPayload{Timestamp: p.UpdatedAt.UnixMilli(), ProfileID: p.UUID, ProfileName: p.Name,
 		IsPublic: true, SignatureRequired: signed, Textures: map[string]textureRef{}}
+	pt := hook.ProfileTextures{}
 	if t := p.Edges.Skin; t != nil {
-		ref := textureRef{URL: base + "/textures/" + t.Hash}
+		pt.SkinHash = t.Hash
 		if t.Type == tex.TypeAlex {
+			pt.SkinModel = "slim"
+		} else {
+			pt.SkinModel = "default"
+		}
+	}
+	if t := p.Edges.Cape; t != nil {
+		pt.CapeHash = t.Hash
+	}
+	pt = hook.FilterProfileTextures.Apply(ctx, s.hooks, pt, hook.ProfileTexturesFilterContext{
+		PlayerID: p.ID,
+		Name:     p.Name,
+		UUID:     p.UUID,
+		Protocol: "yggdrasil",
+	})
+	if pt.SkinHash != "" {
+		ref := textureRef{URL: base + "/textures/" + pt.SkinHash}
+		if pt.SkinModel == "slim" || pt.SkinModel == "alex" {
 			ref.Metadata = map[string]string{"model": "slim"}
 		}
 		payload.Textures["SKIN"] = ref
 	}
-	if t := p.Edges.Cape; t != nil {
-		payload.Textures["CAPE"] = textureRef{URL: base + "/textures/" + t.Hash}
+	if pt.CapeHash != "" {
+		payload.Textures["CAPE"] = textureRef{URL: base + "/textures/" + pt.CapeHash}
 	}
 	raw, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
 	}
-	out := &Profile{ID: p.UUID, Name: p.Name, Properties: []Property{
+	props := []hook.YggProperty{
 		{Name: "textures", Value: base64.StdEncoding.EncodeToString(raw)},
 		{Name: "uploadableTextures", Value: "skin,cape"},
-	}}
+	}
 	if signed {
-		for i := range out.Properties {
-			if out.Properties[i].Signature, err = s.sign(ctx, out.Properties[i].Value); err != nil {
+		for i := range props {
+			if props[i].Signature, err = s.sign(ctx, props[i].Value); err != nil {
 				return nil, err
 			}
 		}
+	}
+	props = hook.FilterYggdrasilProfileProperties.Apply(ctx, s.hooks, props, hook.YggPropertiesFilterContext{
+		PlayerID: p.ID,
+		UUID:     p.UUID,
+		Name:     p.Name,
+		Signed:   signed,
+	})
+	out := &Profile{ID: p.UUID, Name: p.Name, Properties: make([]Property, len(props))}
+	for i, prop := range props {
+		sig := prop.Signature
+		if signed && sig == "" {
+			if sig, err = s.sign(ctx, prop.Value); err != nil {
+				return nil, err
+			}
+		}
+		out.Properties[i] = Property{Name: prop.Name, Value: prop.Value, Signature: sig}
 	}
 	return out, nil
 }
@@ -172,6 +208,34 @@ func (s *Service) Join(ctx context.Context, token, selectedProfile, serverID, ip
 	id, _ := normalizeUUID(selectedProfile)
 	if t.player == nil || t.player.UUID != id {
 		return errInvalidToken
+	}
+	if err := hook.GuardYggdrasilJoin.Check(ctx, s.hooks, hook.YggdrasilJoinGuard{
+		UserID:   t.user.ID,
+		PlayerID: t.player.ID,
+		UUID:     t.player.UUID,
+		ServerID: serverID,
+		IP:       ip,
+	}); err != nil {
+		if r, ok := hook.AsRejection(err); ok {
+			return forbidden(r.Reason)
+		}
+		return err
+	}
+	if hook.OnYggdrasilJoined.Listening(s.hooks) {
+		return db.WithTx(ctx, s.db, func(tx *ent.Client) error {
+			if err := tx.YggSession.Create().SetServerID(serverID).SetPlayerID(t.player.ID).SetIP(ip).
+				SetExpiresAt(s.now().Add(JoinWindow)).
+				OnConflictColumns(yggsession.FieldServerID).UpdateNewValues().Exec(ctx); err != nil {
+				return err
+			}
+			return hook.OnYggdrasilJoined.Publish(ctx, s.hooks, tx, hook.YggdrasilJoinedEvent{
+				UserID:   t.user.ID,
+				PlayerID: t.player.ID,
+				UUID:     t.player.UUID,
+				ServerID: serverID,
+				IP:       ip,
+			})
+		})
 	}
 	return s.db.YggSession.Create().SetServerID(serverID).SetPlayerID(t.player.ID).SetIP(ip).
 		SetExpiresAt(s.now().Add(JoinWindow)).

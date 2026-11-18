@@ -13,8 +13,9 @@ import (
 
 type updateMeInput struct {
 	Body struct {
-		Nickname *string `json:"nickname,omitempty" maxLength:"128"`
-		Locale   *string `json:"locale,omitempty" maxLength:"16" doc:"One of the site's languages, or empty to follow the browser"`
+		Nickname *string        `json:"nickname,omitempty" maxLength:"128"`
+		Locale   *string        `json:"locale,omitempty" maxLength:"16" doc:"One of the site's languages, or empty to follow the browser"`
+		Form     map[string]any `json:"form,omitempty" doc:"Optional plugin extension form fields"`
 	}
 }
 
@@ -95,11 +96,11 @@ func registerMe(api huma.API, d Deps) {
 			if err != nil {
 				return nil, err
 			}
-			u, err := d.Accounts.UpdateProfile(ctx, v.User.ID, account.ProfileUpdate{Nickname: in.Body.Nickname, Locale: in.Body.Locale}, locales)
+			u, err := d.Accounts.UpdateProfile(ctx, v.User.ID, account.ProfileUpdate{Nickname: in.Body.Nickname, Locale: in.Body.Locale, Form: in.Body.Form}, locales)
 			if err != nil {
 				return nil, apiError(err)
 			}
-			return &struct{ Body UserView }{userView(u)}, nil
+			return &struct{ Body UserView }{userViewWithBadges(ctx, d, u)}, nil
 		})
 
 	huma.Register(api, op("changePassword", http.MethodPost, "/api/v1/me/password", "Change your password", http.StatusNoContent),
@@ -122,7 +123,7 @@ func registerMe(api huma.API, d Deps) {
 			if err != nil {
 				return nil, profileError(err)
 			}
-			return &struct{ Body UserView }{userView(u)}, nil
+			return &struct{ Body UserView }{userViewWithBadges(ctx, d, u)}, nil
 		})
 
 	huma.Register(api, op("listSessions", http.MethodGet, "/api/v1/me/sessions", "Your signed-in devices", 0),

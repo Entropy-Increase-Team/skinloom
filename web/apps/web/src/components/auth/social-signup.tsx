@@ -87,6 +87,7 @@ export function SocialSignup({ signedInAs, mail }: { signedInAs?: string; mail: 
       if (p.status === 429) setError(t('pending.tooMany'))
       else if (p.status === 404) setError(t('pending.expired'))
       else if (p.status === 403) setError(t('pending.closed'))
+      else if (p.status === 422 && Object.keys(p.fields).length === 0) setError(p.detail ?? t('errors.failed'))
       else if (p.status !== 422) setError(t('errors.failed'))
       setBusy(false)
     }

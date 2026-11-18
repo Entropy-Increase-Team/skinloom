@@ -35,8 +35,9 @@ export function SignInCard({ sign }: { sign: SignInfo }) {
       toast.success(t('gained', { score: res.gained }))
       router.refresh()
     } catch (err) {
-      const early = problemOf(err).status === 409
-      toast.error(early ? t('tooEarly') : t('failed'))
+      const p = problemOf(err)
+      const early = p.status === 409
+      toast.error(early ? t('tooEarly') : p.status === 422 && p.detail ? p.detail : t('failed'))
       if (early) router.refresh()
     } finally {
       setPending(false)

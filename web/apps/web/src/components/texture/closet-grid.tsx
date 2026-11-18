@@ -40,6 +40,8 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 
+import { problemOf } from '@/lib/problem'
+
 type Category = 'skin' | 'cape'
 
 /** The signed-in user's closet: skins or capes, searchable by item name. */
@@ -92,8 +94,9 @@ export function ClosetGrid() {
       const { refunded } = (await removeFromCloset(item.texture.id)).data as Unfavorited
       update(item, null)
       toast.success(refunded > 0 ? t('removedRefund', { score: refunded }) : t('removed'))
-    } catch {
-      toast.error(t('changeFailed'))
+    } catch (err) {
+      const p = problemOf(err)
+      toast.error(p.status === 422 && p.detail ? p.detail : t('changeFailed'))
     }
   }
 
@@ -102,8 +105,9 @@ export function ClosetGrid() {
       await setAvatar({ textureId: item.texture.id })
       toast.success(t('avatarSet', { name: item.name }))
       router.refresh() // the header shows the new avatar
-    } catch {
-      toast.error(t('changeFailed'))
+    } catch (err) {
+      const p = problemOf(err)
+      toast.error(p.status === 422 && p.detail ? p.detail : t('changeFailed'))
     }
   }
 
@@ -254,8 +258,9 @@ function RenameForm({ item, onDone, cancel, save }: { item: ClosetItemView; onDo
     setPending(true)
     try {
       onDone((await renameClosetItem(item.texture.id, { name })).data as ClosetItemView)
-    } catch {
-      toast.error(t('changeFailed'))
+    } catch (err) {
+      const p = problemOf(err)
+      toast.error(p.status === 422 && p.detail ? p.detail : t('changeFailed'))
       setPending(false)
     }
   }

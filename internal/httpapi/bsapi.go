@@ -18,6 +18,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	tex "github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/notify"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/oauth"
@@ -263,6 +264,10 @@ func bsVerified(d Deps, fn bsHandler) bsHandler {
 }
 
 func bsServerError(w http.ResponseWriter, d Deps, err error) {
+	if r, ok := hook.AsRejection(err); ok {
+		bsResult(w, 1, r.Reason, nil)
+		return
+	}
 	d.Log.Error("resource api", "err", err)
 	bsFail(w, http.StatusInternalServerError, "Server Error")
 }

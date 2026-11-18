@@ -119,9 +119,29 @@ var errMoved = errors.New("the player changed meanwhile")
 func (s *Service) Edit(ctx context.Context, id int64, c Change, p Policy, rec *audit.Entry) (*ent.Player, error) {
 	var name string
 	if c.Name != nil {
-		name = strings.TrimSpace(*c.Name)
+		cur, err := s.db.Player.Get(ctx, id)
+		if ent.IsNotFound(err) || (err == nil && c.Owner != 0 && cur.UserID != c.Owner) {
+			return nil, ErrNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
+		name = strings.TrimSpace(hook.FilterPlayerName.Apply(ctx, s.hooks, strings.TrimSpace(*c.Name), hook.PlayerNameFilterContext{
+			UserID:   cur.UserID,
+			PlayerID: &id,
+		}))
 		if err := ValidateName(name, p); err != nil {
 			return nil, err
+		}
+		if name != cur.Name {
+			if err := hook.GuardPlayerRename.Check(ctx, s.hooks, hook.PlayerRenameGuard{
+				UserID:   cur.UserID,
+				PlayerID: id,
+				OldName:  cur.Name,
+				NewName:  name,
+			}); err != nil {
+				return nil, err
+			}
 		}
 	}
 	for range 3 {

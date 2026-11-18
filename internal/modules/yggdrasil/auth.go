@@ -17,6 +17,7 @@ import (
 	entplayer "github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/ent/yggtoken"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
@@ -182,6 +183,16 @@ func (s *Service) Authenticate(ctx context.Context, in AuthRequest, p Policy, me
 	}
 	if p.RequireVerified && u.EmailVerifiedAt == nil { // as Blessing Skin's yggdrasil-api plugin
 		return nil, errUnverified
+	}
+	if err := hook.GuardYggdrasilAuthenticate.Check(ctx, s.hooks, hook.YggdrasilAuthGuard{
+		UserID:     u.ID,
+		Identifier: strings.TrimSpace(in.Username),
+		IP:         meta.IP,
+	}); err != nil {
+		if r, ok := hook.AsRejection(err); ok {
+			return nil, forbidden(r.Reason)
+		}
+		return nil, err
 	}
 	refs, players, err := s.profilesOf(ctx, u.ID)
 	if err != nil {

@@ -22,6 +22,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/sitesecret"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
@@ -110,6 +111,7 @@ type Service struct {
 	players  *player.Service
 	textures *texture.Service
 	log      *slog.Logger
+	hooks    *hook.Bus
 	now      func() time.Time
 
 	// KeyBits is the size of a generated signing key: 4096 as the contract asks
@@ -128,6 +130,9 @@ func NewService(db *ent.Client, accounts *account.Service, players *player.Servi
 	return &Service{db: db, accounts: accounts, players: players, textures: textures, log: log, now: time.Now,
 		KeyBits: 4096, sigs: map[string]string{}}
 }
+
+// SetHooks attaches the hook bus used by Yggdrasil guards, filters and events.
+func (s *Service) SetHooks(b *hook.Bus) { s.hooks = b }
 
 // keys are the site's Yggdrasil secrets, kept in site_secrets (shared by every
 // instance, backed up with the database).

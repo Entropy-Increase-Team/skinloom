@@ -52,7 +52,7 @@ export function ReportButton({ textureId, rates }: { textureId: number; rates: S
       await reportTexture(textureId, { reason: reason.trim() })
       sent()
     } catch (err) {
-      const { status, unverified } = problemOf(err)
+      const { status, detail, unverified } = problemOf(err)
       if (status === 409) sent() // reported already: same outcome for the user
       else
         setError(
@@ -64,7 +64,9 @@ export function ReportButton({ textureId, rates }: { textureId: number; rates: S
                 ? t('errors.own')
                 : status === 429
                   ? t('errors.tooMany')
-                  : t('errors.failed'),
+                  : status === 422 && detail
+                    ? detail
+                    : t('errors.failed'),
         )
     } finally {
       setPending(false)

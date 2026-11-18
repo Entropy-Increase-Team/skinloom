@@ -14,6 +14,7 @@ import (
 	"database/sql"
 	"flag"
 	"log"
+	"os"
 	"path/filepath"
 
 	atlasmigrate "ariga.io/atlas/sql/migrate"
@@ -58,6 +59,10 @@ func main() {
 		}
 		return
 	}
+	if !*rehash && *name == "" && flag.NFlag() == 0 {
+		verifyAll(*rootDir)
+		return
+	}
 	if *name == "" {
 		log.Fatal("-name is required")
 	}
@@ -92,5 +97,67 @@ func main() {
 	)
 	if err != nil {
 		log.Fatalf("generate migration: %v", err)
+	}
+}
+
+// verifyAll checks atlas.sum integrity across all three dialects and ensures ent/schema
+// has no un-migrated drift against the embedded SQLite migrations without mutating disk.
+func verifyAll(rootDir string) {
+	for _, d := range []string{"sqlite", "mysql", "postgres"} {
+		dir, err := sqltool.NewGooseDir(filepath.Join(rootDir, d))
+		if err != nil {
+			log.Fatalf("open %s migration dir: %v", d, err)
+		}
+		if err := atlasmigrate.Validate(dir); err != nil {
+			log.Fatalf("%s atlas.sum validation failed: %v", d, err)
+		}
+	}
+
+	tmpDir, err := os.MkdirTemp("", "skinloom-migdiff-*")
+	if err != nil {
+		log.Fatalf("create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	srcDir := filepath.Join(rootDir, "sqlite")
+	entries, err := os.ReadDir(srcDir)
+	if err != nil {
+		log.Fatalf("read sqlite migrations: %v", err)
+	}
+	before := 0
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(srcDir, e.Name()))
+		if err != nil {
+			log.Fatalf("read %s: %v", e.Name(), err)
+		}
+		if err := os.WriteFile(filepath.Join(tmpDir, e.Name()), data, 0o644); err != nil {
+			log.Fatalf("copy %s: %v", e.Name(), err)
+		}
+		before++
+	}
+	dir, err := sqltool.NewGooseDir(tmpDir)
+	if err != nil {
+		log.Fatalf("open temp sqlite dir: %v", err)
+	}
+	err = migrate.NamedDiff(context.Background(), "sqlite://dev?mode=memory&_pragma=foreign_keys(1)", "drift",
+		schema.WithDir(dir),
+		schema.WithMigrationMode(schema.ModeReplay),
+		schema.WithDialect(dialect.SQLite),
+		schema.WithFormatter(sqltool.GooseFormatter),
+		schema.WithDropColumn(true),
+		schema.WithDropIndex(true),
+	)
+	if err != nil {
+		log.Fatalf("sqlite drift diff: %v", err)
+	}
+	afterEntries, err := os.ReadDir(tmpDir)
+	if err != nil {
+		log.Fatalf("read temp dir: %v", err)
+	}
+	if len(afterEntries) != before {
+		log.Fatalf("ent/schema has un-migrated sqlite drift (%d -> %d files)", before, len(afterEntries))
 	}
 }

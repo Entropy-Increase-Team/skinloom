@@ -460,6 +460,136 @@ var (
 			},
 		},
 	}
+	// PluginsColumns holds the columns for the "plugins" table.
+	PluginsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Size: 40},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"plugin", "theme"}, Default: "plugin"},
+		{Name: "version", Type: field.TypeString, Size: 64},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"enabled", "disabled", "failed"}, Default: "disabled"},
+		{Name: "granted_permissions", Type: field.TypeJSON, Nullable: true},
+		{Name: "settings", Type: field.TypeJSON, Nullable: true},
+		{Name: "error", Type: field.TypeString, Nullable: true, Size: 1024, Default: ""},
+		{Name: "source", Type: field.TypeString, Size: 32, Default: "package"},
+		{Name: "package_sha256", Type: field.TypeString, Nullable: true, Size: 64},
+		{Name: "installed_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+	}
+	// PluginsTable holds the schema information for the "plugins" table.
+	PluginsTable = &schema.Table{
+		Name:       "plugins",
+		Columns:    PluginsColumns,
+		PrimaryKey: []*schema.Column{PluginsColumns[0]},
+	}
+	// PluginDocsColumns holds the columns for the "plugin_docs" table.
+	PluginDocsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "plugin", Type: field.TypeString, Size: 40},
+		{Name: "collection", Type: field.TypeString, Size: 64},
+		{Name: "doc_id", Type: field.TypeString, Size: 64},
+		{Name: "data", Type: field.TypeJSON},
+		{Name: "u1", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "u2", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "s1", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "s2", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "s3", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "n1", Type: field.TypeFloat64, Nullable: true},
+		{Name: "n2", Type: field.TypeFloat64, Nullable: true},
+		{Name: "n3", Type: field.TypeFloat64, Nullable: true},
+		{Name: "t1", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "t2", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+	}
+	// PluginDocsTable holds the schema information for the "plugin_docs" table.
+	PluginDocsTable = &schema.Table{
+		Name:       "plugin_docs",
+		Columns:    PluginDocsColumns,
+		PrimaryKey: []*schema.Column{PluginDocsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "plugindoc_plugin_collection_doc_id",
+				Unique:  true,
+				Columns: []*schema.Column{PluginDocsColumns[1], PluginDocsColumns[2], PluginDocsColumns[3]},
+			},
+			{
+				Name:    "plugindoc_plugin_collection_u1",
+				Unique:  true,
+				Columns: []*schema.Column{PluginDocsColumns[1], PluginDocsColumns[2], PluginDocsColumns[5]},
+			},
+			{
+				Name:    "plugindoc_plugin_collection_u2",
+				Unique:  true,
+				Columns: []*schema.Column{PluginDocsColumns[1], PluginDocsColumns[2], PluginDocsColumns[6]},
+			},
+			{
+				Name:    "plugindoc_plugin_collection_s1",
+				Unique:  false,
+				Columns: []*schema.Column{PluginDocsColumns[1], PluginDocsColumns[2], PluginDocsColumns[7]},
+			},
+			{
+				Name:    "plugindoc_plugin_collection_s2",
+				Unique:  false,
+				Columns: []*schema.Column{PluginDocsColumns[1], PluginDocsColumns[2], PluginDocsColumns[8]},
+			},
+			{
+				Name:    "plugindoc_plugin_collection_s3",
+				Unique:  false,
+				Columns: []*schema.Column{PluginDocsColumns[1], PluginDocsColumns[2], PluginDocsColumns[9]},
+			},
+			{
+				Name:    "plugindoc_plugin_collection_n1",
+				Unique:  false,
+				Columns: []*schema.Column{PluginDocsColumns[1], PluginDocsColumns[2], PluginDocsColumns[10]},
+			},
+			{
+				Name:    "plugindoc_plugin_collection_n2",
+				Unique:  false,
+				Columns: []*schema.Column{PluginDocsColumns[1], PluginDocsColumns[2], PluginDocsColumns[11]},
+			},
+			{
+				Name:    "plugindoc_plugin_collection_n3",
+				Unique:  false,
+				Columns: []*schema.Column{PluginDocsColumns[1], PluginDocsColumns[2], PluginDocsColumns[12]},
+			},
+			{
+				Name:    "plugindoc_plugin_collection_t1",
+				Unique:  false,
+				Columns: []*schema.Column{PluginDocsColumns[1], PluginDocsColumns[2], PluginDocsColumns[13]},
+			},
+			{
+				Name:    "plugindoc_plugin_collection_t2",
+				Unique:  false,
+				Columns: []*schema.Column{PluginDocsColumns[1], PluginDocsColumns[2], PluginDocsColumns[14]},
+			},
+		},
+	}
+	// PluginKvColumns holds the columns for the "plugin_kv" table.
+	PluginKvColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "plugin", Type: field.TypeString, Size: 40},
+		{Name: "key", Type: field.TypeString, Size: 255},
+		{Name: "value", Type: field.TypeJSON},
+		{Name: "expires_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+	}
+	// PluginKvTable holds the schema information for the "plugin_kv" table.
+	PluginKvTable = &schema.Table{
+		Name:       "plugin_kv",
+		Columns:    PluginKvColumns,
+		PrimaryKey: []*schema.Column{PluginKvColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "pluginkv_plugin_key",
+				Unique:  true,
+				Columns: []*schema.Column{PluginKvColumns[1], PluginKvColumns[2]},
+			},
+			{
+				Name:    "pluginkv_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{PluginKvColumns[4]},
+			},
+		},
+	}
 	// ReportsColumns holds the columns for the "reports" table.
 	ReportsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -926,6 +1056,9 @@ var (
 		OauthGrantsTable,
 		OauthTokensTable,
 		PlayersTable,
+		PluginsTable,
+		PluginDocsTable,
+		PluginKvTable,
 		ReportsTable,
 		ScoreLedgerTable,
 		SessionsTable,
@@ -993,6 +1126,15 @@ func init() {
 	PlayersTable.ForeignKeys[2].RefTable = UsersTable
 	PlayersTable.Annotation = &entsql.Annotation{
 		Table: "players",
+	}
+	PluginsTable.Annotation = &entsql.Annotation{
+		Table: "plugins",
+	}
+	PluginDocsTable.Annotation = &entsql.Annotation{
+		Table: "plugin_docs",
+	}
+	PluginKvTable.Annotation = &entsql.Annotation{
+		Table: "plugin_kv",
 	}
 	ReportsTable.ForeignKeys[0].RefTable = TexturesTable
 	ReportsTable.ForeignKeys[1].RefTable = UsersTable

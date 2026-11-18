@@ -85,11 +85,16 @@ func newTestDepsDir(t *testing.T) (Deps, string) {
 		t.Fatal(err)
 	}
 	textures := texture.NewService(database.Ent, store, log)
-	deps := Deps{Log: log, DB: database, Settings: svc, Themes: themeReg, Broker: broker, AdminToken: testToken,
+	deps := Deps{Log: log, DB: database, Settings: svc, Themes: themeReg, Broker: broker, Bus: bus, AdminToken: testToken,
 		Accounts: account.NewService(database.Ent, log), Captcha: captcha.NewService(captcha.Options{}), Mailer: mail.New(log),
 		Textures: textures, Players: player.NewService(database.Ent, log), Reports: report.NewService(database.Ent, textures, log),
 		Renders: render.NewService(2, 1<<20), Notify: notify.NewService(database.Ent, log)}
+	deps.Accounts.SetHooks(bus)
+	deps.Textures.SetHooks(bus)
+	deps.Players.SetHooks(bus)
+	deps.Reports.SetHooks(bus)
 	deps.Yggdrasil = yggdrasil.NewService(database.Ent, deps.Accounts, deps.Players, textures, log)
+	deps.Yggdrasil.SetHooks(bus)
 	deps.OAuth = oauth.NewService(database.Ent, log)
 	deps.Social = social.NewService(database.Ent, deps.Accounts, log)
 	deps.CDN = cdn.NewService(bus, svc, log)

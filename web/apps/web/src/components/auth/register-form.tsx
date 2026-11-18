@@ -57,7 +57,7 @@ export function RegisterForm({ captcha }: { captcha: CaptchaInfo }) {
         ),
       )
       const key = { 403: 'closed', 429: 'tooMany', 503: 'captchaDown' }[p.status] ?? (p.status === 422 ? null : 'failed')
-      setError(key ? t(`errors.${key}` as 'errors.failed') : null)
+      setError(key ? t(`errors.${key}` as 'errors.failed') : p.status === 422 && Object.keys(p.fields).length === 0 ? (p.detail ?? t('errors.failed')) : null)
       // An answer is checked once, right or wrong: always start a fresh challenge.
       setAnswer(null)
       setResetKey((k) => k + 1)

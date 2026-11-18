@@ -139,10 +139,24 @@ var errNameTaken = &validate.FieldError{Field: "name", Message: "already taken"}
 
 // Create adds a player for a user and charges r.PerPlayer. Whether the name is free is
 // decided by the unique index (two people asking for one name at once get one
-// player between them, Blessing Skin C01).
-func (s *Service) Create(ctx context.Context, userID int64, name string, p Policy, r score.Rates) (*ent.Player, int64, error) {
+// player between them, Blessing Skin C01). Optional form carries plugin extension fields.
+func (s *Service) Create(ctx context.Context, userID int64, name string, p Policy, r score.Rates, form ...map[string]any) (*ent.Player, int64, error) {
 	name = strings.TrimSpace(name)
+	name = strings.TrimSpace(hook.FilterPlayerName.Apply(ctx, s.hooks, name, hook.PlayerNameFilterContext{
+		UserID: userID,
+	}))
 	if err := ValidateName(name, p); err != nil {
+		return nil, 0, err
+	}
+	var formMap map[string]any
+	if len(form) > 0 {
+		formMap = form[0]
+	}
+	if err := hook.GuardPlayerCreate.Check(ctx, s.hooks, hook.PlayerCreateGuard{
+		UserID: userID,
+		Name:   name,
+		Form:   formMap,
+	}); err != nil {
 		return nil, 0, err
 	}
 	var (
@@ -164,7 +178,7 @@ func (s *Service) Create(ctx context.Context, userID int64, name string, p Polic
 			return err
 		}
 		balance, err = score.Apply(ctx, tx, score.Change{UserID: userID, Delta: -r.PerPlayer,
-			Reason: score.ReasonPlayerCreate, RefType: "player", RefID: strconv.FormatInt(created.ID, 10)})
+			Reason: score.ReasonPlayerCreate, RefType: "player", RefID: strconv.FormatInt(created.ID, 10), Hooks: s.hooks})
 		if err != nil {
 			return err
 		}
@@ -190,11 +204,19 @@ func (s *Service) Rename(ctx context.Context, userID, id int64, name string, p P
 // the current score_per_player, C05). rec, if not nil, is written to the audit log in
 // the same transaction (an administrator's deletion).
 func (s *Service) Delete(ctx context.Context, userID, id int64, refund bool, rec *audit.Entry) (int64, error) {
-	if _, err := s.get(ctx, userID, id); err != nil {
+	pl, err := s.get(ctx, userID, id)
+	if err != nil {
+		return 0, err
+	}
+	if err := hook.GuardPlayerDelete.Check(ctx, s.hooks, hook.PlayerDeleteGuard{
+		UserID:   userID,
+		PlayerID: id,
+		Name:     pl.Name,
+	}); err != nil {
 		return 0, err
 	}
 	var returned int64
-	err := db.WithTx(ctx, s.db, func(tx *ent.Client) error {
+	err = db.WithTx(ctx, s.db, func(tx *ent.Client) error {
 		// The owner first, then the player (see score.Lock): deleting the player before
 		// locking the owner whose score the refund changes deadlocked with a closet
 		// removal, which locks the texture, the owner, then the owner's players.
@@ -230,7 +252,7 @@ func (s *Service) Delete(ctx context.Context, userID, id int64, refund bool, rec
 		}
 		returned = -paid.Delta
 		_, err = score.Apply(ctx, tx, score.Change{UserID: userID, Delta: returned,
-			Reason: score.ReasonPlayerDelete, RefType: "player", RefID: strconv.FormatInt(id, 10)})
+			Reason: score.ReasonPlayerDelete, RefType: "player", RefID: strconv.FormatInt(id, 10), Hooks: s.hooks})
 		return err
 	})
 	return returned, err
@@ -265,6 +287,41 @@ func lockTextures(ctx context.Context, tx *ent.Client, ids ...*int64) error {
 func (s *Service) Wear(ctx context.Context, userID, id int64, skin, cape *int64, rec *audit.Entry) (*ent.Player, error) {
 	if _, err := s.get(ctx, userID, id); err != nil {
 		return nil, err
+	}
+	var setSkin, setCape *int64
+	var clearTypes []string
+	if skin != nil {
+		if *skin == 0 {
+			clearTypes = append(clearTypes, "skin")
+		} else if *skin > 0 {
+			setSkin = skin
+		}
+	}
+	if cape != nil {
+		if *cape == 0 {
+			clearTypes = append(clearTypes, "cape")
+		} else if *cape > 0 {
+			setCape = cape
+		}
+	}
+	if setSkin != nil || setCape != nil {
+		if err := hook.GuardPlayerTexturesSet.Check(ctx, s.hooks, hook.PlayerTexturesSetGuard{
+			UserID:   userID,
+			PlayerID: id,
+			SkinID:   setSkin,
+			CapeID:   setCape,
+		}); err != nil {
+			return nil, err
+		}
+	}
+	if len(clearTypes) > 0 {
+		if err := hook.GuardPlayerTexturesClear.Check(ctx, s.hooks, hook.PlayerTexturesClearGuard{
+			UserID:   userID,
+			PlayerID: id,
+			Types:    clearTypes,
+		}); err != nil {
+			return nil, err
+		}
 	}
 	err := db.WithTx(ctx, s.db, func(tx *ent.Client) error {
 		if err := lockTextures(ctx, tx, skin, cape); err != nil {
@@ -342,6 +399,7 @@ func (s *Service) Wear(ctx context.Context, userID, id int64, skin, cape *int64,
 
 // Profile is what game clients get for a name.
 type Profile struct {
+	ID       int64
 	Name     string // as stored, whatever case was asked for
 	UUID     string
 	Slim     bool   // the skin is an Alex (slim arms) skin
@@ -378,7 +436,7 @@ func (s *Service) Profile(ctx context.Context, name string) (*Profile, error) {
 	case user.StatusBanned:
 		return nil, ErrBanned
 	}
-	out := &Profile{Name: pl.Name, UUID: pl.UUID, Modified: pl.UpdatedAt}
+	out := &Profile{ID: pl.ID, Name: pl.Name, UUID: pl.UUID, Modified: pl.UpdatedAt}
 	if t := pl.Edges.Skin; t != nil {
 		out.Skin, out.Slim = t.Hash, t.Type == tex.TypeAlex
 	}

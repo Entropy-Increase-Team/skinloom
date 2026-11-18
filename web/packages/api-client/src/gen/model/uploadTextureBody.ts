@@ -9,6 +9,8 @@
 export type UploadTextureBody = {
   /** PNG image */
   file: string;
+  /** Optional JSON-encoded object of plugin extension form fields */
+  form?: Blob | File | string;
   /** 1 to 50 characters */
   name: Blob | File | string;
   /** Shown in the skin library; private textures cost more */

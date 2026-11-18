@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.0.0-dev
  */
 import type { Answer } from './answer';
+import type { RegisterInputBodyForm } from './registerInputBodyForm';
 
 export interface RegisterInputBody {
   /** A URL to the JSON Schema for this object. */
@@ -14,6 +15,8 @@ export interface RegisterInputBody {
   captcha?: Answer;
   /** @maxLength 255 */
   email: string;
+  /** Optional plugin extension form fields */
+  form?: RegisterInputBodyForm;
   /** @maxLength 128 */
   nickname: string;
   /** @maxLength 1024 */

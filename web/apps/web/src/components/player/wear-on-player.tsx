@@ -35,7 +35,8 @@ export function WearOnPlayer({ textureId, kind }: { textureId: number; kind: 'sk
       await wearTextures(Number(value), kind === 'skin' ? { skin: textureId } : { cape: textureId })
       toast.success(t('wornOn', { name: items.find((i) => i.value === value)?.label ?? '' }))
     } catch (err) {
-      toast.error(problemOf(err).unverified ? tc('verifyFirst') : t('errors.failed'))
+      const p = problemOf(err)
+      toast.error(p.unverified ? tc('verifyFirst') : p.status === 422 && p.detail ? p.detail : t('errors.failed'))
     } finally {
       setPending(false)
     }

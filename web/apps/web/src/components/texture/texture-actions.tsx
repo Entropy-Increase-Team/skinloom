@@ -48,9 +48,9 @@ export function FavoriteButton({ texture, rates }: { texture: TextureDetail; rat
       else await addToCloset({ textureId: texture.id })
       router.refresh()
     } catch (err) {
-      const status = problemOf(err).status
-      if (status === 409 || status === 404) router.refresh() // already added or removed elsewhere
-      else toast.error(status === 402 ? t('errors.score') : t('errors.failed'))
+      const p = problemOf(err)
+      if (p.status === 409 || p.status === 404) router.refresh() // already added or removed elsewhere
+      else toast.error(p.status === 402 ? t('errors.score') : p.status === 422 && p.detail ? p.detail : t('errors.failed'))
     } finally {
       setPending(false)
     }
@@ -92,6 +92,7 @@ export function OwnerMenu({ texture, rates, charged }: { texture: TextureDetail;
     if (p.status === 409) return t('errors.duplicate')
     if (p.fields.type) return t('errors.shape')
     if (p.fields.name) return t('errors.name')
+    if (p.status === 422 && p.detail) return p.detail
     return t('errors.failed')
   }
 

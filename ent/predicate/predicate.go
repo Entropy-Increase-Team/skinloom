@@ -42,6 +42,15 @@ type OAuthToken func(*sql.Selector)
 // Player is the predicate function for player builders.
 type Player func(*sql.Selector)
 
+// Plugin is the predicate function for plugin builders.
+type Plugin func(*sql.Selector)
+
+// PluginDoc is the predicate function for plugindoc builders.
+type PluginDoc func(*sql.Selector)
+
+// PluginKV is the predicate function for pluginkv builders.
+type PluginKV func(*sql.Selector)
+
 // Report is the predicate function for report builders.
 type Report func(*sql.Selector)
 

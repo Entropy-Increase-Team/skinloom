@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.0.0-dev
  */
 import type { Answer } from './answer';
+import type { LoginInputBodyForm } from './loginInputBodyForm';
 
 export interface LoginInputBody {
   /** A URL to the JSON Schema for this object. */
@@ -14,6 +15,8 @@ export interface LoginInputBody {
   captcha?: Answer;
   /** @maxLength 255 */
   email: string;
+  /** Optional plugin extension form fields */
+  form?: LoginInputBodyForm;
   /** @maxLength 1024 */
   password: string;
   /** Keep the session for 30 days instead of until the browser closes */
