@@ -135,7 +135,8 @@ jobs:
         run: bun run gen:api && git diff --exit-code -- packages/api-client/src/gen
       - run: bun run typecheck
       - run: bun run test
-      - run: bun audit --audit-level=high
+      # GHSA-fc5q-39xc-vjpf (picomatch <=4.0.7 ReDoS in build/test globs): 4.0.7 is latest on npm; remove --ignore once 4.0.8 ships.
+      - run: bun audit --audit-level=high --ignore=GHSA-fc5q-39xc-vjpf
       - run: bun run build
       - name: Standalone output has no symlinks (release zips and images copy it)
         run: test -z "$(find apps/web/.next/standalone -type l)"
