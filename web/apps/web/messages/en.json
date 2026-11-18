@@ -104,6 +104,7 @@
     "body": "The page you are looking for does not exist or was removed."
   },
   "setupPending": "This site is not set up yet: open the one-time setup link printed on the server console, or run <code>skinloom setup-link</code> on the server.",
+  "setupPendingAction": "Open setup wizard",
   "auth": {
     "email": "Email",
     "password": "Password",
@@ -147,6 +148,274 @@
     "passwordHint": "8 to 128 characters",
     "confirm": "Confirm password",
     "submit": "Finish setup",
+    "wizard": {
+      "title": "SkinLoom Setup Wizard",
+      "subtitle": "Configure your database, texture storage, and choose fresh install, Blessing Skin migration, or backup restore.",
+      "steps": {
+        "verify": "Verify",
+        "mode": "Mode",
+        "infra": "Infrastructure",
+        "configure": "Configure"
+      }
+    },
+    "gate": {
+      "title": "Verify server setup token",
+      "intro": "Paste the one-time setup URL or token printed in your server logs to unlock the wizard.",
+      "label": "Setup URL or token",
+      "hint": "Accepts either the full setup link (?token=...) or the raw token.",
+      "verify": "Verify & continue",
+      "empty": "Enter your setup URL or token.",
+      "whereTitle": "Where to find the setup token?",
+      "whereDesc": "To prevent uninitialized instances on the public internet from being claimed, setup requires a short-lived server token.",
+      "cmdBinary": "Binary / bare metal (prints or generates a fresh link)",
+      "cmdDocker": "Docker Compose container",
+      "cmdSystemd": "Systemd journal lookup"
+    },
+    "mode": {
+      "title": "Choose how to initialize",
+      "intro": "Select the path that matches how you want to bring SkinLoom online.",
+      "next": "Next",
+      "fresh": {
+        "title": "Fresh installation",
+        "desc": "Start clean with a new database, storage backend, and first superadmin account."
+      },
+      "bs": {
+        "title": "Migrate from Blessing Skin",
+        "desc": "Interactively import accounts, players, closet items, textures, and password rules from Blessing Skin."
+      },
+      "restore": {
+        "title": "Restore from SkinLoom backup",
+        "desc": "Populate the target database and texture storage from an existing SkinLoom backup archive."
+      }
+    },
+    "infra": {
+      "title": "Database & Texture Storage",
+      "intro": "Configure persistence for SkinLoom. Settings provided via environment variables remain locked.",
+      "envLocked": "Locked by env",
+      "dbTestFailed": "Database connection test failed.",
+      "storageTestFailed": "Storage permission check failed.",
+      "connectFailed": "Failed to connect to the existing database.",
+      "back": "Back",
+      "next": "Next",
+      "cancel": "Cancel",
+      "initDbErrorTitle": "Configured database could not be reached",
+      "db": {
+        "title": "Database",
+        "driver": "Driver",
+        "sqlitePath": "SQLite file path",
+        "sqliteHint": "Relative paths are stored inside the data directory (default skinloom.db).",
+        "useRawDsn": "Advanced: enter a raw DSN string",
+        "host": "Host",
+        "port": "Port",
+        "database": "Database",
+        "username": "Username",
+        "password": "Password",
+        "sslMode": "SSL mode",
+        "test": "Test database connection",
+        "missingHint": "The database does not exist yet. Create it with:",
+        "suspectedBsTitle": "Blessing Skin tables detected",
+        "suspectedBsDesc": "This database appears to belong to Blessing Skin. Create a clean target database instead and use \"Migrate from Blessing Skin\".",
+        "switchToBs": "Switch to Blessing Skin migration",
+        "switchedToBs": "Mode switched to Blessing Skin migration. Point this step to a clean target database and click Next.",
+        "installedTitle": "Existing SkinLoom database detected",
+        "installedDesc": "Found {users} users, {textures} textures, and {players} players. Connect this node directly without re-installing.",
+        "connectExisting": "Connect existing database (skip setup)",
+        "connectDialogTitle": "Connect to existing SkinLoom database?",
+        "connectDialogDesc": "This writes local config.toml and transitions directly to running mode without running setup or creating duplicate rows.",
+        "connectExistingConfirm": "Connect & start"
+      },
+      "storage": {
+        "title": "Texture Storage",
+        "driver": "Driver",
+        "target": "Target",
+        "local": "Local directory",
+        "s3": "S3-compatible object storage",
+        "localPath": "Directory path",
+        "localHint": "Relative paths are resolved inside the data directory (default textures).",
+        "presets": "Presets",
+        "presetNames": {
+          "aliyun": "Aliyun OSS",
+          "tencent": "Tencent COS",
+          "r2": "Cloudflare R2",
+          "minio": "MinIO"
+        },
+        "endpointHint": "Omit http:// or https:// (use the insecure checkbox below for plain HTTP)",
+        "prefix": "Key prefix (optional)",
+        "publicUrl": "Public / CDN URL (optional)",
+        "publicUrlHint": "e.g. https://cdn.example.com",
+        "pathStyle": "Use path-style addressing",
+        "insecure": "Allow insecure plain HTTP connection",
+        "test": "Test read/write permissions"
+      },
+      "proxy": {
+        "title": "Reverse proxy detection",
+        "trust": "Trust detected proxy {cidr}",
+        "detected": "Observed peer {peer} with header {header}"
+      }
+    },
+    "fresh": {
+      "siteNamePlaceholder": "SkinLoom",
+      "timezone": "Timezone",
+      "mailTitle": "Mail delivery (optional — needed for verification & password reset)",
+      "mailDriver": "Delivery method",
+      "mailDrivers": {
+        "none": "Configure later",
+        "log": "Write messages to server log (development)"
+      },
+      "mailHost": "SMTP host",
+      "mailPort": "Port",
+      "mailEncryption": "Encryption",
+      "mailPlain": "None (plain)",
+      "mailFrom": "From address",
+      "mailUser": "Username",
+      "mailPass": "Password",
+      "mailTestTo": "Test recipient",
+      "mailTest": "Send test email",
+      "mailTestFailed": "Failed to send test email"
+    },
+    "restore": {
+      "title": "Restore from SkinLoom backup",
+      "intro": "Upload a backup archive or point to a local archive path on the server to populate Step 2's empty database and storage.",
+      "tabs": {
+        "upload": "Upload archive (<= 1 GiB)",
+        "path": "Server file path"
+      },
+      "uploadHint": "Accepts .tar.gz / .tgz / .zip up to {max}",
+      "tooLarge": "File exceeds the browser upload limit ({max}). Place the archive on the server and use the Server file path tab.",
+      "uploadedReady": "Upload complete. Click Inspect backup below.",
+      "uploading": "Uploading archive chunks",
+      "cancelUpload": "Cancel upload",
+      "uploadFailed": "Backup archive upload failed",
+      "pathLabel": "Backup archive path",
+      "pathHint": "Path readable by the SkinLoom process on the server",
+      "inspect": "Inspect backup",
+      "inspectFailed": "Could not inspect backup archive",
+      "manifestTitle": "Backup manifest preview",
+      "manifest": {
+        "database": "Source dialect",
+        "migration": "Schema migration",
+        "textures": "Textures",
+        "textureBytes": "Texture bytes",
+        "created": "Created",
+        "version": "App version"
+      },
+      "confirmRestore": "I confirm restoring this backup into the Step 2 database and texture storage and saving config.toml.",
+      "back": "Back",
+      "startRestore": "Start restore",
+      "executeFailed": "Failed to start restore job",
+      "runningTitle": "Restoring backup",
+      "failedTitle": "Restore failed",
+      "doneTitle": "Restore complete",
+      "doneDesc": "Database, textures, and configuration have been restored. You can sign in now.",
+      "goLogin": "Go to sign in",
+      "retry": "Review configuration"
+    },
+    "bs": {
+      "title": "Migrate from Blessing Skin",
+      "intro": "Connect your Blessing Skin source, run a read-only dry-run simulation, and review findings before writing anything.",
+      "sourceTabs": {
+        "db": "Direct DB & textures",
+        "bridge": "Pull via Bridge plugin"
+      },
+      "env": {
+        "title": "Load Blessing Skin .env (optional)",
+        "dropHint": "Drop or pick your BS .env file (secrets are kept in memory on the server only)",
+        "pathLabel": "Or read .env from a server path",
+        "loadPath": "Parse .env",
+        "localhostWarnTitle": "Localhost address detected inside container",
+        "localhostWarnDesc": "SkinLoom appears to run inside a container while .env specifies 127.0.0.1 / localhost. Update the host to your host IP or Compose service name."
+      },
+      "dbSection": {
+        "title": "Blessing Skin database & password settings",
+        "sqlitePath": "SQLite file path",
+        "useRawDsn": "Advanced: raw DSN",
+        "host": "Host",
+        "port": "Port",
+        "database": "Database",
+        "username": "Username",
+        "password": "Password",
+        "prefix": "Table prefix (DB_PREFIX)",
+        "pwdMethod": "Password algorithm (PWD_METHOD)",
+        "timezone": "BS timezone"
+      },
+      "secretLoaded": "•••• (loaded from .env; leave empty to keep)",
+      "textures": {
+        "title": "Texture files source",
+        "dir": "Server local directory",
+        "upload": "Upload archive (<= 1 GiB)",
+        "none": "DB only (transfer files later)",
+        "dirLabel": "storage/textures path",
+        "dirHint": "Directory containing BS 64-hex hash files",
+        "uploadHint": "Accepts .tar.gz / .tgz / .zip up to {max}. For larger sites, use local path, the Bridge plugin, or DB only.",
+        "uploadedReady": "Textures archive uploaded and ready.",
+        "uploading": "Uploading texture archive"
+      },
+      "bridge": {
+        "title": "Blessing Skin Export Bridge plugin (blessing-skin-export-bridge)",
+        "intro": "Install the standalone blessing-skin-export-bridge plugin on Blessing Skin (short-lived hashed token, optional CIDR allowlist & write-freeze), then pull tables and SHA-256 verified textures over HTTPS without exposing MySQL. Uninstall the plugin once migration completes.",
+        "urlLabel": "Blessing Skin URL (or paste connection bundle)",
+        "urlHint": "Public domains enforce https://. Pasting a JSON connection bundle from the plugin automatically fills URL and token.",
+        "tokenLabel": "Bridge Bearer token",
+        "allowInsecure": "Trusted LAN HTTP (allow http:// on private networks only)"
+      },
+      "actions": {
+        "testSource": "Test source",
+        "dryRun": "Run dry-run simulation",
+        "back": "Back",
+        "startImport": "Start migration"
+      },
+      "envParseFailed": "Failed to parse .env file",
+      "texturesTooLarge": "Archive exceeds the {max} browser upload cap. Use a server path, the Bridge plugin, or DB-only mode.",
+      "uploadFailed": "Texture archive upload failed",
+      "cancelUpload": "Cancel upload",
+      "sourceTestFailed": "Blessing Skin source test failed",
+      "sourceOkTitle": "Source reachable (read-only)",
+      "sourceFailTitle": "Source check failed",
+      "sourceCounts": "Found {users} users, {players} players, {textures} textures, and {closet} closet items.",
+      "textureDirCounts": "Local textures directory readable: {files} files ({size}).",
+      "dryRunFailed": "Could not start dry-run",
+      "dryRunFailedTitle": "Dry-run failed",
+      "importStartFailed": "Could not start migration",
+      "executeSection": {
+        "title": "Target site confirmation",
+        "siteUrlLabel": "New site URL",
+        "siteUrlHint": "Pre-filled from your browser origin rather than BS .env APP_URL.",
+        "fallbackDesc": "No active superadmin account was found in the dry-run. Create a fallback superadmin:",
+        "fallbackEmail": "Fallback admin email",
+        "fallbackNick": "Fallback admin nickname",
+        "fallbackPass": "Fallback admin password"
+      },
+      "report": {
+        "dryRunTitle": "Dry-run simulation report (no data written)",
+        "finalTitle": "Final migration report",
+        "summary": "Users {users} · Players {players} · Textures {textures} · Checked files {files} · Copied {copied} · Superadmins {superadmins}",
+        "downloadTxt": "Download .txt report",
+        "blockedTitle": "Blocking issues prevent starting migration",
+        "blockedDesc": "Resolve the BLOCKING items in Blessing Skin and re-run the dry-run before importing.",
+        "failedTitle": "Migration failed (target database rolled back)",
+        "tabs": {
+          "all": "All ({count})",
+          "blocking": "Blocking ({count})",
+          "left": "Left in BS ({count})",
+          "warning": "Warning ({count})",
+          "fixed": "Fixed ({count})",
+          "dropped": "Dropped ({count})"
+        },
+        "badges": {
+          "leftBehind": "LEFT IN BS"
+        },
+        "empty": "No entries in this category."
+      },
+      "importingTitle": "Migrating from Blessing Skin",
+      "importFailedTitle": "Migration failed",
+      "postChecklistTitle": "Migration complete — post-import checklist",
+      "postCheckBridge": "Revoke the export token and uninstall blessing-skin-export-bridge in your Blessing Skin admin panel.",
+      "postCheckNoneTextures": "You chose DB-only mode: after copying texture files into SkinLoom storage, open Admin -> System Status and click Rescan missing textures.",
+      "postCheckPasswords": "Blessing Skin password algorithms (MD5 / SALTED2MD5 / transition) remain supported automatically when users sign in.",
+      "postCheckCompare": "Optionally run the read-only parity verification command on the server:",
+      "enterSite": "Continue to sign in",
+      "backToConfig": "Return to migration setup"
+    },
     "errors": {
       "token": "The setup link is invalid, used or expired. Restart SkinLoom or run skinloom setup-link for a new one.",
       "done": "This site is already set up. Sign in instead.",
@@ -1527,7 +1796,10 @@
         "s3": "S3-compatible object storage"
       },
       "files": "Files",
-      "size": "Size"
+      "size": "Size",
+      "rescan": "Rescan missing textures",
+      "rescanDone": "Checked {checked} missing blobs: recovered {updated}, still missing {missing}.",
+      "rescanFailed": "Texture rescan failed. Try again later."
     },
     "jobs": {
       "title": "Background jobs",

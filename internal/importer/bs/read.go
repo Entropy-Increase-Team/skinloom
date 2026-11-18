@@ -3,6 +3,7 @@ package bs
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -88,6 +89,8 @@ type sourceData struct {
 	Prefix      string
 	OtherTables []srcTable
 	TablesErr   error
+	// Extensions carries optional plugin-level payloads from Bridge or future v2 exporters.
+	Extensions map[string]json.RawMessage
 }
 
 // read loads the whole site inside one read-only transaction.

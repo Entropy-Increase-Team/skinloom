@@ -37,7 +37,11 @@ func serveEvents(d Deps) http.HandlerFunc {
 		ch, cancel := d.Broker.Subscribe(pubsub.TopicConfigChanged, 4)
 		defer cancel()
 
-		fmt.Fprintf(w, "retry: 3000\nevent: hello\ndata: {\"version\":%d}\n\n", d.Settings.Current().Version)
+		var version int64
+		if d.Settings != nil {
+			version = d.Settings.Current().Version
+		}
+		fmt.Fprintf(w, "retry: 3000\nevent: hello\ndata: {\"version\":%d}\n\n", version)
 		if err := rc.Flush(); err != nil {
 			return
 		}

@@ -2,7 +2,9 @@ package bs
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 )
@@ -17,8 +19,18 @@ func ReadEnv(path string) (map[string]string, error) {
 		return nil, err
 	}
 	defer f.Close()
+	return ReadEnvReader(path, f)
+}
+
+// ReadEnvBytes parses Laravel .env content from memory (e.g. uploaded from the web setup wizard).
+func ReadEnvBytes(data []byte) (map[string]string, error) {
+	return ReadEnvReader(".env", bytes.NewReader(data))
+}
+
+// ReadEnvReader parses Laravel .env syntax from r, naming errors with sourceName.
+func ReadEnvReader(sourceName string, r io.Reader) (map[string]string, error) {
 	env := map[string]string{}
-	sc := bufio.NewScanner(f)
+	sc := bufio.NewScanner(r)
 	sc.Buffer(make([]byte, 64*1024), 1<<20)
 	for n := 1; sc.Scan(); n++ {
 		line := strings.TrimSpace(strings.TrimPrefix(sc.Text(), "\ufeff"))
@@ -29,11 +41,11 @@ func ReadEnv(path string) (map[string]string, error) {
 		key, raw, ok := strings.Cut(line, "=")
 		key = strings.TrimSpace(key)
 		if !ok || key == "" || strings.ContainsAny(key, " \t\"'") {
-			return nil, fmt.Errorf("%s:%d: not a KEY=VALUE line", path, n)
+			return nil, fmt.Errorf("%s:%d: not a KEY=VALUE line", sourceName, n)
 		}
 		v, err := envValue(strings.TrimSpace(raw), env)
 		if err != nil {
-			return nil, fmt.Errorf("%s:%d: %s: %w", path, n, key, err)
+			return nil, fmt.Errorf("%s:%d: %s: %w", sourceName, n, key, err)
 		}
 		env[key] = v
 	}

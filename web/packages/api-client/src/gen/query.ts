@@ -40,6 +40,9 @@ import type {
   AuditPage,
   AuthorizeInfo,
   AuthorizeResult,
+  BSDryRunInput,
+  BSImportInput,
+  BSSourceInput,
   BlockType,
   Bootstrap,
   CaptchaImage,
@@ -47,16 +50,26 @@ import type {
   ChangePasswordInputBody,
   ClosetItemView,
   ClosetPage,
+  CompleteWizardInput,
+  ConnectExistingInput,
+  ConnectExistingResult,
   CreateClientInputBody,
+  CreateSetupSessionRequest,
   CreateTokenInputBody,
+  CreateUploadInput,
+  CreateUploadResult,
+  DBConfigInput,
   Dashboard,
   DeleteMeInputBody,
   ErrorModel,
+  ExecuteRestoreInput,
   FavoriteInputBody,
   Favorited,
   ForgotInputBody,
   GetAuthorizationParams,
   GetBootstrapParams,
+  InspectRestoreInput,
+  InspectRestoreResult,
   ListAuditParams,
   ListClosetParams,
   ListMyReportsParams,
@@ -74,6 +87,8 @@ import type {
   OAuthClientView,
   OAuthGrantList,
   OAuthScopes,
+  ParseBSEnvInput,
+  ParseBSEnvResult,
   PersonalTokenList,
   PlayerCreated,
   PlayerDeleted,
@@ -88,6 +103,7 @@ import type {
   ReportPage,
   ReportTextureInputBody,
   Reported,
+  RescanResult,
   ResetInputBody,
   ReviewReportInputBody,
   SendNotificationInputBody,
@@ -96,6 +112,8 @@ import type {
   SetAvatarInputBody,
   SettingsList,
   SetupInputBody,
+  SetupJobView,
+  SetupState,
   SetupStatusOutputBody,
   SignResult,
   SiteStats,
@@ -104,7 +122,14 @@ import type {
   SocialRedirect,
   SocialRegisterInputBody,
   SocialStartInputBody,
+  StartJobResult,
+  StorageConfigInput,
   SystemStatus,
+  TestBSSourceResult,
+  TestDBResult,
+  TestMailInput,
+  TestMailResult,
+  TestStorageResult,
   TextureDetail,
   TexturePage,
   TextureRules,
@@ -1893,6 +1918,100 @@ export function useGetSystemStatus<TData = Awaited<ReturnType<typeof getSystemSt
 
 
 
+
+export type rescanMissingBlobsResponse200 = {
+  data: RescanResult
+  status: 200
+}
+
+export type rescanMissingBlobsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type rescanMissingBlobsResponseSuccess = (rescanMissingBlobsResponse200) & {
+  headers: Headers;
+};
+export type rescanMissingBlobsResponseError = (rescanMissingBlobsResponseDefault) & {
+  headers: Headers;
+};
+
+export type rescanMissingBlobsResponse = (rescanMissingBlobsResponseSuccess | rescanMissingBlobsResponseError)
+
+export const getRescanMissingBlobsUrl = () => {
+
+
+
+
+  return `/api/v1/admin/textures/rescan`
+}
+
+/**
+ * Checks blobs with width == 0 (such as textures imported without files before syncing via rsync/rclone/S3), verifies SHA-256 and PNG dimensions, and fills in width, height, and byte size.
+ * @summary Verify synced texture files for imported blobs missing dimensions
+ */
+export const rescanMissingBlobs = async ( options?: Parameters<typeof apiFetch>[1]): Promise<rescanMissingBlobsResponse> => {
+
+  return apiFetch<rescanMissingBlobsResponse>(getRescanMissingBlobsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRescanMissingBlobsMutationKey = () => ['rescanMissingBlobs'] as const;
+
+export const getRescanMissingBlobsMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rescanMissingBlobs>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rescanMissingBlobs>>, TError,void, TContext> => {
+
+const mutationKey = getRescanMissingBlobsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rescanMissingBlobs>>, void> = () => {
+
+
+          return  rescanMissingBlobs(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RescanMissingBlobsMutationResult = NonNullable<Awaited<ReturnType<typeof rescanMissingBlobs>>>
+
+    export type RescanMissingBlobsMutationError = ErrorModel
+
+
+    /**
+ * @summary Verify synced texture files for imported blobs missing dimensions
+ */
+export const useRescanMissingBlobs = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rescanMissingBlobs>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rescanMissingBlobs>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRescanMissingBlobsMutationOptions(options), queryClient);
+    }
 
 export type listThemesResponse200 = {
   data: ThemeView[]
@@ -9154,6 +9273,1637 @@ export const useCompleteSetup = <TError = ErrorModel,
         TContext
       > => {
       return useMutation(getCompleteSetupMutationOptions(options), queryClient);
+    }
+
+export type startSetupBSDryRunResponse202 = {
+  data: StartJobResult
+  status: 202
+}
+
+export type startSetupBSDryRunResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 202>
+}
+
+export type startSetupBSDryRunResponseSuccess = (startSetupBSDryRunResponse202) & {
+  headers: Headers;
+};
+export type startSetupBSDryRunResponseError = (startSetupBSDryRunResponseDefault) & {
+  headers: Headers;
+};
+
+export type startSetupBSDryRunResponse = (startSetupBSDryRunResponseSuccess | startSetupBSDryRunResponseError)
+
+export const getStartSetupBSDryRunUrl = () => {
+
+
+
+
+  return `/api/v1/setup/bs/dry-run`
+}
+
+/**
+ * @summary Run a non-destructive Blessing Skin migration dry-run job
+ */
+export const startSetupBSDryRun = async (bSDryRunInput: NonReadonly<BSDryRunInput>, options?: Parameters<typeof apiFetch>[1]): Promise<startSetupBSDryRunResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<startSetupBSDryRunResponse>(getStartSetupBSDryRunUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(bSDryRunInput)
+  }
+);}
+
+
+
+
+
+export const getStartSetupBSDryRunMutationKey = () => ['startSetupBSDryRun'] as const;
+
+export const getStartSetupBSDryRunMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startSetupBSDryRun>>, TError,StartSetupBSDryRunMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startSetupBSDryRun>>, TError,StartSetupBSDryRunMutationVariables, TContext> => {
+
+const mutationKey = getStartSetupBSDryRunMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startSetupBSDryRun>>, StartSetupBSDryRunMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  startSetupBSDryRun(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartSetupBSDryRunMutationResult = NonNullable<Awaited<ReturnType<typeof startSetupBSDryRun>>>
+    export type StartSetupBSDryRunMutationBody = NonReadonly<BSDryRunInput>
+    export type StartSetupBSDryRunMutationError = ErrorModel
+    export type StartSetupBSDryRunMutationVariables = {data: NonReadonly<BSDryRunInput>}
+
+    /**
+ * @summary Run a non-destructive Blessing Skin migration dry-run job
+ */
+export const useStartSetupBSDryRun = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startSetupBSDryRun>>, TError,StartSetupBSDryRunMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof startSetupBSDryRun>>,
+        TError,
+        StartSetupBSDryRunMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStartSetupBSDryRunMutationOptions(options), queryClient);
+    }
+
+export type startSetupBSImportResponse202 = {
+  data: StartJobResult
+  status: 202
+}
+
+export type startSetupBSImportResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 202>
+}
+
+export type startSetupBSImportResponseSuccess = (startSetupBSImportResponse202) & {
+  headers: Headers;
+};
+export type startSetupBSImportResponseError = (startSetupBSImportResponseDefault) & {
+  headers: Headers;
+};
+
+export type startSetupBSImportResponse = (startSetupBSImportResponseSuccess | startSetupBSImportResponseError)
+
+export const getStartSetupBSImportUrl = () => {
+
+
+
+
+  return `/api/v1/setup/bs/import`
+}
+
+/**
+ * @summary Start the Blessing Skin import job and transition into running mode
+ */
+export const startSetupBSImport = async (bSImportInput: NonReadonly<BSImportInput>, options?: Parameters<typeof apiFetch>[1]): Promise<startSetupBSImportResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<startSetupBSImportResponse>(getStartSetupBSImportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(bSImportInput)
+  }
+);}
+
+
+
+
+
+export const getStartSetupBSImportMutationKey = () => ['startSetupBSImport'] as const;
+
+export const getStartSetupBSImportMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startSetupBSImport>>, TError,StartSetupBSImportMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startSetupBSImport>>, TError,StartSetupBSImportMutationVariables, TContext> => {
+
+const mutationKey = getStartSetupBSImportMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startSetupBSImport>>, StartSetupBSImportMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  startSetupBSImport(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartSetupBSImportMutationResult = NonNullable<Awaited<ReturnType<typeof startSetupBSImport>>>
+    export type StartSetupBSImportMutationBody = NonReadonly<BSImportInput>
+    export type StartSetupBSImportMutationError = ErrorModel
+    export type StartSetupBSImportMutationVariables = {data: NonReadonly<BSImportInput>}
+
+    /**
+ * @summary Start the Blessing Skin import job and transition into running mode
+ */
+export const useStartSetupBSImport = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startSetupBSImport>>, TError,StartSetupBSImportMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof startSetupBSImport>>,
+        TError,
+        StartSetupBSImportMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStartSetupBSImportMutationOptions(options), queryClient);
+    }
+
+export type parseSetupBSEnvResponse200 = {
+  data: ParseBSEnvResult
+  status: 200
+}
+
+export type parseSetupBSEnvResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type parseSetupBSEnvResponseSuccess = (parseSetupBSEnvResponse200) & {
+  headers: Headers;
+};
+export type parseSetupBSEnvResponseError = (parseSetupBSEnvResponseDefault) & {
+  headers: Headers;
+};
+
+export type parseSetupBSEnvResponse = (parseSetupBSEnvResponseSuccess | parseSetupBSEnvResponseError)
+
+export const getParseSetupBSEnvUrl = () => {
+
+
+
+
+  return `/api/v1/setup/bs/parse-env`
+}
+
+/**
+ * @summary Parse a Blessing Skin .env file (content or path) into sanitized metadata
+ */
+export const parseSetupBSEnv = async (parseBSEnvInput: NonReadonly<ParseBSEnvInput>, options?: Parameters<typeof apiFetch>[1]): Promise<parseSetupBSEnvResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<parseSetupBSEnvResponse>(getParseSetupBSEnvUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(parseBSEnvInput)
+  }
+);}
+
+
+
+
+
+export const getParseSetupBSEnvMutationKey = () => ['parseSetupBSEnv'] as const;
+
+export const getParseSetupBSEnvMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof parseSetupBSEnv>>, TError,ParseSetupBSEnvMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof parseSetupBSEnv>>, TError,ParseSetupBSEnvMutationVariables, TContext> => {
+
+const mutationKey = getParseSetupBSEnvMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof parseSetupBSEnv>>, ParseSetupBSEnvMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  parseSetupBSEnv(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ParseSetupBSEnvMutationResult = NonNullable<Awaited<ReturnType<typeof parseSetupBSEnv>>>
+    export type ParseSetupBSEnvMutationBody = NonReadonly<ParseBSEnvInput>
+    export type ParseSetupBSEnvMutationError = ErrorModel
+    export type ParseSetupBSEnvMutationVariables = {data: NonReadonly<ParseBSEnvInput>}
+
+    /**
+ * @summary Parse a Blessing Skin .env file (content or path) into sanitized metadata
+ */
+export const useParseSetupBSEnv = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof parseSetupBSEnv>>, TError,ParseSetupBSEnvMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof parseSetupBSEnv>>,
+        TError,
+        ParseSetupBSEnvMutationVariables,
+        TContext
+      > => {
+      return useMutation(getParseSetupBSEnvMutationOptions(options), queryClient);
+    }
+
+export type testSetupBSSourceResponse200 = {
+  data: TestBSSourceResult
+  status: 200
+}
+
+export type testSetupBSSourceResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type testSetupBSSourceResponseSuccess = (testSetupBSSourceResponse200) & {
+  headers: Headers;
+};
+export type testSetupBSSourceResponseError = (testSetupBSSourceResponseDefault) & {
+  headers: Headers;
+};
+
+export type testSetupBSSourceResponse = (testSetupBSSourceResponseSuccess | testSetupBSSourceResponseError)
+
+export const getTestSetupBSSourceUrl = () => {
+
+
+
+
+  return `/api/v1/setup/bs/test-source`
+}
+
+/**
+ * @summary Read-only connectivity and row count check of the Blessing Skin source
+ */
+export const testSetupBSSource = async (bSSourceInput: NonReadonly<BSSourceInput>, options?: Parameters<typeof apiFetch>[1]): Promise<testSetupBSSourceResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<testSetupBSSourceResponse>(getTestSetupBSSourceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(bSSourceInput)
+  }
+);}
+
+
+
+
+
+export const getTestSetupBSSourceMutationKey = () => ['testSetupBSSource'] as const;
+
+export const getTestSetupBSSourceMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testSetupBSSource>>, TError,TestSetupBSSourceMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof testSetupBSSource>>, TError,TestSetupBSSourceMutationVariables, TContext> => {
+
+const mutationKey = getTestSetupBSSourceMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testSetupBSSource>>, TestSetupBSSourceMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  testSetupBSSource(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestSetupBSSourceMutationResult = NonNullable<Awaited<ReturnType<typeof testSetupBSSource>>>
+    export type TestSetupBSSourceMutationBody = NonReadonly<BSSourceInput>
+    export type TestSetupBSSourceMutationError = ErrorModel
+    export type TestSetupBSSourceMutationVariables = {data: NonReadonly<BSSourceInput>}
+
+    /**
+ * @summary Read-only connectivity and row count check of the Blessing Skin source
+ */
+export const useTestSetupBSSource = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testSetupBSSource>>, TError,TestSetupBSSourceMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof testSetupBSSource>>,
+        TError,
+        TestSetupBSSourceMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTestSetupBSSourceMutationOptions(options), queryClient);
+    }
+
+export type completeSetupWizardResponse200 = {
+  data: UserView
+  status: 200
+}
+
+export type completeSetupWizardResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type completeSetupWizardResponseSuccess = (completeSetupWizardResponse200) & {
+  headers: Headers;
+};
+export type completeSetupWizardResponseError = (completeSetupWizardResponseDefault) & {
+  headers: Headers;
+};
+
+export type completeSetupWizardResponse = (completeSetupWizardResponseSuccess | completeSetupWizardResponseError)
+
+export const getCompleteSetupWizardUrl = () => {
+
+
+
+
+  return `/api/v1/setup/complete`
+}
+
+/**
+ * @summary Write configuration, migrate database, create superadmin, and transition to running mode
+ */
+export const completeSetupWizard = async (completeWizardInput: NonReadonly<CompleteWizardInput>, options?: Parameters<typeof apiFetch>[1]): Promise<completeSetupWizardResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<completeSetupWizardResponse>(getCompleteSetupWizardUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(completeWizardInput)
+  }
+);}
+
+
+
+
+
+export const getCompleteSetupWizardMutationKey = () => ['completeSetupWizard'] as const;
+
+export const getCompleteSetupWizardMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeSetupWizard>>, TError,CompleteSetupWizardMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeSetupWizard>>, TError,CompleteSetupWizardMutationVariables, TContext> => {
+
+const mutationKey = getCompleteSetupWizardMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeSetupWizard>>, CompleteSetupWizardMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  completeSetupWizard(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteSetupWizardMutationResult = NonNullable<Awaited<ReturnType<typeof completeSetupWizard>>>
+    export type CompleteSetupWizardMutationBody = NonReadonly<CompleteWizardInput>
+    export type CompleteSetupWizardMutationError = ErrorModel
+    export type CompleteSetupWizardMutationVariables = {data: NonReadonly<CompleteWizardInput>}
+
+    /**
+ * @summary Write configuration, migrate database, create superadmin, and transition to running mode
+ */
+export const useCompleteSetupWizard = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeSetupWizard>>, TError,CompleteSetupWizardMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof completeSetupWizard>>,
+        TError,
+        CompleteSetupWizardMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCompleteSetupWizardMutationOptions(options), queryClient);
+    }
+
+export type connectExistingSetupResponse200 = {
+  data: ConnectExistingResult
+  status: 200
+}
+
+export type connectExistingSetupResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type connectExistingSetupResponseSuccess = (connectExistingSetupResponse200) & {
+  headers: Headers;
+};
+export type connectExistingSetupResponseError = (connectExistingSetupResponseDefault) & {
+  headers: Headers;
+};
+
+export type connectExistingSetupResponse = (connectExistingSetupResponseSuccess | connectExistingSetupResponseError)
+
+export const getConnectExistingSetupUrl = () => {
+
+
+
+
+  return `/api/v1/setup/connect-existing`
+}
+
+/**
+ * @summary Save infrastructure configuration and attach to an existing SkinLoom database
+ */
+export const connectExistingSetup = async (connectExistingInput: NonReadonly<ConnectExistingInput>, options?: Parameters<typeof apiFetch>[1]): Promise<connectExistingSetupResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<connectExistingSetupResponse>(getConnectExistingSetupUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(connectExistingInput)
+  }
+);}
+
+
+
+
+
+export const getConnectExistingSetupMutationKey = () => ['connectExistingSetup'] as const;
+
+export const getConnectExistingSetupMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof connectExistingSetup>>, TError,ConnectExistingSetupMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof connectExistingSetup>>, TError,ConnectExistingSetupMutationVariables, TContext> => {
+
+const mutationKey = getConnectExistingSetupMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof connectExistingSetup>>, ConnectExistingSetupMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  connectExistingSetup(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConnectExistingSetupMutationResult = NonNullable<Awaited<ReturnType<typeof connectExistingSetup>>>
+    export type ConnectExistingSetupMutationBody = NonReadonly<ConnectExistingInput>
+    export type ConnectExistingSetupMutationError = ErrorModel
+    export type ConnectExistingSetupMutationVariables = {data: NonReadonly<ConnectExistingInput>}
+
+    /**
+ * @summary Save infrastructure configuration and attach to an existing SkinLoom database
+ */
+export const useConnectExistingSetup = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof connectExistingSetup>>, TError,ConnectExistingSetupMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof connectExistingSetup>>,
+        TError,
+        ConnectExistingSetupMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConnectExistingSetupMutationOptions(options), queryClient);
+    }
+
+export type getSetupJobResponse200 = {
+  data: SetupJobView
+  status: 200
+}
+
+export type getSetupJobResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getSetupJobResponseSuccess = (getSetupJobResponse200) & {
+  headers: Headers;
+};
+export type getSetupJobResponseError = (getSetupJobResponseDefault) & {
+  headers: Headers;
+};
+
+export type getSetupJobResponse = (getSetupJobResponseSuccess | getSetupJobResponseError)
+
+export const getGetSetupJobUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/setup/jobs/${id}`
+}
+
+/**
+ * @summary Get status and report of a setup dry-run, import, or restore job
+ */
+export const getSetupJob = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<getSetupJobResponse> => {
+
+  return apiFetch<getSetupJobResponse>(getGetSetupJobUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSetupJobQueryKey = (id: string,) => {
+    return [
+    `/api/v1/setup/jobs/${id}`
+    ] as const;
+    }
+
+
+export const getGetSetupJobQueryOptions = <TData = Awaited<ReturnType<typeof getSetupJob>>, TError = ErrorModel>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupJob>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSetupJobQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSetupJob>>> = ({ signal }) => getSetupJob(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSetupJob>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSetupJobQueryResult = NonNullable<Awaited<ReturnType<typeof getSetupJob>>>
+export type GetSetupJobQueryError = ErrorModel
+
+
+export function useGetSetupJob<TData = Awaited<ReturnType<typeof getSetupJob>>, TError = ErrorModel>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupJob>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSetupJob>>,
+          TError,
+          Awaited<ReturnType<typeof getSetupJob>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSetupJob<TData = Awaited<ReturnType<typeof getSetupJob>>, TError = ErrorModel>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupJob>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSetupJob>>,
+          TError,
+          Awaited<ReturnType<typeof getSetupJob>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSetupJob<TData = Awaited<ReturnType<typeof getSetupJob>>, TError = ErrorModel>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupJob>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get status and report of a setup dry-run, import, or restore job
+ */
+
+export function useGetSetupJob<TData = Awaited<ReturnType<typeof getSetupJob>>, TError = ErrorModel>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupJob>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSetupJobQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type executeSetupRestoreResponse202 = {
+  data: StartJobResult
+  status: 202
+}
+
+export type executeSetupRestoreResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 202>
+}
+
+export type executeSetupRestoreResponseSuccess = (executeSetupRestoreResponse202) & {
+  headers: Headers;
+};
+export type executeSetupRestoreResponseError = (executeSetupRestoreResponseDefault) & {
+  headers: Headers;
+};
+
+export type executeSetupRestoreResponse = (executeSetupRestoreResponseSuccess | executeSetupRestoreResponseError)
+
+export const getExecuteSetupRestoreUrl = () => {
+
+
+
+
+  return `/api/v1/setup/restore/execute`
+}
+
+/**
+ * @summary Restore a SkinLoom backup archive and transition into running mode
+ */
+export const executeSetupRestore = async (executeRestoreInput: NonReadonly<ExecuteRestoreInput>, options?: Parameters<typeof apiFetch>[1]): Promise<executeSetupRestoreResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<executeSetupRestoreResponse>(getExecuteSetupRestoreUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(executeRestoreInput)
+  }
+);}
+
+
+
+
+
+export const getExecuteSetupRestoreMutationKey = () => ['executeSetupRestore'] as const;
+
+export const getExecuteSetupRestoreMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof executeSetupRestore>>, TError,ExecuteSetupRestoreMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof executeSetupRestore>>, TError,ExecuteSetupRestoreMutationVariables, TContext> => {
+
+const mutationKey = getExecuteSetupRestoreMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof executeSetupRestore>>, ExecuteSetupRestoreMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  executeSetupRestore(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExecuteSetupRestoreMutationResult = NonNullable<Awaited<ReturnType<typeof executeSetupRestore>>>
+    export type ExecuteSetupRestoreMutationBody = NonReadonly<ExecuteRestoreInput>
+    export type ExecuteSetupRestoreMutationError = ErrorModel
+    export type ExecuteSetupRestoreMutationVariables = {data: NonReadonly<ExecuteRestoreInput>}
+
+    /**
+ * @summary Restore a SkinLoom backup archive and transition into running mode
+ */
+export const useExecuteSetupRestore = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof executeSetupRestore>>, TError,ExecuteSetupRestoreMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof executeSetupRestore>>,
+        TError,
+        ExecuteSetupRestoreMutationVariables,
+        TContext
+      > => {
+      return useMutation(getExecuteSetupRestoreMutationOptions(options), queryClient);
+    }
+
+export type inspectSetupRestoreResponse200 = {
+  data: InspectRestoreResult
+  status: 200
+}
+
+export type inspectSetupRestoreResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type inspectSetupRestoreResponseSuccess = (inspectSetupRestoreResponse200) & {
+  headers: Headers;
+};
+export type inspectSetupRestoreResponseError = (inspectSetupRestoreResponseDefault) & {
+  headers: Headers;
+};
+
+export type inspectSetupRestoreResponse = (inspectSetupRestoreResponseSuccess | inspectSetupRestoreResponseError)
+
+export const getInspectSetupRestoreUrl = () => {
+
+
+
+
+  return `/api/v1/setup/restore/inspect`
+}
+
+/**
+ * @summary Read manifest metadata from an uploaded or local SkinLoom backup archive
+ */
+export const inspectSetupRestore = async (inspectRestoreInput: NonReadonly<InspectRestoreInput>, options?: Parameters<typeof apiFetch>[1]): Promise<inspectSetupRestoreResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<inspectSetupRestoreResponse>(getInspectSetupRestoreUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(inspectRestoreInput)
+  }
+);}
+
+
+
+
+
+export const getInspectSetupRestoreMutationKey = () => ['inspectSetupRestore'] as const;
+
+export const getInspectSetupRestoreMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof inspectSetupRestore>>, TError,InspectSetupRestoreMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof inspectSetupRestore>>, TError,InspectSetupRestoreMutationVariables, TContext> => {
+
+const mutationKey = getInspectSetupRestoreMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof inspectSetupRestore>>, InspectSetupRestoreMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  inspectSetupRestore(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InspectSetupRestoreMutationResult = NonNullable<Awaited<ReturnType<typeof inspectSetupRestore>>>
+    export type InspectSetupRestoreMutationBody = NonReadonly<InspectRestoreInput>
+    export type InspectSetupRestoreMutationError = ErrorModel
+    export type InspectSetupRestoreMutationVariables = {data: NonReadonly<InspectRestoreInput>}
+
+    /**
+ * @summary Read manifest metadata from an uploaded or local SkinLoom backup archive
+ */
+export const useInspectSetupRestore = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof inspectSetupRestore>>, TError,InspectSetupRestoreMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof inspectSetupRestore>>,
+        TError,
+        InspectSetupRestoreMutationVariables,
+        TContext
+      > => {
+      return useMutation(getInspectSetupRestoreMutationOptions(options), queryClient);
+    }
+
+export type createSetupSessionResponse200 = {
+  data: SetupState
+  status: 200
+}
+
+export type createSetupSessionResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type createSetupSessionResponseSuccess = (createSetupSessionResponse200) & {
+  headers: Headers;
+};
+export type createSetupSessionResponseError = (createSetupSessionResponseDefault) & {
+  headers: Headers;
+};
+
+export type createSetupSessionResponse = (createSetupSessionResponseSuccess | createSetupSessionResponseError)
+
+export const getCreateSetupSessionUrl = () => {
+
+
+
+
+  return `/api/v1/setup/session`
+}
+
+/**
+ * @summary Verify the setup token and start a setup wizard session
+ */
+export const createSetupSession = async (createSetupSessionRequest: NonReadonly<CreateSetupSessionRequest>, options?: Parameters<typeof apiFetch>[1]): Promise<createSetupSessionResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createSetupSessionResponse>(getCreateSetupSessionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createSetupSessionRequest)
+  }
+);}
+
+
+
+
+
+export const getCreateSetupSessionMutationKey = () => ['createSetupSession'] as const;
+
+export const getCreateSetupSessionMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSetupSession>>, TError,CreateSetupSessionMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSetupSession>>, TError,CreateSetupSessionMutationVariables, TContext> => {
+
+const mutationKey = getCreateSetupSessionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSetupSession>>, CreateSetupSessionMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createSetupSession(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSetupSessionMutationResult = NonNullable<Awaited<ReturnType<typeof createSetupSession>>>
+    export type CreateSetupSessionMutationBody = NonReadonly<CreateSetupSessionRequest>
+    export type CreateSetupSessionMutationError = ErrorModel
+    export type CreateSetupSessionMutationVariables = {data: NonReadonly<CreateSetupSessionRequest>}
+
+    /**
+ * @summary Verify the setup token and start a setup wizard session
+ */
+export const useCreateSetupSession = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSetupSession>>, TError,CreateSetupSessionMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createSetupSession>>,
+        TError,
+        CreateSetupSessionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateSetupSessionMutationOptions(options), queryClient);
+    }
+
+export type getSetupStateResponse200 = {
+  data: SetupState
+  status: 200
+}
+
+export type getSetupStateResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getSetupStateResponseSuccess = (getSetupStateResponse200) & {
+  headers: Headers;
+};
+export type getSetupStateResponseError = (getSetupStateResponseDefault) & {
+  headers: Headers;
+};
+
+export type getSetupStateResponse = (getSetupStateResponseSuccess | getSetupStateResponseError)
+
+export const getGetSetupStateUrl = () => {
+
+
+
+
+  return `/api/v1/setup/state`
+}
+
+/**
+ * @summary Current sanitized setup environment and detected reverse proxy
+ */
+export const getSetupState = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getSetupStateResponse> => {
+
+  return apiFetch<getSetupStateResponse>(getGetSetupStateUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSetupStateQueryKey = () => {
+    return [
+    `/api/v1/setup/state`
+    ] as const;
+    }
+
+
+export const getGetSetupStateQueryOptions = <TData = Awaited<ReturnType<typeof getSetupState>>, TError = ErrorModel>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupState>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSetupStateQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSetupState>>> = ({ signal }) => getSetupState({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSetupState>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSetupStateQueryResult = NonNullable<Awaited<ReturnType<typeof getSetupState>>>
+export type GetSetupStateQueryError = ErrorModel
+
+
+export function useGetSetupState<TData = Awaited<ReturnType<typeof getSetupState>>, TError = ErrorModel>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupState>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSetupState>>,
+          TError,
+          Awaited<ReturnType<typeof getSetupState>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSetupState<TData = Awaited<ReturnType<typeof getSetupState>>, TError = ErrorModel>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupState>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSetupState>>,
+          TError,
+          Awaited<ReturnType<typeof getSetupState>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSetupState<TData = Awaited<ReturnType<typeof getSetupState>>, TError = ErrorModel>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupState>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Current sanitized setup environment and detected reverse proxy
+ */
+
+export function useGetSetupState<TData = Awaited<ReturnType<typeof getSetupState>>, TError = ErrorModel>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupState>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSetupStateQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type testSetupDBResponse200 = {
+  data: TestDBResult
+  status: 200
+}
+
+export type testSetupDBResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type testSetupDBResponseSuccess = (testSetupDBResponse200) & {
+  headers: Headers;
+};
+export type testSetupDBResponseError = (testSetupDBResponseDefault) & {
+  headers: Headers;
+};
+
+export type testSetupDBResponse = (testSetupDBResponseSuccess | testSetupDBResponseError)
+
+export const getTestSetupDBUrl = () => {
+
+
+
+
+  return `/api/v1/setup/test-db`
+}
+
+/**
+ * @summary Probe target database connectivity and detect existing data
+ */
+export const testSetupDB = async (dBConfigInput: NonReadonly<DBConfigInput>, options?: Parameters<typeof apiFetch>[1]): Promise<testSetupDBResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<testSetupDBResponse>(getTestSetupDBUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(dBConfigInput)
+  }
+);}
+
+
+
+
+
+export const getTestSetupDBMutationKey = () => ['testSetupDB'] as const;
+
+export const getTestSetupDBMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testSetupDB>>, TError,TestSetupDBMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof testSetupDB>>, TError,TestSetupDBMutationVariables, TContext> => {
+
+const mutationKey = getTestSetupDBMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testSetupDB>>, TestSetupDBMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  testSetupDB(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestSetupDBMutationResult = NonNullable<Awaited<ReturnType<typeof testSetupDB>>>
+    export type TestSetupDBMutationBody = NonReadonly<DBConfigInput>
+    export type TestSetupDBMutationError = ErrorModel
+    export type TestSetupDBMutationVariables = {data: NonReadonly<DBConfigInput>}
+
+    /**
+ * @summary Probe target database connectivity and detect existing data
+ */
+export const useTestSetupDB = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testSetupDB>>, TError,TestSetupDBMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof testSetupDB>>,
+        TError,
+        TestSetupDBMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTestSetupDBMutationOptions(options), queryClient);
+    }
+
+export type testSetupMailResponse200 = {
+  data: TestMailResult
+  status: 200
+}
+
+export type testSetupMailResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type testSetupMailResponseSuccess = (testSetupMailResponse200) & {
+  headers: Headers;
+};
+export type testSetupMailResponseError = (testSetupMailResponseDefault) & {
+  headers: Headers;
+};
+
+export type testSetupMailResponse = (testSetupMailResponseSuccess | testSetupMailResponseError)
+
+export const getTestSetupMailUrl = () => {
+
+
+
+
+  return `/api/v1/setup/test-mail`
+}
+
+/**
+ * @summary Send a test email during setup to verify SMTP settings
+ */
+export const testSetupMail = async (testMailInput: NonReadonly<TestMailInput>, options?: Parameters<typeof apiFetch>[1]): Promise<testSetupMailResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<testSetupMailResponse>(getTestSetupMailUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(testMailInput)
+  }
+);}
+
+
+
+
+
+export const getTestSetupMailMutationKey = () => ['testSetupMail'] as const;
+
+export const getTestSetupMailMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testSetupMail>>, TError,TestSetupMailMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof testSetupMail>>, TError,TestSetupMailMutationVariables, TContext> => {
+
+const mutationKey = getTestSetupMailMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testSetupMail>>, TestSetupMailMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  testSetupMail(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestSetupMailMutationResult = NonNullable<Awaited<ReturnType<typeof testSetupMail>>>
+    export type TestSetupMailMutationBody = NonReadonly<TestMailInput>
+    export type TestSetupMailMutationError = ErrorModel
+    export type TestSetupMailMutationVariables = {data: NonReadonly<TestMailInput>}
+
+    /**
+ * @summary Send a test email during setup to verify SMTP settings
+ */
+export const useTestSetupMail = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testSetupMail>>, TError,TestSetupMailMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof testSetupMail>>,
+        TError,
+        TestSetupMailMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTestSetupMailMutationOptions(options), queryClient);
+    }
+
+export type testSetupStorageResponse200 = {
+  data: TestStorageResult
+  status: 200
+}
+
+export type testSetupStorageResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type testSetupStorageResponseSuccess = (testSetupStorageResponse200) & {
+  headers: Headers;
+};
+export type testSetupStorageResponseError = (testSetupStorageResponseDefault) & {
+  headers: Headers;
+};
+
+export type testSetupStorageResponse = (testSetupStorageResponseSuccess | testSetupStorageResponseError)
+
+export const getTestSetupStorageUrl = () => {
+
+
+
+
+  return `/api/v1/setup/test-storage`
+}
+
+/**
+ * @summary Verify local or S3 texture storage permissions
+ */
+export const testSetupStorage = async (storageConfigInput: NonReadonly<StorageConfigInput>, options?: Parameters<typeof apiFetch>[1]): Promise<testSetupStorageResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<testSetupStorageResponse>(getTestSetupStorageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(storageConfigInput)
+  }
+);}
+
+
+
+
+
+export const getTestSetupStorageMutationKey = () => ['testSetupStorage'] as const;
+
+export const getTestSetupStorageMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testSetupStorage>>, TError,TestSetupStorageMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof testSetupStorage>>, TError,TestSetupStorageMutationVariables, TContext> => {
+
+const mutationKey = getTestSetupStorageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testSetupStorage>>, TestSetupStorageMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  testSetupStorage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestSetupStorageMutationResult = NonNullable<Awaited<ReturnType<typeof testSetupStorage>>>
+    export type TestSetupStorageMutationBody = NonReadonly<StorageConfigInput>
+    export type TestSetupStorageMutationError = ErrorModel
+    export type TestSetupStorageMutationVariables = {data: NonReadonly<StorageConfigInput>}
+
+    /**
+ * @summary Verify local or S3 texture storage permissions
+ */
+export const useTestSetupStorage = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testSetupStorage>>, TError,TestSetupStorageMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof testSetupStorage>>,
+        TError,
+        TestSetupStorageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTestSetupStorageMutationOptions(options), queryClient);
+    }
+
+export type createSetupUploadResponse200 = {
+  data: CreateUploadResult
+  status: 200
+}
+
+export type createSetupUploadResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type createSetupUploadResponseSuccess = (createSetupUploadResponse200) & {
+  headers: Headers;
+};
+export type createSetupUploadResponseError = (createSetupUploadResponseDefault) & {
+  headers: Headers;
+};
+
+export type createSetupUploadResponse = (createSetupUploadResponseSuccess | createSetupUploadResponseError)
+
+export const getCreateSetupUploadUrl = () => {
+
+
+
+
+  return `/api/v1/setup/uploads`
+}
+
+/**
+ * @summary Start a chunked archive upload for BS migration textures or SkinLoom backup
+ */
+export const createSetupUpload = async (createUploadInput: NonReadonly<CreateUploadInput>, options?: Parameters<typeof apiFetch>[1]): Promise<createSetupUploadResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createSetupUploadResponse>(getCreateSetupUploadUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createUploadInput)
+  }
+);}
+
+
+
+
+
+export const getCreateSetupUploadMutationKey = () => ['createSetupUpload'] as const;
+
+export const getCreateSetupUploadMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSetupUpload>>, TError,CreateSetupUploadMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSetupUpload>>, TError,CreateSetupUploadMutationVariables, TContext> => {
+
+const mutationKey = getCreateSetupUploadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSetupUpload>>, CreateSetupUploadMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createSetupUpload(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSetupUploadMutationResult = NonNullable<Awaited<ReturnType<typeof createSetupUpload>>>
+    export type CreateSetupUploadMutationBody = NonReadonly<CreateUploadInput>
+    export type CreateSetupUploadMutationError = ErrorModel
+    export type CreateSetupUploadMutationVariables = {data: NonReadonly<CreateUploadInput>}
+
+    /**
+ * @summary Start a chunked archive upload for BS migration textures or SkinLoom backup
+ */
+export const useCreateSetupUpload = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSetupUpload>>, TError,CreateSetupUploadMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createSetupUpload>>,
+        TError,
+        CreateSetupUploadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateSetupUploadMutationOptions(options), queryClient);
     }
 
 export type getBootstrapResponse200 = {

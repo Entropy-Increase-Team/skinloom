@@ -540,6 +540,24 @@ func (u *TextureUpsert) UpdateType() *TextureUpsert {
 	return u
 }
 
+// SetSize sets the "size" field.
+func (u *TextureUpsert) SetSize(v int64) *TextureUpsert {
+	u.Set(texture.FieldSize, v)
+	return u
+}
+
+// UpdateSize sets the "size" field to the value that was provided on create.
+func (u *TextureUpsert) UpdateSize() *TextureUpsert {
+	u.SetExcluded(texture.FieldSize)
+	return u
+}
+
+// AddSize adds v to the "size" field.
+func (u *TextureUpsert) AddSize(v int64) *TextureUpsert {
+	u.Add(texture.FieldSize, v)
+	return u
+}
+
 // SetUploaderID sets the "uploader_id" field.
 func (u *TextureUpsert) SetUploaderID(v int64) *TextureUpsert {
 	u.Set(texture.FieldUploaderID, v)
@@ -620,9 +638,6 @@ func (u *TextureUpsertOne) UpdateNewValues() *TextureUpsertOne {
 		if _, exists := u.create.mutation.Hash(); exists {
 			s.SetIgnore(texture.FieldHash)
 		}
-		if _, exists := u.create.mutation.Size(); exists {
-			s.SetIgnore(texture.FieldSize)
-		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(texture.FieldCreatedAt)
 		}
@@ -682,6 +697,27 @@ func (u *TextureUpsertOne) SetType(v texture.Type) *TextureUpsertOne {
 func (u *TextureUpsertOne) UpdateType() *TextureUpsertOne {
 	return u.Update(func(s *TextureUpsert) {
 		s.UpdateType()
+	})
+}
+
+// SetSize sets the "size" field.
+func (u *TextureUpsertOne) SetSize(v int64) *TextureUpsertOne {
+	return u.Update(func(s *TextureUpsert) {
+		s.SetSize(v)
+	})
+}
+
+// AddSize adds v to the "size" field.
+func (u *TextureUpsertOne) AddSize(v int64) *TextureUpsertOne {
+	return u.Update(func(s *TextureUpsert) {
+		s.AddSize(v)
+	})
+}
+
+// UpdateSize sets the "size" field to the value that was provided on create.
+func (u *TextureUpsertOne) UpdateSize() *TextureUpsertOne {
+	return u.Update(func(s *TextureUpsert) {
+		s.UpdateSize()
 	})
 }
 
@@ -940,9 +976,6 @@ func (u *TextureUpsertBulk) UpdateNewValues() *TextureUpsertBulk {
 			if _, exists := b.mutation.Hash(); exists {
 				s.SetIgnore(texture.FieldHash)
 			}
-			if _, exists := b.mutation.Size(); exists {
-				s.SetIgnore(texture.FieldSize)
-			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(texture.FieldCreatedAt)
 			}
@@ -1003,6 +1036,27 @@ func (u *TextureUpsertBulk) SetType(v texture.Type) *TextureUpsertBulk {
 func (u *TextureUpsertBulk) UpdateType() *TextureUpsertBulk {
 	return u.Update(func(s *TextureUpsert) {
 		s.UpdateType()
+	})
+}
+
+// SetSize sets the "size" field.
+func (u *TextureUpsertBulk) SetSize(v int64) *TextureUpsertBulk {
+	return u.Update(func(s *TextureUpsert) {
+		s.SetSize(v)
+	})
+}
+
+// AddSize adds v to the "size" field.
+func (u *TextureUpsertBulk) AddSize(v int64) *TextureUpsertBulk {
+	return u.Update(func(s *TextureUpsert) {
+		s.AddSize(v)
+	})
+}
+
+// UpdateSize sets the "size" field to the value that was provided on create.
+func (u *TextureUpsertBulk) UpdateSize() *TextureUpsertBulk {
+	return u.Update(func(s *TextureUpsert) {
+		s.UpdateSize()
 	})
 }
 

@@ -670,6 +670,304 @@
         ],
         "type": "object"
       },
+      "BSDryRunInput": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/BSDryRunInput.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/BSSourceInput"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "type": "object"
+      },
+      "BSImportInput": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/BSImportInput.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "database": {
+            "$ref": "#/components/schemas/DBConfigInput"
+          },
+          "fallbackAdmin": {
+            "$ref": "#/components/schemas/FallbackAdminInput"
+          },
+          "siteUrl": {
+            "maxLength": 512,
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/BSSourceInput"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageConfigInput"
+          },
+          "trustedProxies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "database",
+          "storage",
+          "source"
+        ],
+        "type": "object"
+      },
+      "BSReportEntryView": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "leftBehind": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "table": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "severity",
+          "table",
+          "message"
+        ],
+        "type": "object"
+      },
+      "BSReportView": {
+        "additionalProperties": false,
+        "properties": {
+          "blocked": {
+            "type": "boolean"
+          },
+          "dryRun": {
+            "type": "boolean"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/BSReportEntryView"
+            },
+            "type": "array"
+          },
+          "failed": {
+            "type": "string"
+          },
+          "files": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "filesCopied": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "imported": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "superadmins": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dryRun",
+          "entries",
+          "imported",
+          "files",
+          "filesCopied",
+          "superadmins",
+          "blocked"
+        ],
+        "type": "object"
+      },
+      "BSSourceInput": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/BSSourceInput.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "allowInsecureLocal": {
+            "type": "boolean"
+          },
+          "bridgeToken": {
+            "maxLength": 512,
+            "type": "string"
+          },
+          "bridgeUrl": {
+            "maxLength": 512,
+            "type": "string"
+          },
+          "database": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "driver": {
+            "enum": [
+              "mysql",
+              "postgres",
+              "sqlite",
+              ""
+            ],
+            "type": "string"
+          },
+          "envId": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "host": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "passwordMethod": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "port": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "prefix": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "rawDsn": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "salt": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "socket": {
+            "maxLength": 512,
+            "type": "string"
+          },
+          "sourceType": {
+            "enum": [
+              "db",
+              "bridge",
+              ""
+            ],
+            "type": "string"
+          },
+          "textureSource": {
+            "enum": [
+              "dir",
+              "upload",
+              "none",
+              "bridge",
+              ""
+            ],
+            "type": "string"
+          },
+          "texturesDir": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "transitionMethods": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "uploadId": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "BackupManifestView": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "database": {
+            "type": "string"
+          },
+          "format": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "hasDatabase": {
+            "type": "boolean"
+          },
+          "migration": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "textureBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "textures": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "format",
+          "version",
+          "createdAt",
+          "database",
+          "migration",
+          "hasDatabase",
+          "textures",
+          "textureBytes"
+        ],
+        "type": "object"
+      },
       "Block": {
         "additionalProperties": false,
         "properties": {
@@ -952,6 +1250,67 @@
         ],
         "type": "object"
       },
+      "CompleteWizardInput": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/CompleteWizardInput.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "database": {
+            "$ref": "#/components/schemas/DBConfigInput"
+          },
+          "email": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "mail": {
+            "$ref": "#/components/schemas/MailConfigInput"
+          },
+          "nickname": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "siteName": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "siteUrl": {
+            "maxLength": 512,
+            "type": "string"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageConfigInput"
+          },
+          "timezone": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "trustedProxies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "database",
+          "storage",
+          "email",
+          "nickname",
+          "password"
+        ],
+        "type": "object"
+      },
       "ConfigStatus": {
         "additionalProperties": false,
         "properties": {
@@ -973,6 +1332,58 @@
           "version",
           "theme",
           "changed"
+        ],
+        "type": "object"
+      },
+      "ConnectExistingInput": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ConnectExistingInput.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "database": {
+            "$ref": "#/components/schemas/DBConfigInput"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageConfigInput"
+          },
+          "trustedProxies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "database",
+          "storage"
+        ],
+        "type": "object"
+      },
+      "ConnectExistingResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ConnectExistingResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "redirectTo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "redirectTo"
         ],
         "type": "object"
       },
@@ -1011,6 +1422,28 @@
         ],
         "type": "object"
       },
+      "CreateSetupSessionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/CreateSetupSessionRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 512,
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "type": "object"
+      },
       "CreateTokenInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -1046,6 +1479,156 @@
           "name",
           "scopes",
           "expiresInDays"
+        ],
+        "type": "object"
+      },
+      "CreateUploadInput": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/CreateUploadInput.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "filename": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "purpose": {
+            "enum": [
+              "bs_textures",
+              "backup"
+            ],
+            "type": "string"
+          },
+          "totalSize": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "purpose",
+          "filename",
+          "totalSize"
+        ],
+        "type": "object"
+      },
+      "CreateUploadResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/CreateUploadResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "chunkSize": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "maxUploadBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "uploadId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uploadId",
+          "chunkSize",
+          "maxUploadBytes"
+        ],
+        "type": "object"
+      },
+      "DBConfigInput": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/DBConfigInput.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "database": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "driver": {
+            "enum": [
+              "sqlite",
+              "mysql",
+              "postgres",
+              ""
+            ],
+            "type": "string"
+          },
+          "host": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "port": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rawDsn": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "sqlitePath": {
+            "maxLength": 512,
+            "type": "string"
+          },
+          "sslMode": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "useEnv": {
+            "type": "boolean"
+          },
+          "username": {
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DBSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "database": {
+            "type": "string"
+          },
+          "driver": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "port": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sqlitePath": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "driver"
         ],
         "type": "object"
       },
@@ -1163,6 +1746,120 @@
         ],
         "type": "object"
       },
+      "DetectedProxy": {
+        "additionalProperties": false,
+        "properties": {
+          "host": {
+            "type": "string"
+          },
+          "peerIp": {
+            "type": "string"
+          },
+          "proto": {
+            "type": "string"
+          },
+          "suggestedCidr": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "peerIp",
+          "suggestedCidr"
+        ],
+        "type": "object"
+      },
+      "EnvInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "database": {
+            "type": "string"
+          },
+          "driver": {
+            "type": "string"
+          },
+          "fsDriver": {
+            "type": "string"
+          },
+          "hasMail": {
+            "type": "boolean"
+          },
+          "hasSalt": {
+            "type": "boolean"
+          },
+          "host": {
+            "type": "string"
+          },
+          "localhostWarning": {
+            "type": "boolean"
+          },
+          "passwordMethod": {
+            "type": "string"
+          },
+          "port": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "socket": {
+            "type": "string"
+          },
+          "texturesDir": {
+            "type": "string"
+          },
+          "transition": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "driver",
+          "prefix",
+          "passwordMethod",
+          "hasSalt",
+          "hasMail",
+          "localhostWarning"
+        ],
+        "type": "object"
+      },
+      "EnvLockedInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "database": {
+            "type": "boolean"
+          },
+          "databaseDriver": {
+            "type": "string"
+          },
+          "databaseMask": {
+            "type": "string"
+          },
+          "storage": {
+            "type": "boolean"
+          },
+          "storageDriver": {
+            "type": "string"
+          },
+          "storageMask": {
+            "type": "string"
+          },
+          "trustedProxies": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "database",
+          "storage",
+          "trustedProxies"
+        ],
+        "type": "object"
+      },
       "ErrorDetail": {
         "additionalProperties": false,
         "properties": {
@@ -1239,6 +1936,71 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ExecuteRestoreInput": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ExecuteRestoreInput.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "applyArchiveConfig": {
+            "type": "boolean"
+          },
+          "database": {
+            "$ref": "#/components/schemas/DBConfigInput"
+          },
+          "path": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageConfigInput"
+          },
+          "trustedProxies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "uploadId": {
+            "maxLength": 128,
+            "type": "string"
+          }
+        },
+        "required": [
+          "database",
+          "storage"
+        ],
+        "type": "object"
+      },
+      "FallbackAdminInput": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "nickname": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "nickname",
+          "password"
+        ],
         "type": "object"
       },
       "FavoriteInputBody": {
@@ -1318,6 +2080,67 @@
         },
         "required": [
           "email"
+        ],
+        "type": "object"
+      },
+      "InspectRestoreInput": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/InspectRestoreInput.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "path": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "uploadId": {
+            "maxLength": 128,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "InspectRestoreResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/InspectRestoreResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "configDialect": {
+            "type": "string"
+          },
+          "configStorage": {
+            "type": "string"
+          },
+          "hasConfig": {
+            "type": "boolean"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/BackupManifestView"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "manifest",
+          "hasConfig",
+          "warnings"
         ],
         "type": "object"
       },
@@ -1405,6 +2228,50 @@
           "email",
           "password"
         ],
+        "type": "object"
+      },
+      "MailConfigInput": {
+        "additionalProperties": false,
+        "properties": {
+          "driver": {
+            "enum": [
+              "none",
+              "smtp",
+              "log",
+              ""
+            ],
+            "type": "string"
+          },
+          "encryption": {
+            "enum": [
+              "tls",
+              "starttls",
+              "none",
+              ""
+            ],
+            "type": "string"
+          },
+          "from": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "host": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "port": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "username": {
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "MailStatus": {
@@ -1806,6 +2673,53 @@
           "date",
           "registrations",
           "uploads"
+        ],
+        "type": "object"
+      },
+      "ParseBSEnvInput": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ParseBSEnvInput.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "content": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "path": {
+            "maxLength": 1024,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ParseBSEnvResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ParseBSEnvResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "env": {
+            "$ref": "#/components/schemas/EnvInfo"
+          },
+          "envId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "env"
         ],
         "type": "object"
       },
@@ -2364,6 +3278,43 @@
         ],
         "type": "object"
       },
+      "RescanResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/RescanResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "checked": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "invalid": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "missing": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "updated": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "checked",
+          "updated",
+          "missing",
+          "invalid"
+        ],
+        "type": "object"
+      },
       "ResetInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -2908,6 +3859,151 @@
         ],
         "type": "object"
       },
+      "SetupJobView": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/SetupJobView.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "done": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "hasReport": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "bs_dry_run",
+              "bs_import",
+              "restore"
+            ],
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "percent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "redirectTo": {
+            "type": "string"
+          },
+          "report": {
+            "$ref": "#/components/schemas/BSReportView"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "type": "string"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "stage",
+          "percent",
+          "done",
+          "total",
+          "hasReport",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "SetupState": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/SetupState.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "activeJobId": {
+            "type": "string"
+          },
+          "database": {
+            "$ref": "#/components/schemas/DBSummary"
+          },
+          "defaultTimezone": {
+            "type": "string"
+          },
+          "detectedProxy": {
+            "$ref": "#/components/schemas/DetectedProxy"
+          },
+          "envLocked": {
+            "$ref": "#/components/schemas/EnvLockedInfo"
+          },
+          "inContainer": {
+            "type": "boolean"
+          },
+          "initDbError": {
+            "type": "string"
+          },
+          "maxUploadBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "needsSetup": {
+            "type": "boolean"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageSummary"
+          },
+          "suggestedSiteUrl": {
+            "type": "string"
+          },
+          "trustedProxies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "needsSetup",
+          "inContainer",
+          "envLocked",
+          "database",
+          "storage",
+          "trustedProxies",
+          "suggestedSiteUrl",
+          "defaultTimezone",
+          "maxUploadBytes"
+        ],
+        "type": "object"
+      },
       "SetupStatusOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -2922,10 +4018,14 @@
           },
           "needsSetup": {
             "type": "boolean"
+          },
+          "setupLockedByEnv": {
+            "type": "boolean"
           }
         },
         "required": [
-          "needsSetup"
+          "needsSetup",
+          "setupLockedByEnv"
         ],
         "type": "object"
       },
@@ -3316,6 +4416,63 @@
         },
         "type": "object"
       },
+      "SourceSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "closet": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "hasYggdrasilKey": {
+            "type": "boolean"
+          },
+          "players": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "textureDirStats": {
+            "$ref": "#/components/schemas/TextureDirInfo"
+          },
+          "textures": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "users": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "users",
+          "players",
+          "textures",
+          "closet",
+          "hasYggdrasilKey",
+          "textureDirStats"
+        ],
+        "type": "object"
+      },
+      "StartJobResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/StartJobResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "jobId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "jobId"
+        ],
+        "type": "object"
+      },
       "StatusCheck": {
         "additionalProperties": false,
         "properties": {
@@ -3345,6 +4502,70 @@
         ],
         "type": "object"
       },
+      "StorageConfigInput": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/StorageConfigInput.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "accessKey": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "bucket": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "driver": {
+            "enum": [
+              "local",
+              "s3",
+              ""
+            ],
+            "type": "string"
+          },
+          "endpoint": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "insecure": {
+            "type": "boolean"
+          },
+          "path": {
+            "maxLength": 512,
+            "type": "string"
+          },
+          "pathStyle": {
+            "type": "boolean"
+          },
+          "prefix": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "publicUrl": {
+            "maxLength": 512,
+            "type": "string"
+          },
+          "region": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "secretKey": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "useEnv": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
       "StorageStatus": {
         "additionalProperties": false,
         "properties": {
@@ -3368,6 +4589,42 @@
           "driver",
           "files",
           "bytes"
+        ],
+        "type": "object"
+      },
+      "StorageSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "bucket": {
+            "type": "string"
+          },
+          "driver": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "insecure": {
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          },
+          "pathStyle": {
+            "type": "boolean"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "publicUrl": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "driver"
         ],
         "type": "object"
       },
@@ -3417,6 +4674,184 @@
           "mail",
           "config",
           "checks"
+        ],
+        "type": "object"
+      },
+      "TestBSSourceResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/TestBSSourceResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/SourceSummary"
+          },
+          "errorDetail": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "warning": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "counts"
+        ],
+        "type": "object"
+      },
+      "TestDBResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/TestDBResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "dialect": {
+            "type": "string"
+          },
+          "errorDetail": {
+            "type": "string"
+          },
+          "hintSql": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "players": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "state": {
+            "enum": [
+              "empty",
+              "skinloom_installed",
+              "suspected_bs",
+              "missing_db",
+              "error"
+            ],
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "textures": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "users": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "state"
+        ],
+        "type": "object"
+      },
+      "TestMailInput": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/TestMailInput.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "mail": {
+            "$ref": "#/components/schemas/MailConfigInput"
+          },
+          "siteName": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "to": {
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
+        "required": [
+          "mail",
+          "to"
+        ],
+        "type": "object"
+      },
+      "TestMailResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/TestMailResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "errorDetail": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "type": "object"
+      },
+      "TestStorageResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/TestStorageResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "driver": {
+            "type": "string"
+          },
+          "errorDetail": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "driver"
         ],
         "type": "object"
       },
@@ -3493,6 +4928,31 @@
           "public",
           "likes",
           "createdAt"
+        ],
+        "type": "object"
+      },
+      "TextureDirInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "exists": {
+            "type": "boolean"
+          },
+          "files": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "exists",
+          "files",
+          "bytes"
         ],
         "type": "object"
       },
@@ -5174,6 +6634,57 @@
           }
         ],
         "summary": "System status",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/textures/rescan": {
+      "post": {
+        "description": "Checks blobs with width == 0 (such as textures imported without files before syncing via rsync/rclone/S3), verifies SHA-256 and PNG dimensions, and fills in width, height, and byte size.",
+        "operationId": "rescanMissingBlobs",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RescanResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Verify synced texture files for imported blobs missing dimensions",
         "tags": [
           "admin"
         ]
@@ -8438,6 +9949,763 @@
           }
         },
         "summary": "Create the first administrator",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/setup/bs/dry-run": {
+      "post": {
+        "operationId": "startSetupBSDryRun",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "skinloom_setup",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BSDryRunInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartJobResult"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Run a non-destructive Blessing Skin migration dry-run job",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/setup/bs/import": {
+      "post": {
+        "operationId": "startSetupBSImport",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "skinloom_setup",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BSImportInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartJobResult"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Start the Blessing Skin import job and transition into running mode",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/setup/bs/parse-env": {
+      "post": {
+        "operationId": "parseSetupBSEnv",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "skinloom_setup",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParseBSEnvInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseBSEnvResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Parse a Blessing Skin .env file (content or path) into sanitized metadata",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/setup/bs/test-source": {
+      "post": {
+        "operationId": "testSetupBSSource",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "skinloom_setup",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BSSourceInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestBSSourceResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Read-only connectivity and row count check of the Blessing Skin source",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/setup/complete": {
+      "post": {
+        "operationId": "completeSetupWizard",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "User-Agent",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "skinloom_setup",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteWizardInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserView"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Write configuration, migrate database, create superadmin, and transition to running mode",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/setup/connect-existing": {
+      "post": {
+        "operationId": "connectExistingSetup",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "skinloom_setup",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectExistingInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectExistingResult"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Save infrastructure configuration and attach to an existing SkinLoom database",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/setup/jobs/{id}": {
+      "get": {
+        "operationId": "getSetupJob",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "skinloom_setup",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupJobView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get status and report of a setup dry-run, import, or restore job",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/setup/restore/execute": {
+      "post": {
+        "operationId": "executeSetupRestore",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "skinloom_setup",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecuteRestoreInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartJobResult"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Restore a SkinLoom backup archive and transition into running mode",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/setup/restore/inspect": {
+      "post": {
+        "operationId": "inspectSetupRestore",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "skinloom_setup",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InspectRestoreInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InspectRestoreResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Read manifest metadata from an uploaded or local SkinLoom backup archive",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/setup/session": {
+      "post": {
+        "operationId": "createSetupSession",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSetupSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupState"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Verify the setup token and start a setup wizard session",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/setup/state": {
+      "get": {
+        "operationId": "getSetupState",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "skinloom_setup",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupState"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Current sanitized setup environment and detected reverse proxy",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/setup/test-db": {
+      "post": {
+        "operationId": "testSetupDB",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "skinloom_setup",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DBConfigInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestDBResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Probe target database connectivity and detect existing data",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/setup/test-mail": {
+      "post": {
+        "operationId": "testSetupMail",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "skinloom_setup",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestMailInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestMailResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Send a test email during setup to verify SMTP settings",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/setup/test-storage": {
+      "post": {
+        "operationId": "testSetupStorage",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "skinloom_setup",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageConfigInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestStorageResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Verify local or S3 texture storage permissions",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/setup/uploads": {
+      "post": {
+        "operationId": "createSetupUpload",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "skinloom_setup",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUploadInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUploadResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Start a chunked archive upload for BS migration textures or SkinLoom backup",
         "tags": [
           "setup"
         ]

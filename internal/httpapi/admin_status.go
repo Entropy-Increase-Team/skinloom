@@ -10,6 +10,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/mail"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/stats"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/buildinfo"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/jobs"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/migrate"
@@ -96,6 +97,31 @@ func registerStatus(api huma.API, d Deps) {
 			return nil, err
 		}
 		return &struct{ Body SystemStatus }{s}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "rescanMissingBlobs",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/admin/textures/rescan",
+		Summary:     "Verify synced texture files for imported blobs missing dimensions",
+		Description: "Checks blobs with width == 0 (such as textures imported without files before syncing via rsync/rclone/S3), verifies SHA-256 and PNG dimensions, and fills in width, height, and byte size.",
+		Tags:        []string{"admin"},
+		Security:    adminSecurity,
+	}, func(ctx context.Context, in *adminAuth) (*struct{ Body texture.RescanResult }, error) {
+		actor, err := checkAdmin(ctx, d, in.Authorization)
+		if err != nil {
+			return nil, err
+		}
+		res, err := d.Textures.RescanMissingBlobs(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if d.Accounts != nil {
+			_ = d.Accounts.Audit(ctx, actor, "texture.rescan", "texture", "", requestInfo(ctx).client.ClientIP, map[string]any{
+				"checked": res.Checked, "updated": res.Updated, "missing": res.Missing, "invalid": res.Invalid,
+			})
+		}
+		return &struct{ Body texture.RescanResult }{Body: res}, nil
 	})
 }
 

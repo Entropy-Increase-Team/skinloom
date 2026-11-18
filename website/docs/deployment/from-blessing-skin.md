@@ -5,6 +5,23 @@ sidebar_position: 8
 
 # 从 Blessing Skin 迁移
 
+你可以通过两种方式将现有 Blessing Skin（BS）站点平滑迁移到 SkinLoom：
+- **图形化向导（推荐）**：直接启动全新 SkinLoom 打开 `/setup?token=...`，在安装向导中选择 **从 Blessing Skin 迁移**，支持上传 `.env`、在线测试连通性、浏览模拟试跑报告（Dry-Run）、上传 `<= 1 GiB` 材质压缩包或“仅迁移数据库稍后补传”，以及配合独立的 `blessing-skin-export-bridge` 插件跨服务器通过 HTTPS 直接拉取数据与材质。
+- **命令行工具**：`skinloom import bs` 适合自动化脚本、超大型归档或纯终端环境。
+
+两种方式底层共用同一套迁移引擎，对 BS 数据库严格只读不写，随时可以切回。
+
+## 方式 A：通过交互式安装向导与桥接插件迁移（推荐）
+
+1. **全新启动 SkinLoom**：无需手动修改 `config.toml` 或先建数据库，打开安装链接后选择 **从 Blessing Skin 迁移** 并在第 2 步完成目标数据库和存储（本地 / S3）的测试。
+2. **选择来源方式**：
+   - **同机 / 私网直连数据库**：上传或填写 BS `.env`（密钥仅在内存中读取不回显，容器部署下若使用 `127.0.0.1` 会自动警告），选择本地 `storage/textures` 目录、浏览器分片上传材质包（`<= 1 GiB`），或选 **仅迁移数据库**。
+   - **跨服务器迁移（免开数据库端口）**：从独立的 [blessing-skin-export-bridge](https://github.com/Entropy-Increase-Team/blessing-skin-export-bridge) 仓库获取最新版插件压缩包，安装到 BS 的 `plugins/blessing-skin-export-bridge/` 启用并由超级管理员签发短时效 256-bit 令牌（推荐同时开启插件内置的“写入冻结”与 IP 白名单），将连接串 JSON 或站点地址与令牌填入向导 **通过迁移桥接插件远程拉取**（公网域名强制 HTTPS）即可并发校验并拉取数据与材质。
+3. **试跑检查与执行**：在页面点击 **运行模拟试跑（Dry-Run）**，分类核对 `BLOCKING` / `LEFT IN BLESSING SKIN` / `WARNING` / `FIXED` / `DROPPED` 报告，也可下载完整 `.txt` 报告；确认无阻断项后点击 **开始正式迁移**，完成后进程自动热切换至新站点。
+4. **“仅迁移数据库”的补扫校验**：若迁移时未提供材质文件，后续将 BS 材质复制到目标目录/S3 后，只需进入 **管理后台 → 系统状态** 点击 **校准补扫缺失材质**（或执行 `skinloom textures rescan`），即可自动校验 SHA-256 与 PNG 尺寸并补齐材质大小信息。迁移完成后记得在 BS 删除 `blessing-skin-export-bridge` 插件。
+
+## 方式 B：命令行 `skinloom import bs`
+
 `skinloom import bs` 把一个 Blessing Skin（BS）站点导入全新的 SkinLoom。BS 的数据库只读不写，随时可以切回去。
 
 ## 会带过来什么

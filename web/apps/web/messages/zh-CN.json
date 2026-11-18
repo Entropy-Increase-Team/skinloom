@@ -104,6 +104,7 @@
     "body": "你访问的页面不存在或已被移除。"
   },
   "setupPending": "站点尚未完成初始化：请打开服务器控制台打印的一次性安装链接，或在服务器上运行 <code>skinloom setup-link</code>。",
+  "setupPendingAction": "前往安装向导",
   "auth": {
     "email": "邮箱",
     "password": "密码",
@@ -147,6 +148,274 @@
     "passwordHint": "8 到 128 个字符",
     "confirm": "确认密码",
     "submit": "完成初始化",
+    "wizard": {
+      "title": "SkinLoom 初始化向导",
+      "subtitle": "配置数据库、存储和站点模式，从零搭建或从 Blessing Skin / 备份无缝上线。",
+      "steps": {
+        "verify": "身份验证",
+        "mode": "选择方式",
+        "infra": "基础设施",
+        "configure": "完成配置"
+      }
+    },
+    "gate": {
+      "title": "验证服务器安装令牌",
+      "intro": "输入服务器控制台打印的一次性安装链接或令牌，以解锁初始化向导。",
+      "label": "安装链接或令牌",
+      "hint": "可直接粘贴完整 URL（包含 ?token=...）或仅粘贴令牌字符。",
+      "verify": "验证并继续",
+      "empty": "请输入安装链接或令牌。",
+      "whereTitle": "在哪里查找安装令牌？",
+      "whereDesc": "为了防止公网未初始化实例被他人抢先安装，向导需要服务器上生成的短期令牌。",
+      "cmdBinary": "二进制 / 物理机（打印或生成新链接）",
+      "cmdDocker": "Docker Compose 容器内执行",
+      "cmdSystemd": "Systemd 服务日志查询"
+    },
+    "mode": {
+      "title": "选择初始化方式",
+      "intro": "根据你的场景选择接下来的配置流程。",
+      "next": "下一步",
+      "fresh": {
+        "title": "全新安装",
+        "desc": "建立一个全新的 SkinLoom 皮肤站，配置基础设施与首个超级管理员账号。"
+      },
+      "bs": {
+        "title": "从 Blessing Skin 迁移",
+        "desc": "可视化导入原有 Blessing Skin 账号、角色、衣柜、材质与密码验证规则。"
+      },
+      "restore": {
+        "title": "从 SkinLoom 备份恢复",
+        "desc": "将之前导出的 SkinLoom 备份归档恢复到全新的数据库与存储。"
+      }
+    },
+    "infra": {
+      "title": "数据库与材质存储",
+      "intro": "设置 SkinLoom 运行所需的持久化存储。环境变量锁定项会保留不可修改状态。",
+      "envLocked": "由环境变量锁定",
+      "dbTestFailed": "数据库连接测试失败，请检查配置。",
+      "storageTestFailed": "存储读写权限检查失败。",
+      "connectFailed": "接入已有数据库失败。",
+      "back": "上一步",
+      "next": "下一步",
+      "cancel": "取消",
+      "initDbErrorTitle": "原配置的数据库无法连接",
+      "db": {
+        "title": "数据库",
+        "driver": "数据库类型",
+        "sqlitePath": "SQLite 文件路径",
+        "sqliteHint": "相对路径将保存在数据目录下（默认 skinloom.db）。",
+        "useRawDsn": "高级：直接填写原始 DSN 连接串",
+        "host": "主机地址",
+        "port": "端口",
+        "database": "数据库名",
+        "username": "用户名",
+        "password": "密码",
+        "sslMode": "SSL 模式",
+        "test": "测试数据库连接",
+        "missingHint": "目标数据库尚不存在，可在数据库客户端先执行以下语句创建：",
+        "suspectedBsTitle": "检测到疑似 Blessing Skin 数据表",
+        "suspectedBsDesc": "当前库看起来是旧版 Blessing Skin 的数据库。为了安全，请勿直接将其作为 SkinLoom 目标库；建议新建一个空库后，选择“从 Blessing Skin 迁移”。",
+        "switchToBs": "切换为“从 Blessing Skin 迁移”",
+        "switchedToBs": "已切换为“从 Blessing Skin 迁移”模式，请先在当前步骤填写一个空白的目标数据库并点击下一步",
+        "installedTitle": "检测到已安装的 SkinLoom 数据库",
+        "installedDesc": "库中已有 {users} 个用户、{textures} 个材质、{players} 个角色。若这是多节点扩缩容或重装，可直接接入而不重复初始化。",
+        "connectExisting": "直接接入已有数据库（跳过安装）",
+        "connectDialogTitle": "确认直接接入已有实例？",
+        "connectDialogDesc": "将写入本地 config.toml 并直接切换到运行模式，不会重新建表或修改已有管理员账号。",
+        "connectExistingConfirm": "确认接入并切换"
+      },
+      "storage": {
+        "title": "材质存储",
+        "driver": "存储驱动",
+        "target": "存储目标",
+        "local": "本地目录",
+        "s3": "S3 兼容对象存储",
+        "localPath": "存储目录",
+        "localHint": "相对路径将保存在数据目录下（默认 textures）。",
+        "presets": "快速预设",
+        "presetNames": {
+          "aliyun": "阿里云 OSS",
+          "tencent": "腾讯云 COS",
+          "r2": "Cloudflare R2",
+          "minio": "MinIO"
+        },
+        "endpointHint": "不要包含 http:// 或 https://（使用明文 HTTP 时勾选下方选项）",
+        "prefix": "路径前缀（可选）",
+        "publicUrl": "公开访问 / CDN 地址（可选）",
+        "publicUrlHint": "例如 https://cdn.example.com",
+        "pathStyle": "强制使用 Path Style 访问",
+        "insecure": "允许不安全的明文 HTTP 连接",
+        "test": "测试读写权限"
+      },
+      "proxy": {
+        "title": "反向代理识别",
+        "trust": "信任检测到的代理来源 {cidr}",
+        "detected": "来自连接对端 {peer}（请求头 {header}）"
+      }
+    },
+    "fresh": {
+      "siteNamePlaceholder": "云织皮肤站",
+      "timezone": "默认时区",
+      "mailTitle": "邮件服务（可选 — 用于邮箱验证与找回密码）",
+      "mailDriver": "发送方式",
+      "mailDrivers": {
+        "none": "暂不配置（稍后在后台设置）",
+        "log": "仅记录到服务端日志（开发测试）"
+      },
+      "mailHost": "SMTP 服务器",
+      "mailPort": "端口",
+      "mailEncryption": "加密方式",
+      "mailPlain": "无加密（明文）",
+      "mailFrom": "发件人邮箱",
+      "mailUser": "用户名",
+      "mailPass": "密码 / 授权码",
+      "mailTestTo": "测试收件邮箱",
+      "mailTest": "发送测试邮件",
+      "mailTestFailed": "发送测试邮件失败"
+    },
+    "restore": {
+      "title": "从 SkinLoom 备份恢复",
+      "intro": "上传备份压缩包或指定服务器本地备份路径，预览清单后写入第 2 步所选的数据库与存储。",
+      "tabs": {
+        "upload": "上传备份文件（≤ 1 GiB）",
+        "path": "服务器本地路径（大文件推荐）"
+      },
+      "uploadHint": "支持 .tar.gz / .tgz / .zip，最大 {max}",
+      "tooLarge": "文件大小超过浏览器分片上传上限（{max}），请将文件放到服务器后切换到“服务器本地路径”。",
+      "uploadedReady": "已上传完成，点击下方“检查备份”。",
+      "uploading": "正在分片上传",
+      "cancelUpload": "取消上传",
+      "uploadFailed": "上传备份文件失败",
+      "pathLabel": "备份归档路径",
+      "pathHint": "SkinLoom 进程所在主机可直接读取的文件路径",
+      "inspect": "检查备份内容",
+      "inspectFailed": "读取备份归档失败",
+      "manifestTitle": "备份清单预览",
+      "manifest": {
+        "database": "原数据库类型",
+        "migration": "数据库迁移版本",
+        "textures": "材质文件数",
+        "textureBytes": "材质总大小",
+        "created": "备份时间",
+        "version": "导出版本"
+      },
+      "confirmRestore": "我确认将以上备份恢复到第 2 步选择的空数据库与材质存储，并覆盖本地初始化配置。",
+      "back": "上一步",
+      "startRestore": "开始恢复",
+      "executeFailed": "启动恢复任务失败",
+      "runningTitle": "正在恢复备份",
+      "failedTitle": "恢复失败",
+      "doneTitle": "恢复完成",
+      "doneDesc": "备份数据与配置文件已恢复并生效，现在可以前往登录。",
+      "goLogin": "前往登录",
+      "retry": "返回修改配置"
+    },
+    "bs": {
+      "title": "从 Blessing Skin 迁移",
+      "intro": "读取旧版 Blessing Skin 数据并在正式写入前完成模拟试跑检查。",
+      "sourceTabs": {
+        "db": "直连原库与材质",
+        "bridge": "通过迁移桥接插件远程拉取"
+      },
+      "env": {
+        "title": "读取 Blessing Skin .env 配置文件",
+        "dropHint": "拖入或选择 BS 的 .env 文件（仅读取必要字段，密码不会回显）",
+        "pathLabel": "或填写服务器上的 .env 路径",
+        "loadPath": "解析 .env",
+        "localhostWarnTitle": "容器内检测到 localhost 数据库地址",
+        "localhostWarnDesc": "当前运行在容器环境中，但 .env 里填写了 127.0.0.1 / localhost，可能指向容器自身。请改为宿主机地址或 Docker Compose 服务名。"
+      },
+      "dbSection": {
+        "title": "Blessing Skin 数据库与密码算法",
+        "sqlitePath": "SQLite 文件路径",
+        "useRawDsn": "高级：使用原始 DSN 连接串",
+        "host": "数据库主机",
+        "port": "端口",
+        "database": "数据库名",
+        "username": "用户名",
+        "password": "数据库密码",
+        "prefix": "表前缀（DB_PREFIX）",
+        "pwdMethod": "密码算法（PWD_METHOD）",
+        "timezone": "原站时区"
+      },
+      "secretLoaded": "••••（已从 .env 读取，留空保留）",
+      "textures": {
+        "title": "材质文件来源",
+        "dir": "服务器本地目录",
+        "upload": "上传打包归档（≤ 1 GiB）",
+        "none": "仅迁移数据库（稍后补传文件）",
+        "dirLabel": "storage/textures 目录路径",
+        "dirHint": "SkinLoom 服务可直接访问的 BS 材质目录路径",
+        "uploadHint": "支持 .tar.gz / .tgz / .zip，最大 {max}；超过限制请选本地目录、桥接插件或稍后补传。",
+        "uploadedReady": "材质包分片上传完成，可以执行测试或模拟试跑。",
+        "uploading": "正在分片上传材质包"
+      },
+      "bridge": {
+        "title": "Blessing Skin 迁移桥接插件（blessing-skin-export-bridge）",
+        "intro": "从独立插件仓库安装并启用 blessing-skin-export-bridge 后（建议开启写入冻结与短时效令牌），SkinLoom 可经由 HTTPS 校验 SHA-256 直接拉取表数据与材质，无需暴露数据库端口；迁移后请卸载该插件。",
+        "urlLabel": "旧站地址（或直接粘贴插件复制的连接串）",
+        "urlHint": "公网地址必须使用 https://；直接粘贴插件配置的 JSON 连接串时会自动拆填地址与令牌。",
+        "tokenLabel": "桥接令牌（Bearer Token）",
+        "allowInsecure": "内网可信 HTTP（允许仅在私有局域网使用 http://）"
+      },
+      "actions": {
+        "testSource": "测试连通性与概览",
+        "dryRun": "运行模拟试跑（Dry-Run）",
+        "back": "上一步",
+        "startImport": "开始正式迁移"
+      },
+      "envParseFailed": "解析 .env 文件失败",
+      "texturesTooLarge": "材质压缩包超过上传限制（{max}），请改用本地目录、迁移桥接插件或“仅迁移数据库（稍后补传）”。",
+      "uploadFailed": "上传材质压缩包失败",
+      "cancelUpload": "取消上传",
+      "sourceTestFailed": "测试 Blessing Skin 数据源失败",
+      "sourceOkTitle": "数据源连接正常（只读）",
+      "sourceFailTitle": "数据源连接异常",
+      "sourceCounts": "发现 {users} 个用户、{players} 个角色、{textures} 条材质记录、{closet} 条衣柜记录。",
+      "textureDirCounts": "本地材质目录可用：{files} 个文件（共 {size}）。",
+      "dryRunFailed": "启动模拟试跑失败",
+      "dryRunFailedTitle": "模拟试跑出错",
+      "importStartFailed": "启动正式迁移失败",
+      "executeSection": {
+        "title": "迁移目标站点确认",
+        "siteUrlLabel": "新站站点地址（Site URL）",
+        "siteUrlHint": "默认采用当前浏览器访问地址（不使用旧版 .env 中的 APP_URL）。",
+        "fallbackDesc": "模拟试跑未发现可用的超级管理员账号，请创建一个兜底管理员账号用于迁移后登录：",
+        "fallbackEmail": "兜底管理员邮箱",
+        "fallbackNick": "兜底管理员昵称",
+        "fallbackPass": "兜底管理员密码"
+      },
+      "report": {
+        "dryRunTitle": "模拟试跑报告（未修改任何数据）",
+        "finalTitle": "最终迁移报告",
+        "summary": "用户 {users} · 角色 {players} · 材质 {textures} · 检查文件 {files} · 复制文件 {copied} · 超级管理员 {superadmins}",
+        "downloadTxt": "下载完整 .txt 报告",
+        "blockedTitle": "存在阻断问题（BLOCKING），暂不能开始迁移",
+        "blockedDesc": "请在 Blessing Skin 解决下方标注为 BLOCKING 的冲突后，重新运行模拟试跑。",
+        "failedTitle": "迁移写入未完成（目标库已回滚）",
+        "tabs": {
+          "all": "全部 ({count})",
+          "blocking": "阻断 ({count})",
+          "left": "保留在 BS ({count})",
+          "warning": "警告 ({count})",
+          "fixed": "已自动修正 ({count})",
+          "dropped": "未导入 ({count})"
+        },
+        "badges": {
+          "leftBehind": "保留在 BS"
+        },
+        "empty": "该分类下没有条目。"
+      },
+      "importingTitle": "正在执行从 Blessing Skin 迁移",
+      "importFailedTitle": "迁移失败",
+      "postChecklistTitle": "迁移已完成 — 后续核对清单",
+      "postCheckBridge": "请前往旧站 Blessing Skin 管理后台撤销导出令牌，并禁用卸载 blessing-skin-export-bridge 插件。",
+      "postCheckNoneTextures": "你选择了“仅迁移数据库”：复制材质文件到目标存储后，请进入 管理后台 → 系统状态 点击“校准补扫缺失材质”。",
+      "postCheckPasswords": "原站密码算法（MD5 / SALTED2MD5 等）已保留并在用户首次登录时自动兼容验证。",
+      "postCheckCompare": "建议在服务器运行一次只读一致性对账命令以核对全部关键计数：",
+      "enterSite": "前往登录并体验新站点",
+      "backToConfig": "返回检查迁移配置"
+    },
     "errors": {
       "token": "安装链接无效、已使用或已过期。请重启 SkinLoom 或运行 skinloom setup-link 获取新链接。",
       "done": "站点已经初始化过了，请直接登录",
@@ -1601,7 +1870,10 @@
         "s3": "S3 兼容对象存储"
       },
       "files": "文件数",
-      "size": "占用空间"
+      "size": "占用空间",
+      "rescan": "校准补扫缺失材质",
+      "rescanDone": "已检查 {checked} 条缺失记录：成功补回 {updated} 条，仍缺失 {missing} 条。",
+      "rescanFailed": "校准补扫失败，请稍后重试"
     },
     "jobs": {
       "title": "后台任务",

@@ -97,11 +97,66 @@ type Core struct {
 	// FreshConfig is true when this start wrote the default config file.
 	FreshConfig bool
 
-	logFile *os.File // nil without log.file
+	ownsBroker bool
+	logFile    *os.File // nil without log.file
+}
+
+// CoreOptions customizes OpenCoreWithOptions (used when transitioning from Pre-Core
+// Setup Mode into Running Mode with an already-running Broker and Theme registry).
+type CoreOptions struct {
+	Broker             *pubsub.Broker
+	Themes             *theme.Registry
+	SettingsReg        *settings.Registry
+	LogCtl             *logging.Logger
+	Log                *slog.Logger
+	SkipConfigTemplate bool
+}
+
+func initLogger(cfg config.Config, p Paths) (*logging.Logger, *slog.Logger, *os.File, error) {
+	var logFile *os.File
+	if name := cmp.Or(cfg.Log.File, p.LogFile); name != "" && p.Serve {
+		if !filepath.IsAbs(name) {
+			name = filepath.Join(p.DataDir, name)
+		}
+		var err error
+		if logFile, err = logging.OpenFile(name); err != nil {
+			return nil, nil, nil, fmt.Errorf("open log file: %w", err)
+		}
+	}
+	logOpts := logging.Options{Console: os.Stderr, Level: cfg.Log.Level, Format: cfg.Log.Format}
+	logOpts.Pretty, logOpts.Color = logging.ConsoleStyle(os.Stderr)
+	if logFile != nil { // a nil *os.File would still be a non-nil io.Writer
+		logOpts.File = logFile
+	}
+	ctl, log := logging.New(logOpts)
+	return ctl, log, logFile, nil
+}
+
+// OpenThemesAndRegistry loads built-in and local themes and builds the site settings
+// registry without touching the database.
+func OpenThemesAndRegistry(dataDir string, log *slog.Logger) (*theme.Registry, *settings.Registry, error) {
+	themesReg := theme.NewRegistry()
+	if err := themesReg.LoadDir(themes.Builtin, "builtin"); err != nil {
+		return nil, nil, fmt.Errorf("load built-in themes: %w", err)
+	}
+	if dataDir != "" && log != nil {
+		themesReg.SetLocalDir(filepath.Join(dataDir, "themes"), log)
+	}
+	reg, err := sitesettings.Registry(themesReg)
+	if err != nil {
+		return nil, nil, err
+	}
+	return themesReg, reg, nil
 }
 
 // OpenCore loads config, connects and migrates the database and loads settings and themes.
 func OpenCore(ctx context.Context, p Paths) (*Core, error) {
+	return OpenCoreWithOptions(ctx, p, CoreOptions{})
+}
+
+// OpenCoreWithOptions opens Core, optionally reusing an existing Broker, Themes registry,
+// or skipping default config.toml template creation.
+func OpenCoreWithOptions(ctx context.Context, p Paths, opts CoreOptions) (*Core, error) {
 	p, err := p.Resolve()
 	if err != nil {
 		return nil, err
@@ -110,9 +165,12 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 	if err := os.MkdirAll(p.DataDir, 0o750); err != nil {
 		return nil, fmt.Errorf("create data directory: %w", err)
 	}
-	fresh, err := config.WriteTemplate(p.ConfigPath)
-	if err != nil {
-		return nil, fmt.Errorf("write default config: %w", err)
+	var fresh bool
+	if !opts.SkipConfigTemplate {
+		fresh, err = config.WriteTemplate(p.ConfigPath)
+		if err != nil {
+			return nil, fmt.Errorf("write default config: %w", err)
+		}
 	}
 	cfg, err := config.Load(p.ConfigPath)
 	if err != nil {
@@ -125,20 +183,14 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 			c.Close(context.Background())
 		}
 	}()
-	if name := cmp.Or(cfg.Log.File, p.LogFile); name != "" && p.Serve {
-		if !filepath.IsAbs(name) {
-			name = filepath.Join(p.DataDir, name)
-		}
-		if c.logFile, err = logging.OpenFile(name); err != nil {
-			return nil, fmt.Errorf("open log file: %w", err)
+	if opts.LogCtl != nil && opts.Log != nil {
+		c.LogCtl, c.Log = opts.LogCtl, opts.Log
+	} else {
+		c.LogCtl, c.Log, c.logFile, err = initLogger(cfg, p)
+		if err != nil {
+			return nil, err
 		}
 	}
-	logOpts := logging.Options{Console: os.Stderr, Level: cfg.Log.Level, Format: cfg.Log.Format}
-	logOpts.Pretty, logOpts.Color = logging.ConsoleStyle(os.Stderr)
-	if c.logFile != nil { // a nil *os.File would still be a non-nil io.Writer
-		logOpts.File = c.logFile
-	}
-	c.LogCtl, c.Log = logging.New(logOpts)
 	log := c.Log
 
 	if c.DB, err = db.Open(ctx, db.Options{
@@ -151,22 +203,28 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 	}
 	client := c.DB.Ent
 
-	c.Broker = pubsub.New()
-	c.Bus = hook.NewBus(log.With("component", "hook"), 4)
-	c.Themes = theme.NewRegistry()
-	if err := c.Themes.LoadDir(themes.Builtin, "builtin"); err != nil {
-		return nil, fmt.Errorf("load built-in themes: %w", err)
+	if opts.Broker != nil {
+		c.Broker = opts.Broker
+	} else {
+		c.Broker = pubsub.New()
+		c.ownsBroker = true
 	}
-	c.Themes.SetLocalDir(filepath.Join(p.DataDir, "themes"), log.With("component", "theme"))
+	c.Bus = hook.NewBus(log.With("component", "hook"), 4)
+	if opts.Themes != nil && opts.SettingsReg != nil {
+		c.Themes = opts.Themes
+	} else {
+		themesReg, reg, err := OpenThemesAndRegistry(p.DataDir, log.With("component", "theme"))
+		if err != nil {
+			return nil, err
+		}
+		c.Themes = themesReg
+		opts.SettingsReg = reg
+	}
 	store, err := openStore(ctx, cfg.Storage, p.DataDir)
 	if err != nil {
 		return nil, err
 	}
-	reg, err := sitesettings.Registry(c.Themes)
-	if err != nil {
-		return nil, err
-	}
-	c.Settings = settings.NewService(reg, client, c.Broker, c.Bus, log.With("component", "settings"))
+	c.Settings = settings.NewService(opts.SettingsReg, client, c.Broker, c.Bus, log.With("component", "settings"))
 	c.Settings.SetOnReload(c.Themes.Reload)
 	if err := c.Settings.Load(ctx); err != nil {
 		return nil, err
@@ -210,23 +268,24 @@ func OpenCore(ctx context.Context, p Paths) (*Core, error) {
 // the process serves (client address resolution, runtime info, frontend readiness).
 func (c *Core) APIDeps(log *slog.Logger) httpapi.Deps {
 	return httpapi.Deps{
-		Log:       log,
-		DB:        c.DB,
-		Settings:  c.Settings,
-		Themes:    c.Themes,
-		Broker:    c.Broker,
-		Accounts:  c.Accounts,
-		Captcha:   c.Captcha,
-		Mailer:    c.Mailer,
-		Textures:  c.Textures,
-		Players:   c.Players,
-		Reports:   c.Reports,
-		Renders:   c.Renders,
-		Notify:    c.Notify,
-		Yggdrasil: c.Yggdrasil,
-		OAuth:     c.OAuth,
-		Social:    c.Social,
-		CDN:       c.CDN,
+		Log:         log,
+		DB:          c.DB,
+		Settings:    c.Settings,
+		SettingsReg: c.Settings.Registry(),
+		Themes:      c.Themes,
+		Broker:      c.Broker,
+		Accounts:    c.Accounts,
+		Captcha:     c.Captcha,
+		Mailer:      c.Mailer,
+		Textures:    c.Textures,
+		Players:     c.Players,
+		Reports:     c.Reports,
+		Renders:     c.Renders,
+		Notify:      c.Notify,
+		Yggdrasil:   c.Yggdrasil,
+		OAuth:       c.OAuth,
+		Social:      c.Social,
+		CDN:         c.CDN,
 	}
 }
 
@@ -259,6 +318,9 @@ func (c *Core) SetupLink(ctx context.Context, base string) (string, error) {
 
 // Close releases resources, also those of a Core that OpenCore did not finish.
 func (c *Core) Close(ctx context.Context) {
+	if c.ownsBroker && c.Broker != nil {
+		c.Broker.Close()
+	}
 	if c.Bus != nil {
 		c.Bus.Close(ctx)
 	}

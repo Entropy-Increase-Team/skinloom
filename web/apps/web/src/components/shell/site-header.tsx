@@ -81,8 +81,11 @@ export async function SiteHeader({ variant = 'public' }: { variant?: 'public' | 
       </div>
       {boot.offline && <div className="bg-destructive/10 px-4 py-2 text-center text-sm text-destructive">{t('offline')}</div>}
       {boot.needsSetup && (
-        <div className="bg-primary/10 px-4 py-2 text-center text-sm">
-          {t.rich('setupPending', { code: (chunks) => <code className="font-mono">{chunks}</code> })}
+        <div className="flex flex-wrap items-center justify-center gap-3 bg-primary/10 px-4 py-2 text-center text-sm">
+          <span>{t.rich('setupPending', { code: (chunks) => <code className="font-mono">{chunks}</code> })}</span>
+          <ButtonLink render={<Link href="/setup" />} size="xs">
+            {t('setupPendingAction')}
+          </ButtonLink>
         </div>
       )}
       {viewer && !viewer.emailVerified && (boot.auth.mail || boot.auth.requireVerification) && (

@@ -1,9 +1,8 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@skinloom/ui'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 
-import { SetupForm } from '@/components/auth/setup-form'
+import { SetupWizard } from '@/components/setup/setup-wizard'
 import { getBootstrap } from '@/lib/bootstrap'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -15,20 +14,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function SetupPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const boot = await getBootstrap()
   if (!boot.offline && !boot.needsSetup) redirect('/auth/login')
-  const t = await getTranslations('setup')
   const { token } = await searchParams
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-6 px-4 py-12">
-      <Card>
-        <CardHeader>
-          <CardTitle as="h1" className="text-2xl">{t('title')}</CardTitle>
-          <CardDescription>{t('intro')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <SetupForm token={typeof token === 'string' ? token : ''} siteName={boot.site.name} />
-        </CardContent>
-      </Card>
+    <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8 sm:py-12">
+      <SetupWizard initialToken={typeof token === 'string' ? token : ''} />
     </div>
   )
 }

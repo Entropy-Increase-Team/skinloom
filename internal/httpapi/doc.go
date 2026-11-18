@@ -12,6 +12,7 @@
 //	Site and accounts (/api/v1)
 //	  site.go            bootstrap (settings, theme, viewer for every page), site stats
 //	  auth.go            first-run setup, login, logout, the signed-in user; CSRF guard
+//	  setup.go           Pre-Core setup wizard endpoints, chunked upload, BS import & restore jobs
 //	  register.go        registration, image captcha
 //	  mail.go            email verification, password reset, test mail
 //	  me.go              profile, password, email, devices, account deletion

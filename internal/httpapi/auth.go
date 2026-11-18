@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -40,6 +41,11 @@ type reqInfo struct {
 	// locale is the UI language of the request (cookie, then Accept-Language), used for
 	// mail when the user has no preference.
 	locale string
+	// Raw proxy hints captured for the setup wizard's trusted_proxies suggestion.
+	peerIP         string
+	hasForwarded   bool
+	forwardedHost  string
+	forwardedProto string
 }
 
 func requestInfo(ctx context.Context) reqInfo {
@@ -68,7 +74,20 @@ func withRequestInfo(d Deps) func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			ri := reqInfo{client: resolve(r), locale: requestLocale(r)}
+			fHost := r.Header.Get("X-Forwarded-Host")
+			fProto := r.Header.Get("X-Forwarded-Proto")
+			peerIP := r.RemoteAddr
+			if h, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+				peerIP = h
+			}
+			ri := reqInfo{
+				client:         resolve(r),
+				locale:         requestLocale(r),
+				peerIP:         peerIP,
+				hasForwarded:   r.Header.Get("X-Forwarded-For") != "" || fHost != "" || fProto != "",
+				forwardedHost:  fHost,
+				forwardedProto: fProto,
+			}
 			ctx := r.Context()
 			ri.viewer = sync.OnceValue(func() *account.Viewer {
 				c, err := r.Cookie(SessionCookie)
@@ -110,12 +129,15 @@ func csrfGuard(d Deps) func(http.Handler) http.Handler {
 				return
 			}
 			_, cookieErr := r.Cookie(SessionCookie)
+			_, setupErr := r.Cookie(SetupCookie)
 			// Only /api/v1 reads the session cookie. The Yggdrasil API, the Blessing Skin
 			// compatible resource API and /oauth take tokens, so a cookie the browser
 			// happens to send there does not make a request riskier.
 			// Social sign-in endpoints act on the flow cookie, or start one.
+			// Setup endpoints act on the one-time setup token or skinloom_setup cookie.
 			flow := strings.HasPrefix(r.URL.Path, "/api/v1/auth/social/")
-			if !strings.HasPrefix(r.URL.Path, "/api/v1/") || (cookieErr != nil && !sessionEndpoints[r.URL.Path] && !flow) {
+			setupRoute := r.URL.Path == "/api/v1/setup" || strings.HasPrefix(r.URL.Path, "/api/v1/setup/")
+			if !strings.HasPrefix(r.URL.Path, "/api/v1/") || (cookieErr != nil && setupErr != nil && !sessionEndpoints[r.URL.Path] && !flow && !setupRoute) {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -181,7 +203,8 @@ type userOutput struct {
 
 type setupStatusOutput struct {
 	Body struct {
-		NeedsSetup bool `json:"needsSetup"`
+		NeedsSetup       bool `json:"needsSetup"`
+		SetupLockedByEnv bool `json:"setupLockedByEnv"`
 	}
 }
 
@@ -227,11 +250,20 @@ func registerAuth(api huma.API, d Deps) {
 		Summary:     "Whether first-run setup is pending",
 		Tags:        []string{"setup"},
 	}, func(ctx context.Context, _ *struct{}) (*setupStatusOutput, error) {
+		out := &setupStatusOutput{}
+		if d.Setup != nil {
+			needs, locked, err := d.Setup.Status(ctx)
+			if err != nil {
+				return nil, err
+			}
+			out.Body.NeedsSetup = needs
+			out.Body.SetupLockedByEnv = locked
+			return out, nil
+		}
 		needs, err := d.Accounts.NeedsSetup(ctx)
 		if err != nil {
 			return nil, err
 		}
-		out := &setupStatusOutput{}
 		out.Body.NeedsSetup = needs
 		return out, nil
 	})
@@ -248,6 +280,21 @@ func registerAuth(api huma.API, d Deps) {
 		changes, err := siteSettings(in.Body.SiteName, in.Body.SiteURL)
 		if err != nil {
 			return nil, err
+		}
+		if d.Setup != nil {
+			u, sess, err := d.Setup.CompleteQuickSetup(ctx, QuickSetupInput{
+				Token:    in.Body.Token,
+				Email:    in.Body.Email,
+				Nickname: in.Body.Nickname,
+				Password: in.Body.Password,
+				SiteName: in.Body.SiteName,
+				SiteURL:  in.Body.SiteURL,
+				Meta:     ri.meta(in.UserAgent),
+			})
+			if err != nil {
+				return nil, mapSetupError(err)
+			}
+			return &userOutput{SetCookie: sessionCookie(sess, ri), Body: userView(u)}, nil
 		}
 		u, sess, err := d.Accounts.CompleteSetup(ctx, account.SetupInput{
 			Token: in.Body.Token, Email: in.Body.Email, Nickname: in.Body.Nickname, Password: in.Body.Password,

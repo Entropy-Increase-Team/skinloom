@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### 新增（交互式安装向导与迁移体验升级，ADR 0044）
+- **Pre-Core 启动模式与进程内热切换**：未初始化实例启动时不写默认 SQLite 库与 `config.toml`，直接以只读最小路由运行初始化向导（非向导 API 返回 503），向导完成后原子落盘 `config.toml` 并通过 `gateway` `atomic.Pointer` 无重启热切换到完整运行模式；已初始化实例在数据库故障时快速失败退出，不再误退回安装态。
+- **文件化安装令牌与安全会话**：`secrets/setup.token` 最多保存 5 条短期 SHA-256 令牌哈希，`skinloom setup-link` 不再依赖数据库；前端提取 URL `?token=` 后立即通过 `history.replaceState` 剥离并兑换路径作用域 `skinloom_setup` HttpOnly Cookie 与 CSRF 保护。
+- **全流程向导与基础设施探活**：新增向导 3 条分支——**全新安装**（SQLite / MySQL / PostgreSQL 结构化与原始 DSN 探测、缺库 `CREATE DATABASE` 提示、检测已存在 SkinLoom 库时提供“直接接入”确认、检测旧 BS 库防误覆盖；本地 / 阿里云 OSS / 腾讯云 COS / Cloudflare R2 / MinIO 预设与权测；反代来源自动识别与可选 SMTP 测试发信）、**从 SkinLoom 备份恢复**（8 MiB 分片上传 `<= 1 GiB` / 本地路径、Zip-Slip/Zip-Bomb 防护、清单预览后写入），以及 **从 Blessing Skin 迁移**。
+- **Blessing Skin 迁移可视化与缺失材质补扫**：支持上传或读取 `.env`（密钥仅后端内存保存、容器内 localhost 自动警告）、`TestSource` 只读测试、`Dry-Run` 异步任务分类审查（含完整 `.txt` 报告下载）与实时进度；支持“仅迁移数据库（稍后补传材质）”，并在管理后台“系统状态”新增“校准补扫缺失材质”（`POST /api/v1/admin/textures/rescan`）与命令行 `skinloom textures rescan`。
+- **Blessing Skin 只读导出桥接支持（配套独立仓库 `blessing-skin-export-bridge`）**：向导支持通过 HTTPS 直连 BS 导出桥接插件分批拉取表数据与材质（非私网域名强制 TLS、自动重试、SHA-256 校验与连接串 JSON 一键粘贴），并在内部导入抽象（`SourceReader`/`FileFetcher`/`protocolVersion: 1`/`Extensions`）为后续 v2 插件化迁移预留契约边界。
+
 ### 优化与无障碍（前端重构 P5，ADR 0042）
 - 包体积与树摇优化：`@skinloom/ui` 改用显式命名导出并在 Next.js 启用 `optimizePackageImports`，消除 `/skinlib` 等公开页面打包未使用的 `command`/`accordion` 组件（`/skinlib` 首屏 JS 减少 260 KB）。
 - 无障碍与语义结构完善：公开页、用户/后台外壳及 404 页面统一新增「跳到正文」快捷链接（`#main`），修复侧栏布局下嵌套 `<main>` 地标问题；补齐全站顶栏、移动端抽屉、用户/后台侧栏与选项卡导航的 `aria-label` 与 `aria-current="page"`、设置分组 `aria-current`，以及 `UsageMeter` 的 `aria-labelledby`/`aria-valuetext`；`CardTitle` 支持 `as="h1"`，补齐认证、首次安装与 OAuth 授权页面的主标题层级。

@@ -44,7 +44,10 @@ systemd timer、macOS launchd、Windows 计划任务同理：运行 `skinloom ba
 
 ## 恢复
 
-先**停止站点**，再恢复到数据目录。运行中的站点占用着数据目录（`data/skinloom.lock`），这时恢复会直接拒绝，加 `--force` 也一样：
+可通过两种方式恢复 SkinLoom 备份：
+
+1. **安装向导在线恢复（全新部署 / 灾难重建推荐）**：在首次安装向导选择 **从 SkinLoom 备份恢复**，完成第 2 步目标数据库（支持恢复时从 SQLite 切换到 MySQL/PostgreSQL 或从本地切换到 S3）配置后，通过浏览器分片上传 `<= 1 GiB` 备份归档（或指定服务器本地备份文件路径），系统会在预览归档清单后安全写入并立即热切换上线。
+2. **命令行离线恢复（适合 > 1 GiB 大文件或原地覆盖恢复）**：先**停止站点**，再恢复到数据目录。运行中的站点占用着数据目录（`data/skinloom.lock`），这时恢复会直接拒绝，加 `--force` 也一样：
 
 ```bash
 skinloom restore data/backups/skinloom-20261031-040000.tar.gz --data /opt/skinloom/data

@@ -1,10 +1,15 @@
 package texture
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image/png"
+	"io"
 	"time"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
@@ -13,6 +18,7 @@ import (
 	tex "github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/jobs"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 )
 
 // SweepJobKind deletes a file that no texture uses any more, once it is safe (see
@@ -194,4 +200,91 @@ func (s *Service) calibrate(ctx context.Context, id int64) (bool, error) {
 		return tx.Texture.UpdateOneID(id).SetLikes(n).Exec(ctx)
 	})
 	return changed, err
+}
+
+// RescanResult summarizes RescanMissingBlobs.
+type RescanResult struct {
+	Checked int `json:"checked"`
+	Updated int `json:"updated"`
+	Missing int `json:"missing"`
+	Invalid int `json:"invalid"`
+}
+
+// RescanMissingBlobs inspects blobs whose width == 0 (for example textures imported
+// before their files were synced via rsync/rclone/S3), verifies each stored file's
+// SHA-256 and PNG dimensions, and fills in width, height, and exact byte size.
+func (s *Service) RescanMissingBlobs(ctx context.Context) (RescanResult, error) {
+	const (
+		pageSize    = 200
+		maxScanSize = 64 << 20
+	)
+	var res RescanResult
+	after := ""
+	for {
+		blobs, err := s.db.Blob.Query().
+			Where(blob.WidthEQ(0), blob.IDGT(after)).
+			Order(ent.Asc(blob.FieldID)).
+			Limit(pageSize).
+			All(ctx)
+		if err != nil {
+			return res, err
+		}
+		if len(blobs) == 0 {
+			return res, nil
+		}
+		after = blobs[len(blobs)-1].ID
+		for _, b := range blobs {
+			if err := ctx.Err(); err != nil {
+				return res, err
+			}
+			res.Checked++
+			f, err := s.store.Open(ctx, b.ID)
+			if errors.Is(err, storage.ErrNotFound) {
+				res.Missing++
+				continue
+			}
+			if err != nil {
+				return res, fmt.Errorf("open blob %s: %w", b.ID, err)
+			}
+			data, rerr := io.ReadAll(io.LimitReader(f, maxScanSize+1))
+			_ = f.Close()
+			if rerr != nil {
+				return res, fmt.Errorf("read blob %s: %w", b.ID, rerr)
+			}
+			if len(data) > maxScanSize {
+				res.Invalid++
+				continue
+			}
+			sum := sha256.Sum256(data)
+			if hex.EncodeToString(sum[:]) != b.ID {
+				res.Invalid++
+				continue
+			}
+			cfg, err := png.DecodeConfig(bytes.NewReader(data))
+			if err != nil || cfg.Width <= 0 || cfg.Height <= 0 {
+				res.Invalid++
+				continue
+			}
+			size := int64(len(data))
+			if err := db.WithTx(ctx, s.db, func(tx *ent.Client) error {
+				if err := tx.Blob.UpdateOneID(b.ID).
+					SetWidth(cfg.Width).
+					SetHeight(cfg.Height).
+					SetSize(size).
+					Exec(ctx); err != nil && !ent.IsNotFound(err) {
+					return err
+				}
+				return tx.Texture.Update().
+					Where(tex.Hash(b.ID)).
+					SetSize(size).
+					Exec(ctx)
+			}); err != nil {
+				return res, err
+			}
+			res.Updated++
+		}
+		if len(blobs) < pageSize {
+			return res, nil
+		}
+	}
 }

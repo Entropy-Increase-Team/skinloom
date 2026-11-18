@@ -1,15 +1,20 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
+	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/app"
+	"github.com/Entropy-Increase-Team/skinloom/internal/config"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/audit"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/secrets"
 )
 
@@ -101,24 +106,62 @@ func setupLinkCmd(paths *app.Paths) *cobra.Command {
 token. "skinloom up" prints a link on every start; this command makes another one,
 e.g. inside a container: docker exec <container> skinloom setup-link`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			core, err := app.OpenCore(cmd.Context(), *paths)
+			link, err := createSetupLink(cmd.Context(), *paths)
 			if err != nil {
 				return err
-			}
-			defer core.Close(cmd.Context())
-			base := "http://localhost:17546"
-			if _, port, err := net.SplitHostPort(core.Config.Server.Listen); err == nil && port != "" {
-				base = "http://localhost:" + port
-			}
-			link, err := core.SetupLink(cmd.Context(), base)
-			if err != nil {
-				return err
-			}
-			if link == "" {
-				return errors.New("setup is already complete; sign in with the administrator account")
 			}
 			fmt.Println(link)
 			return nil
 		},
 	}
+}
+
+func createSetupLink(ctx context.Context, paths app.Paths) (string, error) {
+	p, err := paths.Resolve()
+	if err != nil {
+		return "", err
+	}
+	cfg, err := config.Load(p.ConfigPath)
+	if err != nil {
+		return "", err
+	}
+	ov := config.EnvOverrides()
+	envDB := ov["database.driver"] || ov["database.dsn"]
+	_, statErr := os.Stat(p.ConfigPath)
+	if statErr == nil || envDB {
+		if res, perr := db.Probe(ctx, db.Options{Driver: cfg.Database.Driver, DSN: cfg.Database.DSN, DataDir: p.DataDir}); perr == nil && res.OK && res.State == db.ProbeSkinLoomInstalled {
+			return "", errors.New("setup is already complete; sign in with the administrator account")
+		}
+	}
+	token, err := secrets.CreateSetupToken(p.DataDir, account.SetupTokenTTL)
+	if err != nil {
+		return "", err
+	}
+	base := "http://localhost:17546"
+	if _, port, err := net.SplitHostPort(cfg.Server.Listen); err == nil && port != "" {
+		base = "http://localhost:" + port
+	}
+	return base + "/setup?token=" + token, nil
+}
+
+func texturesCmd(paths *app.Paths) *cobra.Command {
+	cmd := &cobra.Command{Use: "textures", Short: "Texture maintenance helpers"}
+	cmd.AddCommand(&cobra.Command{
+		Use:   "rescan",
+		Short: "Verify synced texture files for blobs missing dimensions (width = 0)",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			core, err := app.OpenCore(cmd.Context(), *paths)
+			if err != nil {
+				return err
+			}
+			defer core.Close(cmd.Context())
+			res, err := core.Textures.RescanMissingBlobs(cmd.Context())
+			if err != nil {
+				return err
+			}
+			fmt.Printf("checked=%d updated=%d missing=%d invalid=%d\n", res.Checked, res.Updated, res.Missing, res.Invalid)
+			return nil
+		},
+	})
+	return cmd
 }

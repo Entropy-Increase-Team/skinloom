@@ -18,6 +18,24 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 )
 
+// SourceReader loads Blessing Skin rows and options.
+type SourceReader interface {
+	Read(ctx context.Context) (*sourceData, error)
+}
+
+type dbSourceReader struct {
+	src Source
+}
+
+func (r dbSourceReader) Read(ctx context.Context) (*sourceData, error) {
+	pool, err := r.src.open(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer pool.Close()
+	return r.src.read(ctx, pool)
+}
+
 // Target is the SkinLoom site imported into.
 type Target struct {
 	DB    *db.DB
@@ -36,6 +54,11 @@ type Options struct {
 	DryRun bool
 	// Progress, if set, receives one line per step.
 	Progress func(format string, args ...any)
+	// StageProgress, if set, receives structured stage and file counts.
+	StageProgress func(stage string, done, total int)
+	// Reader and Fetcher override the default SQL + directory source (e.g. Live Bridge).
+	Reader  SourceReader
+	Fetcher FileFetcher
 }
 
 // Run imports src into t and returns the report, also when the import was refused for
@@ -46,6 +69,10 @@ func Run(ctx context.Context, src Source, t Target, o Options) (*Report, error) 
 	if say == nil {
 		say = func(string, ...any) {}
 	}
+	stage := o.StageProgress
+	if stage == nil {
+		stage = func(string, int, int) {}
+	}
 	if src.Location == nil {
 		src.Location = shanghai
 	}
@@ -55,14 +82,19 @@ func Run(ctx context.Context, src Source, t Target, o Options) (*Report, error) 
 	if err := checkEmpty(ctx, t.DB); err != nil { // before reading or copying anything
 		return nil, err
 	}
-	pool, err := src.open(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer pool.Close()
 
+	reader := o.Reader
+	if reader == nil {
+		reader = dbSourceReader{src: src}
+	}
+	fetcher := o.Fetcher
+	if fetcher == nil {
+		fetcher = dirFileFetcher{dir: src.TexturesDir}
+	}
+
+	stage("reading", 0, 0)
 	say("reading the Blessing Skin database")
-	data, err := src.read(ctx, pool)
+	data, err := reader.Read(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -77,13 +109,17 @@ func Run(ctx context.Context, src Source, t Target, o Options) (*Report, error) 
 		}
 	}
 	say("checking %d texture files in %s", len(hashes), cmp.Or(src.TexturesDir, "(no directory)"))
-	files := scanFiles(ctx, src.TexturesDir, hashes)
+	stage("scanning", 0, len(hashes))
+	files := fetcher.Inspect(ctx, hashes, func(done, total int) {
+		stage("scanning", done, total)
+	})
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
 	now := time.Now()
 	r := &Report{DryRun: o.DryRun, Files: len(hashes), Imported: map[string]int{}}
+	stage("planning", 0, 0)
 	p := plan(data, files, planOptions{Location: src.Location, PasswordMethod: src.PasswordMethod, Salt: src.Salt,
 		Transition: src.Transition, Locales: t.Locales, Now: now, Settings: t.Settings, Mail: src.Mail}, r)
 	if r.Blocked() {
@@ -102,16 +138,22 @@ func Run(ctx context.Context, src Source, t Target, o Options) (*Report, error) 
 	}
 	if !o.DryRun {
 		say("copying texture files")
-		n, err := copyFiles(ctx, src.TexturesDir, t.Store, p.Blobs, sameDir(src.TexturesDir, t.StoreDir), func(done, total int) { say("  %d / %d", done, total) })
+		stage("copying", 0, len(p.Blobs))
+		n, err := copyFiles(ctx, fetcher, t.Store, p.Blobs, fetcher.SharedWith(t.StoreDir), func(done, total int) {
+			say("  %d / %d", done, total)
+			stage("copying", done, total)
+		})
 		r.FilesCopied = n
 		if err != nil {
 			return fail(err)
 		}
 	}
+	stage("writing", 0, 0)
 	say("writing to the SkinLoom database")
 	if err := write(ctx, t.DB, p, o.DryRun, now); err != nil {
 		return fail(err)
 	}
+	stage("done", 1, 1)
 	return r, nil
 }
 

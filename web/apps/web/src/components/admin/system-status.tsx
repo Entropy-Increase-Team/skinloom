@@ -1,7 +1,7 @@
 'use client'
 
-import { getSystemStatus, type StatusCheck, type SystemStatus } from '@skinloom/api-client'
-import { Button, PageHeader, Skeleton, type Status, StatusDot } from '@skinloom/ui'
+import { getSystemStatus, rescanMissingBlobs, type RescanResult, type StatusCheck, type SystemStatus } from '@skinloom/api-client'
+import { Button, PageHeader, Skeleton, type Status, StatusDot, toast } from '@skinloom/ui'
 import { RefreshCw } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import { type ReactNode, useCallback, useEffect, useState } from 'react'
@@ -27,6 +27,8 @@ export function SystemStatusView() {
   const [status, setStatus] = useState<SystemStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [rescanning, setRescanning] = useState(false)
+  const [rescanResult, setRescanResult] = useState<RescanResult | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -42,6 +44,21 @@ export function SystemStatusView() {
   useEffect(() => {
     void load()
   }, [load])
+
+  const rescan = useCallback(async () => {
+    setRescanning(true)
+    setError(null)
+    try {
+      const r = (await rescanMissingBlobs()).data as RescanResult
+      setRescanResult(r)
+      toast.success(t('storage.rescanDone', { checked: r.checked, updated: r.updated, missing: r.missing }))
+      await load()
+    } catch {
+      setError(t('storage.rescanFailed'))
+    } finally {
+      setRescanning(false)
+    }
+  }, [load, t])
 
   const ta = useTranslations('admin')
   const header = (
@@ -110,6 +127,22 @@ export function SystemStatusView() {
             [t('storage.files'), number(s.storage.files)],
             [t('storage.size'), formatBytes(s.storage.bytes, locale)],
           ]}
+          footer={
+            <div className="flex flex-col gap-2 pt-2">
+              <Button variant="outline" size="sm" loading={rescanning} onClick={() => void rescan()}>
+                {t('storage.rescan')}
+              </Button>
+              {rescanResult && (
+                <p className="text-xs text-muted-foreground tabular-nums">
+                  {t('storage.rescanDone', {
+                    checked: rescanResult.checked,
+                    updated: rescanResult.updated,
+                    missing: rescanResult.missing,
+                  })}
+                </p>
+              )}
+            </div>
+          }
         />
         <Facts
           title={t('jobs.title')}
@@ -154,7 +187,7 @@ function Check({ check }: { check: StatusCheck }) {
   )
 }
 
-function Facts({ title, rows }: { title: string; rows: [string, ReactNode][] }) {
+function Facts({ title, rows, footer }: { title: string; rows: [string, ReactNode][]; footer?: ReactNode }) {
   return (
     <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
       <h2 className="text-sm font-medium">{title}</h2>
@@ -166,6 +199,7 @@ function Facts({ title, rows }: { title: string; rows: [string, ReactNode][] }) 
           </div>
         ))}
       </dl>
+      {footer}
     </section>
   )
 }

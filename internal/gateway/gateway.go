@@ -49,7 +49,7 @@ func Reserved(p string) bool {
 
 // Gateway routes requests between the backend and the frontend.
 type Gateway struct {
-	api   http.Handler
+	api   atomic.Pointer[http.Handler]
 	log   *slog.Logger
 	state atomic.Pointer[webState]
 	real  atomic.Pointer[realip.Resolver]
@@ -61,6 +61,20 @@ type Gateway struct {
 // X-Authlib-Injector-API-Location, which launchers look for on the site's front page.
 func (g *Gateway) SetHeaders(f func(http.Header)) { g.headers.Store(&f) }
 
+// SetAPI atomically replaces the backend API handler (used to transition from Setup Mode
+// to Running Mode without restarting the process).
+func (g *Gateway) SetAPI(h http.Handler) {
+	if h == nil {
+		h = http.NotFoundHandler()
+	}
+	g.api.Store(&h)
+}
+
+// ServeAPI dispatches directly to the current backend API handler (used when server.role = api).
+func (g *Gateway) ServeAPI(w http.ResponseWriter, r *http.Request) {
+	(*g.api.Load()).ServeHTTP(w, r)
+}
+
 type webState struct {
 	staticDir string // <server.js dir>/.next/static, served under /_next/static/
 	publicDir string // <server.js dir>/public
@@ -71,7 +85,8 @@ type webState struct {
 // New builds a gateway with no frontend attached. res decides which peers may set
 // X-Forwarded-* headers (swap it at runtime with SetResolver).
 func New(api http.Handler, log *slog.Logger, res *realip.Resolver) *Gateway {
-	g := &Gateway{api: api, log: log}
+	g := &Gateway{log: log}
+	g.SetAPI(api)
 	g.state.Store(&webState{reason: "前端尚未启动 / The web frontend is not running."})
 	g.SetResolver(res)
 	return g
@@ -93,8 +108,14 @@ func (g *Gateway) SetResolver(res *realip.Resolver) {
 func (g *Gateway) SetWeb(upstream *url.URL, serverDir string) {
 	st := &webState{}
 	if serverDir != "" {
-		st.staticDir = filepath.Join(serverDir, ".next", "static")
-		st.publicDir = filepath.Join(serverDir, "public")
+		st.staticDir = firstExistingDir(
+			filepath.Join(serverDir, ".next", "static"),
+			filepath.Join(serverDir, "..", "..", "..", "static"),
+		)
+		st.publicDir = firstExistingDir(
+			filepath.Join(serverDir, "public"),
+			filepath.Join(serverDir, "..", "..", "..", "..", "public"),
+		)
 	}
 	if upstream != nil {
 		st.proxy = &httputil.ReverseProxy{
@@ -122,6 +143,16 @@ func (g *Gateway) SetWeb(upstream *url.URL, serverDir string) {
 	g.state.Store(st)
 }
 
+func firstExistingDir(primary, fallback string) string {
+	if info, err := os.Stat(primary); err == nil && info.IsDir() {
+		return primary
+	}
+	if info, err := os.Stat(fallback); err == nil && info.IsDir() {
+		return filepath.Clean(fallback)
+	}
+	return primary
+}
+
 // ClearWeb detaches the frontend and shows reason on page requests.
 func (g *Gateway) ClearWeb(reason string) {
 	g.state.Store(&webState{reason: reason})
@@ -141,7 +172,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if Reserved(p) {
-		g.api.ServeHTTP(w, r)
+		(*g.api.Load()).ServeHTTP(w, r)
 		return
 	}
 	st := g.state.Load()

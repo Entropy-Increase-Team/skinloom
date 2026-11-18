@@ -282,6 +282,60 @@ type (
 	}
 )
 
+// SetSize sets the "size" field.
+func (u *BlobUpsert) SetSize(v int64) *BlobUpsert {
+	u.Set(blob.FieldSize, v)
+	return u
+}
+
+// UpdateSize sets the "size" field to the value that was provided on create.
+func (u *BlobUpsert) UpdateSize() *BlobUpsert {
+	u.SetExcluded(blob.FieldSize)
+	return u
+}
+
+// AddSize adds v to the "size" field.
+func (u *BlobUpsert) AddSize(v int64) *BlobUpsert {
+	u.Add(blob.FieldSize, v)
+	return u
+}
+
+// SetWidth sets the "width" field.
+func (u *BlobUpsert) SetWidth(v int) *BlobUpsert {
+	u.Set(blob.FieldWidth, v)
+	return u
+}
+
+// UpdateWidth sets the "width" field to the value that was provided on create.
+func (u *BlobUpsert) UpdateWidth() *BlobUpsert {
+	u.SetExcluded(blob.FieldWidth)
+	return u
+}
+
+// AddWidth adds v to the "width" field.
+func (u *BlobUpsert) AddWidth(v int) *BlobUpsert {
+	u.Add(blob.FieldWidth, v)
+	return u
+}
+
+// SetHeight sets the "height" field.
+func (u *BlobUpsert) SetHeight(v int) *BlobUpsert {
+	u.Set(blob.FieldHeight, v)
+	return u
+}
+
+// UpdateHeight sets the "height" field to the value that was provided on create.
+func (u *BlobUpsert) UpdateHeight() *BlobUpsert {
+	u.SetExcluded(blob.FieldHeight)
+	return u
+}
+
+// AddHeight adds v to the "height" field.
+func (u *BlobUpsert) AddHeight(v int) *BlobUpsert {
+	u.Add(blob.FieldHeight, v)
+	return u
+}
+
 // SetRefCount sets the "ref_count" field.
 func (u *BlobUpsert) SetRefCount(v int) *BlobUpsert {
 	u.Set(blob.FieldRefCount, v)
@@ -317,15 +371,6 @@ func (u *BlobUpsertOne) UpdateNewValues() *BlobUpsertOne {
 		if _, exists := u.create.mutation.ID(); exists {
 			s.SetIgnore(blob.FieldID)
 		}
-		if _, exists := u.create.mutation.Size(); exists {
-			s.SetIgnore(blob.FieldSize)
-		}
-		if _, exists := u.create.mutation.Width(); exists {
-			s.SetIgnore(blob.FieldWidth)
-		}
-		if _, exists := u.create.mutation.Height(); exists {
-			s.SetIgnore(blob.FieldHeight)
-		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(blob.FieldCreatedAt)
 		}
@@ -358,6 +403,69 @@ func (u *BlobUpsertOne) Update(set func(*BlobUpsert)) *BlobUpsertOne {
 		set(&BlobUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetSize sets the "size" field.
+func (u *BlobUpsertOne) SetSize(v int64) *BlobUpsertOne {
+	return u.Update(func(s *BlobUpsert) {
+		s.SetSize(v)
+	})
+}
+
+// AddSize adds v to the "size" field.
+func (u *BlobUpsertOne) AddSize(v int64) *BlobUpsertOne {
+	return u.Update(func(s *BlobUpsert) {
+		s.AddSize(v)
+	})
+}
+
+// UpdateSize sets the "size" field to the value that was provided on create.
+func (u *BlobUpsertOne) UpdateSize() *BlobUpsertOne {
+	return u.Update(func(s *BlobUpsert) {
+		s.UpdateSize()
+	})
+}
+
+// SetWidth sets the "width" field.
+func (u *BlobUpsertOne) SetWidth(v int) *BlobUpsertOne {
+	return u.Update(func(s *BlobUpsert) {
+		s.SetWidth(v)
+	})
+}
+
+// AddWidth adds v to the "width" field.
+func (u *BlobUpsertOne) AddWidth(v int) *BlobUpsertOne {
+	return u.Update(func(s *BlobUpsert) {
+		s.AddWidth(v)
+	})
+}
+
+// UpdateWidth sets the "width" field to the value that was provided on create.
+func (u *BlobUpsertOne) UpdateWidth() *BlobUpsertOne {
+	return u.Update(func(s *BlobUpsert) {
+		s.UpdateWidth()
+	})
+}
+
+// SetHeight sets the "height" field.
+func (u *BlobUpsertOne) SetHeight(v int) *BlobUpsertOne {
+	return u.Update(func(s *BlobUpsert) {
+		s.SetHeight(v)
+	})
+}
+
+// AddHeight adds v to the "height" field.
+func (u *BlobUpsertOne) AddHeight(v int) *BlobUpsertOne {
+	return u.Update(func(s *BlobUpsert) {
+		s.AddHeight(v)
+	})
+}
+
+// UpdateHeight sets the "height" field to the value that was provided on create.
+func (u *BlobUpsertOne) UpdateHeight() *BlobUpsertOne {
+	return u.Update(func(s *BlobUpsert) {
+		s.UpdateHeight()
+	})
 }
 
 // SetRefCount sets the "ref_count" field.
@@ -564,15 +672,6 @@ func (u *BlobUpsertBulk) UpdateNewValues() *BlobUpsertBulk {
 			if _, exists := b.mutation.ID(); exists {
 				s.SetIgnore(blob.FieldID)
 			}
-			if _, exists := b.mutation.Size(); exists {
-				s.SetIgnore(blob.FieldSize)
-			}
-			if _, exists := b.mutation.Width(); exists {
-				s.SetIgnore(blob.FieldWidth)
-			}
-			if _, exists := b.mutation.Height(); exists {
-				s.SetIgnore(blob.FieldHeight)
-			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(blob.FieldCreatedAt)
 			}
@@ -606,6 +705,69 @@ func (u *BlobUpsertBulk) Update(set func(*BlobUpsert)) *BlobUpsertBulk {
 		set(&BlobUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetSize sets the "size" field.
+func (u *BlobUpsertBulk) SetSize(v int64) *BlobUpsertBulk {
+	return u.Update(func(s *BlobUpsert) {
+		s.SetSize(v)
+	})
+}
+
+// AddSize adds v to the "size" field.
+func (u *BlobUpsertBulk) AddSize(v int64) *BlobUpsertBulk {
+	return u.Update(func(s *BlobUpsert) {
+		s.AddSize(v)
+	})
+}
+
+// UpdateSize sets the "size" field to the value that was provided on create.
+func (u *BlobUpsertBulk) UpdateSize() *BlobUpsertBulk {
+	return u.Update(func(s *BlobUpsert) {
+		s.UpdateSize()
+	})
+}
+
+// SetWidth sets the "width" field.
+func (u *BlobUpsertBulk) SetWidth(v int) *BlobUpsertBulk {
+	return u.Update(func(s *BlobUpsert) {
+		s.SetWidth(v)
+	})
+}
+
+// AddWidth adds v to the "width" field.
+func (u *BlobUpsertBulk) AddWidth(v int) *BlobUpsertBulk {
+	return u.Update(func(s *BlobUpsert) {
+		s.AddWidth(v)
+	})
+}
+
+// UpdateWidth sets the "width" field to the value that was provided on create.
+func (u *BlobUpsertBulk) UpdateWidth() *BlobUpsertBulk {
+	return u.Update(func(s *BlobUpsert) {
+		s.UpdateWidth()
+	})
+}
+
+// SetHeight sets the "height" field.
+func (u *BlobUpsertBulk) SetHeight(v int) *BlobUpsertBulk {
+	return u.Update(func(s *BlobUpsert) {
+		s.SetHeight(v)
+	})
+}
+
+// AddHeight adds v to the "height" field.
+func (u *BlobUpsertBulk) AddHeight(v int) *BlobUpsertBulk {
+	return u.Update(func(s *BlobUpsert) {
+		s.AddHeight(v)
+	})
+}
+
+// UpdateHeight sets the "height" field to the value that was provided on create.
+func (u *BlobUpsertBulk) UpdateHeight() *BlobUpsertBulk {
+	return u.Update(func(s *BlobUpsert) {
+		s.UpdateHeight()
+	})
 }
 
 // SetRefCount sets the "ref_count" field.

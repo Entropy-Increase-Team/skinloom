@@ -45,7 +45,7 @@ func newRoot() *cobra.Command {
 	root.PersistentFlags().StringVar(&paths.DataDir, "data", defaultData, "data directory (database, config, secrets, uploads); env SKINLOOM_DATA")
 	root.PersistentFlags().StringVar(&paths.ConfigPath, "config", os.Getenv("SKINLOOM_CONFIG"), "config file (default <data>/config.toml); env SKINLOOM_CONFIG")
 
-	root.AddCommand(upCmd(&paths), serveCmd(&paths), migrateCmd(&paths), settingsCmd(&paths), themeCmd(&paths),
+	root.AddCommand(upCmd(&paths), serveCmd(&paths), migrateCmd(&paths), settingsCmd(&paths), themeCmd(&paths), texturesCmd(&paths),
 		adminCmd(&paths), setupLinkCmd(&paths), backupCmd(&paths), restoreCmd(&paths), importCmd(&paths), serviceCmd(&paths), healthcheckCmd(), openapiCmd(), versionCmd())
 	return root
 }

@@ -28,6 +28,69 @@ func (_u *BlobUpdate) Where(ps ...predicate.Blob) *BlobUpdate {
 	return _u
 }
 
+// SetSize sets the "size" field.
+func (_u *BlobUpdate) SetSize(v int64) *BlobUpdate {
+	_u.mutation.ResetSize()
+	_u.mutation.SetSize(v)
+	return _u
+}
+
+// SetNillableSize sets the "size" field if the given value is not nil.
+func (_u *BlobUpdate) SetNillableSize(v *int64) *BlobUpdate {
+	if v != nil {
+		_u.SetSize(*v)
+	}
+	return _u
+}
+
+// AddSize adds value to the "size" field.
+func (_u *BlobUpdate) AddSize(v int64) *BlobUpdate {
+	_u.mutation.AddSize(v)
+	return _u
+}
+
+// SetWidth sets the "width" field.
+func (_u *BlobUpdate) SetWidth(v int) *BlobUpdate {
+	_u.mutation.ResetWidth()
+	_u.mutation.SetWidth(v)
+	return _u
+}
+
+// SetNillableWidth sets the "width" field if the given value is not nil.
+func (_u *BlobUpdate) SetNillableWidth(v *int) *BlobUpdate {
+	if v != nil {
+		_u.SetWidth(*v)
+	}
+	return _u
+}
+
+// AddWidth adds value to the "width" field.
+func (_u *BlobUpdate) AddWidth(v int) *BlobUpdate {
+	_u.mutation.AddWidth(v)
+	return _u
+}
+
+// SetHeight sets the "height" field.
+func (_u *BlobUpdate) SetHeight(v int) *BlobUpdate {
+	_u.mutation.ResetHeight()
+	_u.mutation.SetHeight(v)
+	return _u
+}
+
+// SetNillableHeight sets the "height" field if the given value is not nil.
+func (_u *BlobUpdate) SetNillableHeight(v *int) *BlobUpdate {
+	if v != nil {
+		_u.SetHeight(*v)
+	}
+	return _u
+}
+
+// AddHeight adds value to the "height" field.
+func (_u *BlobUpdate) AddHeight(v int) *BlobUpdate {
+	_u.mutation.AddHeight(v)
+	return _u
+}
+
 // SetRefCount sets the "ref_count" field.
 func (_u *BlobUpdate) SetRefCount(v int) *BlobUpdate {
 	_u.mutation.ResetRefCount()
@@ -126,6 +189,24 @@ func (_u *BlobUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
+	if value, ok := _u.mutation.Size(); ok {
+		_spec.SetField(blob.FieldSize, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedSize(); ok {
+		_spec.AddField(blob.FieldSize, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.Width(); ok {
+		_spec.SetField(blob.FieldWidth, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedWidth(); ok {
+		_spec.AddField(blob.FieldWidth, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.Height(); ok {
+		_spec.SetField(blob.FieldHeight, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedHeight(); ok {
+		_spec.AddField(blob.FieldHeight, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.RefCount(); ok {
 		_spec.SetField(blob.FieldRefCount, field.TypeInt, value)
 	}
@@ -195,6 +276,69 @@ type BlobUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *BlobMutation
+}
+
+// SetSize sets the "size" field.
+func (_u *BlobUpdateOne) SetSize(v int64) *BlobUpdateOne {
+	_u.mutation.ResetSize()
+	_u.mutation.SetSize(v)
+	return _u
+}
+
+// SetNillableSize sets the "size" field if the given value is not nil.
+func (_u *BlobUpdateOne) SetNillableSize(v *int64) *BlobUpdateOne {
+	if v != nil {
+		_u.SetSize(*v)
+	}
+	return _u
+}
+
+// AddSize adds value to the "size" field.
+func (_u *BlobUpdateOne) AddSize(v int64) *BlobUpdateOne {
+	_u.mutation.AddSize(v)
+	return _u
+}
+
+// SetWidth sets the "width" field.
+func (_u *BlobUpdateOne) SetWidth(v int) *BlobUpdateOne {
+	_u.mutation.ResetWidth()
+	_u.mutation.SetWidth(v)
+	return _u
+}
+
+// SetNillableWidth sets the "width" field if the given value is not nil.
+func (_u *BlobUpdateOne) SetNillableWidth(v *int) *BlobUpdateOne {
+	if v != nil {
+		_u.SetWidth(*v)
+	}
+	return _u
+}
+
+// AddWidth adds value to the "width" field.
+func (_u *BlobUpdateOne) AddWidth(v int) *BlobUpdateOne {
+	_u.mutation.AddWidth(v)
+	return _u
+}
+
+// SetHeight sets the "height" field.
+func (_u *BlobUpdateOne) SetHeight(v int) *BlobUpdateOne {
+	_u.mutation.ResetHeight()
+	_u.mutation.SetHeight(v)
+	return _u
+}
+
+// SetNillableHeight sets the "height" field if the given value is not nil.
+func (_u *BlobUpdateOne) SetNillableHeight(v *int) *BlobUpdateOne {
+	if v != nil {
+		_u.SetHeight(*v)
+	}
+	return _u
+}
+
+// AddHeight adds value to the "height" field.
+func (_u *BlobUpdateOne) AddHeight(v int) *BlobUpdateOne {
+	_u.mutation.AddHeight(v)
+	return _u
 }
 
 // SetRefCount sets the "ref_count" field.
@@ -324,6 +468,24 @@ func (_u *BlobUpdateOne) sqlSave(ctx context.Context) (_node *Blob, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.Size(); ok {
+		_spec.SetField(blob.FieldSize, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedSize(); ok {
+		_spec.AddField(blob.FieldSize, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.Width(); ok {
+		_spec.SetField(blob.FieldWidth, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedWidth(); ok {
+		_spec.AddField(blob.FieldWidth, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.Height(); ok {
+		_spec.SetField(blob.FieldHeight, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedHeight(); ok {
+		_spec.AddField(blob.FieldHeight, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.RefCount(); ok {
 		_spec.SetField(blob.FieldRefCount, field.TypeInt, value)

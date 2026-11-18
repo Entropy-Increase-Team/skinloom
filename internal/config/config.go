@@ -7,20 +7,27 @@
 package config
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/knadh/koanf/parsers/toml/v2"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/structs"
 	"github.com/knadh/koanf/v2"
 
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/fsperm"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/realip"
 )
 
@@ -275,6 +282,258 @@ func WriteTemplate(path string) (bool, error) {
 		return false, err
 	}
 	return true, os.WriteFile(path, []byte(template), 0o644)
+}
+
+// EnvOverrides returns the dotted config keys currently overridden by SKINLOOM_*
+// environment variables.
+func EnvOverrides() map[string]bool {
+	known := flatten(Defaults())
+	out := map[string]bool{}
+	for _, kv := range os.Environ() {
+		name, val, ok := strings.Cut(kv, "=")
+		if !ok || !strings.HasPrefix(name, EnvPrefix) || val == "" {
+			continue
+		}
+		key := strings.ReplaceAll(strings.ToLower(strings.TrimPrefix(name, EnvPrefix)), "__", ".")
+		if _, exists := known[key]; exists {
+			out[key] = true
+		}
+	}
+	return out
+}
+
+// BuildMySQLDSN formats a go-sql-driver/mysql TCP DSN with safe escaping.
+func BuildMySQLDSN(host string, port int, dbName, user, pass string) string {
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	if port <= 0 {
+		port = 3306
+	}
+	cfg := mysql.NewConfig()
+	cfg.Net = "tcp"
+	cfg.Addr = net.JoinHostPort(host, strconv.Itoa(port))
+	cfg.User = user
+	cfg.Passwd = pass
+	cfg.DBName = dbName
+	cfg.ParseTime = true
+	cfg.Loc = time.UTC
+	cfg.Params = map[string]string{"charset": "utf8mb4"}
+	return cfg.FormatDSN()
+}
+
+// BuildPostgresDSN formats a pgx PostgreSQL URL DSN with safe escaping.
+func BuildPostgresDSN(host string, port int, dbName, user, pass, sslMode string) string {
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	if port <= 0 {
+		port = 5432
+	}
+	u := url.URL{
+		Scheme: "postgres",
+		Host:   net.JoinHostPort(host, strconv.Itoa(port)),
+		Path:   "/" + strings.TrimPrefix(dbName, "/"),
+	}
+	if user != "" || pass != "" {
+		if pass != "" {
+			u.User = url.UserPassword(user, pass)
+		} else {
+			u.User = url.User(user)
+		}
+	}
+	if sslMode != "" {
+		q := url.Values{}
+		q.Set("sslmode", sslMode)
+		u.RawQuery = q.Encode()
+	}
+	return u.String()
+}
+
+// Write serializes c into path as commented TOML, skipping any dotted key in omitKeys
+// (such as env-overridden fields or external secrets). The file is written atomically
+// with mode 0600 and private Windows ACLs so credentials stay restricted.
+func Write(path string, c Config, omitKeys map[string]bool) error {
+	if err := c.Validate(); err != nil {
+		return err
+	}
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return fmt.Errorf("create config directory: %w", err)
+	}
+	var b bytes.Buffer
+	b.WriteString("# SkinLoom configuration.\n")
+	b.WriteString("# Keys marked [hot] apply while running; [cold] keys need \"skinloom restart\".\n")
+	b.WriteString("# Every key can be overridden by an environment variable: SKINLOOM_<SECTION>__<KEY>.\n\n")
+
+	writeKV := func(dotted, key string, val any, comment string) error {
+		if omitKeys[dotted] {
+			fmt.Fprintf(&b, "# %s is set via environment variable\n", dotted)
+			return nil
+		}
+		raw, err := marshalTOMLField(key, val)
+		if err != nil {
+			return err
+		}
+		if comment != "" {
+			fmt.Fprintf(&b, "%-25s # %s\n", raw, comment)
+		} else {
+			b.WriteString(raw)
+			b.WriteByte('\n')
+		}
+		return nil
+	}
+
+	b.WriteString("[server]\n")
+	if err := writeKV("server.listen", "listen", c.Server.Listen, "[cold] the only port users need"); err != nil {
+		return err
+	}
+	if err := writeKV("server.role", "role", c.Server.Role, "[cold] all | api"); err != nil {
+		return err
+	}
+	proxies := c.Server.TrustedProxies
+	if proxies == nil {
+		proxies = []string{}
+	}
+	if err := writeKV("server.trusted_proxies", "trusted_proxies", proxies, "[hot] proxies allowed to set X-Forwarded-*"); err != nil {
+		return err
+	}
+
+	b.WriteString("\n[database]\n")
+	if err := writeKV("database.driver", "driver", c.Database.Driver, "[cold] sqlite | mysql | postgres"); err != nil {
+		return err
+	}
+	if err := writeKV("database.dsn", "dsn", c.Database.DSN, "[cold] sqlite path or database DSN"); err != nil {
+		return err
+	}
+	if c.Database.MaxOpenConns > 0 {
+		if err := writeKV("database.max_open_conns", "max_open_conns", c.Database.MaxOpenConns, "[cold] max open connections"); err != nil {
+			return err
+		}
+	}
+
+	b.WriteString("\n[storage]\n")
+	if err := writeKV("storage.driver", "driver", c.Storage.Driver, "[cold] local | s3"); err != nil {
+		return err
+	}
+	if c.Storage.Driver == "local" || c.Storage.Path != "" {
+		if err := writeKV("storage.path", "path", c.Storage.Path, "[cold] local texture directory"); err != nil {
+			return err
+		}
+	}
+	if c.Storage.Driver == "s3" {
+		for _, item := range []struct {
+			dotted, key string
+			val         any
+			nonEmpty    bool
+		}{
+			{"storage.endpoint", "endpoint", c.Storage.Endpoint, false},
+			{"storage.bucket", "bucket", c.Storage.Bucket, false},
+			{"storage.region", "region", c.Storage.Region, true},
+			{"storage.access_key", "access_key", c.Storage.AccessKey, false},
+			{"storage.secret_key", "secret_key", c.Storage.SecretKey, false},
+			{"storage.prefix", "prefix", c.Storage.Prefix, true},
+			{"storage.insecure", "insecure", c.Storage.Insecure, true},
+			{"storage.path_style", "path_style", c.Storage.PathStyle, true},
+			{"storage.public_url", "public_url", c.Storage.PublicURL, true},
+		} {
+			if item.nonEmpty {
+				switch v := item.val.(type) {
+				case string:
+					if v == "" {
+						continue
+					}
+				case bool:
+					if !v {
+						continue
+					}
+				}
+			}
+			if err := writeKV(item.dotted, item.key, item.val, ""); err != nil {
+				return err
+			}
+		}
+	}
+
+	b.WriteString("\n[web]\n")
+	if err := writeKV("web.mode", "mode", c.Web.Mode, "[hot] managed | dev | external | off"); err != nil {
+		return err
+	}
+	if err := writeKV("web.port", "port", c.Web.Port, "[hot] internal port of the Next.js process"); err != nil {
+		return err
+	}
+	if c.Web.Dir != "" {
+		if err := writeKV("web.dir", "dir", c.Web.Dir, "[hot] Next.js standalone dir"); err != nil {
+			return err
+		}
+	}
+	if err := writeKV("web.url", "url", c.Web.URL, "[hot] upstream when mode = external"); err != nil {
+		return err
+	}
+	if err := writeKV("web.node", "node", c.Web.Node, "[hot] node executable"); err != nil {
+		return err
+	}
+	if c.Web.DevDir != "" && c.Web.DevDir != Defaults().Web.DevDir {
+		if err := writeKV("web.dev_dir", "dev_dir", c.Web.DevDir, "[hot] frontend dev workspace"); err != nil {
+			return err
+		}
+	}
+	if err := writeKV("web.package_manager", "package_manager", c.Web.PackageManager, "[hot] dev mode only: auto | bun | pnpm | npm"); err != nil {
+		return err
+	}
+
+	b.WriteString("\n[log]\n")
+	if err := writeKV("log.level", "level", c.Log.Level, "[hot] debug | info | warn | error"); err != nil {
+		return err
+	}
+	if err := writeKV("log.format", "format", c.Log.Format, "[hot] text | json"); err != nil {
+		return err
+	}
+	if err := writeKV("log.file", "file", c.Log.File, "[cold] also write the log to this file"); err != nil {
+		return err
+	}
+
+	tmp, err := os.CreateTemp(dir, ".tmp-config-*")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	cleanup := true
+	defer func() {
+		if cleanup {
+			_ = os.Remove(tmpName)
+		}
+	}()
+	if _, err := tmp.Write(b.Bytes()); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := os.Chmod(tmpName, 0o600); err != nil {
+		return err
+	}
+	if err := fsperm.Private(tmpName); err != nil {
+		return err
+	}
+	if err := os.Rename(tmpName, path); err != nil {
+		return err
+	}
+	cleanup = false
+	return nil
+}
+
+func marshalTOMLField(key string, val any) (string, error) {
+	raw, err := toml.Parser().Marshal(map[string]any{key: val})
+	if err != nil {
+		return "", fmt.Errorf("encode %s: %w", key, err)
+	}
+	return strings.TrimSpace(string(raw)), nil
 }
 
 const template = `# SkinLoom configuration.

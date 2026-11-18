@@ -519,3 +519,5 @@ pnpm publish                                  # 向官方 registry 提交（GitH
 | P2-6 | 用 SDK 实现 10 个示例插件 + 2 个主题，插件开发文档定稿，**插件 API 1.0 冻结** | 2–3 周 |
 
 合计约 15–16 周。第一阶段需要提前就位的内核部分：Hook 目录与总线、可原子替换的注册表、类型化设置、主题 token 与布局变体、前端插槽与区块、bootstrap + `config_version` + SSE。
+
+> **迁移扩展的 v2 演进注解**：当前从 Blessing Skin 迁移的读取器与桥接客户端（`internal/importer/bs`，含 `SourceReader`、`FileFetcher` 与版本化只读桥接协议 `protocolVersion: 1`、`extensions` 字段）在设计上保持与具体社区插件数据解耦。第二阶段 v2 插件平台就绪后，可将 BS 迁移能力及针对 `invitation_codes`、`textures_description`、`mojang_verifications` 等第三方 BS 插件表的导入器作为独立 v2 插件提供与扩展，复用已有的只读桥接协议。

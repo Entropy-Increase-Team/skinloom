@@ -13,8 +13,10 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 
@@ -37,12 +39,87 @@ type fileInfo struct {
 	Problem string
 }
 
+// FileFetcher inspects and reads texture files by BS hash.
+type FileFetcher interface {
+	Inspect(ctx context.Context, hashes []string, progress func(done, total int)) map[string]fileInfo
+	Fetch(ctx context.Context, hash string) ([]byte, error)
+	SharedWith(storeDir string) bool
+}
+
+type dirFileFetcher struct {
+	dir string
+}
+
+func (f dirFileFetcher) Inspect(ctx context.Context, hashes []string, progress func(done, total int)) map[string]fileInfo {
+	return scanFiles(ctx, f.dir, hashes, progress)
+}
+
+func (f dirFileFetcher) Fetch(_ context.Context, hash string) ([]byte, error) {
+	return readFile(filepath.Join(f.dir, hash))
+}
+
+func (f dirFileFetcher) SharedWith(storeDir string) bool {
+	return sameDir(f.dir, storeDir)
+}
+
+// DetectTexturesRoot inspects an extracted texture archive directory and locates the
+// folder holding the 64-hex hash files (checking root, textures/, storage/textures/,
+// and a single top-level wrapper folder if present).
+func DetectTexturesRoot(dir string) string {
+	if dir == "" {
+		return ""
+	}
+	candidates := []string{
+		dir,
+		filepath.Join(dir, "textures"),
+		filepath.Join(dir, "storage", "textures"),
+	}
+	if entries, err := os.ReadDir(dir); err == nil {
+		var dirs []string
+		for _, e := range entries {
+			if e.IsDir() && !strings.HasPrefix(e.Name(), ".") && e.Name() != "__MACOSX" {
+				dirs = append(dirs, filepath.Join(dir, e.Name()))
+			}
+		}
+		if len(dirs) == 1 {
+			candidates = append(candidates,
+				dirs[0],
+				filepath.Join(dirs[0], "textures"),
+				filepath.Join(dirs[0], "storage", "textures"),
+			)
+		}
+	}
+	for _, c := range candidates {
+		if hasHexTextureFile(c) {
+			return c
+		}
+	}
+	return dir
+}
+
+func hasHexTextureFile(dir string) bool {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	for _, e := range entries {
+		if !e.IsDir() && storage.ValidKey(e.Name()) {
+			return true
+		}
+	}
+	return false
+}
+
 // scanFiles reads the file of every hash in dir, in parallel.
-func scanFiles(ctx context.Context, dir string, hashes []string) map[string]fileInfo {
+func scanFiles(ctx context.Context, dir string, hashes []string, progress func(done, total int)) map[string]fileInfo {
 	out := make(map[string]fileInfo, len(hashes))
 	var mu sync.Mutex
 	work := make(chan string)
 	var wg sync.WaitGroup
+	var done atomic.Int64
+	var lastReport atomic.Int64
+	lastReport.Store(time.Now().UnixNano())
+
 	for range max(2, runtime.NumCPU()) {
 		wg.Go(func() {
 			for h := range work {
@@ -50,6 +127,7 @@ func scanFiles(ctx context.Context, dir string, hashes []string) map[string]file
 				mu.Lock()
 				out[h] = fi
 				mu.Unlock()
+				reportProgress(&done, &lastReport, len(hashes), progress)
 			}
 		})
 	}
@@ -61,7 +139,24 @@ func scanFiles(ctx context.Context, dir string, hashes []string) map[string]file
 	}
 	close(work)
 	wg.Wait()
+	if progress != nil && len(hashes) > 0 {
+		progress(int(done.Load()), len(hashes))
+	}
 	return out
+}
+
+func reportProgress(done, lastReport *atomic.Int64, total int, progress func(done, total int)) {
+	n := done.Add(1)
+	if progress == nil {
+		return
+	}
+	now := time.Now().UnixNano()
+	prev := lastReport.Load()
+	if n%50 == 0 || now-prev >= int64(200*time.Millisecond) {
+		if lastReport.CompareAndSwap(prev, now) {
+			progress(int(n), total)
+		}
+	}
 }
 
 func inspect(dir, hash string) fileInfo {
@@ -106,7 +201,7 @@ func readFile(path string) ([]byte, error) {
 // whose content no longer matches their name need a copy. Files are content-addressed,
 // so a file left behind by an import that then fails is harmless: the orphan sweep
 // removes it.
-func copyFiles(ctx context.Context, dir string, store storage.Store, blobs []tBlob, shared bool, progress func(done, total int)) (int, error) {
+func copyFiles(ctx context.Context, fetcher FileFetcher, store storage.Store, blobs []tBlob, shared bool, progress func(done, total int)) (int, error) {
 	var todo []tBlob
 	for _, b := range blobs {
 		if b.File != "" && (!shared || b.File != b.Hash) {
@@ -116,12 +211,14 @@ func copyFiles(ctx context.Context, dir string, store storage.Store, blobs []tBl
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(max(2, runtime.NumCPU()))
 	var done atomic.Int64
+	var lastReport atomic.Int64
+	lastReport.Store(time.Now().UnixNano())
 	for _, b := range todo {
 		g.Go(func() error {
 			if err := ctx.Err(); err != nil {
 				return err
 			}
-			data, err := readFile(filepath.Join(dir, b.File))
+			data, err := fetcher.Fetch(ctx, b.File)
 			if err != nil {
 				return fmt.Errorf("copy texture %s: %w", b.File, err)
 			}
@@ -131,12 +228,14 @@ func copyFiles(ctx context.Context, dir string, store storage.Store, blobs []tBl
 			if err := store.Put(ctx, b.Hash, data); err != nil {
 				return fmt.Errorf("copy texture %s: %w", b.File, err)
 			}
-			if n := done.Add(1); progress != nil && n%500 == 0 {
-				progress(int(n), len(todo))
-			}
+			reportProgress(&done, &lastReport, len(todo), progress)
 			return nil
 		})
 	}
 	err := g.Wait()
-	return int(done.Load()), err
+	n := int(done.Load())
+	if progress != nil && len(todo) > 0 {
+		progress(n, len(todo))
+	}
+	return n, err
 }

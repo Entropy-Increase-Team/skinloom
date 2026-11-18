@@ -10,4 +10,5 @@ export interface SetupStatusOutputBody {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
   needsSetup: boolean;
+  setupLockedByEnv: boolean;
 }

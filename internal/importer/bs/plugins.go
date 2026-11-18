@@ -18,6 +18,7 @@ var pluginFates = map[string]pluginFate{
 	"usm-api":                       {Fixed, "SkinLoom serves the UniSkinMod API itself"},
 	"legacy-api":                    {Fixed, "SkinLoom serves the legacy skin and cape URLs itself"},
 	"password-algorithm-transition": {Fixed, "its password methods are recognised; each password moves to argon2id when its user next signs in"},
+	"blessing-skin-export-bridge":   {Fixed, "used as the read-only migration bridge: revoke its token and uninstall it from Blessing Skin after cutover"},
 	"config-generator":              {Dropped, "SkinLoom shows launcher and authlib-injector settings on its own launcher page"},
 	"gtag-js":                       {Dropped, "add the tag through custom JavaScript (Appearance)"},
 	"refresh-ali-cdn":               {Dropped, "SkinLoom's CDN purge does this: set it up under Settings, CDN"},

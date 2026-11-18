@@ -60,6 +60,27 @@ func (_u *TextureUpdate) SetNillableType(v *texture.Type) *TextureUpdate {
 	return _u
 }
 
+// SetSize sets the "size" field.
+func (_u *TextureUpdate) SetSize(v int64) *TextureUpdate {
+	_u.mutation.ResetSize()
+	_u.mutation.SetSize(v)
+	return _u
+}
+
+// SetNillableSize sets the "size" field if the given value is not nil.
+func (_u *TextureUpdate) SetNillableSize(v *int64) *TextureUpdate {
+	if v != nil {
+		_u.SetSize(*v)
+	}
+	return _u
+}
+
+// AddSize adds value to the "size" field.
+func (_u *TextureUpdate) AddSize(v int64) *TextureUpdate {
+	_u.mutation.AddSize(v)
+	return _u
+}
+
 // SetUploaderID sets the "uploader_id" field.
 func (_u *TextureUpdate) SetUploaderID(v int64) *TextureUpdate {
 	_u.mutation.SetUploaderID(v)
@@ -358,6 +379,12 @@ func (_u *TextureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.GetType(); ok {
 		_spec.SetField(texture.FieldType, field.TypeEnum, value)
 	}
+	if value, ok := _u.mutation.Size(); ok {
+		_spec.SetField(texture.FieldSize, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedSize(); ok {
+		_spec.AddField(texture.FieldSize, field.TypeInt64, value)
+	}
 	if value, ok := _u.mutation.Visibility(); ok {
 		_spec.SetField(texture.FieldVisibility, field.TypeEnum, value)
 	}
@@ -624,6 +651,27 @@ func (_u *TextureUpdateOne) SetNillableType(v *texture.Type) *TextureUpdateOne {
 	if v != nil {
 		_u.SetType(*v)
 	}
+	return _u
+}
+
+// SetSize sets the "size" field.
+func (_u *TextureUpdateOne) SetSize(v int64) *TextureUpdateOne {
+	_u.mutation.ResetSize()
+	_u.mutation.SetSize(v)
+	return _u
+}
+
+// SetNillableSize sets the "size" field if the given value is not nil.
+func (_u *TextureUpdateOne) SetNillableSize(v *int64) *TextureUpdateOne {
+	if v != nil {
+		_u.SetSize(*v)
+	}
+	return _u
+}
+
+// AddSize adds value to the "size" field.
+func (_u *TextureUpdateOne) AddSize(v int64) *TextureUpdateOne {
+	_u.mutation.AddSize(v)
 	return _u
 }
 
@@ -954,6 +1002,12 @@ func (_u *TextureUpdateOne) sqlSave(ctx context.Context) (_node *Texture, err er
 	}
 	if value, ok := _u.mutation.GetType(); ok {
 		_spec.SetField(texture.FieldType, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.Size(); ok {
+		_spec.SetField(texture.FieldSize, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedSize(); ok {
+		_spec.AddField(texture.FieldSize, field.TypeInt64, value)
 	}
 	if value, ok := _u.mutation.Visibility(); ok {
 		_spec.SetField(texture.FieldVisibility, field.TypeEnum, value)

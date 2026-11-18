@@ -7,12 +7,16 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 )
 
 // Source is the Blessing Skin site to import from. FromEnv fills it from the site's
@@ -57,22 +61,66 @@ var validPrefix = regexp.MustCompile(`^[A-Za-z0-9_]*$`)
 // listSep splits PASSWORD_METHODS and the plugin's SALT list as the plugin does.
 var listSep = regexp.MustCompile(`,\s*`)
 
+// EnvInfo holds non-secret metadata parsed from a Blessing Skin .env file for display
+// and pre-filling the setup wizard.
+type EnvInfo struct {
+	Driver           string   `json:"driver"`
+	Host             string   `json:"host,omitempty"`
+	Port             int      `json:"port,omitempty"`
+	Database         string   `json:"database,omitempty"`
+	Username         string   `json:"username,omitempty"`
+	Socket           string   `json:"socket,omitempty"`
+	Prefix           string   `json:"prefix"`
+	PasswordMethod   string   `json:"passwordMethod"`
+	Transition       []string `json:"transition,omitempty"`
+	HasSalt          bool     `json:"hasSalt"`
+	TexturesDir      string   `json:"texturesDir,omitempty"`
+	FSDriver         string   `json:"fsDriver,omitempty"`
+	HasMail          bool     `json:"hasMail"`
+	LocalhostWarning bool     `json:"localhostWarning"`
+}
+
 // FromEnv reads a Blessing Skin .env file; the BS root is the directory it is in.
 func FromEnv(path string) (Source, error) {
+	s, _, err := FromEnvWithInfo(path)
+	return s, err
+}
+
+// FromEnvWithInfo reads a Blessing Skin .env file and returns both the Source and
+// non-secret summary metadata.
+func FromEnvWithInfo(path string) (Source, EnvInfo, error) {
 	raw, err := ReadEnv(path)
 	if err != nil {
-		return Source{}, err
+		return Source{}, EnvInfo{}, err
 	}
+	return fromEnvMap(raw, filepath.Dir(path))
+}
+
+// FromEnvBytes parses uploaded Blessing Skin .env content in memory.
+func FromEnvBytes(data []byte) (Source, EnvInfo, error) {
+	raw, err := ReadEnvBytes(data)
+	if err != nil {
+		return Source{}, EnvInfo{}, err
+	}
+	return fromEnvMap(raw, "")
+}
+
+func fromEnvMap(raw map[string]string, root string) (Source, EnvInfo, error) {
 	env := make(map[string]string, len(raw))
 	for k, v := range raw {
 		env[k] = laravelValue(v)
 	}
-	root := filepath.Dir(path)
 	s := Source{
 		Prefix:         env["DB_PREFIX"],
 		PasswordMethod: env["PWD_METHOD"],
 		Salt:           env["SALT"],
 		TexturesDir:    env["TEXTURES_DIR"],
+	}
+	info := EnvInfo{
+		Prefix:         s.Prefix,
+		PasswordMethod: cmp.Or(s.PasswordMethod, "BCRYPT"),
+		HasSalt:        s.Salt != "",
+		FSDriver:       cmp.Or(env["FS_DRIVER"], "local"),
 	}
 	if methods := strings.TrimSpace(env["PASSWORD_METHODS"]); methods != "" {
 		salts := listSep.Split(env["SALT"], -1)
@@ -81,7 +129,11 @@ func FromEnv(path string) (Source, error) {
 			if i < len(salts) {
 				salt = salts[i]
 			}
-			s.Transition = append(s.Transition, Method{Name: strings.TrimSpace(m), Salt: salt})
+			name := strings.TrimSpace(m)
+			s.Transition = append(s.Transition, Method{Name: name, Salt: salt})
+			if name != "" {
+				info.Transition = append(info.Transition, name)
+			}
 		}
 	}
 	_, hostSet := env["MAIL_HOST"]
@@ -91,9 +143,10 @@ func FromEnv(path string) (Source, error) {
 		Encryption: strings.ToLower(env["MAIL_ENCRYPTION"]), FromAddress: env["MAIL_FROM_ADDRESS"],
 		FromName: env["MAIL_FROM_NAME"], HostSet: hostSet && env["MAIL_HOST"] != "",
 	}
-	if s.TexturesDir == "" {
+	info.HasMail = s.Mail.HostSet
+	if s.TexturesDir == "" && root != "" {
 		s.TexturesDir = filepath.Join(root, "storage", "textures")
-	} else if !filepath.IsAbs(s.TexturesDir) {
+	} else if s.TexturesDir != "" && !filepath.IsAbs(s.TexturesDir) && root != "" {
 		s.TexturesDir = filepath.Join(root, s.TexturesDir)
 	}
 	if d := env["FS_DRIVER"]; d != "" && d != "local" {
@@ -101,35 +154,146 @@ func FromEnv(path string) (Source, error) {
 		// downloaded into a directory first and given with --textures.
 		s.TexturesDir = ""
 	}
+	info.TexturesDir = s.TexturesDir
+
 	host := cmp.Or(env["DB_HOST"], "127.0.0.1")
 	switch conn := strings.ToLower(cmp.Or(env["DB_CONNECTION"], "mysql")); conn {
 	case "mysql", "mariadb":
 		s.Driver = "mysql"
+		portStr := cmp.Or(env["DB_PORT"], "3306")
+		port, _ := strconv.Atoi(portStr)
 		cfg := mysql.NewConfig()
 		cfg.User, cfg.Passwd, cfg.DBName = env["DB_USERNAME"], env["DB_PASSWORD"], env["DB_DATABASE"]
 		if sock := env["DB_SOCKET"]; sock != "" {
 			cfg.Net, cfg.Addr = "unix", sock
+			info.Socket = sock
 		} else {
-			cfg.Net, cfg.Addr = "tcp", net.JoinHostPort(host, cmp.Or(env["DB_PORT"], "3306"))
+			cfg.Net, cfg.Addr = "tcp", net.JoinHostPort(host, portStr)
+			info.Host, info.Port = host, port
 		}
 		s.DSN = cfg.FormatDSN()
+		info.Driver, info.Database, info.Username = "mysql", env["DB_DATABASE"], env["DB_USERNAME"]
+		info.LocalhostWarning = isLocalhost(host) && runningInContainer()
 	case "pgsql", "postgres", "postgresql":
 		s.Driver = "postgres"
-		u := url.URL{Scheme: "postgres", Host: net.JoinHostPort(host, cmp.Or(env["DB_PORT"], "5432")), Path: "/" + env["DB_DATABASE"]}
+		portStr := cmp.Or(env["DB_PORT"], "5432")
+		port, _ := strconv.Atoi(portStr)
+		u := url.URL{Scheme: "postgres", Host: net.JoinHostPort(host, portStr), Path: "/" + env["DB_DATABASE"]}
 		if env["DB_USERNAME"] != "" {
 			u.User = url.UserPassword(env["DB_USERNAME"], env["DB_PASSWORD"])
 		}
 		s.DSN = u.String()
+		info.Driver, info.Host, info.Port, info.Database, info.Username = "postgres", host, port, env["DB_DATABASE"], env["DB_USERNAME"]
+		info.LocalhostWarning = isLocalhost(host) && runningInContainer()
 	case "sqlite":
 		s.Driver = "sqlite"
-		s.DSN = cmp.Or(env["DB_DATABASE"], filepath.Join(root, "database", "database.sqlite"))
-		if !filepath.IsAbs(s.DSN) {
+		defPath := "database/database.sqlite"
+		if root != "" {
+			defPath = filepath.Join(root, "database", "database.sqlite")
+		}
+		s.DSN = cmp.Or(env["DB_DATABASE"], defPath)
+		if !filepath.IsAbs(s.DSN) && root != "" {
 			s.DSN = filepath.Join(root, s.DSN)
 		}
+		info.Driver, info.Database = "sqlite", s.DSN
 	default:
-		return Source{}, fmt.Errorf("DB_CONNECTION %q is not supported (want mysql, pgsql or sqlite)", conn)
+		return Source{}, EnvInfo{}, fmt.Errorf("DB_CONNECTION %q is not supported (want mysql, pgsql or sqlite)", conn)
 	}
-	return s, nil
+	return s, info, nil
+}
+
+func isLocalhost(h string) bool {
+	h = strings.ToLower(strings.TrimSpace(h))
+	return h == "127.0.0.1" || h == "localhost" || h == "::1"
+}
+
+func runningInContainer() bool {
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		return true
+	}
+	return os.Getenv("KUBERNETES_SERVICE_HOST") != ""
+}
+
+// SourceSummary describes a read-only check of a Blessing Skin source database and texture directory.
+type SourceSummary struct {
+	Users           int            `json:"users"`
+	Players         int            `json:"players"`
+	Textures        int            `json:"textures"`
+	Closet          int            `json:"closet"`
+	HasYggdrasilKey bool           `json:"hasYggdrasilKey"`
+	TextureDirStats TextureDirInfo `json:"textureDirStats"`
+}
+
+// TextureDirInfo summarizes the local BS textures directory if given.
+type TextureDirInfo struct {
+	Path   string `json:"path,omitempty"`
+	Exists bool   `json:"exists"`
+	Files  int    `json:"files"`
+	Bytes  int64  `json:"bytes"`
+}
+
+// TestSource runs a lightweight read-only check against s without loading all rows.
+func TestSource(ctx context.Context, s Source) (SourceSummary, error) {
+	var sum SourceSummary
+	pool, err := s.open(ctx)
+	if err != nil {
+		return sum, err
+	}
+	defer pool.Close()
+
+	var cols string
+	if rows, err := pool.QueryContext(ctx, "SELECT pid, uid, name, tid_skin, tid_cape FROM "+s.table("players")+" WHERE 1=0"); err != nil {
+		return sum, fmt.Errorf("read %s: %w", s.table("players"), err)
+	} else {
+		rows.Close()
+	}
+	_ = cols
+
+	tx, err := s.begin(ctx, pool)
+	if err != nil {
+		return sum, err
+	}
+	defer tx.Rollback()
+
+	if err := tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+s.table("users")).Scan(&sum.Users); err != nil {
+		return sum, fmt.Errorf("count users: %w", err)
+	}
+	if err := tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+s.table("players")).Scan(&sum.Players); err != nil {
+		return sum, fmt.Errorf("count players: %w", err)
+	}
+	if err := tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+s.table("textures")).Scan(&sum.Textures); err != nil {
+		return sum, fmt.Errorf("count textures: %w", err)
+	}
+	_ = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+s.table("user_closet")).Scan(&sum.Closet)
+	var keyVal string
+	if err := tx.QueryRowContext(ctx, "SELECT option_value FROM "+s.table("options")+" WHERE option_name = 'ygg_private_key'").Scan(&keyVal); err == nil {
+		sum.HasYggdrasilKey = strings.TrimSpace(keyVal) != ""
+	}
+	_ = tx.Commit()
+
+	if s.TexturesDir != "" {
+		sum.TextureDirStats = statTexturesDir(s.TexturesDir)
+	}
+	return sum, nil
+}
+
+func statTexturesDir(dir string) TextureDirInfo {
+	info := TextureDirInfo{Path: dir}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return info
+	}
+	info.Exists = true
+	for _, e := range entries {
+		if e.IsDir() || !storage.ValidKey(e.Name()) {
+			continue
+		}
+		if fi, err := e.Info(); err == nil && fi.Mode().IsRegular() {
+			info.Files++
+			info.Bytes += fi.Size()
+		}
+	}
+	return info
 }
 
 // laravelValue is what Laravel's env() makes of a value: null, (null), empty and

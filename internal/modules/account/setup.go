@@ -5,6 +5,7 @@ import (
 	"context"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
@@ -88,18 +89,7 @@ func (s *Service) CompleteSetup(ctx context.Context, in SetupInput, meta Request
 	if found, err := s.db.AuthToken.Query().Where(live...).Exist(ctx); err != nil || !found {
 		return nil, nil, cmp.Or(err, ErrInvalidToken)
 	}
-	if err := ValidateNewAccount(in.Email, in.Nickname, in.Password); err != nil {
-		return nil, nil, err
-	}
-	hash, err := s.hasher.Hash(ctx, in.Password)
-	if err != nil {
-		return nil, nil, err
-	}
-	var (
-		u    *ent.User
-		sess *NewSession
-	)
-	err = db.WithTx(ctx, s.db, func(tx *ent.Client) error {
+	return s.completeSetup(ctx, in.Email, in.Nickname, in.Password, meta, now, func(tx *ent.Client) error {
 		// Checked again inside the transaction: the token may have been spent meanwhile.
 		found, err := tx.AuthToken.Query().Where(live...).Exist(ctx)
 		if err != nil {
@@ -108,6 +98,101 @@ func (s *Service) CompleteSetup(ctx context.Context, in SetupInput, meta Request
 		if !found {
 			return ErrInvalidToken
 		}
+		// Spend every setup token, not just this one.
+		return tx.AuthToken.Update().
+			Where(authtoken.PurposeEQ(authtoken.PurposeSetup), authtoken.UsedAtIsNil()).
+			SetUsedAt(now).Exec(ctx)
+	})
+}
+
+// CompleteVerifiedSetup creates the initial superadmin account when the setup token
+// was already verified outside the database (e.g. file-backed Pre-Core setup.token).
+func (s *Service) CompleteVerifiedSetup(ctx context.Context, email, nickname, password string, meta RequestMeta) (*ent.User, *NewSession, error) {
+	meta = meta.clipped()
+	if needs, err := s.NeedsSetup(ctx); err != nil || !needs {
+		return nil, nil, cmp.Or(err, ErrSetupDone)
+	}
+	return s.completeSetup(ctx, email, nickname, password, meta, s.now(), nil)
+}
+
+// EnsureFallbackSuperadmin creates a fallback superadmin or promotes an imported
+// Blessing Skin account with the same email when a migrated site had zero superadmins.
+func (s *Service) EnsureFallbackSuperadmin(ctx context.Context, email, nickname, password string) (*ent.User, error) {
+	if err := ValidateNewAccount(email, nickname, password); err != nil {
+		return nil, err
+	}
+	hash, err := s.hasher.Hash(ctx, password)
+	if err != nil {
+		return nil, err
+	}
+	now := s.now()
+	norm := NormalizeEmail(email)
+	var u *ent.User
+	err = db.WithTx(ctx, s.db, func(tx *ent.Client) error {
+		done, err := tx.SystemState.Query().Where(systemstate.ID(setupKey)).Exist(ctx)
+		if err != nil {
+			return err
+		}
+		if !done {
+			if err := tx.SystemState.Create().SetID(setupKey).SetIntValue(1).Exec(ctx); err != nil {
+				return err
+			}
+		}
+		existing, err := tx.User.Query().Where(user.EmailNormalized(norm)).Only(ctx)
+		if err != nil && !ent.IsNotFound(err) {
+			return err
+		}
+		if existing != nil {
+			u, err = tx.User.UpdateOneID(existing.ID).
+				SetNickname(strings.TrimSpace(nickname)).
+				SetPasswordHash(hash).
+				SetPasswordAlgo(AlgoArgon2id).
+				SetRole(user.RoleSuperadmin).
+				SetStatus(user.StatusActive).
+				SetEmailVerifiedAt(now).
+				SetUpdatedAt(now).
+				Save(ctx)
+			return err
+		}
+		u, err = tx.User.Create().
+			SetEmail(strings.TrimSpace(email)).
+			SetEmailNormalized(norm).
+			SetNickname(strings.TrimSpace(nickname)).
+			SetPasswordHash(hash).
+			SetPasswordAlgo(AlgoArgon2id).
+			SetRole(user.RoleSuperadmin).
+			SetStatus(user.StatusActive).
+			SetEmailVerifiedAt(now).
+			SetCreatedAt(now).
+			SetUpdatedAt(now).
+			Save(ctx)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	s.setupDone.Store(true)
+	return u, nil
+}
+
+func (s *Service) completeSetup(ctx context.Context, email, nickname, password string, meta RequestMeta, now time.Time, spendToken func(*ent.Client) error) (*ent.User, *NewSession, error) {
+	if err := ValidateNewAccount(email, nickname, password); err != nil {
+		return nil, nil, err
+	}
+	hash, err := s.hasher.Hash(ctx, password)
+	if err != nil {
+		return nil, nil, err
+	}
+	var (
+		u    *ent.User
+		sess *NewSession
+	)
+	err = db.WithTx(ctx, s.db, func(tx *ent.Client) error {
+		if spendToken != nil {
+			if err := spendToken(tx); err != nil {
+				return err
+			}
+		}
 		if err := tx.SystemState.Create().SetID(setupKey).SetIntValue(1).Exec(ctx); err != nil {
 			if db.IsConstraint(err) {
 				return ErrSetupDone
@@ -115,9 +200,9 @@ func (s *Service) CompleteSetup(ctx context.Context, in SetupInput, meta Request
 			return err
 		}
 		u, err = tx.User.Create().
-			SetEmail(strings.TrimSpace(in.Email)).
-			SetEmailNormalized(NormalizeEmail(in.Email)).
-			SetNickname(strings.TrimSpace(in.Nickname)).
+			SetEmail(strings.TrimSpace(email)).
+			SetEmailNormalized(NormalizeEmail(email)).
+			SetNickname(strings.TrimSpace(nickname)).
 			SetPasswordHash(hash).
 			SetPasswordAlgo(AlgoArgon2id).
 			SetRole(user.RoleSuperadmin).
@@ -129,12 +214,6 @@ func (s *Service) CompleteSetup(ctx context.Context, in SetupInput, meta Request
 			if db.IsConstraint(err) {
 				return &FieldError{Field: "email", Message: "already registered"}
 			}
-			return err
-		}
-		// Spend every setup token, not just this one.
-		if err := tx.AuthToken.Update().
-			Where(authtoken.PurposeEQ(authtoken.PurposeSetup), authtoken.UsedAtIsNil()).
-			SetUsedAt(now).Exec(ctx); err != nil {
 			return err
 		}
 		if sess, err = s.createSession(ctx, tx, u.ID, false, meta); err != nil {

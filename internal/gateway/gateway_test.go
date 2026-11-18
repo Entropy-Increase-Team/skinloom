@@ -228,3 +228,17 @@ func TestSetHeadersReachEveryResponse(t *testing.T) {
 		t.Fatal("turned off")
 	}
 }
+
+func TestSetAPISwapsAtomically(t *testing.T) {
+	h := newHarness(t, nil)
+	if rec := h.do(http.MethodGet, "/api/v1/site/bootstrap", "203.0.113.1:1", nil); rec.Body.String() != "api" {
+		t.Fatalf("initial api = %q", rec.Body.String())
+	}
+	<-h.api
+	h.gw.SetAPI(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("running-api"))
+	}))
+	if rec := h.do(http.MethodGet, "/api/v1/site/bootstrap", "203.0.113.1:1", nil); rec.Body.String() != "running-api" {
+		t.Fatalf("swapped api = %q", rec.Body.String())
+	}
+}

@@ -9,15 +9,17 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/Entropy-Increase-Team/skinloom/internal/config"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/secrets"
 )
 
-// End-to-end: a real server on a free port, a browser-like SSE client, a settings change
-// through the admin API, and a graceful shutdown with the stream still open.
+// End-to-end: Pre-Core Setup Mode, SSE stream open across the atomic transition to
+// Running Mode, settings hot reload, and prompt shutdown with the stream still open.
 func TestRunServesHotReloadAndShutsDownPromptly(t *testing.T) {
 	data := t.TempDir()
 	t.Setenv("SKINLOOM_SERVER__LISTEN", "127.0.0.1:0")
@@ -46,6 +48,12 @@ func TestRunServesHotReloadAndShutsDownPromptly(t *testing.T) {
 		}
 		resp.Body.Close()
 	}
+	// Setup Mode must block normal business endpoints with 503.
+	if resp, err := http.Get(base + "/api/v1/textures"); err != nil || resp.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("GET /api/v1/textures in setup mode: %v %v", err, resp)
+	} else {
+		resp.Body.Close()
+	}
 	// With web.mode off, pages get the placeholder instead of a proxy error.
 	if resp, err := http.Get(base + "/"); err != nil || resp.StatusCode != http.StatusServiceUnavailable {
 		t.Fatalf("GET /: %v %v", err, resp)
@@ -67,6 +75,22 @@ func TestRunServesHotReloadAndShutsDownPromptly(t *testing.T) {
 		close(events)
 	}()
 	expect(t, events, "event: hello")
+
+	setupTok, err := secrets.CreateSetupToken(data, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	setupReq, _ := http.NewRequest(http.MethodPost, base+"/api/v1/setup", strings.NewReader(
+		`{"token":"`+setupTok+`","email":"admin@example.com","nickname":"Admin","password":"admin-pass-1"}`,
+	))
+	setupReq.Header.Set("Content-Type", "application/json")
+	setupReq.Header.Set("X-SkinLoom-Request", "1")
+	setupResp, err := http.DefaultClient.Do(setupReq)
+	if err != nil || setupResp.StatusCode != http.StatusOK {
+		t.Fatalf("POST /api/v1/setup: %v %v", err, setupResp)
+	}
+	setupResp.Body.Close()
+	expect(t, events, "event: config.changed")
 
 	token, err := secrets.Ensure(data)
 	if err != nil {
@@ -114,8 +138,87 @@ func TestRunServesHotReloadAndShutsDownPromptly(t *testing.T) {
 		t.Fatalf("shutdown took %s with an open event stream, want < 3s", d)
 	}
 
-	if _, err := os.Stat(filepath.Join(data, "config.toml")); err != nil {
-		t.Fatalf("default config not written: %v", err)
+	cfgPath := filepath.Join(data, "config.toml")
+	info, err := os.Stat(cfgPath)
+	if err != nil {
+		t.Fatalf("config not written after setup: %v", err)
+	}
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
+		t.Fatalf("config mode = %v, want 0600", info.Mode().Perm())
+	}
+	if _, err := os.Stat(secrets.SetupTokenFile(data)); !os.IsNotExist(err) {
+		t.Fatal("setup.token must be removed after setup completes")
+	}
+}
+
+func TestRunColdStartLeavesNoConfigOrDB(t *testing.T) {
+	data := t.TempDir()
+	t.Setenv("SKINLOOM_SERVER__LISTEN", "127.0.0.1:0")
+	ctx, cancel := context.WithCancel(context.Background())
+	ready := make(chan net.Addr, 1)
+	done := make(chan error, 1)
+	go func() {
+		done <- Run(ctx, RunOptions{Paths: Paths{DataDir: data}, NoWeb: true, Ready: func(a net.Addr) { ready <- a }})
+	}()
+	select {
+	case <-ready:
+	case err := <-done:
+		t.Fatalf("Run exited early: %v", err)
+	case <-time.After(20 * time.Second):
+		t.Fatal("server did not become ready")
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("Run returned %v", err)
+	}
+	for _, unexpected := range []string{"config.toml", "skinloom.db", filepath.Join("secrets", "admin.token")} {
+		if _, err := os.Stat(filepath.Join(data, unexpected)); !os.IsNotExist(err) {
+			t.Fatalf("unexpected file %s created before setup completed", unexpected)
+		}
+	}
+	if _, err := os.Stat(secrets.SetupTokenFile(data)); err != nil {
+		t.Fatalf("setup.token missing on cold start: %v", err)
+	}
+}
+
+func TestRunInstalledSiteFailsFastOnDBOutage(t *testing.T) {
+	data := t.TempDir()
+	t.Setenv("SKINLOOM_SERVER__LISTEN", "127.0.0.1:0")
+
+	// Install a site first.
+	ctx, cancel := context.WithCancel(context.Background())
+	ready := make(chan net.Addr, 1)
+	done := make(chan error, 1)
+	go func() {
+		done <- Run(ctx, RunOptions{Paths: Paths{DataDir: data}, NoWeb: true, Ready: func(a net.Addr) { ready <- a }})
+	}()
+	addr := <-ready
+	tok, _ := secrets.CreateSetupToken(data, time.Hour)
+	req, _ := http.NewRequest(http.MethodPost, "http://"+addr.String()+"/api/v1/setup", strings.NewReader(
+		`{"token":"`+tok+`","email":"admin@example.com","nickname":"Admin","password":"admin-pass-1"}`,
+	))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-SkinLoom-Request", "1")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("setup failed: %v %v", err, resp)
+	}
+	resp.Body.Close()
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+
+	// Point config.toml at an unreachable MySQL instance: Run must fail fast, NOT reopen /setup.
+	bad := config.Defaults()
+	bad.Database.Driver = "mysql"
+	bad.Database.DSN = "user:pass@tcp(127.0.0.1:1)/skinloom?timeout=1s"
+	if err := config.Write(filepath.Join(data, "config.toml"), bad, nil); err != nil {
+		t.Fatal(err)
+	}
+	err = Run(context.Background(), RunOptions{Paths: Paths{DataDir: data}, NoWeb: true})
+	if err == nil {
+		t.Fatal("expected installed site with unreachable DB to fail fast")
 	}
 }
 

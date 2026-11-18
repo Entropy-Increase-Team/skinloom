@@ -28,7 +28,7 @@ func (Texture) Fields() []ent.Field {
 		// steve and alex are skins (the classic and slim arm models); cape is a cape.
 		field.Enum("type").Values("steve", "alex", "cape"),
 		field.String("hash").MaxLen(64).NotEmpty().Immutable(),
-		field.Int64("size").Immutable().Comment("bytes of the stored file"),
+		field.Int64("size").Comment("bytes of the stored file"),
 		// Optional: the uploader's account may be gone; public textures stay.
 		field.Int64("uploader_id").Optional().Nillable(),
 		field.Enum("visibility").Values("public", "private").Default("public"),

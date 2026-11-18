@@ -10,13 +10,14 @@ import (
 func TestPlanPlugins(t *testing.T) {
 	r := &Report{}
 	planPlugins(&sourceData{Options: map[string]string{"plugins_enabled": `[{"name":"yggdrasil-connect","version":"6.1.0"},` +
-		`{"name":"texture-description","version":"1.3.2"},{"name":"oauth-github"},{"name":"hitokoto"},{"name":"school-identity","version":"0.4.3"},{"name":""}]`}}, r)
+		`{"name":"texture-description","version":"1.3.2"},{"name":"oauth-github"},{"name":"hitokoto"},{"name":"school-identity","version":"0.4.3"},{"name":"blessing-skin-export-bridge","version":"1.0.0"},{"name":""}]`}}, r)
 	want := map[string]Severity{
-		"yggdrasil-connect 6.1.0":   Warning,
-		"texture-description 1.3.2": Warning,
-		"oauth-github":              Dropped,
-		"hitokoto":                  Dropped,
-		"school-identity 0.4.3":     Warning,
+		"yggdrasil-connect 6.1.0":           Warning,
+		"texture-description 1.3.2":         Warning,
+		"blessing-skin-export-bridge 1.0.0": Fixed,
+		"oauth-github":                      Dropped,
+		"hitokoto":                          Dropped,
+		"school-identity 0.4.3":             Warning,
 	}
 	if len(r.Entries) != len(want) {
 		t.Fatalf("%d entries, want %d: %+v", len(r.Entries), len(want), r.Entries)

@@ -33,7 +33,7 @@ docker compose up -d
 docker compose logs skinloom | grep setup      # Docker；发行包看启动窗口
 ```
 
-打开 `http://服务器地址:17546/setup?token=…`，填写站点名称、站点地址和管理员账号。链接 24 小时内有效，用过即作废；找不到时运行 `skinloom setup-link` 重新生成（Docker 里是 `docker compose exec skinloom /app/skinloom setup-link`）。
+打开 `http://服务器地址:17546/setup?token=…`，验证身份后可在向导中选择 **全新安装**、**从 Blessing Skin 迁移** 或 **从 SkinLoom 备份恢复**，图形化配置数据库（SQLite / MySQL / PostgreSQL）、材质存储（本地目录 / 阿里云 OSS / 腾讯云 COS / Cloudflare R2 / MinIO）与反向代理识别，并即时测试连通性与写入权限。向导首次启动前不会提前生成空白数据库或配置文件；链接 24 小时内有效，用过即作废，找不到时运行 `skinloom setup-link` 重新生成（Docker 里是 `docker compose exec skinloom /app/skinloom setup-link`）。
 
 只有能看到日志的人才能完成安装，所以公网部署也不会被别人抢先。
 

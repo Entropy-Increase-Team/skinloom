@@ -204,7 +204,28 @@ func registerSite(api huma.API, d Deps) {
 		Description: "Site identity, active theme, menus and plugin frontends for the current locale. Called by the frontend on every page render.",
 		Tags:        []string{"site"},
 	}, func(ctx context.Context, in *bootstrapInput) (*bootstrapOutput, error) {
-		snap := d.Settings.Current()
+		var snap *settings.Snapshot
+		if d.Settings != nil {
+			snap = d.Settings.Current()
+		} else {
+			reg := d.SettingsReg
+			if reg == nil {
+				reg = settings.NewRegistry()
+			}
+			snap = settings.NewSnapshot(reg, 0, nil)
+		}
+		resolved := theme.ResolvedTheme{
+			ID:          "none",
+			ColorScheme: "both",
+			Tokens:      theme.Tokens{Light: map[string]string{}, Dark: map[string]string{}},
+			CSS:         []string{},
+			JS:          []string{},
+			Layout:      map[string]string{},
+			Home:        []theme.Block{},
+		}
+		if d.Themes != nil {
+			resolved = d.Themes.Resolve(snap)
+		}
 		locale := PickLocale(in.Lang, in.LocaleCookie, in.AcceptLanguage)
 		out := &bootstrapOutput{CacheControl: "no-store", ConfigVersion: snap.Version}
 		out.Body = Bootstrap{
@@ -222,7 +243,7 @@ func registerSite(api huma.API, d Deps) {
 				CopyrightHTML:    notify.Markdown(snap.Localized("site.copyright", locale)),
 				Keywords:         snap.Localized("seo.keywords", locale),
 			},
-			Theme: d.Themes.Resolve(snap),
+			Theme: resolved,
 			Menus: map[string][]MenuItem{
 				"explore": {{ID: "skinlib", Title: "nav.skinlib", Href: "/skinlib", Icon: "layout-grid", Order: 10}},
 				"user":    {},
@@ -244,14 +265,17 @@ func registerSite(api huma.API, d Deps) {
 		out.Body.Theme.Home, out.Body.Messages = parts.home, parts.messages
 		cc := captcha.ConfigFrom(snap)
 		out.Body.Auth = AuthInfo{
-			Registration: snap.String("auth.registration"),
+			Registration: cmp.Or(snap.String("auth.registration"), account.RegistrationClosed),
 			Captcha:      CaptchaInfo{Provider: cmp.Or(cc.Provider, captcha.None), SiteKey: cc.SiteKey},
 			Mail:         mailReady(snap),
 			Social:       socialProviders(social.PolicyFrom(snap)),
 
 			RequireVerification: account.VerificationRequired(snap),
 		}
-		if d.Accounts != nil {
+		if d.Setup != nil && d.DB == nil {
+			out.Body.NeedsSetup = true
+			out.Body.Auth.Registration = account.RegistrationClosed
+		} else if d.Accounts != nil {
 			needs, err := d.Accounts.NeedsSetup(ctx)
 			if err != nil {
 				return nil, err

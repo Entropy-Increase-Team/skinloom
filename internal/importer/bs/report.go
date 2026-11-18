@@ -1,10 +1,12 @@
 package bs
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"slices"
 	"strconv"
+	"strings"
 )
 
 // Severity orders report entries by what the administrator has to do about them.
@@ -25,32 +27,98 @@ const (
 )
 
 func (s Severity) String() string {
+	if s < 0 || int(s) >= 4 {
+		return "UNKNOWN"
+	}
 	return [...]string{"BLOCKING", "WARNING", "FIXED", "DROPPED"}[s]
+}
+
+// MarshalJSON encodes Severity as its uppercase label ("BLOCKING", "WARNING", ...).
+func (s Severity) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.String())
+}
+
+// UnmarshalJSON decodes Severity from its label or integer value.
+func (s *Severity) UnmarshalJSON(data []byte) error {
+	var str string
+	if err := json.Unmarshal(data, &str); err == nil {
+		switch strings.ToUpper(str) {
+		case "BLOCKING":
+			*s = Blocking
+		case "WARNING":
+			*s = Warning
+		case "FIXED":
+			*s = Fixed
+		case "DROPPED":
+			*s = Dropped
+		default:
+			return fmt.Errorf("unknown severity %q", str)
+		}
+		return nil
+	}
+	var n int
+	if err := json.Unmarshal(data, &n); err != nil {
+		return err
+	}
+	*s = Severity(n)
+	return nil
 }
 
 // Entry is one line of the report.
 type Entry struct {
-	Severity Severity
-	Table    string // the BS table
-	ID       string // the BS row (uid, pid, tid...), empty for a whole table
-	Message  string
+	Severity Severity `json:"severity"`
+	Table    string   `json:"table"`        // the BS table
+	ID       string   `json:"id,omitempty"` // the BS row (uid, pid, tid...), empty for a whole table
+	Message  string   `json:"message"`
 	// LeftBehind: data that stays in BS (a plugin's, a table SkinLoom has no place
 	// for). The report lists these first, and the command prints them in full.
-	LeftBehind bool
+	LeftBehind bool `json:"leftBehind,omitempty"`
 }
 
 // Report is the outcome of an import or a dry run.
 type Report struct {
-	DryRun  bool
-	Entries []Entry
+	DryRun  bool    `json:"dryRun"`
+	Entries []Entry `json:"entries"`
 	// Counts of rows written (or that would be) per SkinLoom table.
-	Imported map[string]int
+	Imported map[string]int `json:"imported"`
 	// Files counts the texture files checked; FilesCopied those put into the store.
-	Files, FilesCopied int
-	Superadmins        int
+	Files       int `json:"files"`
+	FilesCopied int `json:"filesCopied"`
+	Superadmins int `json:"superadmins"`
 	// Failed is the error that stopped an import after its plan was made (copying the
 	// files or writing the database). The database is then unchanged.
-	Failed error
+	Failed error `json:"-"`
+}
+
+// MarshalJSON serializes Report for REST API responses, turning Failed into a string.
+func (r Report) MarshalJSON() ([]byte, error) {
+	type reportAlias struct {
+		DryRun      bool           `json:"dryRun"`
+		Entries     []Entry        `json:"entries"`
+		Imported    map[string]int `json:"imported"`
+		Files       int            `json:"files"`
+		FilesCopied int            `json:"filesCopied"`
+		Superadmins int            `json:"superadmins"`
+		Failed      string         `json:"failed,omitempty"`
+	}
+	out := reportAlias{
+		DryRun:      r.DryRun,
+		Entries:     r.Entries,
+		Imported:    r.Imported,
+		Files:       r.Files,
+		FilesCopied: r.FilesCopied,
+		Superadmins: r.Superadmins,
+	}
+	if out.Entries == nil {
+		out.Entries = []Entry{}
+	}
+	if out.Imported == nil {
+		out.Imported = map[string]int{}
+	}
+	if r.Failed != nil {
+		out.Failed = r.Failed.Error()
+	}
+	return json.Marshal(out)
 }
 
 func (r *Report) add(sev Severity, table string, id int64, format string, args ...any) {

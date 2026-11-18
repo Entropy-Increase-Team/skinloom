@@ -21,6 +21,9 @@ import type {
   AuditPage,
   AuthorizeInfo,
   AuthorizeResult,
+  BSDryRunInput,
+  BSImportInput,
+  BSSourceInput,
   BlockType,
   Bootstrap,
   CaptchaImage,
@@ -28,16 +31,26 @@ import type {
   ChangePasswordInputBody,
   ClosetItemView,
   ClosetPage,
+  CompleteWizardInput,
+  ConnectExistingInput,
+  ConnectExistingResult,
   CreateClientInputBody,
+  CreateSetupSessionRequest,
   CreateTokenInputBody,
+  CreateUploadInput,
+  CreateUploadResult,
+  DBConfigInput,
   Dashboard,
   DeleteMeInputBody,
   ErrorModel,
+  ExecuteRestoreInput,
   FavoriteInputBody,
   Favorited,
   ForgotInputBody,
   GetAuthorizationParams,
   GetBootstrapParams,
+  InspectRestoreInput,
+  InspectRestoreResult,
   ListAuditParams,
   ListClosetParams,
   ListMyReportsParams,
@@ -55,6 +68,8 @@ import type {
   OAuthClientView,
   OAuthGrantList,
   OAuthScopes,
+  ParseBSEnvInput,
+  ParseBSEnvResult,
   PersonalTokenList,
   PlayerCreated,
   PlayerDeleted,
@@ -69,6 +84,7 @@ import type {
   ReportPage,
   ReportTextureInputBody,
   Reported,
+  RescanResult,
   ResetInputBody,
   ReviewReportInputBody,
   SendNotificationInputBody,
@@ -77,6 +93,8 @@ import type {
   SetAvatarInputBody,
   SettingsList,
   SetupInputBody,
+  SetupJobView,
+  SetupState,
   SetupStatusOutputBody,
   SignResult,
   SiteStats,
@@ -85,7 +103,14 @@ import type {
   SocialRedirect,
   SocialRegisterInputBody,
   SocialStartInputBody,
+  StartJobResult,
+  StorageConfigInput,
   SystemStatus,
+  TestBSSourceResult,
+  TestDBResult,
+  TestMailInput,
+  TestMailResult,
+  TestStorageResult,
   TextureDetail,
   TexturePage,
   TextureRules,
@@ -909,6 +934,50 @@ export const getSystemStatus = async ( options?: Parameters<typeof apiFetch>[1])
   {
     ...options,
     method: 'GET'
+
+
+  }
+);}
+
+
+
+export type rescanMissingBlobsResponse200 = {
+  data: RescanResult
+  status: 200
+}
+
+export type rescanMissingBlobsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type rescanMissingBlobsResponseSuccess = (rescanMissingBlobsResponse200) & {
+  headers: Headers;
+};
+export type rescanMissingBlobsResponseError = (rescanMissingBlobsResponseDefault) & {
+  headers: Headers;
+};
+
+export type rescanMissingBlobsResponse = (rescanMissingBlobsResponseSuccess | rescanMissingBlobsResponseError)
+
+export const getRescanMissingBlobsUrl = () => {
+
+
+
+
+  return `/api/v1/admin/textures/rescan`
+}
+
+/**
+ * Checks blobs with width == 0 (such as textures imported without files before syncing via rsync/rclone/S3), verifies SHA-256 and PNG dimensions, and fills in width, height, and byte size.
+ * @summary Verify synced texture files for imported blobs missing dimensions
+ */
+export const rescanMissingBlobs = async ( options?: Parameters<typeof apiFetch>[1]): Promise<rescanMissingBlobsResponse> => {
+
+  return apiFetch<rescanMissingBlobsResponse>(getRescanMissingBlobsUrl(),
+  {
+    ...options,
+    method: 'POST'
 
 
   }
@@ -4196,6 +4265,833 @@ return apiFetch<completeSetupResponse>(getCompleteSetupUrl(),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(setupInputBody)
+  }
+);}
+
+
+
+export type startSetupBSDryRunResponse202 = {
+  data: StartJobResult
+  status: 202
+}
+
+export type startSetupBSDryRunResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 202>
+}
+
+export type startSetupBSDryRunResponseSuccess = (startSetupBSDryRunResponse202) & {
+  headers: Headers;
+};
+export type startSetupBSDryRunResponseError = (startSetupBSDryRunResponseDefault) & {
+  headers: Headers;
+};
+
+export type startSetupBSDryRunResponse = (startSetupBSDryRunResponseSuccess | startSetupBSDryRunResponseError)
+
+export const getStartSetupBSDryRunUrl = () => {
+
+
+
+
+  return `/api/v1/setup/bs/dry-run`
+}
+
+/**
+ * @summary Run a non-destructive Blessing Skin migration dry-run job
+ */
+export const startSetupBSDryRun = async (bSDryRunInput: NonReadonly<BSDryRunInput>, options?: Parameters<typeof apiFetch>[1]): Promise<startSetupBSDryRunResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<startSetupBSDryRunResponse>(getStartSetupBSDryRunUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(bSDryRunInput)
+  }
+);}
+
+
+
+export type startSetupBSImportResponse202 = {
+  data: StartJobResult
+  status: 202
+}
+
+export type startSetupBSImportResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 202>
+}
+
+export type startSetupBSImportResponseSuccess = (startSetupBSImportResponse202) & {
+  headers: Headers;
+};
+export type startSetupBSImportResponseError = (startSetupBSImportResponseDefault) & {
+  headers: Headers;
+};
+
+export type startSetupBSImportResponse = (startSetupBSImportResponseSuccess | startSetupBSImportResponseError)
+
+export const getStartSetupBSImportUrl = () => {
+
+
+
+
+  return `/api/v1/setup/bs/import`
+}
+
+/**
+ * @summary Start the Blessing Skin import job and transition into running mode
+ */
+export const startSetupBSImport = async (bSImportInput: NonReadonly<BSImportInput>, options?: Parameters<typeof apiFetch>[1]): Promise<startSetupBSImportResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<startSetupBSImportResponse>(getStartSetupBSImportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(bSImportInput)
+  }
+);}
+
+
+
+export type parseSetupBSEnvResponse200 = {
+  data: ParseBSEnvResult
+  status: 200
+}
+
+export type parseSetupBSEnvResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type parseSetupBSEnvResponseSuccess = (parseSetupBSEnvResponse200) & {
+  headers: Headers;
+};
+export type parseSetupBSEnvResponseError = (parseSetupBSEnvResponseDefault) & {
+  headers: Headers;
+};
+
+export type parseSetupBSEnvResponse = (parseSetupBSEnvResponseSuccess | parseSetupBSEnvResponseError)
+
+export const getParseSetupBSEnvUrl = () => {
+
+
+
+
+  return `/api/v1/setup/bs/parse-env`
+}
+
+/**
+ * @summary Parse a Blessing Skin .env file (content or path) into sanitized metadata
+ */
+export const parseSetupBSEnv = async (parseBSEnvInput: NonReadonly<ParseBSEnvInput>, options?: Parameters<typeof apiFetch>[1]): Promise<parseSetupBSEnvResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<parseSetupBSEnvResponse>(getParseSetupBSEnvUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(parseBSEnvInput)
+  }
+);}
+
+
+
+export type testSetupBSSourceResponse200 = {
+  data: TestBSSourceResult
+  status: 200
+}
+
+export type testSetupBSSourceResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type testSetupBSSourceResponseSuccess = (testSetupBSSourceResponse200) & {
+  headers: Headers;
+};
+export type testSetupBSSourceResponseError = (testSetupBSSourceResponseDefault) & {
+  headers: Headers;
+};
+
+export type testSetupBSSourceResponse = (testSetupBSSourceResponseSuccess | testSetupBSSourceResponseError)
+
+export const getTestSetupBSSourceUrl = () => {
+
+
+
+
+  return `/api/v1/setup/bs/test-source`
+}
+
+/**
+ * @summary Read-only connectivity and row count check of the Blessing Skin source
+ */
+export const testSetupBSSource = async (bSSourceInput: NonReadonly<BSSourceInput>, options?: Parameters<typeof apiFetch>[1]): Promise<testSetupBSSourceResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<testSetupBSSourceResponse>(getTestSetupBSSourceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(bSSourceInput)
+  }
+);}
+
+
+
+export type completeSetupWizardResponse200 = {
+  data: UserView
+  status: 200
+}
+
+export type completeSetupWizardResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type completeSetupWizardResponseSuccess = (completeSetupWizardResponse200) & {
+  headers: Headers;
+};
+export type completeSetupWizardResponseError = (completeSetupWizardResponseDefault) & {
+  headers: Headers;
+};
+
+export type completeSetupWizardResponse = (completeSetupWizardResponseSuccess | completeSetupWizardResponseError)
+
+export const getCompleteSetupWizardUrl = () => {
+
+
+
+
+  return `/api/v1/setup/complete`
+}
+
+/**
+ * @summary Write configuration, migrate database, create superadmin, and transition to running mode
+ */
+export const completeSetupWizard = async (completeWizardInput: NonReadonly<CompleteWizardInput>, options?: Parameters<typeof apiFetch>[1]): Promise<completeSetupWizardResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<completeSetupWizardResponse>(getCompleteSetupWizardUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(completeWizardInput)
+  }
+);}
+
+
+
+export type connectExistingSetupResponse200 = {
+  data: ConnectExistingResult
+  status: 200
+}
+
+export type connectExistingSetupResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type connectExistingSetupResponseSuccess = (connectExistingSetupResponse200) & {
+  headers: Headers;
+};
+export type connectExistingSetupResponseError = (connectExistingSetupResponseDefault) & {
+  headers: Headers;
+};
+
+export type connectExistingSetupResponse = (connectExistingSetupResponseSuccess | connectExistingSetupResponseError)
+
+export const getConnectExistingSetupUrl = () => {
+
+
+
+
+  return `/api/v1/setup/connect-existing`
+}
+
+/**
+ * @summary Save infrastructure configuration and attach to an existing SkinLoom database
+ */
+export const connectExistingSetup = async (connectExistingInput: NonReadonly<ConnectExistingInput>, options?: Parameters<typeof apiFetch>[1]): Promise<connectExistingSetupResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<connectExistingSetupResponse>(getConnectExistingSetupUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(connectExistingInput)
+  }
+);}
+
+
+
+export type getSetupJobResponse200 = {
+  data: SetupJobView
+  status: 200
+}
+
+export type getSetupJobResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getSetupJobResponseSuccess = (getSetupJobResponse200) & {
+  headers: Headers;
+};
+export type getSetupJobResponseError = (getSetupJobResponseDefault) & {
+  headers: Headers;
+};
+
+export type getSetupJobResponse = (getSetupJobResponseSuccess | getSetupJobResponseError)
+
+export const getGetSetupJobUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/setup/jobs/${id}`
+}
+
+/**
+ * @summary Get status and report of a setup dry-run, import, or restore job
+ */
+export const getSetupJob = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<getSetupJobResponse> => {
+
+  return apiFetch<getSetupJobResponse>(getGetSetupJobUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type executeSetupRestoreResponse202 = {
+  data: StartJobResult
+  status: 202
+}
+
+export type executeSetupRestoreResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 202>
+}
+
+export type executeSetupRestoreResponseSuccess = (executeSetupRestoreResponse202) & {
+  headers: Headers;
+};
+export type executeSetupRestoreResponseError = (executeSetupRestoreResponseDefault) & {
+  headers: Headers;
+};
+
+export type executeSetupRestoreResponse = (executeSetupRestoreResponseSuccess | executeSetupRestoreResponseError)
+
+export const getExecuteSetupRestoreUrl = () => {
+
+
+
+
+  return `/api/v1/setup/restore/execute`
+}
+
+/**
+ * @summary Restore a SkinLoom backup archive and transition into running mode
+ */
+export const executeSetupRestore = async (executeRestoreInput: NonReadonly<ExecuteRestoreInput>, options?: Parameters<typeof apiFetch>[1]): Promise<executeSetupRestoreResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<executeSetupRestoreResponse>(getExecuteSetupRestoreUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(executeRestoreInput)
+  }
+);}
+
+
+
+export type inspectSetupRestoreResponse200 = {
+  data: InspectRestoreResult
+  status: 200
+}
+
+export type inspectSetupRestoreResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type inspectSetupRestoreResponseSuccess = (inspectSetupRestoreResponse200) & {
+  headers: Headers;
+};
+export type inspectSetupRestoreResponseError = (inspectSetupRestoreResponseDefault) & {
+  headers: Headers;
+};
+
+export type inspectSetupRestoreResponse = (inspectSetupRestoreResponseSuccess | inspectSetupRestoreResponseError)
+
+export const getInspectSetupRestoreUrl = () => {
+
+
+
+
+  return `/api/v1/setup/restore/inspect`
+}
+
+/**
+ * @summary Read manifest metadata from an uploaded or local SkinLoom backup archive
+ */
+export const inspectSetupRestore = async (inspectRestoreInput: NonReadonly<InspectRestoreInput>, options?: Parameters<typeof apiFetch>[1]): Promise<inspectSetupRestoreResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<inspectSetupRestoreResponse>(getInspectSetupRestoreUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(inspectRestoreInput)
+  }
+);}
+
+
+
+export type createSetupSessionResponse200 = {
+  data: SetupState
+  status: 200
+}
+
+export type createSetupSessionResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type createSetupSessionResponseSuccess = (createSetupSessionResponse200) & {
+  headers: Headers;
+};
+export type createSetupSessionResponseError = (createSetupSessionResponseDefault) & {
+  headers: Headers;
+};
+
+export type createSetupSessionResponse = (createSetupSessionResponseSuccess | createSetupSessionResponseError)
+
+export const getCreateSetupSessionUrl = () => {
+
+
+
+
+  return `/api/v1/setup/session`
+}
+
+/**
+ * @summary Verify the setup token and start a setup wizard session
+ */
+export const createSetupSession = async (createSetupSessionRequest: NonReadonly<CreateSetupSessionRequest>, options?: Parameters<typeof apiFetch>[1]): Promise<createSetupSessionResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createSetupSessionResponse>(getCreateSetupSessionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createSetupSessionRequest)
+  }
+);}
+
+
+
+export type getSetupStateResponse200 = {
+  data: SetupState
+  status: 200
+}
+
+export type getSetupStateResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getSetupStateResponseSuccess = (getSetupStateResponse200) & {
+  headers: Headers;
+};
+export type getSetupStateResponseError = (getSetupStateResponseDefault) & {
+  headers: Headers;
+};
+
+export type getSetupStateResponse = (getSetupStateResponseSuccess | getSetupStateResponseError)
+
+export const getGetSetupStateUrl = () => {
+
+
+
+
+  return `/api/v1/setup/state`
+}
+
+/**
+ * @summary Current sanitized setup environment and detected reverse proxy
+ */
+export const getSetupState = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getSetupStateResponse> => {
+
+  return apiFetch<getSetupStateResponse>(getGetSetupStateUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type testSetupDBResponse200 = {
+  data: TestDBResult
+  status: 200
+}
+
+export type testSetupDBResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type testSetupDBResponseSuccess = (testSetupDBResponse200) & {
+  headers: Headers;
+};
+export type testSetupDBResponseError = (testSetupDBResponseDefault) & {
+  headers: Headers;
+};
+
+export type testSetupDBResponse = (testSetupDBResponseSuccess | testSetupDBResponseError)
+
+export const getTestSetupDBUrl = () => {
+
+
+
+
+  return `/api/v1/setup/test-db`
+}
+
+/**
+ * @summary Probe target database connectivity and detect existing data
+ */
+export const testSetupDB = async (dBConfigInput: NonReadonly<DBConfigInput>, options?: Parameters<typeof apiFetch>[1]): Promise<testSetupDBResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<testSetupDBResponse>(getTestSetupDBUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(dBConfigInput)
+  }
+);}
+
+
+
+export type testSetupMailResponse200 = {
+  data: TestMailResult
+  status: 200
+}
+
+export type testSetupMailResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type testSetupMailResponseSuccess = (testSetupMailResponse200) & {
+  headers: Headers;
+};
+export type testSetupMailResponseError = (testSetupMailResponseDefault) & {
+  headers: Headers;
+};
+
+export type testSetupMailResponse = (testSetupMailResponseSuccess | testSetupMailResponseError)
+
+export const getTestSetupMailUrl = () => {
+
+
+
+
+  return `/api/v1/setup/test-mail`
+}
+
+/**
+ * @summary Send a test email during setup to verify SMTP settings
+ */
+export const testSetupMail = async (testMailInput: NonReadonly<TestMailInput>, options?: Parameters<typeof apiFetch>[1]): Promise<testSetupMailResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<testSetupMailResponse>(getTestSetupMailUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(testMailInput)
+  }
+);}
+
+
+
+export type testSetupStorageResponse200 = {
+  data: TestStorageResult
+  status: 200
+}
+
+export type testSetupStorageResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type testSetupStorageResponseSuccess = (testSetupStorageResponse200) & {
+  headers: Headers;
+};
+export type testSetupStorageResponseError = (testSetupStorageResponseDefault) & {
+  headers: Headers;
+};
+
+export type testSetupStorageResponse = (testSetupStorageResponseSuccess | testSetupStorageResponseError)
+
+export const getTestSetupStorageUrl = () => {
+
+
+
+
+  return `/api/v1/setup/test-storage`
+}
+
+/**
+ * @summary Verify local or S3 texture storage permissions
+ */
+export const testSetupStorage = async (storageConfigInput: NonReadonly<StorageConfigInput>, options?: Parameters<typeof apiFetch>[1]): Promise<testSetupStorageResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<testSetupStorageResponse>(getTestSetupStorageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(storageConfigInput)
+  }
+);}
+
+
+
+export type createSetupUploadResponse200 = {
+  data: CreateUploadResult
+  status: 200
+}
+
+export type createSetupUploadResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type createSetupUploadResponseSuccess = (createSetupUploadResponse200) & {
+  headers: Headers;
+};
+export type createSetupUploadResponseError = (createSetupUploadResponseDefault) & {
+  headers: Headers;
+};
+
+export type createSetupUploadResponse = (createSetupUploadResponseSuccess | createSetupUploadResponseError)
+
+export const getCreateSetupUploadUrl = () => {
+
+
+
+
+  return `/api/v1/setup/uploads`
+}
+
+/**
+ * @summary Start a chunked archive upload for BS migration textures or SkinLoom backup
+ */
+export const createSetupUpload = async (createUploadInput: NonReadonly<CreateUploadInput>, options?: Parameters<typeof apiFetch>[1]): Promise<createSetupUploadResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createSetupUploadResponse>(getCreateSetupUploadUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createUploadInput)
   }
 );}
 

@@ -36,23 +36,25 @@ import (
 
 // Deps are the services the API needs.
 type Deps struct {
-	Log       *slog.Logger
-	DB        *db.DB // nil when only generating the OpenAPI document
-	Settings  *settings.Service
-	Themes    *theme.Registry
-	Broker    *pubsub.Broker
-	Accounts  *account.Service
-	Captcha   *captcha.Service
-	Mailer    *mail.Mailer
-	Textures  *texture.Service
-	Players   *player.Service
-	Reports   *report.Service
-	Renders   *render.Service
-	Notify    *notify.Service
-	Yggdrasil *yggdrasil.Service
-	OAuth     *oauth.Service
-	Social    *social.Service
-	CDN       *cdn.Service
+	Log         *slog.Logger
+	DB          *db.DB // nil during OpenAPI export or Pre-Core Setup Mode
+	Setup       SetupController
+	Settings    *settings.Service
+	SettingsReg *settings.Registry
+	Themes      *theme.Registry
+	Broker      *pubsub.Broker
+	Accounts    *account.Service
+	Captcha     *captcha.Service
+	Mailer      *mail.Mailer
+	Textures    *texture.Service
+	Players     *player.Service
+	Reports     *report.Service
+	Renders     *render.Service
+	Notify      *notify.Service
+	Yggdrasil   *yggdrasil.Service
+	OAuth       *oauth.Service
+	Social      *social.Service
+	CDN         *cdn.Service
 	// ClientInfo resolves the client address and public host behind trusted proxies
 	// (the gateway's live resolver). Nil = trust no proxy.
 	ClientInfo func(*http.Request) realip.Info
@@ -98,7 +100,7 @@ const docsPath = "/api/docs"
 func New(d Deps) (http.Handler, huma.API) {
 	r := chi.NewRouter()
 	r.Use(httpx.WithSecurityHeaders, httpx.WithBackendPolicy(docsPath), middleware.RequestID, middleware.Recoverer, requestLog(d.Log),
-		withRequestInfo(d), csrfGuard(d))
+		withRequestInfo(d), csrfGuard(d), setupModeGuard(d))
 
 	cfg := huma.DefaultConfig("SkinLoom API", buildinfo.Version)
 	cfg.Info.Description = "SkinLoom (云织) REST API. Game protocols (CSL/USM/Legacy/Yggdrasil) are documented separately."
@@ -115,6 +117,7 @@ func New(d Deps) (http.Handler, huma.API) {
 
 	registerSite(api, d)
 	registerAuth(api, d)
+	registerSetup(api, d)
 	registerAccounts(api, d)
 	registerMail(api, d)
 	registerMe(api, d)
@@ -131,6 +134,7 @@ func New(d Deps) (http.Handler, huma.API) {
 	registerSocial(api, d)
 	registerStatus(api, d)
 	registerCDN(api, d)
+	mountSetupRaw(r, d)
 	mountFiles(r, d)
 	mountGame(r, d)
 	mountRender(r, d)
@@ -141,9 +145,14 @@ func New(d Deps) (http.Handler, huma.API) {
 
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok")) })
 	r.Get("/readyz", func(w http.ResponseWriter, req *http.Request) {
-		ctx, cancel := context.WithTimeout(req.Context(), 2*time.Second)
-		defer cancel()
-		if d.DB == nil || d.DB.SQL.PingContext(ctx) != nil {
+		if d.DB != nil {
+			ctx, cancel := context.WithTimeout(req.Context(), 2*time.Second)
+			defer cancel()
+			if d.DB.SQL.PingContext(ctx) != nil {
+				http.Error(w, "database unavailable", http.StatusServiceUnavailable)
+				return
+			}
+		} else if d.Setup == nil {
 			http.Error(w, "database unavailable", http.StatusServiceUnavailable)
 			return
 		}
@@ -160,11 +169,50 @@ func New(d Deps) (http.Handler, huma.API) {
 	})
 	if d.Themes != nil {
 		r.Handle("/themes-assets/_custom/*", theme.CustomHandler(
-			func() string { return d.Settings.Current().String("theme.custom_css") },
-			func() string { return d.Settings.Current().String("theme.custom_js") }))
+			func() string {
+				if d.Settings == nil {
+					return ""
+				}
+				return d.Settings.Current().String("theme.custom_css")
+			},
+			func() string {
+				if d.Settings == nil {
+					return ""
+				}
+				return d.Settings.Current().String("theme.custom_js")
+			}))
 		r.Handle("/themes-assets/*", d.Themes.AssetHandler())
 	}
 	return r, api
+}
+
+// setupModeGuard refuses all business, game, and OAuth routes while the server is in
+// Pre-Core Setup Mode (d.Setup != nil && d.DB == nil), preventing handlers from touching
+// uninitialized services or a nil database.
+func setupModeGuard(d Deps) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		if d.Setup == nil || d.DB != nil {
+			return next
+		}
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !setupAllowedPath(r.URL.Path) {
+				writeProblem(w, http.StatusServiceUnavailable, "setup not completed")
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func setupAllowedPath(p string) bool {
+	switch p {
+	case "/api/v1/site/bootstrap", "/api/v1/setup", "/events", "/healthz", "/readyz", "/api/docs":
+		return true
+	}
+	return strings.HasPrefix(p, "/api/v1/setup/") ||
+		strings.HasPrefix(p, "/api/openapi") ||
+		strings.HasPrefix(p, "/api/schemas/") ||
+		strings.HasPrefix(p, "/themes-assets/")
 }
 
 func requestLog(log *slog.Logger) func(http.Handler) http.Handler {

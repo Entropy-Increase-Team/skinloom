@@ -25,9 +25,10 @@ func (Blob) Annotations() []schema.Annotation {
 func (Blob) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("id").StorageKey("hash").MaxLen(64).NotEmpty().Immutable(),
-		field.Int64("size").Immutable(),
-		field.Int("width").Immutable(),
-		field.Int("height").Immutable(),
+		// Mutable so RescanMissingBlobs can backfill dimensions and byte size once files sync.
+		field.Int64("size"),
+		field.Int("width"),
+		field.Int("height"),
 		field.Int("ref_count").Default(0),
 		field.Time("created_at").SchemaType(datetimeType).Default(time.Now).Immutable(),
 	}

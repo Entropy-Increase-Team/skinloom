@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -19,10 +20,13 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/gateway"
 	"github.com/Entropy-Increase-Team/skinloom/internal/httpapi"
 	"github.com/Entropy-Increase-Team/skinloom/internal/launcher"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/yggdrasil"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/buildinfo"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/datalock"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/logging"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/pubsub"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/realip"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/secrets"
 )
@@ -44,7 +48,10 @@ type RunOptions struct {
 func Run(ctx context.Context, o RunOptions) error {
 	pretty, color := logging.ConsoleStyle(os.Stderr)
 	writeBanner(os.Stderr, pretty, color, buildinfo.Version)
-	p := o.Paths
+	p, err := o.Paths.Resolve()
+	if err != nil {
+		return err
+	}
 	p.Serve = true
 	// Held while the site runs, so skinloom restore refuses to replace its files.
 	lk, err := lockDataDir(p, datalock.Shared)
@@ -55,43 +62,91 @@ func Run(ctx context.Context, o RunOptions) error {
 		return err
 	}
 	defer lk.Release()
-	core, err := OpenCore(ctx, p)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		core.Close(shutdownCtx)
-	}()
-	log := core.Log
-	cfg := adjust(core.Config, o)
 
-	sec, err := secrets.Ensure(core.Paths.DataDir)
+	envOv := config.EnvOverrides()
+	envDBSet := envOv["database.driver"] || envOv["database.dsn"]
+	_, statErr := os.Stat(p.ConfigPath)
+	if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
+		return statErr
+	}
+	configExists := statErr == nil
+
+	baseCfg, err := config.Load(p.ConfigPath)
 	if err != nil {
 		return err
 	}
+	cfg := adjust(baseCfg, o)
+
+	enterSetup := true
+	initDBError := ""
+	if configExists || envDBSet {
+		probe, perr := db.Probe(ctx, db.Options{Driver: cfg.Database.Driver, DSN: cfg.Database.DSN, DataDir: p.DataDir})
+		switch {
+		case perr == nil && probe.OK:
+			if probe.State == db.ProbeSkinLoomInstalled {
+				enterSetup = false
+				_ = secrets.ClearSetupToken(p.DataDir)
+				_ = secrets.ClearSetupPending(p.DataDir)
+				_ = secrets.MarkSetupDone(p.DataDir)
+			} else if probe.State == db.ProbeSuspectedBS {
+				initDBError = probe.Summary
+			}
+		default:
+			isInstalled := (configExists && !secrets.IsSetupPending(p.DataDir)) || secrets.IsSetupDone(p.DataDir)
+			if isInstalled {
+				return fmt.Errorf("database unavailable for installed site: %w", cmp.Or(perr, errors.New(probe.ErrorDetail)))
+			}
+			if probe.ErrorDetail != "" {
+				initDBError = redactSecretErr(probe.ErrorDetail)
+			} else if perr != nil {
+				initDBError = redactSecretErr(perr.Error())
+			}
+		}
+	}
+
+	logCtl, log, logFile, err := initLogger(cfg, p)
+	if err != nil {
+		return err
+	}
+	if logFile != nil {
+		defer logFile.Close()
+	}
+
+	broker := pubsub.New()
+	themesReg, settingsReg, err := OpenThemesAndRegistry(p.DataDir, log.With("component", "theme"))
+	if err != nil {
+		return err
+	}
+
+	var (
+		coreMu     sync.Mutex
+		activeCore *Core
+	)
+	defer func() {
+		coreMu.Lock()
+		c := activeCore
+		coreMu.Unlock()
+		if c != nil {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			c.Close(shutdownCtx)
+		}
+	}()
 
 	runCtx, stop := context.WithCancel(ctx)
 	defer stop()
-	go core.Settings.Watch(runCtx, 2*time.Second)
-	if cfg.Web.Mode == "dev" {
-		go core.Themes.Watch(runCtx, func() { _, _ = core.Settings.Touch(runCtx) })
-	}
-	go core.Jobs.Run(runCtx, 5*time.Second)
-	go purgeDeletedAccounts(runCtx, core)
-	go dailyUpkeep(runCtx, core)
-	go yggdrasilUpkeep(runCtx, core)
 
-	var gw *gateway.Gateway // created below; serves requests only after Serve starts
-	// The frontend this process runs (web.mode managed or dev), for /readyz: an
-	// external frontend has its own probes, and the backend stays ready without it.
-	var localWeb atomic.Pointer[string]
-	deps := core.APIDeps(log.With("component", "http"))
-	deps.AdminToken = sec.AdminToken
-	deps.ClientInfo = func(r *http.Request) realip.Info { return gw.ClientInfo(r) }
-	deps.Runtime = httpapi.RuntimeInfo{Started: time.Now(), Role: cfg.Server.Role, Web: cfg.Web.Mode, Storage: cmp.Or(cfg.Storage.Driver, "local")}
-	deps.WebReady = func() bool {
+	resolver, err := realip.New(cfg.Server.TrustedProxies) // validated by config.Load
+	if err != nil {
+		return err
+	}
+
+	var (
+		gw        *gateway.Gateway
+		localWeb  atomic.Pointer[string]
+		watchOnce sync.Once
+	)
+	webReady := func() bool {
 		addr := localWeb.Load()
 		if addr == nil {
 			return true
@@ -103,7 +158,132 @@ func Run(ctx context.Context, o RunOptions) error {
 		_ = c.Close()
 		return true
 	}
-	api, _ := httpapi.New(deps)
+	gw = gateway.New(http.NotFoundHandler(), log.With("component", "gateway"), resolver)
+	web := launcher.NewWeb(log.With("component", "launcher"), log.With("component", "web"))
+
+	var applyWeb func(config.Config)
+	startConfigWatch := func(c *Core) {
+		watchOnce.Do(func() {
+			config.Watch(runCtx, c.Paths.ConfigPath, c.Config, log.With("component", "config"), func(_, next config.Config, changed []string) {
+				next = adjust(next, o)
+				var cold []string
+				webChanged := false
+				for _, k := range changed {
+					if config.IsCold(k) {
+						cold = append(cold, k)
+					}
+					if strings.HasPrefix(k, "web.") {
+						webChanged = true
+					}
+				}
+				c.LogCtl.Configure(next.Log.Level, next.Log.Format)
+				if res, err := realip.New(next.Server.TrustedProxies); err == nil {
+					gw.SetResolver(res)
+				}
+				warnUnknownKeys(c.Paths.ConfigPath, log)
+				if webChanged && applyWeb != nil {
+					applyWeb(next)
+				}
+				log.Info("config file reloaded", "changed", changed)
+				if len(cold) > 0 {
+					log.Warn("these keys only take effect after `skinloom restart`", "keys", cold)
+				}
+			})
+		})
+	}
+
+	mountRunningCore := func(core *Core, setupCtl httpapi.SetupController) error {
+		sec, err := secrets.Ensure(core.Paths.DataDir)
+		if err != nil {
+			return err
+		}
+		nextCfg := adjust(core.Config, o)
+		if res, err := realip.New(nextCfg.Server.TrustedProxies); err == nil {
+			gw.SetResolver(res)
+		}
+		deps := core.APIDeps(log.With("component", "http"))
+		deps.Setup = setupCtl
+		deps.AdminToken = sec.AdminToken
+		deps.ClientInfo = func(r *http.Request) realip.Info { return gw.ClientInfo(r) }
+		deps.Runtime = httpapi.RuntimeInfo{
+			Started: time.Now(),
+			Role:    nextCfg.Server.Role,
+			Web:     nextCfg.Web.Mode,
+			Storage: cmp.Or(nextCfg.Storage.Driver, "local"),
+		}
+		deps.WebReady = webReady
+		fullAPI, _ := httpapi.New(deps)
+
+		gw.SetHeaders(func(h http.Header) {
+			if yggdrasil.PolicyFrom(core.Settings.Current()).EnableALI {
+				h.Set("X-Authlib-Injector-API-Location", httpapi.YggdrasilPrefix) // relative: the same site
+			}
+		})
+		gw.SetAPI(fullAPI)
+
+		coreMu.Lock()
+		activeCore = core
+		coreMu.Unlock()
+
+		startBackgroundWorkers(runCtx, core, nextCfg)
+		startConfigWatch(core)
+		return nil
+	}
+
+	var setupToken string
+	if !enterSetup {
+		core, err := OpenCoreWithOptions(ctx, p, CoreOptions{
+			Broker:             broker,
+			Themes:             themesReg,
+			SettingsReg:        settingsReg,
+			LogCtl:             logCtl,
+			Log:                log,
+			SkipConfigTemplate: true,
+		})
+		if err != nil {
+			return err
+		}
+		if err := mountRunningCore(core, nil); err != nil {
+			return err
+		}
+	} else {
+		setupToken, err = secrets.CreateSetupToken(p.DataDir, account.SetupTokenTTL)
+		if err != nil {
+			return err
+		}
+		var sc *setupController
+		sc = newSetupController(
+			p,
+			cfg,
+			envOv,
+			initDBError,
+			logCtl,
+			log,
+			broker,
+			themesReg,
+			settingsReg,
+			func(newCore *Core) error {
+				if err := mountRunningCore(newCore, sc); err != nil {
+					return err
+				}
+				logging.Notice(log, "setup completed; switched to running mode",
+					"database", newCore.DB.Dialect, "storage", cmp.Or(newCore.Config.Storage.Driver, "local"))
+				return nil
+			},
+		)
+		setupDeps := httpapi.Deps{
+			Log:         log.With("component", "http"),
+			Setup:       sc,
+			SettingsReg: settingsReg,
+			Themes:      themesReg,
+			Broker:      broker,
+			ClientInfo:  func(r *http.Request) realip.Info { return gw.ClientInfo(r) },
+			Runtime:     httpapi.RuntimeInfo{Started: time.Now(), Role: cfg.Server.Role, Web: cfg.Web.Mode, Storage: cmp.Or(cfg.Storage.Driver, "local")},
+			WebReady:    webReady,
+		}
+		setupAPI, _ := httpapi.New(setupDeps)
+		gw.SetAPI(setupAPI)
+	}
 
 	ln, err := net.Listen("tcp", cfg.Server.Listen)
 	if err != nil {
@@ -111,20 +291,14 @@ func Run(ctx context.Context, o RunOptions) error {
 	}
 	port := ln.Addr().(*net.TCPAddr).Port
 
-	resolver, err := realip.New(cfg.Server.TrustedProxies) // validated by config.Load
-	if err != nil {
-		return err
-	}
-	var handler http.Handler = api
-	gw = gateway.New(api, log.With("component", "gateway"), resolver)
-	gw.SetHeaders(func(h http.Header) {
-		if yggdrasil.PolicyFrom(core.Settings.Current()).EnableALI {
-			h.Set("X-Authlib-Injector-API-Location", httpapi.YggdrasilPrefix) // relative: the same site
-		}
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gw.ServeHTTP(w, r)
 	})
-	web := launcher.NewWeb(log.With("component", "launcher"), log.With("component", "web"))
-	if cfg.Server.Role == "all" {
-		handler = gw
+	if cfg.Server.Role != "all" {
+		// In API-only mode, still serve the swapped API directly without frontend proxy.
+		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			gw.ServeAPI(w, r)
+		})
 	}
 	conns := newConnTracker()
 	srv := &http.Server{
@@ -136,13 +310,13 @@ func Run(ctx context.Context, o RunOptions) error {
 	}
 	// Long-lived SSE streams and never-used pre-connected sockets would otherwise keep
 	// Shutdown waiting (for its whole timeout and for 5s respectively).
-	srv.RegisterOnShutdown(core.Broker.Close)
+	srv.RegisterOnShutdown(broker.Close)
 	srv.RegisterOnShutdown(conns.CloseFresh)
 	serveErr := make(chan error, 1)
 	go func() { serveErr <- srv.Serve(ln) }()
 
 	apiInternal := "http://127.0.0.1:" + strconv.Itoa(port)
-	applyWeb := func(c config.Config) {
+	applyWeb = func(c config.Config) {
 		if c.Server.Role != "all" {
 			return
 		}
@@ -151,47 +325,31 @@ func Run(ctx context.Context, o RunOptions) error {
 	applyWeb(cfg)
 	defer web.Stop()
 
-	config.Watch(runCtx, core.Paths.ConfigPath, core.Config, log.With("component", "config"), func(_, next config.Config, changed []string) {
-		next = adjust(next, o)
-		var cold []string
-		webChanged := false
-		for _, k := range changed {
-			if config.IsCold(k) {
-				cold = append(cold, k)
-			}
-			if strings.HasPrefix(k, "web.") {
-				webChanged = true
-			}
-		}
-		core.LogCtl.Configure(next.Log.Level, next.Log.Format)
-		if res, err := realip.New(next.Server.TrustedProxies); err == nil {
-			gw.SetResolver(res)
-		}
-		warnUnknownKeys(core.Paths.ConfigPath, log)
-		if webChanged {
-			applyWeb(next)
-		}
-		log.Info("config file reloaded", "changed", changed)
-		if len(cold) > 0 {
-			log.Warn("these keys only take effect after `skinloom restart`", "keys", cold)
-		}
-	})
-
 	local := fmt.Sprintf("http://localhost:%d/", port)
-	logging.Notice(log, "SkinLoom is running",
-		"version", buildinfo.Version, "url", local, "role", cfg.Server.Role, "web", cfg.Web.Mode,
-		"database", core.DB.Dialect, "data", core.Paths.DataDir)
-	if core.FreshConfig {
-		log.Info("wrote default config; edit it any time, most keys apply without a restart", "path", core.Paths.ConfigPath)
+	if !enterSetup {
+		coreMu.Lock()
+		c := activeCore
+		coreMu.Unlock()
+		logging.Notice(log, "SkinLoom is running",
+			"version", buildinfo.Version, "url", local, "role", cfg.Server.Role, "web", cfg.Web.Mode,
+			"database", c.DB.Dialect, "data", p.DataDir)
+		if configExists {
+			warnUnknownKeys(p.ConfigPath, log)
+		}
+		log.Debug("admin API token for scripts", "file", secrets.AdminTokenFile(p.DataDir))
+	} else {
+		logging.Notice(log, "SkinLoom is running in setup mode",
+			"version", buildinfo.Version, "url", local, "role", cfg.Server.Role, "web", cfg.Web.Mode, "data", p.DataDir)
+		if initDBError != "" {
+			log.Warn("initial database probe did not succeed; open the setup wizard to diagnose or reconfigure", "err", initDBError)
+		}
 	}
-	warnUnknownKeys(core.Paths.ConfigPath, log)
-	log.Debug("admin API token for scripts", "file", secrets.AdminTokenFile(core.Paths.DataDir))
+
 	open := local
-	if link, err := core.SetupLink(ctx, local); err != nil {
-		log.Warn("cannot create a setup link", "err", err)
-	} else if link != "" {
+	if setupToken != "" {
+		link := strings.TrimRight(local, "/") + "/setup?token=" + setupToken
 		// Only someone who can read this console (or the logs) can claim the new site.
-		logging.Notice(log, "first run: open this one-time link to create the administrator account", "url", link)
+		logging.Notice(log, "first run: open this one-time link to set up SkinLoom", "url", link)
 		open = link
 	}
 	if o.Open {
@@ -214,6 +372,17 @@ func Run(ctx context.Context, o RunOptions) error {
 	defer cancel()
 	_ = srv.Shutdown(shutdownCtx)
 	return nil
+}
+
+func startBackgroundWorkers(ctx context.Context, core *Core, cfg config.Config) {
+	go core.Settings.Watch(ctx, 2*time.Second)
+	if cfg.Web.Mode == "dev" {
+		go core.Themes.Watch(ctx, func() { _, _ = core.Settings.Touch(ctx) })
+	}
+	go core.Jobs.Run(ctx, 5*time.Second)
+	go purgeDeletedAccounts(ctx, core)
+	go dailyUpkeep(ctx, core)
+	go yggdrasilUpkeep(ctx, core)
 }
 
 // adjust applies command-line overrides on top of the file/env config.

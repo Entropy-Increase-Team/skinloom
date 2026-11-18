@@ -34,6 +34,8 @@ export function LiveRefresh({ version }: { version: number }) {
         return // malformed event
       }
       if (next === current.current || timer) return
+      // Setup wizard drives its own completion redirect and post-migration report view.
+      if (window.location.pathname.startsWith('/setup')) return
       timer = setTimeout(() => {
         timer = undefined
         router.refresh()
