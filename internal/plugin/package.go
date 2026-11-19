@@ -54,7 +54,7 @@ const (
 // OfficialPublicKeyPEM is the built-in Ed25519 SPKI public key used for official packages.
 // Its corresponding private key is held offline outside this repository.
 const OfficialPublicKeyPEM = `-----BEGIN PUBLIC KEY-----
-MCowBQYDK2VwAyEAPD8bUrzAGLNF5McmIr+DEtQ9y+0q/9/FMMUSSiWRcVY=
+MCowBQYDK2VwAyEAw8HIDMjyzCMx8asCu1gY4+jELLPbsVcwCbig9AyHm4g=
 -----END PUBLIC KEY-----`
 
 var (
