@@ -123,7 +123,7 @@ skinloom settings set site.name null                     # 恢复默认
 | `oauth.access_token_ttl_seconds` | `86400` | 应用的访问令牌有效期（1 天） |
 | `oauth.refresh_token_ttl_seconds` | `2592000` | 刷新令牌多久不用就失效（30 天） |
 
-### 外观
+### 外观与插件市场
 
 | 键 | 默认 | 说明 |
 |---|---|---|
@@ -133,8 +133,11 @@ skinloom settings set site.name null                     # 恢复默认
 | `home.blocks` | 空 | 首页区块，空表示用主题自带的首页 |
 | `i18n.overrides` | `{}` | 改写的界面文字 |
 | `theme.custom_css` / `theme.custom_js` | 空 | 自定义 CSS / JavaScript（各最多 64 KB，只有超级管理员能改） |
+| `theme.trusted_web` | `[]` | 超级管理员显式允许执行前端脚本（`web/index.js`，Level ⑤ 组件覆盖）的本地未签名主题 ID 列表 |
+| `plugins.trusted_keys` | `[]` | 受信的插件/主题作者 Ed25519 公钥（PEM 格式，每行一个，只有超级管理员能改；校验 `.slp` 包签名时使用） |
+| `plugin.registries` | 官方源（主备双镜像：`registry.skinloom.cn` + GitHub `dist`） | 插件与主题市场源列表（JSON 数组：`[{id, name, urls, publicKey, official, enabled}]`，只有超级管理员能改；官方源始终强制校验宿主内置的官方 Ed25519 公钥） |
 
-见[外观与主题](./appearance.md)。
+见[外观与主题](./appearance.md)和[插件与主题](../plugins/overview.md)。
 
 ### CDN 刷新
 

@@ -20,7 +20,8 @@ skinloom backup --out /mnt/backup --no-textures
 | 数据库 | 仅 SQLite：用 `VACUUM INTO` 复制，站点不用停 |
 | `config.toml` | 静态配置 |
 | `secrets/` | 管理员令牌等密钥 |
-| 材质文件 | 通过存储读取，本地目录与 S3 都可以；用 `--no-textures` 跳过（例如材质在 S3、桶本身有备份时） |
+| `plugins/`、`themes/`、`plugins-data/` | 已解压的插件、本地主题、插件私有文件，以及 Tier 2 原生插件在 SQLite 下的隔离数据库（`plugins-data/<id>/plugin.db`，同样通过 `VACUUM INTO` 在线安全复制） |
+| 材质文件与 `.slp` 包 | 通过存储读取，本地目录与 S3 都可以；用 `--no-textures` 跳过材质文件（例如材质在 S3、桶本身有备份时） |
 
 **MySQL / PostgreSQL 的数据库不在备份里**，请用各自的工具导出，例如：
 

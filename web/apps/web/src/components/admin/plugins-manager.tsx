@@ -40,9 +40,13 @@ import {
   Spinner,
   StatusDot,
   Switch,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   toast,
 } from '@skinloom/ui'
-import { Box, Cpu, FileText, Puzzle, RefreshCw, Settings, ShieldAlert, Trash2, Upload } from 'lucide-react'
+import { Box, Cpu, FileText, Puzzle, RefreshCw, Settings, ShieldAlert, Store, Trash2, Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
@@ -52,12 +56,25 @@ import { problemOf } from '@/lib/problem'
 
 import { PluginDetailsDrawer } from './plugins-details-drawer'
 import { PluginInstallDialog } from './plugins-install-dialog'
+import { type MarketCategory, PluginsMarket } from './plugins-market'
 import { PluginSettingsDrawer } from './plugins-settings-drawer'
 import { apiProblemMessage } from './plugins-settings-form'
 
-export function PluginsManager({ superadmin }: { superadmin: boolean }) {
+export function PluginsManager({
+  superadmin,
+  initialTab = 'installed',
+  initialMarketCategory = 'all',
+}: {
+  superadmin: boolean
+  initialTab?: 'installed' | 'market'
+  initialMarketCategory?: MarketCategory
+}) {
   const t = useTranslations('adminPlugins')
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState<'installed' | 'market'>(initialTab)
+  useEffect(() => {
+    setActiveTab(initialTab)
+  }, [initialTab])
   const [plugins, setPlugins] = useState<AdminPluginView[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -171,7 +188,7 @@ export function PluginsManager({ superadmin }: { superadmin: boolean }) {
               <RefreshCw />
               {t('actions.refresh')}
             </Button>
-            {superadmin && hasPlugins ? (
+            {superadmin && (hasPlugins || activeTab === 'market') ? (
               <Button type="button" onClick={() => setInstallOpen(true)}>
                 <Upload />
                 {t('uploadButton')}
@@ -181,32 +198,58 @@ export function PluginsManager({ superadmin }: { superadmin: boolean }) {
         }
       />
 
-      <FormError message={error} />
+      <Tabs
+        value={activeTab}
+        onValueChange={(val) => setActiveTab(val === 'market' ? 'market' : 'installed')}
+        className="flex flex-col gap-6"
+      >
+        <TabsList variant="line" className="no-scrollbar h-auto w-full justify-start overflow-x-auto overflow-y-hidden pb-1.5">
+          <TabsTrigger value="installed">
+            <Puzzle className="size-4" />
+            {t('tabs.installed')}
+            {plugins !== null ? (
+              <Badge variant="secondary" className="ml-1 tabular-nums">
+                {plugins.length}
+              </Badge>
+            ) : null}
+          </TabsTrigger>
+          <TabsTrigger value="market">
+            <Store className="size-4" />
+            {t('tabs.market')}
+          </TabsTrigger>
+        </TabsList>
 
-      {plugins === null && !error ? (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <Skeleton className="h-44 rounded-xl" />
-          <Skeleton className="h-44 rounded-xl" />
-        </div>
-      ) : plugins === null ? null : plugins.length === 0 ? (
-        <Empty className="border border-dashed border-border py-16">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <Puzzle />
-            </EmptyMedia>
-            <EmptyTitle>{t('emptyTitle')}</EmptyTitle>
-            <EmptyDescription>{t('emptyDescription')}</EmptyDescription>
-          </EmptyHeader>
-          {superadmin ? (
-            <EmptyContent>
-              <Button type="button" onClick={() => setInstallOpen(true)}>
-                <Upload />
-                {t('uploadButton')}
-              </Button>
-            </EmptyContent>
-          ) : null}
-        </Empty>
-      ) : (
+        <TabsContent value="installed" className="space-y-6">
+          <FormError message={error} />
+
+          {plugins === null && !error ? (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <Skeleton className="h-44 rounded-xl" />
+              <Skeleton className="h-44 rounded-xl" />
+            </div>
+          ) : plugins === null ? null : plugins.length === 0 ? (
+            <Empty className="border border-dashed border-border py-16">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Puzzle />
+                </EmptyMedia>
+                <EmptyTitle>{t('emptyTitle')}</EmptyTitle>
+                <EmptyDescription>{t('emptyDescription')}</EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent className="flex flex-wrap items-center justify-center gap-2">
+                <Button type="button" variant="outline" onClick={() => setActiveTab('market')}>
+                  <Store />
+                  {t('tabs.market')}
+                </Button>
+                {superadmin ? (
+                  <Button type="button" onClick={() => setInstallOpen(true)}>
+                    <Upload />
+                    {t('uploadButton')}
+                  </Button>
+                ) : null}
+              </EmptyContent>
+            </Empty>
+          ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {plugins.map((plugin) => {
             const busy = busyIds.has(plugin.id)
@@ -343,6 +386,22 @@ export function PluginsManager({ superadmin }: { superadmin: boolean }) {
           })}
         </div>
       )}
+        </TabsContent>
+
+        <TabsContent value="market">
+          <PluginsMarket
+            superadmin={superadmin}
+            initialCategory={initialMarketCategory}
+            onInstalled={(installedList) => {
+              for (const item of installedList) {
+                replacePlugin(item)
+              }
+              void refresh()
+              router.refresh()
+            }}
+          />
+        </TabsContent>
+      </Tabs>
 
       <PluginInstallDialog
         open={installOpen}

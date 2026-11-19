@@ -34,7 +34,7 @@ const sidebars: SidebarsConfig = {
     },
     'acknowledgements',
   ],
-  dev: ['development/setup', 'development/architecture', 'development/api', 'development/docs-and-logs', 'plugins/overview'],
+  dev: ['development/setup', 'development/architecture', 'development/api', 'development/docs-and-logs', 'plugins/overview', 'plugins/themes'],
 }
 
 export default sidebars

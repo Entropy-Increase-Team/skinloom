@@ -304,7 +304,7 @@ flowchart TB
 
 #### 阶段 C（P2-5C）：官方 GitOps 静态签名插件市场（模式 A）完整落地
 
-- [ ] **C1. 实现宿主多源 Registry 客户端（`internal/plugin/registry_client.go`）**
+- [x] **C1. 实现宿主多源 Registry 客户端（`internal/plugin/registry_client.go`）**
   - 新增站点设置 `plugin.registries`（支持多个源：官方主源/国内镜像默认预置，支持超管增删自定义源、配置自定义源公钥与启用开关）。
   - 实现 `FetchIndex(ctx)`：
     - 并行/故障转移拉取 `index.v1.json` 与 `index.v1.json.sig`（优先国内镜像，超时/失败自动切换 GitHub 源）；
@@ -313,20 +313,20 @@ flowchart TB
   - 集成 `compat.go` 环境筛选：返回每个市场插件的 `compatibility` 状态、适配当前 `GOOS/GOARCH` 的推荐下载 artifact、本地是否已安装及是否有可升级版本。
   - 实现 `blocked` 恶意阻断定时巡检任务（每 6 小时 + 刷新市场时触发）：命中官方签名索引 `blocked` 名单的已启用插件，立即热禁用、写审计日志并向所有超级管理员发站内通知。
   - 实现一键从市场下载安装/升级（`InstallFromMarket`）：按 artifact 的 `urls` 故障转移下载对应本机平台的 `.slp` → 校验 `sha256` 与 `signature` → 复用 `InspectPackage` / `InstallPackage` 走完整三级权限确认与热加载流程。
-- [ ] **C2. 新增市场管理 REST API 与 CLI**
+- [x] **C2. 新增市场管理 REST API 与 CLI**
   - `GET /api/v1/admin/market/packages`（支持按 `q`、`kind`、`runtime`、`category`、`compatibleOnly` 筛选，返回宿主环境摘要 `hostEnv` 与筛选后包列表）。
   - `POST /api/v1/admin/market/refresh`（强制刷新市场索引并执行阻断检查）。
   - `POST /api/v1/admin/market/inspect`（按 `{ registryId, id, version }` 拉取本机平台包并返回预检与权限 diff）。
   - `POST /api/v1/admin/market/install`（超管确认权限后完成一键安装/升级，支持自动级联提示依赖插件）。
   - CLI 扩展：`skinloom plugin search <query>`、`skinloom plugin market-install <id>[@version]`、`skinloom plugin upgrade <id|--all>`。
-- [ ] **C3. 实现后台「插件与主题市场」UI**
+- [x] **C3. 实现后台「插件与主题市场」UI**
   - 在 `/admin/plugins` 增加「插件市场」Tab，并在 `/admin/appearance` 主题页增加「浏览主题市场」入口。
   - 页面功能：
     - 顶部展示当前服务器环境胶囊（如 `linux/arm64 · SkinLoom 1.x · Go 1.26`）与「仅显示兼容插件」默认勾选开关；
     - 分类筛选（全部 / 官方推荐 / 轻量沙箱 / 系统原生 / 主题 / 登录安全 / 运营积分 / 迁移工具）+ 关键字搜索；
     - 卡片展示双轨标签（JS 沙箱 / Go 原生）、官方认证徽章、支持平台图标（Linux / Windows / macOS）、兼容状态提示、一键安装/升级按钮（复用权限确认弹窗）与版本更新日志抽屉。
-- [ ] **C4. 产出官方市场仓库模板（`deploy/registry/`）**
-  - 提供可直接初始化为 `Entropy-Increase-Team/skinloom-registry` 独立仓库的完整工程模板：
+- [x] **C4. 产出官方市场独立仓库（`Entropy-Increase-Team/skinloom-registry`）**
+  - 已独立初始化并推送至 `Entropy-Increase-Team/skinloom-registry`（主仓库不再保留冗余副本）：
     - `manifests/` 示例结构与 JSON Schema 校验脚本；
     - `.github/workflows/pr-check.yml`（PR 阶段：校验清单、对 JS 插件跑 `lint`/打包测试、对 Native Go 插件跑 `go vet`/`govulncheck`/CodeQL 并强制打上 `needs-security-review` 标签）；
     - `.github/workflows/publish.yml`（合并后：按固定 Commit SHA 在隔离 Runner 中**自动交叉编译三平台分包** → 生成 `checksums.txt` → 官方 Ed25519 私钥签名 → 生成并签名 `index.v1.json` → 同步 R2 主源与国内镜像）。
@@ -335,29 +335,29 @@ flowchart TB
 
 #### 阶段 D（基建总验收门禁 —— 全部通过后方可开工官方插件！）
 
-- [ ] **D1. 代码质量、静态分析与安全扫描**
+- [x] **D1. 代码质量、静态分析与安全扫描**
   ```bash
   gofmt -l $(git ls-files '*.go')
   go vet ./...
   go run honnef.co/go/tools/cmd/staticcheck@latest ./...
   go run golang.org/x/vuln/cmd/govulncheck@latest ./...
   ```
-- [ ] **D2. 三方言迁移与双层数据隔离回归**
+- [x] **D2. 三方言迁移与双层数据隔离回归**
   ```bash
   go run ./internal/tools/migdiff
   go test -race ./internal/hook/... ./internal/jsrt/... ./internal/plugin/... ./internal/httpapi/... ./sdk/go/...
   ```
-- [ ] **D3. 单源契约无漂移校验**
+- [x] **D3. 单源契约无漂移校验**
   ```bash
   go generate ./api && git diff --exit-code -- api/
   go run ./internal/tools/plugingen -check
   cd web && bun run gen:api && git diff --exit-code -- packages/api-client/src/gen
   ```
-- [ ] **D4. 前端与工具链构建测试**
+- [x] **D4. 前端与工具链构建测试**
   ```bash
   cd web && bun run check:styles && bun run typecheck && bun run test && bun run build
   ```
-- [ ] **D5. 基建端到端冒烟场景（必须全部实测通过）**
+- [x] **D5. 基建端到端冒烟场景（必须全部实测通过）**
   1. 搭建本地静态测试 Registry，同时托管 1 个最小 JS 插件、1 个最小 Native Go 插件（含三平台分包 + 隔离 SQL 建表 + 本地 HTTP/WS 反代）、1 个 Level ⑤ 主题；
   2. 验证宿主自动按 `GOOS/GOARCH` 过滤并拉取正确平台包、拒绝未签名的 `native` 包、确认权限后不重启热安装并生效；
   3. 模拟杀死 `native` 插件子进程，验证主站无感存活且子进程自动拉起恢复服务；
@@ -368,39 +368,52 @@ flowchart TB
 
 ### 第二部分：第一批官方插件落地与 API 1.0 冻结（基建验收后开工）
 
-#### 阶段 E（P2-6A）：轻量级 TS 沙箱官方插件与 Level ⑤ 示例主题
+> **第二部分架构定稿约束（2026-11-19 确认）**：
+> 1. **官方插件独立单仓（`Entropy-Increase-Team/skinloom-plugins`）**：所有官方插件与官方市场主题均统一维护在独立仓库 `Entropy-Increase-Team/skinloom-plugins`（本地并行目录 `../skinloom-plugins`），**不再放入 `skinloom` 主仓库**；主仓库只保留核心服务、前端、内置默认/织锦主题以及官方 SDK/CLI 工具链（`sdk/go`、`@skinloom/plugin-sdk`、`@skinloom/cli`、`create-skinloom-plugin`）。三仓职责彻底解耦：`skinloom`（宿主与 SDK）· `skinloom-plugins`（官方插件与主题源码）· `skinloom-registry`（GitOps 静态签名索引与受控编译分发）。
+> 2. **Blessing Skin 迁移采用方案 A（两层职责分离）**：
+>    - **核心数据迁移保留在主程序系统代码（`internal/importer/bs/`）**：继续承接 Pre-Core 首次安装向导（`/setup`）与离线 CLI（`skinloom import bs` / `compare`），保障原始主键 ID 保留、旧算法密码哈希迁移、Yggdrasil RSA 私钥导入与整库原子 `--dry-run`，且进入正常 Core 模式后**零路由、零任务、零内存开销**，绝不向插件 `HostService` 开放高危核心表后门。
+>    - **BS 第三方插件生态数据迁移做成可卸载 Tier 2 原生插件（`skinloom-plugins/bs-importer`）**：站长完成核心迁移并按需从市场安装 `invitation-codes`、`mojang-verification` 等官方插件后，再安装 `bs-importer` 补导旧 BS 第三方插件表数据；迁移完成后可直接在后台禁用或 `remove --purge` 彻底卸载，不残留任何后台菜单与隔离表。
 
-- [ ] **E1. 官方插件 ①：`plugins/invitation-codes`（Tier 1 · TS 沙箱）**
+#### 阶段 E（P2-6A）：初始化 `skinloom-plugins` 独立仓库、轻量级 TS 沙箱官方插件与 Level ⑤ 示例主题
+
+- [ ] **E0. 初始化官方插件仓库（`Entropy-Increase-Team/skinloom-plugins`）**
+  - 建立规范的多插件工作区结构（根目录 `README.md`、`CONTRIBUTING.md`、`LICENSE`、统一的 TS/Go CI 测试工作流与按插件打 Tag 规范 `<plugin-id>/vX.Y.Z`），供 `skinloom-registry` 通过 `repository: https://github.com/Entropy-Increase-Team/skinloom-plugins` + `subdir` + 40 位 Commit SHA 受控拉取编译。
+- [ ] **E1. 官方插件 ①：`skinloom-plugins/invitation-codes`（Tier 1 · TS 沙箱）**
   - 清单声明 `forms["auth.register"]` 附加 `invite_code` 字段；`storage.collections.codes`（`code: string:unique`, `usedBy: number`, `createdAt: time`）。
   - 后端：`auth.register` Guard 校验邀请码有效性；`user.registered` Event 标记已用；支持批量生成（数量/前缀/有效期/次数限制）、撤销、导出 CSV；可选“玩家消耗积分生成邀请码”；暴露 `ctx.services.expose('importCodes', ...)` 供 `bs-importer` 调用。
   - 前端：`admin/codes` 管理页 + 可选 `user/invites` 页；配套完整 `createTestHost` 单测。
-- [ ] **E2. 官方插件 ②：`plugins/mojang-verification`（Tier 1 · TS 沙箱）**
+- [ ] **E2. 官方插件 ②：`skinloom-plugins/mojang-verification`（Tier 1 · TS 沙箱）**
   - 权限：`storage.docs`, `http.fetch`（白名单 `login.live.com`, `user.auth.xboxlive.com`, `xsts.auth.xboxlive.com`, `api.minecraftservices.com`, `api.mojang.com`）, `players.read`, `players.write`, `score.write`, `notify.send`, `mail.send`。
   - 后端：实现 Microsoft OAuth → XBL → XSTS → Minecraft Services 正版档案校验；同名角色冲突按设置策略自动回收（退还原主积分并发送站内信/邮件）或拒绝；同步正版 32 位 UUID；通过 `user.badges` Filter 颁发「正版认证」徽章；发放绑定积分奖励；暴露 `ctx.services.expose('importVerifications', ...)`。
   - 前端：挂载 `user.dashboard.widgets` 与 `user.profile.sections` 插槽卡片（支持发起绑定与刷新正版角色名）；配套完整单测。
-- [ ] **E3. 官方 Level ⑤ 示例主题：`plugins/theme-atelier`（`kind: "theme"`）**
+- [ ] **E3. 官方 Level ⑤ 示例主题：`skinloom-plugins/theme-atelier`（`kind: "theme"`）**
   - 展示 Token + CSS + 布局 + 首页区块 + `theme.settings` + Level ⑤ `overrides`（覆盖 `site.footer` 与 `texture.card`），验证主题 `.slp` 从市场一键安装、预览模式与热切换。
 
-#### 阶段 F（P2-6B）：系统级原生 Go 官方插件 `plugins/bs-importer`
+#### 阶段 F（P2-6B）：系统级原生 Go 官方插件 `skinloom-plugins/bs-importer` 与官方市场闭环实战
 
-- [ ] **F1. 官方插件 ③：`plugins/bs-importer`（Tier 2 · 原生 Go 系统级插件）**
-  - **为什么用原生 Go**：完美发挥系统级优势——既支持 HTTP 对接 `blessing-skin-export-bridge`（同步更新 `blessing-skin-export-bridge` 的 `BridgeController.php` 开放 `invitation_codes`、`mojang_verifications`、`textures_description` 分页读取），又支持**直接用 Go 原生 MySQL / PostgreSQL / SQLite 驱动直连 BS 数据库高速批量拉取**，并通过本地 HTTP/SSE 流式推送实时导入进度，同时用自身隔离 SQL 库记录导入任务历史与冲突报告！
+- [ ] **F1. 官方插件 ③：`skinloom-plugins/bs-importer`（Tier 2 · 原生 Go 系统级插件，按需安装、迁完即卸）**
+  - **定位与边界（方案 A）**：仅承接核心迁移完成后的 **BS 第三方插件生态数据补迁**，绝不侵入核心 Pre-Core 建库流程、不触碰主库密码哈希/私钥/自增 ID 分配；迁完后支持一键禁用或 `remove --purge` 彻底清零隔离库与后台入口。
+  - **为什么用原生 Go**：完美发挥系统级优势——既支持 HTTP 对接 `blessing-skin-export-bridge`（同步更新 `blessing-skin-export-bridge` 的 `BridgeController.php` 开放 `invitation_codes`、`mojang_verifications`、`textures_description` 分页读取），又支持**直接用 Go 原生 MySQL / PostgreSQL / SQLite 驱动直连 BS 数据库高速批量拉取**，并通过本地 HTTP/SSE 流式推送实时导入进度，同时用自身隔离 SQL 库（`plugindb`）记录导入任务历史与冲突报告！
   - **导入闭环**：
     1. 读取 `invitation_codes` → 调用 `invitation-codes` 插件的 `importCodes` 服务幂等写入；
     2. 读取 `mojang_verifications` → 调用 `mojang-verification` 插件的 `importVerifications` 服务幂等写入；
-    3. 读取 `textures_description` → 调用宿主 `HostService.Textures.Update` 写回 SkinLoom 核心材质描述字段。
-  - **前端 UI**：复用 `@skinloom/plugin-sdk/web` 与 `@skinloom/ui` 在 `admin/bs-importer` 提供可视化连接测试、Dry-Run 预览、分表勾选导入与实时进度日志。
-  - **三平台打包验证**：通过 `skinloom-plugin build --native` 与 `pack --split-platforms` 产出三平台分包并在 CI 中验证签名与端到端测试。
-  - 同步更新 [internal/importer/bs/plugins.go](file:///e:/Dnyo/Documents/work/bs-community/skinloom/internal/importer/bs/plugins.go) 迁移报告提示文案。
+    3. 读取 `textures_description` → 调用宿主 `HostService.Textures.Update` 写回 SkinLoom 材质描述或对应扩展数据。
+  - **前端 UI**：复用 `@skinloom/plugin-sdk/web` 与 `@skinloom/ui` 在 `admin/bs-importer` 提供可视化连接测试、Dry-Run 预览、分表勾选导入、实时进度日志与「迁移完成建议卸载」提示。
+  - **五平台打包验证**：通过 `skinloom-plugin build --native` 与 `pack --split-platforms` 产出五平台分包并在 CI 中验证签名与端到端测试。
+  - 同步更新主仓库 [internal/importer/bs/plugins.go](file:///e:/Dnyo/Documents/work/bs-community/skinloom/internal/importer/bs/plugins.go) 迁移报告提示文案，明确引导站长前往后台「插件市场」安装对应插件与 `bs-importer` 完成扩展数据迁移。
+- [ ] **F2. 官方市场 GitOps 实战上架与端到端闭环验证**
+  - 将 `invitation-codes`、`mojang-verification`、`theme-atelier`、`bs-importer` 四个官方包通过正式 PR 提交至 `Entropy-Increase-Team/skinloom-registry`；
+  - 实测跑通 `pr-check.yml`（源码检出 + `plugin.json` 强校验 + `go vet`/`govulncheck`/CodeQL）→ 合并触发 `publish.yml`（`production-signing` 环境受控 5 平台交叉编译 + 官方 Ed25519 私钥签名 + 同步 `dist` 分支 / R2）；
+  - 在本地 SkinLoom 实例后台「插件市场」完整验证拉取索引、官方公钥验签、五维兼容筛选、依赖拓扑安装、热升级与 `blocked.yaml` 熔断自动禁用。
 
 #### 阶段 G（P2-6C）：文档站定稿与插件 API v1 冻结
 
 - [ ] **G1. 文档站「插件与主题开发」栏目补齐（`website/docs/plugins/`）**
-  - 快速入门：15 分钟写一个 TS 轻量级插件（以 `invitation-codes` 为例）；
-  - 进阶指南：开发 Go 系统级原生插件（`sdk/go`、双向 gRPC、隔离 SQL 建表迁移、本地流式 HTTP/WS、三平台打包）；
+  - 快速入门：15 分钟写一个 TS 轻量级插件（以 `skinloom-plugins/invitation-codes` 为例）；
+  - 进阶指南：开发 Go 系统级原生插件（以 `skinloom-plugins/bs-importer` 为例，覆盖 `sdk/go`、双向 gRPC、隔离 SQL 建表迁移、本地流式 HTTP/WS、五平台打包）；
   - 参考手册（自动生成）：`plugin.json` Schema、Hook 目录、插槽目录、权限分级、底层 Provider 接口；
   - 主题开发 L1–L5 指南（含 `overrides` 与预览模式）；
-  - 官方插件市场上架与审核规范指南。
+  - 官方插件市场（`skinloom-registry`）上架与审核规范指南。
 - [ ] **G2. CI 验收与发布准备**
   - `cd website && bun run build` 零死链构建通过；
   - 更新 `CHANGELOG.md` 与 `website/devlog/`；

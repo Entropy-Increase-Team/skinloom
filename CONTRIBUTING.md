@@ -23,10 +23,12 @@ cmd/skinloom/         入口
 internal/app          装配与生命周期        internal/cli       命令行
 internal/httpapi      HTTP 层（doc.go 有文件索引）
 internal/modules/*    业务模块              internal/platform/*  基础设施
+internal/plugin       双层插件与市场引擎     internal/jsrt      QuickJS/WASM 沙箱实例池
 internal/gateway      唯一入口与路径分流     internal/hook      领域事件
+sdk/go                Go 原生插件 SDK       api/proto/plugin   宿主 ↔ 原生插件 gRPC 契约
 ent/schema            数据模型              migrations/        三种数据库的迁移
-web/                  前端                  website/           文档站与开发日志
-docs/adr              架构决策记录          docs/design        设计文档
+web/                  前端与 TS 插件工具链   website/           文档站与开发日志
+deploy/               部署与发行包脚本       docs/{adr,design}  架构决策记录与设计文档
 ```
 
 ## 常用命令
@@ -39,7 +41,9 @@ docs/adr              架构决策记录          docs/design        设计文�
 | 静态检查 | `go vet ./...`、`go run honnef.co/go/tools/cmd/staticcheck@latest ./...`、`go run golang.org/x/vuln/cmd/govulncheck@latest ./...` |
 | 改了 `ent/schema` | `go generate ./ent`，再 `go run ./internal/tools/migdiff -dialect sqlite -name <变更名>`（MySQL / PostgreSQL 加 `-dev <开发库地址>`，或交给 CI 生成） |
 | 改了 API | `go generate ./api && cd web && bun run gen:api` |
+| 改了插件宿主契约或 `.proto` | `go run ./internal/tools/plugingen && go run ./internal/tools/protogen`（CI 用 `-check` 校验） |
 | 运行时设置 | `go run ./cmd/skinloom settings get`、`settings set <key> <json>` |
+| 插件与市场命令行 | `go run ./cmd/skinloom plugin list\|install\|enable\|disable\|remove\|reload\|search\|market-install\|upgrade` |
 | API 文档 | 运行后访问 <http://localhost:17546/api/docs> |
 | 打发行包 | `bash deploy/packaging/package.sh [os/arch ...]` |
 | 文档站 | `cd website && bun install && bun run start` |

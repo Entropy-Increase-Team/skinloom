@@ -18,8 +18,8 @@
 
 - **玩家**：皮肤库、上传与收藏、衣柜、多角色、3D 预览、签到积分、举报、站内通知，GitHub / Microsoft / OpenID Connect 登录
 - **游戏**：authlib-injector 外置登录、CustomSkinLoader、UniSkinMod、头像与预览图
-- **站长**：后台管理与审计日志；设置、主题、首页在线修改，不用重启；SQLite / MySQL / PostgreSQL；本地或 S3 存储；CDN 刷新；备份恢复
-- **开发者**：OAuth 2.0、个人访问令牌、与 Blessing Skin 相同的资源接口、REST API（OpenAPI 3.1）
+- **站长**：后台管理与审计日志；设置、主题、首页在线修改，不用重启；插件与主题官方签名市场一键安装；SQLite / MySQL / PostgreSQL；本地或 S3 存储；CDN 刷新；备份恢复
+- **开发者**：OAuth 2.0、个人访问令牌、与 Blessing Skin 相同的资源接口、REST API（OpenAPI 3.1），以及双层插件与主题平台（QuickJS/WASM TypeScript 沙箱 + Go 原生 gRPC 独立进程、`@skinloom/plugin-sdk`、`sdk/go`、`create-skinloom-plugin`）
 - **部署**：Docker、Kubernetes / Helm，或 Windows / macOS / Linux 发行包（自带运行环境，可注册为系统服务）
 
 ## 快速开始

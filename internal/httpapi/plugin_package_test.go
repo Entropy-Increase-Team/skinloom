@@ -22,6 +22,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent/auditlog"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
@@ -405,5 +406,144 @@ func TestAdminPluginDevReloadAndThemeBootstrapRegressions(t *testing.T) {
 	h.ServeHTTP(wsSameRec, wsSameReq)
 	if wsSameRec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 (passed csrfGuard) on same-origin WebSocket upgrade, got %d", wsSameRec.Code)
+	}
+}
+
+func TestAdminMarketEndpointsAndRBAC(t *testing.T) {
+	ctx := context.Background()
+	d, dir := newTestDepsDir(t)
+	d.Log = slog.New(slog.NewTextHandler(io.Discard, nil))
+	d.Bus = hook.NewBus(d.Log, 4)
+	t.Cleanup(func() { d.Bus.Close(context.Background()) })
+
+	store, err := storage.NewLocal(filepath.Join(dir, "blobs"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	der, err := x509.MarshalPKIXPublicKey(pub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pubPEM := string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der}))
+
+	mgr, err := plugin.NewManager(plugin.ManagerDeps{
+		DB:                d.DB.Ent,
+		Bus:               d.Bus,
+		Settings:          d.Settings,
+		Store:             store,
+		DataDir:           dir,
+		TrustedPublicKeys: []string{pubPEM},
+		Log:               d.Log,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = mgr.Shutdown(context.Background()) })
+	d.Plugins = mgr
+	setSettings(t, d, `{"captcha.provider": "none"}`)
+
+	h, _ := New(d)
+	owner := &browser{t: t, h: h}
+	setupSite(t, d, owner)
+	mod := registerUser(t, h, "market-mod@example.com")
+	if err := d.DB.Ent.User.Update().Where(user.EmailNormalized("market-mod@example.com")).SetRole(user.RoleAdmin).Exec(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	slpBytes := buildHTTPTestSLP(t, priv)
+	sum := sha256.Sum256(slpBytes)
+	shaHex := hex.EncodeToString(sum[:])
+
+	var blockedState []plugin.RegistryBlocked
+	regSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		idx := plugin.RegistryIndex{
+			SchemaVersion: 1,
+			GeneratedAt:   time.Now().UTC().Format(time.RFC3339),
+			RegistryID:    "official",
+			Packages: []plugin.RegistryPackage{
+				{
+					ID:       "http-pkg",
+					Kind:     "plugin",
+					Runtime:  "js",
+					Category: "security",
+					Official: true,
+					Name:     plugin.LocalizedText{"en": "HTTP Pkg", "zh-CN": "市场测试插件"},
+					Latest:   "1.0.0",
+					Versions: []plugin.RegistryVersion{
+						{
+							Version:     "1.0.0",
+							APIVersion:  1,
+							Permissions: []string{"storage.kv", "users.ban"},
+							Artifacts: map[string]plugin.RegistryArtifact{
+								"any": {
+									URLs:   []string{"/packages/http-pkg-1.0.0.slp"},
+									SHA256: shaHex,
+									Size:   int64(len(slpBytes)),
+								},
+							},
+						},
+					},
+				},
+			},
+			Blocked: blockedState,
+		}
+		rawIdx, _ := json.Marshal(idx)
+		sig := base64.StdEncoding.EncodeToString(ed25519.Sign(priv, rawIdx))
+		switch r.URL.Path {
+		case "/index.v1.json":
+			_, _ = w.Write(rawIdx)
+		case "/index.v1.json.sig":
+			_, _ = w.Write([]byte(sig))
+		case "/packages/http-pkg-1.0.0.slp":
+			_, _ = w.Write(slpBytes)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer regSrv.Close()
+
+	mgr.Registry().SetOfficialPublicKey(pubPEM)
+	mgr.Registry().SetRegistriesForTest([]settings.RegistrySource{
+		{
+			ID:       "official",
+			Name:     "Official Market",
+			URLs:     []string{regSrv.URL},
+			Official: true,
+			Enabled:  true,
+		},
+	})
+
+	// Regular admin can list and inspect market packages.
+	listRec := mod.do(http.MethodGet, "/api/v1/admin/market/packages?compatibleOnly=true", "")
+	if listRec.Code != http.StatusOK {
+		t.Fatalf("GET /admin/market/packages = %d %s", listRec.Code, listRec.Body.String())
+	}
+	inspRec := mod.do(http.MethodPost, "/api/v1/admin/market/inspect", `{"registryId":"official","id":"http-pkg"}`)
+	if inspRec.Code != http.StatusOK {
+		t.Fatalf("POST /admin/market/inspect = %d %s", inspRec.Code, inspRec.Body.String())
+	}
+
+	// Regular admin cannot install from market (403); superadmin can (201).
+	if rec := mod.do(http.MethodPost, "/api/v1/admin/market/install", `{"registryId":"official","id":"http-pkg","grantAll":true}`); rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for non-superadmin market install, got %d", rec.Code)
+	}
+	instRec := owner.do(http.MethodPost, "/api/v1/admin/market/install", `{"registryId":"official","id":"http-pkg","grantAll":true}`)
+	if instRec.Code != http.StatusCreated {
+		t.Fatalf("superadmin POST /admin/market/install = %d %s", instRec.Code, instRec.Body.String())
+	}
+
+	// Refresh market after adding a block rule disables the plugin automatically.
+	blockedState = []plugin.RegistryBlocked{{ID: "http-pkg", Versions: "*", Reason: "malicious test"}}
+	refRec := mod.do(http.MethodPost, "/api/v1/admin/market/refresh", "")
+	if refRec.Code != http.StatusOK {
+		t.Fatalf("POST /admin/market/refresh = %d %s", refRec.Code, refRec.Body.String())
+	}
+	info, ok := mgr.Get(ctx, "http-pkg")
+	if !ok || info.Status != "disabled" {
+		t.Fatalf("expected http-pkg disabled after refresh blocklist check, got %+v", info)
 	}
 }

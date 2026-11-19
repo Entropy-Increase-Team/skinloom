@@ -28,6 +28,7 @@ import type {
   AdminGiveInputBody,
   AdminListClosetParams,
   AdminListPlayersParams,
+  AdminMarketInstallResult,
   AdminOverview,
   AdminPlayerPage,
   AdminPlayerView,
@@ -75,6 +76,7 @@ import type {
   InstallPluginPackageBody,
   ListAuditParams,
   ListClosetParams,
+  ListMarketPackagesParams,
   ListMyReportsParams,
   ListNotificationsParams,
   ListReportsParams,
@@ -83,6 +85,11 @@ import type {
   LoginInputBody,
   MailTestInputBody,
   MarkedRead,
+  MarketInspectRequest,
+  MarketInspectResult,
+  MarketInstallRequest,
+  MarketListResult,
+  MarketRefreshResult,
   NewPersonalToken,
   NotificationPage,
   OAuthClientList,
@@ -680,6 +687,440 @@ export const useSendTestMail = <TError = ErrorModel,
         TContext
       > => {
       return useMutation(getSendTestMailMutationOptions(options), queryClient);
+    }
+
+export type inspectMarketPackageResponse200 = {
+  data: MarketInspectResult
+  status: 200
+}
+
+export type inspectMarketPackageResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type inspectMarketPackageResponseSuccess = (inspectMarketPackageResponse200) & {
+  headers: Headers;
+};
+export type inspectMarketPackageResponseError = (inspectMarketPackageResponseDefault) & {
+  headers: Headers;
+};
+
+export type inspectMarketPackageResponse = (inspectMarketPackageResponseSuccess | inspectMarketPackageResponseError)
+
+export const getInspectMarketPackageUrl = () => {
+
+
+
+
+  return `/api/v1/admin/market/inspect`
+}
+
+/**
+ * @summary Download and pre-inspect a market package for the current host platform
+ */
+export const inspectMarketPackage = async (marketInspectRequest: NonReadonly<MarketInspectRequest>, options?: Parameters<typeof apiFetch>[1]): Promise<inspectMarketPackageResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<inspectMarketPackageResponse>(getInspectMarketPackageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(marketInspectRequest)
+  }
+);}
+
+
+
+
+
+export const getInspectMarketPackageMutationKey = () => ['inspectMarketPackage'] as const;
+
+export const getInspectMarketPackageMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof inspectMarketPackage>>, TError,InspectMarketPackageMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof inspectMarketPackage>>, TError,InspectMarketPackageMutationVariables, TContext> => {
+
+const mutationKey = getInspectMarketPackageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof inspectMarketPackage>>, InspectMarketPackageMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  inspectMarketPackage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InspectMarketPackageMutationResult = NonNullable<Awaited<ReturnType<typeof inspectMarketPackage>>>
+    export type InspectMarketPackageMutationBody = NonReadonly<MarketInspectRequest>
+    export type InspectMarketPackageMutationError = ErrorModel
+    export type InspectMarketPackageMutationVariables = {data: NonReadonly<MarketInspectRequest>}
+
+    /**
+ * @summary Download and pre-inspect a market package for the current host platform
+ */
+export const useInspectMarketPackage = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof inspectMarketPackage>>, TError,InspectMarketPackageMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof inspectMarketPackage>>,
+        TError,
+        InspectMarketPackageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getInspectMarketPackageMutationOptions(options), queryClient);
+    }
+
+export type installMarketPackageResponse201 = {
+  data: AdminMarketInstallResult
+  status: 201
+}
+
+export type installMarketPackageResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 201>
+}
+
+export type installMarketPackageResponseSuccess = (installMarketPackageResponse201) & {
+  headers: Headers;
+};
+export type installMarketPackageResponseError = (installMarketPackageResponseDefault) & {
+  headers: Headers;
+};
+
+export type installMarketPackageResponse = (installMarketPackageResponseSuccess | installMarketPackageResponseError)
+
+export const getInstallMarketPackageUrl = () => {
+
+
+
+
+  return `/api/v1/admin/market/install`
+}
+
+/**
+ * @summary Install or upgrade a plugin or theme from the market with optional cascade dependencies
+ */
+export const installMarketPackage = async (marketInstallRequest: NonReadonly<MarketInstallRequest>, options?: Parameters<typeof apiFetch>[1]): Promise<installMarketPackageResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<installMarketPackageResponse>(getInstallMarketPackageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(marketInstallRequest)
+  }
+);}
+
+
+
+
+
+export const getInstallMarketPackageMutationKey = () => ['installMarketPackage'] as const;
+
+export const getInstallMarketPackageMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof installMarketPackage>>, TError,InstallMarketPackageMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof installMarketPackage>>, TError,InstallMarketPackageMutationVariables, TContext> => {
+
+const mutationKey = getInstallMarketPackageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof installMarketPackage>>, InstallMarketPackageMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  installMarketPackage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InstallMarketPackageMutationResult = NonNullable<Awaited<ReturnType<typeof installMarketPackage>>>
+    export type InstallMarketPackageMutationBody = NonReadonly<MarketInstallRequest>
+    export type InstallMarketPackageMutationError = ErrorModel
+    export type InstallMarketPackageMutationVariables = {data: NonReadonly<MarketInstallRequest>}
+
+    /**
+ * @summary Install or upgrade a plugin or theme from the market with optional cascade dependencies
+ */
+export const useInstallMarketPackage = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof installMarketPackage>>, TError,InstallMarketPackageMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof installMarketPackage>>,
+        TError,
+        InstallMarketPackageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getInstallMarketPackageMutationOptions(options), queryClient);
+    }
+
+export type listMarketPackagesResponse200 = {
+  data: MarketListResult
+  status: 200
+}
+
+export type listMarketPackagesResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listMarketPackagesResponseSuccess = (listMarketPackagesResponse200) & {
+  headers: Headers;
+};
+export type listMarketPackagesResponseError = (listMarketPackagesResponseDefault) & {
+  headers: Headers;
+};
+
+export type listMarketPackagesResponse = (listMarketPackagesResponseSuccess | listMarketPackagesResponseError)
+
+export const getListMarketPackagesUrl = (params?: ListMarketPackagesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/admin/market/packages?${stringifiedParams}` : `/api/v1/admin/market/packages`
+}
+
+/**
+ * @summary List and filter official/configured plugin and theme market packages
+ */
+export const listMarketPackages = async (params?: ListMarketPackagesParams, options?: Parameters<typeof apiFetch>[1]): Promise<listMarketPackagesResponse> => {
+
+  return apiFetch<listMarketPackagesResponse>(getListMarketPackagesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMarketPackagesQueryKey = (params?: ListMarketPackagesParams,) => {
+    return [
+    `/api/v1/admin/market/packages`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListMarketPackagesQueryOptions = <TData = Awaited<ReturnType<typeof listMarketPackages>>, TError = ErrorModel>(params?: ListMarketPackagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMarketPackages>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMarketPackagesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMarketPackages>>> = ({ signal }) => listMarketPackages(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMarketPackages>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListMarketPackagesQueryResult = NonNullable<Awaited<ReturnType<typeof listMarketPackages>>>
+export type ListMarketPackagesQueryError = ErrorModel
+
+
+export function useListMarketPackages<TData = Awaited<ReturnType<typeof listMarketPackages>>, TError = ErrorModel>(
+ params: undefined |  ListMarketPackagesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMarketPackages>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listMarketPackages>>,
+          TError,
+          Awaited<ReturnType<typeof listMarketPackages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListMarketPackages<TData = Awaited<ReturnType<typeof listMarketPackages>>, TError = ErrorModel>(
+ params?: ListMarketPackagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMarketPackages>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listMarketPackages>>,
+          TError,
+          Awaited<ReturnType<typeof listMarketPackages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListMarketPackages<TData = Awaited<ReturnType<typeof listMarketPackages>>, TError = ErrorModel>(
+ params?: ListMarketPackagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMarketPackages>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List and filter official/configured plugin and theme market packages
+ */
+
+export function useListMarketPackages<TData = Awaited<ReturnType<typeof listMarketPackages>>, TError = ErrorModel>(
+ params?: ListMarketPackagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMarketPackages>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListMarketPackagesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type refreshMarketPackagesResponse200 = {
+  data: MarketRefreshResult
+  status: 200
+}
+
+export type refreshMarketPackagesResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type refreshMarketPackagesResponseSuccess = (refreshMarketPackagesResponse200) & {
+  headers: Headers;
+};
+export type refreshMarketPackagesResponseError = (refreshMarketPackagesResponseDefault) & {
+  headers: Headers;
+};
+
+export type refreshMarketPackagesResponse = (refreshMarketPackagesResponseSuccess | refreshMarketPackagesResponseError)
+
+export const getRefreshMarketPackagesUrl = () => {
+
+
+
+
+  return `/api/v1/admin/market/refresh`
+}
+
+/**
+ * @summary Force refresh market indexes and enforce security blocklists
+ */
+export const refreshMarketPackages = async ( options?: Parameters<typeof apiFetch>[1]): Promise<refreshMarketPackagesResponse> => {
+
+  return apiFetch<refreshMarketPackagesResponse>(getRefreshMarketPackagesUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRefreshMarketPackagesMutationKey = () => ['refreshMarketPackages'] as const;
+
+export const getRefreshMarketPackagesMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshMarketPackages>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof refreshMarketPackages>>, TError,void, TContext> => {
+
+const mutationKey = getRefreshMarketPackagesMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof refreshMarketPackages>>, void> = () => {
+
+
+          return  refreshMarketPackages(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RefreshMarketPackagesMutationResult = NonNullable<Awaited<ReturnType<typeof refreshMarketPackages>>>
+
+    export type RefreshMarketPackagesMutationError = ErrorModel
+
+
+    /**
+ * @summary Force refresh market indexes and enforce security blocklists
+ */
+export const useRefreshMarketPackages = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshMarketPackages>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof refreshMarketPackages>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRefreshMarketPackagesMutationOptions(options), queryClient);
     }
 
 export type sendNotificationResponse200 = {

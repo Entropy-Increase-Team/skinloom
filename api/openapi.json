@@ -24,6 +24,33 @@
         ],
         "type": "object"
       },
+      "AdminMarketInstallResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/AdminMarketInstallResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "installedDependencies": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPluginView"
+            },
+            "type": "array"
+          },
+          "plugin": {
+            "$ref": "#/components/schemas/AdminPluginView"
+          }
+        },
+        "required": [
+          "plugin"
+        ],
+        "type": "object"
+      },
       "AdminOverview": {
         "additionalProperties": false,
         "properties": {
@@ -1159,6 +1186,30 @@
         ],
         "type": "object"
       },
+      "BlockedPluginAction": {
+        "additionalProperties": false,
+        "properties": {
+          "pluginId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "registryId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pluginId",
+          "version",
+          "reason",
+          "registryId"
+        ],
+        "type": "object"
+      },
       "Bootstrap": {
         "additionalProperties": false,
         "properties": {
@@ -1420,6 +1471,22 @@
             "type": "object"
           }
         },
+        "type": "object"
+      },
+      "CompatIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
         "type": "object"
       },
       "CompleteWizardInput": {
@@ -1915,6 +1982,40 @@
         },
         "required": [
           "password"
+        ],
+        "type": "object"
+      },
+      "DependencyPlan": {
+        "additionalProperties": false,
+        "properties": {
+          "install": {
+            "items": {
+              "$ref": "#/components/schemas/DependencyStep"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DependencyStep": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact": {
+            "$ref": "#/components/schemas/RegistryArtifact"
+          },
+          "artifactKey": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version"
         ],
         "type": "object"
       },
@@ -2797,6 +2898,629 @@
         ],
         "type": "object"
       },
+      "MarketDependencyInspectItem": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "official": {
+            "type": "boolean"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/PermissionGroups"
+          },
+          "requiresHighRiskConfirm": {
+            "type": "boolean"
+          },
+          "runtime": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "version",
+          "runtime",
+          "official",
+          "permissions",
+          "requiresHighRiskConfirm"
+        ],
+        "type": "object"
+      },
+      "MarketHostEnv": {
+        "additionalProperties": false,
+        "properties": {
+          "allowUnsignedNative": {
+            "type": "boolean"
+          },
+          "apiVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "arch": {
+            "type": "string"
+          },
+          "goVersion": {
+            "type": "string"
+          },
+          "nativeProtocolVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "os": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "skinloomVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "os",
+          "arch",
+          "platform",
+          "skinloomVersion",
+          "goVersion",
+          "apiVersion",
+          "nativeProtocolVersion",
+          "allowUnsignedNative"
+        ],
+        "type": "object"
+      },
+      "MarketInspectRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/MarketInspectRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "registryId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "MarketInspectResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/MarketInspectResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "allowUnsignedNative": {
+            "type": "boolean"
+          },
+          "archiveBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "archiveSha256": {
+            "type": "string"
+          },
+          "authors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "compatibility": {
+            "$ref": "#/components/schemas/VersionCompatResult"
+          },
+          "currentVersion": {
+            "type": "string"
+          },
+          "dependencies": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "dependenciesToInstall": {
+            "items": {
+              "$ref": "#/components/schemas/MarketDependencyInspectItem"
+            },
+            "type": "array"
+          },
+          "dependencyPlan": {
+            "$ref": "#/components/schemas/DependencyPlan"
+          },
+          "description": {
+            "type": "string"
+          },
+          "hasServer": {
+            "type": "boolean"
+          },
+          "hasWeb": {
+            "type": "boolean"
+          },
+          "homepage": {
+            "type": "string"
+          },
+          "hooksCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "hostPlatform": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "isUpgrade": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nativeBlockReason": {
+            "type": "string"
+          },
+          "nativeInstallBlocked": {
+            "type": "boolean"
+          },
+          "officialRegistry": {
+            "type": "boolean"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/PermissionGroups"
+          },
+          "platformCompatible": {
+            "type": "boolean"
+          },
+          "registryId": {
+            "type": "string"
+          },
+          "requiresHighRiskConfirm": {
+            "type": "boolean"
+          },
+          "routesCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "runtime": {
+            "type": "string"
+          },
+          "settingsCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "slots": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "supportedPlatforms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/PackageVerification"
+          },
+          "version": {
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "registryId",
+          "officialRegistry",
+          "compatibility",
+          "id",
+          "kind",
+          "runtime",
+          "version",
+          "name",
+          "isUpgrade",
+          "hasServer",
+          "hasWeb",
+          "routesCount",
+          "hooksCount",
+          "settingsCount",
+          "hostPlatform",
+          "platformCompatible",
+          "archiveSha256",
+          "archiveBytes",
+          "verification",
+          "permissions",
+          "requiresHighRiskConfirm"
+        ],
+        "type": "object"
+      },
+      "MarketInstallRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/MarketInstallRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "allowUnsigned": {
+            "type": "boolean"
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "grantAll": {
+            "type": "boolean"
+          },
+          "grantedPermissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "installDependencies": {
+            "type": "boolean"
+          },
+          "registryId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "MarketListResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/MarketListResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "hostEnv": {
+            "$ref": "#/components/schemas/MarketHostEnv"
+          },
+          "packages": {
+            "items": {
+              "$ref": "#/components/schemas/MarketPackageView"
+            },
+            "type": "array"
+          },
+          "registries": {
+            "items": {
+              "$ref": "#/components/schemas/MarketRegistryStatus"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "hostEnv",
+          "registries",
+          "packages"
+        ],
+        "type": "object"
+      },
+      "MarketPackageView": {
+        "additionalProperties": false,
+        "properties": {
+          "authors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "category": {
+            "type": "string"
+          },
+          "compatibility": {
+            "$ref": "#/components/schemas/PackageCompatSummary"
+          },
+          "description": {
+            "type": "string"
+          },
+          "homepage": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "installedStatus": {
+            "type": "string"
+          },
+          "installedVersion": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "latest": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "official": {
+            "type": "boolean"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/PermissionGroups"
+          },
+          "rawDescription": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "rawName": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "recommendedArtifact": {
+            "$ref": "#/components/schemas/RegistryArtifact"
+          },
+          "recommendedPlatform": {
+            "type": "string"
+          },
+          "registryId": {
+            "type": "string"
+          },
+          "registryName": {
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "requiresHighRiskConfirm": {
+            "type": "boolean"
+          },
+          "runtime": {
+            "type": "string"
+          },
+          "supportedPlatforms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "upgradeAvailable": {
+            "type": "boolean"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/MarketVersionView"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "registryId",
+          "registryName",
+          "id",
+          "kind",
+          "runtime",
+          "official",
+          "name",
+          "rawName",
+          "latest",
+          "installed",
+          "upgradeAvailable",
+          "compatibility",
+          "permissions",
+          "requiresHighRiskConfirm",
+          "versions"
+        ],
+        "type": "object"
+      },
+      "MarketRefreshResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/MarketRefreshResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "blockedActions": {
+            "items": {
+              "$ref": "#/components/schemas/BlockedPluginAction"
+            },
+            "type": "array"
+          },
+          "hostEnv": {
+            "$ref": "#/components/schemas/MarketHostEnv"
+          },
+          "packages": {
+            "items": {
+              "$ref": "#/components/schemas/MarketPackageView"
+            },
+            "type": "array"
+          },
+          "registries": {
+            "items": {
+              "$ref": "#/components/schemas/MarketRegistryStatus"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "hostEnv",
+          "registries",
+          "packages"
+        ],
+        "type": "object"
+      },
+      "MarketRegistryStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "activeMirror": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          },
+          "fetchedAt": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "official": {
+            "type": "boolean"
+          },
+          "packageCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "verified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "official",
+          "enabled",
+          "verified",
+          "packageCount"
+        ],
+        "type": "object"
+      },
+      "MarketVersionView": {
+        "additionalProperties": false,
+        "properties": {
+          "apiVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "changelog": {
+            "type": "string"
+          },
+          "compatible": {
+            "type": "boolean"
+          },
+          "dependencies": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "engines": {
+            "$ref": "#/components/schemas/EnginesSpec"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/CompatIssue"
+            },
+            "type": "array"
+          },
+          "nativeProtocolVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "optionalDependencies": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "platforms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "publishedAt": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "yanked": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "version",
+          "apiVersion",
+          "compatible",
+          "status"
+        ],
+        "type": "object"
+      },
       "MenuDef": {
         "additionalProperties": false,
         "properties": {
@@ -3252,6 +3976,46 @@
           "date",
           "registrations",
           "uploads"
+        ],
+        "type": "object"
+      },
+      "PackageCompatSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "compatible": {
+            "type": "boolean"
+          },
+          "installedVersion": {
+            "type": "string"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/CompatIssue"
+            },
+            "type": "array"
+          },
+          "recommended": {
+            "$ref": "#/components/schemas/VersionCompatResult"
+          },
+          "recommendedVersion": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "supportedPlatforms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "upgradeAvailable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "compatible",
+          "status"
         ],
         "type": "object"
       },
@@ -4317,6 +5081,33 @@
           "email",
           "nickname",
           "password"
+        ],
+        "type": "object"
+      },
+      "RegistryArtifact": {
+        "additionalProperties": false,
+        "properties": {
+          "sha256": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "urls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "urls",
+          "sha256",
+          "size"
         ],
         "type": "object"
       },
@@ -6959,6 +7750,41 @@
         ],
         "type": "object"
       },
+      "VersionCompatResult": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact": {
+            "$ref": "#/components/schemas/RegistryArtifact"
+          },
+          "artifactKey": {
+            "type": "string"
+          },
+          "compatible": {
+            "type": "boolean"
+          },
+          "dependencyPlan": {
+            "$ref": "#/components/schemas/DependencyPlan"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/CompatIssue"
+            },
+            "type": "array"
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "compatible",
+          "status"
+        ],
+        "type": "object"
+      },
       "WearInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -7325,6 +8151,278 @@
           }
         ],
         "summary": "Send a test email with the current mail settings",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/market/inspect": {
+      "post": {
+        "operationId": "inspectMarketPackage",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketInspectRequest",
+                "description": "Market package identifier and optional version to inspect"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketInspectResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Download and pre-inspect a market package for the current host platform",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/market/install": {
+      "post": {
+        "operationId": "installMarketPackage",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketInstallRequest",
+                "description": "Market package installation options and approved permissions"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMarketInstallResult"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Install or upgrade a plugin or theme from the market with optional cascade dependencies",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/market/packages": {
+      "get": {
+        "operationId": "listMarketPackages",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Search query across package ID, localized name, description, category, and authors",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Search query across package ID, localized name, description, category, and authors",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by kind: all | plugin | theme",
+            "explode": false,
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "description": "Filter by kind: all | plugin | theme",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by runtime: all | js | native",
+            "explode": false,
+            "in": "query",
+            "name": "runtime",
+            "schema": {
+              "description": "Filter by runtime: all | js | native",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by category: all | recommended | official | security | score | migration | theme",
+            "explode": false,
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "description": "Filter by category: all | recommended | official | security | score | migration | theme",
+              "type": "string"
+            }
+          },
+          {
+            "description": "When true, only return packages compatible with the current host environment",
+            "explode": false,
+            "in": "query",
+            "name": "compatibleOnly",
+            "schema": {
+              "description": "When true, only return packages compatible with the current host environment",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketListResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "List and filter official/configured plugin and theme market packages",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/market/refresh": {
+      "post": {
+        "operationId": "refreshMarketPackages",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketRefreshResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Force refresh market indexes and enforce security blocklists",
         "tags": [
           "admin"
         ]

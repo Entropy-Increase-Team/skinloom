@@ -157,3 +157,52 @@ func testRestoreSecrets(t *testing.T, database *db.DB) {
 		}
 	}
 }
+
+func TestParsePluginRegistriesValidation(t *testing.T) {
+	defaults := settings.DefaultPluginRegistries()
+	if len(defaults) != 1 || defaults[0].ID != "official" || !defaults[0].Official || len(defaults[0].URLs) < 2 {
+		t.Fatalf("unexpected default plugin registries: %+v", defaults)
+	}
+
+	validRaw := []any{
+		map[string]any{
+			"id":      "official",
+			"name":    "Official",
+			"urls":    []any{"https://registry.skinloom.cn/"},
+			"enabled": true,
+		},
+		map[string]any{
+			"id":        "community",
+			"url":       "https://market.example.com",
+			"publicKey": "MCowBQYDK2VwAyEAPD8bUrzAGLNF5McmIr+DEtQ9y+0q/9/FMMUSSiWRcVY=",
+			"enabled":   false,
+		},
+	}
+	parsed, err := settings.ParsePluginRegistries(validRaw)
+	if err != nil {
+		t.Fatalf("ParsePluginRegistries(valid) failed: %v", err)
+	}
+	if len(parsed) != 2 || !parsed[0].Official || parsed[0].URLs[0] != "https://registry.skinloom.cn" || parsed[1].Enabled {
+		t.Fatalf("unexpected parsed registries: %+v", parsed)
+	}
+
+	invalidCases := []struct {
+		name string
+		val  any
+	}{
+		{"nil", nil},
+		{"invalid id", []any{map[string]any{"id": "../bad", "urls": []any{"https://a.example.com"}}}},
+		{"duplicate id", []any{
+			map[string]any{"id": "dup", "urls": []any{"https://a.example.com"}},
+			map[string]any{"id": "dup", "urls": []any{"https://b.example.com"}},
+		}},
+		{"missing urls", []any{map[string]any{"id": "no-url"}}},
+		{"bad url scheme", []any{map[string]any{"id": "bad-scheme", "urls": []any{"ftp://a.example.com"}}}},
+		{"invalid publicKey", []any{map[string]any{"id": "bad-key", "urls": []any{"https://a.example.com"}, "publicKey": "not-a-key"}}},
+	}
+	for _, tc := range invalidCases {
+		if _, err := settings.ParsePluginRegistries(tc.val); err == nil {
+			t.Errorf("ParsePluginRegistries(%s) unexpectedly succeeded", tc.name)
+		}
+	}
+}

@@ -1240,6 +1240,12 @@
     "title": "Settings"
   },
   "settingKeys": {
+    "plugin": {
+      "registries": {
+        "label": "Plugin & theme market registries",
+        "help": "Market index mirrors (index.v1.json) and custom registry public keys. Official registries are always verified against the built-in Ed25519 key."
+      }
+    },
     "plugins": {
       "trusted_keys": {
         "label": "Trusted plugin signing keys",
@@ -1591,7 +1597,8 @@
       "applyPreview": "Apply sitewide",
       "exitPreview": "Exit preview",
       "loadingPlugin": "Loading extension…",
-      "pluginNotFound": "Plugin page not found or inactive."
+      "pluginNotFound": "Plugin page not found or inactive.",
+      "browseMarket": "Browse theme market"
     },
     "tabs": {
       "themes": "Themes",
@@ -2170,6 +2177,51 @@
       "purgeLabel": "Also purge plugin KV, document collections, and private files (irreversible)",
       "confirm": "Uninstall",
       "cancel": "Cancel"
+    },
+    "tabs": {
+      "installed": "Installed",
+      "market": "Plugin & Theme Market"
+    },
+    "market": {
+      "hostCapsule": "{platform} · SkinLoom {skinloom} · {go}",
+      "compatibleOnly": "Compatible only",
+      "refreshIndex": "Refresh market",
+      "refreshedToast": "Market index refreshed",
+      "blockedDisabledToast": "Auto-disabled {count} blocked package(s) per security policy",
+      "searchPlaceholder": "Search plugins, themes, authors, or IDs…",
+      "categories": {
+        "all": "All",
+        "recommended": "Official Picks",
+        "sandbox": "Sandbox (JS)",
+        "native": "Native (Go)",
+        "theme": "Themes",
+        "security": "Auth & Security",
+        "score": "Score & Economy",
+        "migration": "Migration Tools"
+      },
+      "officialBadge": "Official Verified",
+      "installedBadge": "Installed v{version}",
+      "upgradeBadge": "Update to v{version}",
+      "platformAny": "Cross-platform",
+      "platformLinux": "Linux",
+      "platformWindows": "Windows",
+      "platformMacOS": "macOS",
+      "compatOk": "Compatible (v{version})",
+      "compatIncompatible": "Incompatible: {reason}",
+      "installButton": "Install",
+      "upgradeButton": "Upgrade",
+      "reinstallButton": "Reinstall",
+      "changelogButton": "Versions & changelog",
+      "emptyTitle": "No matching market packages",
+      "emptyDescription": "Try clearing filters or unchecking “Compatible only” to browse all packages.",
+      "registryErrorTitle": "Market source error ({name})",
+      "cascadeTitle": "Cascade dependencies to install",
+      "cascadeHint": "The following required dependencies will be downloaded, verified, and installed first:",
+      "changelogDrawerTitle": "Versions & changelog: {name}",
+      "changelogDrawerDescription": "Select a compatible release to inspect and install, or review release notes.",
+      "noChangelog": "No release notes provided for this version.",
+      "yankedBadge": "Yanked",
+      "installVersion": "Install v{version}"
     }
   },
   "adminNav": {

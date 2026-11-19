@@ -197,6 +197,7 @@ func registerAdminPlugins(api huma.API, d Deps) {
 	})
 
 	registerAdminPluginPackageRoutes(api, d)
+	registerAdminMarketRoutes(api, d)
 }
 
 type pluginInspectForm struct {
@@ -578,13 +579,18 @@ func pluginAPIError(err error) error {
 	switch {
 	case ent.IsNotFound(err):
 		return huma.Error404NotFound("no such plugin")
-	case errors.Is(err, plugin.ErrUnsignedNativeForbidden):
+	case errors.Is(err, plugin.ErrMarketPackageNotFound):
+		return huma.Error404NotFound(err.Error())
+	case errors.Is(err, plugin.ErrUnsignedNativeForbidden),
+		errors.Is(err, plugin.ErrMarketPackageBlocked):
 		return huma.Error403Forbidden(err.Error())
 	case errors.Is(err, plugin.ErrBadPackage),
 		errors.Is(err, plugin.ErrBadManifest),
 		errors.Is(err, plugin.ErrUntrustedPackage),
 		errors.Is(err, plugin.ErrInvalidSettings),
 		errors.Is(err, plugin.ErrMissingDependency),
+		errors.Is(err, plugin.ErrMarketPackageIncompatible),
+		errors.Is(err, plugin.ErrRegistrySignatureInvalid),
 		errors.Is(err, jsrt.ErrBundleTooLarge),
 		errors.Is(err, jsrt.ErrInvalidModule),
 		errors.Is(err, jsrt.ErrTimeout),

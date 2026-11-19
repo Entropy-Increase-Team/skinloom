@@ -72,12 +72,18 @@ type InstallOptions struct {
 	Source             string            // "package" | "market" (defaults to "package")
 	RegistrySource     string            // optional market registry URL for multi-arch fallback
 	PlatformPackages   map[string]string // optional extra platform -> sha256 entries
+	ExtraTrustedKeys   []string          // optional registry-scoped public keys
 }
 
 // InspectPackage validates an uploaded .slp package and builds a pre-install inspection report.
 func (m *Manager) InspectPackage(ctx context.Context, pkgBytes []byte, locale string) (*PackageInspectResult, error) {
+	return m.inspectPackageWithKeys(ctx, pkgBytes, locale, nil)
+}
+
+func (m *Manager) inspectPackageWithKeys(ctx context.Context, pkgBytes []byte, locale string, extraKeys []string) (*PackageInspectResult, error) {
 	hostPlat := m.hostPlatform()
-	pkg, err := ParsePackageForPlatform(pkgBytes, m.allTrustedKeys(), hostPlat)
+	trusted := append(m.allTrustedKeys(), extraKeys...)
+	pkg, err := ParsePackageForPlatform(pkgBytes, trusted, hostPlat)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +175,8 @@ func (m *Manager) InstallPackage(ctx context.Context, pkgBytes []byte, opts Inst
 	defer m.lifecycleMu.Unlock()
 
 	hostPlat := m.hostPlatform()
-	pkg, err := ParsePackageForPlatform(pkgBytes, m.allTrustedKeys(), hostPlat)
+	trusted := append(m.allTrustedKeys(), opts.ExtraTrustedKeys...)
+	pkg, err := ParsePackageForPlatform(pkgBytes, trusted, hostPlat)
 	if err != nil {
 		return nil, err
 	}
@@ -991,8 +998,15 @@ func (m *Manager) sortPluginRowsByDeps(ctx context.Context, rows []*ent.Plugin) 
 }
 
 func (m *Manager) allTrustedKeys() []string {
-	var keys []string
-	keys = append(keys, m.trustedPublicKeys...)
+	m.mu.RLock()
+	keys := append([]string(nil), m.trustedPublicKeys...)
+	reg := m.registry
+	m.mu.RUnlock()
+	if reg != nil {
+		if testOff := reg.testOfficialPublicKeyOverride(); testOff != "" {
+			keys = append(keys, testOff)
+		}
+	}
 	if m.settings != nil {
 		if extra := settings.Decode[[]string](m.settings.Current(), "plugins.trusted_keys"); len(extra) > 0 {
 			keys = append(keys, extra...)

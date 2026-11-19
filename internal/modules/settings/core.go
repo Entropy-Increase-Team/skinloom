@@ -148,6 +148,11 @@ func coreDefs() []Def {
 			},
 		},
 		{
+			Key: "plugin.registries", Type: TypeJSON, Default: DefaultPluginRegistries(), Superadmin: true,
+			Doc:      `Plugin and theme market registry sources: [{"id": "official", "name": "SkinLoom Official Registry", "urls": ["https://registry.skinloom.cn", "https://raw.githubusercontent.com/Entropy-Increase-Team/skinloom-registry/dist"], "official": true, "enabled": true}].`,
+			Validate: validatePluginRegistries,
+		},
+		{
 			Key: "i18n.overrides", Type: TypeJSON, Default: map[string]any{}, Validate: validateOverrides,
 			Doc: `The administrator's wording of interface texts: {"zh-CN": {"nav.skinlib": "…"}, "en": {…}}, by message key. ` +
 				`Texts keep the default's {placeholders}. (BS language_lines)`,
@@ -311,4 +316,151 @@ func ParseEd25519PublicKey(spec string) (ed25519.PublicKey, error) {
 func validEd25519PublicKey(spec string) bool {
 	_, err := ParseEd25519PublicKey(spec)
 	return err == nil
+}
+
+// RegistrySource configures one plugin/theme market registry in plugin.registries.
+type RegistrySource struct {
+	ID        string   `json:"id"`
+	Name      string   `json:"name,omitempty"`
+	URLs      []string `json:"urls"`
+	PublicKey string   `json:"publicKey,omitempty"`
+	Official  bool     `json:"official,omitempty"`
+	Enabled   bool     `json:"enabled"`
+}
+
+var registryIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,62}$`)
+
+// DefaultPluginRegistries returns the default official market registry configuration
+// with the domestic CDN primary mirror and GitHub failover mirror.
+func DefaultPluginRegistries() []RegistrySource {
+	return []RegistrySource{
+		{
+			ID:   "official",
+			Name: "SkinLoom Official Registry",
+			URLs: []string{
+				"https://registry.skinloom.cn",
+				"https://raw.githubusercontent.com/Entropy-Increase-Team/skinloom-registry/dist",
+			},
+			Official: true,
+			Enabled:  true,
+		},
+	}
+}
+
+// ParsePluginRegistries validates and normalizes a plugin.registries setting value.
+func ParsePluginRegistries(v any) ([]RegistrySource, error) {
+	if v == nil {
+		return nil, errors.New("want an array of registry objects")
+	}
+	if typed, ok := v.([]RegistrySource); ok {
+		return validateNormalizedRegistries(typed)
+	}
+	rawList, ok := v.([]any)
+	if !ok {
+		return nil, errors.New("want an array of registry objects")
+	}
+	if len(rawList) > 32 {
+		return nil, errors.New("at most 32 registry sources may be configured")
+	}
+	out := make([]RegistrySource, 0, len(rawList))
+	for i, item := range rawList {
+		m, ok := item.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("registry[%d]: want an object", i)
+		}
+		id, _ := m["id"].(string)
+		id = strings.TrimSpace(id)
+		name, _ := m["name"].(string)
+		name = strings.TrimSpace(name)
+		pubKey, _ := m["publicKey"].(string)
+		pubKey = strings.TrimSpace(pubKey)
+
+		var urls []string
+		if rawURLs, hasURLs := m["urls"]; hasURLs {
+			list, ok := stringListArg(rawURLs)
+			if !ok {
+				return nil, fmt.Errorf("registry[%d].urls: want an array of http(s) URLs", i)
+			}
+			urls = append(urls, list...)
+		}
+		if singleURL, ok := m["url"].(string); ok && strings.TrimSpace(singleURL) != "" {
+			urls = append(urls, strings.TrimSpace(singleURL))
+		}
+
+		enabled := true
+		if rawEnabled, hasEnabled := m["enabled"]; hasEnabled {
+			b, ok := rawEnabled.(bool)
+			if !ok {
+				return nil, fmt.Errorf("registry[%d].enabled: want a boolean", i)
+			}
+			enabled = b
+		}
+		official := id == "official"
+		if rawOfficial, hasOfficial := m["official"]; hasOfficial {
+			b, ok := rawOfficial.(bool)
+			if !ok {
+				return nil, fmt.Errorf("registry[%d].official: want a boolean", i)
+			}
+			official = b || id == "official"
+		}
+
+		out = append(out, RegistrySource{
+			ID:        id,
+			Name:      name,
+			URLs:      urls,
+			PublicKey: pubKey,
+			Official:  official,
+			Enabled:   enabled,
+		})
+	}
+	return validateNormalizedRegistries(out)
+}
+
+func validateNormalizedRegistries(list []RegistrySource) ([]RegistrySource, error) {
+	if len(list) > 32 {
+		return nil, errors.New("at most 32 registry sources may be configured")
+	}
+	seenIDs := make(map[string]bool, len(list))
+	out := make([]RegistrySource, 0, len(list))
+	for i, src := range list {
+		src.ID = strings.TrimSpace(src.ID)
+		if !registryIDPattern.MatchString(src.ID) {
+			return nil, fmt.Errorf("registry[%d].id: %q must match %s", i, src.ID, registryIDPattern.String())
+		}
+		if seenIDs[src.ID] {
+			return nil, fmt.Errorf("duplicate registry id %q", src.ID)
+		}
+		seenIDs[src.ID] = true
+		if src.Name == "" {
+			src.Name = src.ID
+		}
+		if len(src.URLs) == 0 {
+			return nil, fmt.Errorf("registry %q: requires at least one http(s) URL in urls", src.ID)
+		}
+		cleanURLs := make([]string, 0, len(src.URLs))
+		for _, rawU := range src.URLs {
+			u := strings.TrimRight(strings.TrimSpace(rawU), "/")
+			if u == "" {
+				return nil, fmt.Errorf("registry %q: URL must not be empty", src.ID)
+			}
+			if err := validURLOrEmpty(u); err != nil {
+				return nil, fmt.Errorf("registry %q URL %q: %w", src.ID, u, err)
+			}
+			cleanURLs = append(cleanURLs, u)
+		}
+		src.URLs = cleanURLs
+		if src.PublicKey != "" && !validEd25519PublicKey(src.PublicKey) {
+			return nil, fmt.Errorf("registry %q: publicKey must be a valid Ed25519 SPKI PEM, base64, or hex public key", src.ID)
+		}
+		if src.ID == "official" {
+			src.Official = true
+		}
+		out = append(out, src)
+	}
+	return out, nil
+}
+
+func validatePluginRegistries(v any) error {
+	_, err := ParsePluginRegistries(v)
+	return err
 }

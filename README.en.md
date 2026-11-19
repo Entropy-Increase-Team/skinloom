@@ -18,8 +18,8 @@ SkinLoom is a reimplementation of [Blessing Skin](https://github.com/bs-communit
 
 - **Players**: skin library, uploads and favorites, closet, several characters, 3D preview, daily check-in score, reports, notifications, sign-in with GitHub / Microsoft / OpenID Connect
 - **Game**: authlib-injector (Yggdrasil), CustomSkinLoader, UniSkinMod, avatars and previews
-- **Site owners**: admin panel and audit log; settings, theme and home page change live, no restart; SQLite / MySQL / PostgreSQL; local or S3 storage; CDN purge; backup and restore
-- **Developers**: OAuth 2.0, personal access tokens, Blessing Skin compatible resource API, REST API (OpenAPI 3.1)
+- **Site owners**: admin panel and audit log; settings, theme and home page change live, no restart; signed plugin & theme market with one-click install; SQLite / MySQL / PostgreSQL; local or S3 storage; CDN purge; backup and restore
+- **Developers**: OAuth 2.0, personal access tokens, Blessing Skin compatible resource API, REST API (OpenAPI 3.1), and a dual-tier plugin & theme platform (QuickJS/WASM TypeScript sandbox + Native Go gRPC subprocesses, `@skinloom/plugin-sdk`, `sdk/go`, `create-skinloom-plugin`)
 - **Deployment**: Docker, Kubernetes / Helm, or Windows / macOS / Linux bundles (runtime included, can run as a system service)
 
 ## Quick start

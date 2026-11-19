@@ -16,7 +16,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@skinloom/plugin-sdk": "workspace:*",
+    "@skinloom/plugin-sdk": "*",
     "esbuild": "^0.28.0"
   },
   "devDependencies": {

@@ -11,6 +11,7 @@ import {
   formatDuration,
   isPluginSettingsDirty,
 } from './plugins-settings-form'
+import { summarizePlatformFamilies } from './plugins-market'
 
 describe('plugins-settings-form', () => {
   const fields: PluginSettingFieldView[] = [
@@ -186,5 +187,12 @@ describe('plugins-settings-form', () => {
     // Problem message falls back cleanly without leaking raw English Error text.
     expect(apiProblemMessage('Server reason', new Error('Request failed 500'), 'Fallback')).toBe('Server reason')
     expect(apiProblemMessage(undefined, new Error('Request failed 500'), 'Fallback')).toBe('Fallback')
+
+    // Platform family summarization for market cards
+    expect(summarizePlatformFamilies(undefined)).toEqual(['any'])
+    expect(summarizePlatformFamilies(['any'])).toEqual(['any'])
+    expect(
+      summarizePlatformFamilies(['linux/amd64', 'linux/arm64', 'windows/amd64', 'darwin/arm64']),
+    ).toEqual(['linux', 'windows', 'macos'])
   })
 })

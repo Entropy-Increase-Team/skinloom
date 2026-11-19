@@ -33,6 +33,8 @@ go run ./cmd/skinloom up --dev      # 打开 http://localhost:17546
 | 静态检查 | `go vet ./...`、`go run honnef.co/go/tools/cmd/staticcheck@latest ./...` |
 | 改了 `ent/schema` | `go generate ./ent`，再 `go run ./internal/tools/migdiff -dialect sqlite -name <变更名>` |
 | 改了 API | `go generate ./api && cd web && bun run gen:api` |
+| 改了插件宿主契约或 `.proto` | `go run ./internal/tools/plugingen && go run ./internal/tools/protogen` |
+| 插件与市场命令行 | `go run ./cmd/skinloom plugin list\|install\|enable\|disable\|remove\|reload\|search\|market-install\|upgrade` |
 | 只起后端 | `go run ./cmd/skinloom serve` |
 | 打发行包 | `bash deploy/packaging/package.sh` |
 | 文档站 | `cd website && bun install && bun run start` |

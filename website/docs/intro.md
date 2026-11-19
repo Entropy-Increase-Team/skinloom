@@ -18,6 +18,7 @@ sidebar_position: 1
 | 自己搭一个皮肤站 | [快速开始](deployment/quick-start.md) |
 | 从 Blessing Skin 搬过来 | [从 Blessing Skin 迁移](deployment/from-blessing-skin.md) |
 | 接入本站账号、调用接口 | [开放平台与接口](development/api.md) |
+| 开发插件或主题 | [插件与主题](plugins/overview.md) → [开发主题](plugins/themes.md) |
 | 参与开发 | [开发环境](development/setup.md) → [架构](development/architecture.md) |
 
 ## 有什么
@@ -26,9 +27,9 @@ sidebar_position: 1
 
 **游戏**：authlib-injector 外置登录、CustomSkinLoader、UniSkinMod、固定图片地址，头像与预览图。
 
-**站长**：后台管理用户、角色、举报与审计日志；在线修改设置、主题与首页，不用重启；SQLite / MySQL / PostgreSQL；本地或 S3 存储；CDN 刷新；备份恢复；Docker、Kubernetes、Windows / macOS / Linux 发行包与系统服务。
+**站长**：后台管理用户、角色、举报与审计日志；在线修改设置、主题与首页，不用重启；内置官方签名插件与主题市场一键安装；SQLite / MySQL / PostgreSQL；本地或 S3 存储；CDN 刷新；备份恢复；Docker、Kubernetes、Windows / macOS / Linux 发行包与系统服务。
 
-**开发者**：OAuth 2.0、个人访问令牌、与 Blessing Skin 相同的资源接口，以及完整的 REST API（OpenAPI 3.1）。
+**开发者**：OAuth 2.0、个人访问令牌、与 Blessing Skin 相同的资源接口、完整的 REST API（OpenAPI 3.1），以及双层插件与主题平台（QuickJS/WASM TypeScript 沙箱 + Go 原生 gRPC 独立进程、`@skinloom/plugin-sdk`、`sdk/go`、`create-skinloom-plugin`）。
 
 ## 状态
 

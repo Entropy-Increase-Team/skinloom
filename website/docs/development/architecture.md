@@ -15,13 +15,14 @@ sidebar_position: 2
 │ gateway   后端路径 → httpapi；/_next/static → 磁盘；其余 → Next.js │
 │ httpapi   /api/v1（Huma）· 游戏协议 · OAuth · BS 兼容接口 · /events │
 │ modules   账号 · 材质 · 角色 · 积分 · 举报 · 通知 · 外置登录 ……  │
-│ hook      领域事件（随事务写入任务队列，提交后投递）              │
+│ plugin    双层插件与主题引擎（QuickJS 沙箱 + Native gRPC + 签名市场） │
+│ hook      领域事件与前置拦截（随事务写入任务队列，提交后投递）       │
 │ platform  数据库 · 任务队列 · 存储 · 日志 · 发布订阅 ……         │
 └──────────────────────────┬─────────────────────────────┘
         ▲ 服务端渲染时调用内部 API │
 ┌───────┴────────┐           ▼
 │ Next.js 前端    │   SQLite / MySQL / PostgreSQL · 本地盘 / S3
-│（子进程或独立部署）│
+│（子进程或独立部署）│   + Tier 2 Native 插件子进程（双向 gRPC + 隔离 SQL）
 └────────────────┘
 ```
 
@@ -42,7 +43,9 @@ internal/
   daemon/              注册为系统服务（systemd / launchd / Windows 服务）
   backup/              备份与恢复
   httpapi/             HTTP 层：把请求翻译成 Service 调用（doc.go 有文件索引）
-  hook/                扩展总线：领域事件，将来也是插件的接入点
+  hook/                扩展总线：领域事件与前置 Filter，供内置模块与插件接入
+  plugin/              双层插件与主题运行时（Tier 1 QuickJS + Tier 2 Native gRPC）、.slp 签名与官方市场客户端
+  jsrt/                QuickJS/WASM 沙箱实例池（指令燃料上限与内存配额）
   modules/             业务模块，每个包拥有自己的表和规则
     account/           用户、会话、安装、注册登录、审计入口
     texture/           上传、皮肤库、衣柜、材质管理与文件清理
@@ -52,12 +55,15 @@ internal/
     db/  dbtest/  migrate/  jobs/  storage/  pubsub/  logging/ ……
   importer/bs/         从 Blessing Skin 导入
   contract/            游戏接口的契约测试工具
-  tools/               开发工具：migdiff（生成迁移）、benchseed（压测数据）
+  tools/               开发工具：migdiff（生成迁移）、plugingen（插件契约生成）、protogen（gRPC 生成）、benchseed（压测数据）
+sdk/go/                Go 原生插件 SDK（Host API、plugindb 隔离 SQL 迁移器、plugintest 内存宿主测试套件）
 ent/schema/            数据模型（ent），生成代码在 ent/ 下
 migrations/            SQLite、MySQL、PostgreSQL 各一套迁移（生成后提交）
-api/openapi.json       由代码生成的 OpenAPI 文档
+api/
+  openapi.json         由代码生成的 OpenAPI 3.1 文档
+  proto/plugin/v1/     宿主 ↔ Native 插件子进程双向 gRPC 契约（plugin.proto）
 themes/                内置主题包
-web/                   前端：apps/web（Next.js）、packages/ui、packages/api-client
+web/                   前端与插件工具链：apps/web（Next.js）、packages/{ui,api-client,plugin-sdk,cli,create-plugin}
 website/               本文档站与开发日志
 deploy/                Dockerfile、Compose、Kubernetes、Helm、打包脚本
 docs/design/ docs/adr/ 设计文档与架构决策记录

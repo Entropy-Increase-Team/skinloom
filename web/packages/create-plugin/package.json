@@ -16,7 +16,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@skinloom/cli": "workspace:*",
+    "@skinloom/cli": "*",
     "@types/node": "^24",
     "esbuild": "^0.28.0",
     "typescript": "~5.9.3",

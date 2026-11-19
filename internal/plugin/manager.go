@@ -159,6 +159,7 @@ type Manager struct {
 	cronMu      sync.Mutex
 	cronStop    chan struct{}
 	cronWg      *sync.WaitGroup
+	registry    *RegistryClient
 }
 
 type storedBundle struct {
@@ -189,7 +190,7 @@ func NewManager(deps ManagerDeps) (*Manager, error) {
 	if log == nil {
 		log = slog.Default()
 	}
-	return &Manager{
+	mgr := &Manager{
 		db:                   deps.DB,
 		bus:                  deps.Bus,
 		settings:             deps.Settings,
@@ -217,7 +218,12 @@ func NewManager(deps ManagerDeps) (*Manager, error) {
 		ownsEngine:           owns,
 		active:               map[string]*pluginRuntime{},
 		stored:               map[string]*storedBundle{},
-	}, nil
+	}
+	mgr.registry = NewRegistryClient(mgr)
+	if mgr.platformFetcher == nil {
+		mgr.platformFetcher = mgr.registry.FetchPlatformPackage
+	}
+	return mgr, nil
 }
 
 // SetPlatformPackageFetcher installs or replaces the callback used by multi-arch
@@ -250,6 +256,7 @@ func (m *Manager) Start(ctx context.Context) error {
 		return err
 	}
 	m.startCronLoop()
+	m.Registry().StartPatrolLoop()
 	return nil
 }
 
@@ -1757,6 +1764,9 @@ func safeAssetContentType(rel string, sample []byte, allowScript bool) string {
 // Shutdown drains all active plugin pools and closes the owned jsrt engine.
 func (m *Manager) Shutdown(ctx context.Context) error {
 	m.stopCronLoop()
+	if m.registry != nil {
+		m.registry.StopPatrolLoop()
+	}
 
 	m.lifecycleMu.Lock()
 	defer m.lifecycleMu.Unlock()

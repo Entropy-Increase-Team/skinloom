@@ -33,7 +33,7 @@ import {
   TabsTrigger,
   toast,
 } from '@skinloom/ui'
-import { AlertCircle, Check, Download, RefreshCw } from 'lucide-react'
+import { AlertCircle, Check, Download, RefreshCw, Store } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
@@ -261,10 +261,22 @@ function ThemePicker({
       title={t('title')}
       intro={t('intro')}
       action={
-        <Button variant="outline" size="sm" className="pointer-coarse:h-10" loading={reloading} disabled={pending !== null} onClick={() => void rescan()}>
-          <RefreshCw />
-          {t('reload')}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="pointer-coarse:h-10"
+            onClick={() => router.push('/admin/plugins?tab=market&category=theme')}
+          >
+            <Store />
+            {t('browseMarket')}
+          </Button>
+          <Button variant="outline" size="sm" className="pointer-coarse:h-10" loading={reloading} disabled={pending !== null} onClick={() => void rescan()}>
+            <RefreshCw />
+            {t('reload')}
+          </Button>
+        </div>
       }
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">

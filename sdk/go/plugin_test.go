@@ -58,6 +58,8 @@ func (p *multiProviderPlugin) Index(_ context.Context, doc plugin.SearchDoc) err
 
 type separateSearch struct{ p *multiProviderPlugin }
 
+func (s *separateSearch) Setup(_ *plugin.Context) error { return nil }
+
 func (s *separateSearch) Index(ctx context.Context, doc plugin.SearchDoc) error {
 	return s.p.Index(ctx, doc)
 }
@@ -119,5 +121,23 @@ func TestServerAdaptersAndHealthCheck(t *testing.T) {
 	hc, err := srv.HealthCheck(ctx, &pluginv1.HealthCheckRequest{})
 	if err != nil || !hc.GetHealthy() || hc.GetMemoryRssBytes() == 0 {
 		t.Fatalf("HealthCheck: got=%+v err=%v", hc, err)
+	}
+
+	// Search adapter
+	searchSrv := plugin.NewServer(&separateSearch{p: p})
+	defer searchSrv.Close()
+	if _, err := searchSrv.Init(ctx, &pluginv1.InitRequest{PluginId: "search-demo", Version: "1.0.0"}); err != nil {
+		t.Fatalf("searchSrv Init: %v", err)
+	}
+	sa := searchSrv.SearchAdapter()
+	if sa == nil {
+		t.Fatal("expected non-nil SearchAdapter")
+	}
+	if _, err := sa.Index(ctx, &pluginv1.SearchIndexRequest{Doc: &pluginv1.TextureSearchDoc{Id: 101, Name: "Alex"}}); err != nil {
+		t.Fatalf("Search Index: %v", err)
+	}
+	sr, err := sa.Search(ctx, &pluginv1.SearchQueryRequest{Query: "Alex"})
+	if err != nil || len(sr.GetTextureIds()) != 1 || sr.GetTextureIds()[0] != 101 {
+		t.Fatalf("Search Query: got=%+v err=%v", sr, err)
 	}
 }

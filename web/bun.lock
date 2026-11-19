@@ -63,7 +63,7 @@
         "skinloom-plugin": "./bin/skinloom-plugin.mjs",
       },
       "dependencies": {
-        "@skinloom/plugin-sdk": "workspace:*",
+        "@skinloom/plugin-sdk": "*",
         "esbuild": "^0.28.0",
       },
       "devDependencies": {
@@ -81,7 +81,7 @@
         "create-skinloom-plugin": "./bin/create-skinloom-plugin.mjs",
       },
       "devDependencies": {
-        "@skinloom/cli": "workspace:*",
+        "@skinloom/cli": "*",
         "@types/node": "^24",
         "esbuild": "^0.28.0",
         "typescript": "~5.9.3",
@@ -100,7 +100,7 @@
         "vitest": "^5.0.5",
       },
       "peerDependencies": {
-        "@skinloom/ui": "workspace:*",
+        "@skinloom/ui": "*",
         "@tanstack/react-query": "^5",
         "react": "^19",
       },

@@ -10,7 +10,7 @@
 | [0004](0004-nextjs-rendering-strategy.md) | Next.js 渲染策略：公开页 SSR，不依赖 ISR，不用 Module Federation | 已接受 |
 | [0005](0005-typescript-plugin-standard.md) | 插件标准：TypeScript + JS 沙箱（QuickJS-NG/WASM） | 已接受 |
 | [0006](0006-hot-reload-model.md) | 热加载模型：配置版本号 + 原子替换 + SSE | 已接受 |
-| [0007](0007-no-sql-for-plugins.md) | 插件存储不开放 SQL | 已接受 |
+| [0007](0007-no-sql-for-plugins.md) | 插件存储不开放宿主原始 SQL（已被 [0049](0049-dual-tier-plugin-architecture-grpc-and-isolated-db.md) 部分更新：Tier 2 原生插件支持隔离 SQL 库） | 已接受 |
 | [0008](0008-project-name.md) | 项目命名：SkinLoom · 云织 | 已接受 |
 | [0009](0009-release-bundles.md) | 发行包由脚本构建，前端依赖扁平化 | 已接受 |
 | [0010](0010-trusted-proxies-and-shutdown.md) | 可信代理、路径规范化与快速关闭 | 已接受 |
@@ -52,3 +52,5 @@
 | [0046](0046-plugin-host-extensions-and-sdk-toolchain.md) | 插件全量宿主扩展点、单源类型生成与 SDK/CLI 工具链 | 已接受 |
 | [0047](0047-frontend-plugin-runtime-and-theme-overrides.md) | 前端插件运行时、20 处插槽挂载与主题 Level ⑤ 组件覆盖 | 已接受 |
 | [0048](0048-plugin-package-signing-and-cluster-hot-reload.md) | `.slp` 扩展包签名校验、热升级与多副本聚类同步 | 已接受 |
+| [0049](0049-dual-tier-plugin-architecture-grpc-and-isolated-db.md) | 双层插件架构（QuickJS 沙箱 + Native Go 独立子进程、双向 gRPC、流式代理与隔离 SQL 数据库） | 已接受 |
+| [0050](0050-gitops-signed-plugin-market-and-multi-arch-distribution.md) | 基于 GitOps 的静态签名插件与主题市场、多源容灾、五维兼容过滤与多架构 `.slp` 分发 | 已接受 |

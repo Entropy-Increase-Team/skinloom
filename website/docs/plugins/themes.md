@@ -33,10 +33,23 @@ data/themes/my-theme/
 ├── plugin.json       主题清单（必填）
 ├── theme.css         样式表（可选）
 ├── screenshot.webp   后台主题卡片预览图，建议 16:10（可选）
-└── assets/           字体、背景图等静态资源（可选）
+├── assets/           字体、背景图等静态资源（可选）
+└── web/index.js      Level ⑤ 组件覆盖前端打包入口（可选，需签名包或超级管理员显式信任）
 ```
 
-资源只提供普通文件，扩展名限定为 `css`、`woff2`、`woff`、`png`、`webp`、`avif`、`jpg`、`jpeg`、`gif`、`svg`（SVG 自动附带 `Content-Security-Policy: sandbox`）。主题不能携带 JavaScript。
+静态资源只提供普通文件，扩展名限定为 `css`、`woff2`、`woff`、`png`、`webp`、`avif`、`jpg`、`jpeg`、`gif`、`svg`（SVG 自动附带 `Content-Security-Policy: sandbox`）。
+
+### 五层主题定制模型与 Level ⑤ 组件覆盖
+
+SkinLoom 的主题能力从轻量到深度分为 5 层：
+
+1. **Level ① 语义 Token（`theme.tokens`）**：调整亮暗色板、字体栈、圆角、阴影与 3D 预览背景，纯 JSON 声明。
+2. **Level ② 布局变体与默认首页（`theme.layout` / `theme.home`）**：切换登录页、皮肤库、用户中心、材质详情页的版式以及默认首页区块。
+3. **Level ③ 主题设置（`theme.settings`）**：声明供站长在后台可视化调节的配色、图片、开关与下拉选项。
+4. **Level ④ 自由样式表（`theme.css`）**：通过无 Cascade Layer 的 CSS 和稳定挂钩类名深度定制界面细节。
+5. **Level ⑤ 核心组件覆盖（`web: "web/index.js"` + `overrides`）**：通过 `bunx create-skinloom-plugin my-theme --template theme` 创建带有 `@skinloom/plugin-sdk/web` 的主题工程，可注册替换 `site.header`、`site.footer`、`texture.card`、`home.hero` 等核心宿主组件（包裹在独立 ErrorBoundary 中，出错自动回退宿主默认组件）。
+   - **安全门控**：由已信任公钥签名的 `.slp` 主题包安装后可直接加载 `web/index.js`；放在 `data/themes/` 下的本地未签名主题默认只加载 CSS 与 Token，若包含 `web/index.js`，需要超级管理员在「后台 → 外观 → 主题」卡片上点「启用脚本」（写入 `theme.trusted_web`）后才会加载脚本。
+   - **打包与分发**：主题既可以放在 `data/themes/<id>/` 本地使用，也可以用 `skinloom-plugin pack --key <私钥>` 打包为签名的 `.slp` 扩展包，在「后台 → 插件与主题」上传或发布到官方市场供所有站长在「外观 → 浏览主题市场」一键安装。
 
 ---
 

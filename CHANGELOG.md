@@ -4,6 +4,22 @@
 
 ## [Unreleased]
 
+### 新增（双层插件平台、主题组件覆盖与官方签名市场 P2-1 ~ P2-5C，ADR 0045–0050）
+- **双层插件运行时（Tier 1 JS/WASM 沙箱 + Tier 2 Native Go 独立子进程）**：
+  - **Tier 1（`"runtime": "js"`，默认）**：基于 QuickJS/WASM 确定性沙箱实例池（`internal/jsrt`），强制指令燃料上限、内存配额、SSRF 私网阻断与 3 级权限（Standard / Elevated / High-Risk）门控。
+  - **Tier 2（`"runtime": "native"`）**：通过 `api/proto/plugin/v1/plugin.proto` 双向 gRPC 流与宿主通信；由守护管理器（`NativeSupervisor`）负责多架构二进制匹配、SHA-256 校验、平台沙箱（Linux PDEATHSIG / Windows JobObject）、5s 心跳探活、指数退避重启与连续崩溃自动熔断；支持 `CallStream` 全双工流式 HTTP/SSE 与大文件分块上传下载代理。
+  - **Tier 2 隔离 SQL 数据库**：原生插件声明 `database.isolated = true` 时，宿主按当前驱动自动分配物理隔离数据库（SQLite 独立 `<数据目录>/plugins-data/<id>/plugin.db` WAL 库、PostgreSQL 独立 `plugin_<id>` Schema + 受限 Role、MySQL 独立 `skinloom_plugin_<id>` 库），严禁跨界访问宿主核心表。
+- **全量宿主扩展点与前端 20 处插槽 + Level ⑤ 主题覆盖**：
+  - 后端开放 15 个后置事件 Hook、10 个前置拦截 Filter（注册、上传、角色创建、Yggdrasil 认证、签到、OAuth 签发等）、命名空间 HTTP 路由（`/api/v1/plugins/<id>/*`）、Cron 定时任务、认证提供方、验证码提供方、材质验证器、存储/搜索驱动与管理动作。
+  - 前端运行时开放 20 个标准 UI 插槽（带 React ErrorBoundary 隔离）、插件独立页面（`/p/<id>/*`、`/user/p/<id>/*`、`/admin/p/<id>/*`）、Shadow DOM 首页区块与 Level ⑤ 主题核心组件覆盖（`site.header`、`site.footer`、`texture.card`、`home.hero` 等，受签名或超级管理员 `theme.trusted_web` 门控）。
+- **SDK、CLI 与脚手架工具链**：
+  - 发布 `@skinloom/plugin-sdk`（TypeScript/React）、`sdk/go`（Go 原生插件 SDK，含 `plugindb` 迁移器与 `plugintest` 内存宿主测试套件）、`@skinloom/cli`（`skinloom-plugin dev/lint/build/pack/keygen/sign/verify`，支持 5 平台交叉编译与多架构 `.slp` 打包）及 `create-skinloom-plugin`（提供 `basic`、`page`、`auth-provider`、`block`、`theme`、`native-go` 6 套生产级模板）。
+  - 单源契约生成器 `internal/tools/plugingen` 与 `internal/tools/protogen`（CI 强制 `-check` 零漂移校验）。
+- **`.slp` Ed25519 签名包、多副本热同步与官方签名市场（`skinloom-registry`）**：
+  - 支持 `.slp` 单包安装、Ed25519 签名验证、可信公钥管理（`plugins.trusted_keys`）、无损热升级与多副本 `plugin_packages` Blob 自动拉取对齐。
+  - 内置多源插件与主题市场客户端（`plugin.registries`，默认接入官方双镜像源并强制校验内置官方 Ed25519 公钥），支持五维兼容性过滤（`apiVersion`、宿主 SemVer、`os/arch`、数据库方言、运行角色）、拓扑依赖级联安装，以及 `blocked` 恶意包吊销黑名单 6 小时定时巡检热禁用 + 审计日志 + 超级管理员通知。
+  - 管理后台新增 `/admin/plugins`（已安装管理、`.slp` 上传审查、动态设置抽屉、遥测监控与在线插件/主题市场），外观页新增「浏览主题市场」入口；命令行新增 `skinloom plugin {list,install,enable,disable,remove,reload,search,market-install,upgrade}`。
+
 ### 新增（交互式安装向导与迁移体验升级，ADR 0044）
 - **Pre-Core 启动模式与进程内热切换**：未初始化实例启动时不写默认 SQLite 库与 `config.toml`，直接以只读最小路由运行初始化向导（非向导 API 返回 503），向导完成后原子落盘 `config.toml` 并通过 `gateway` `atomic.Pointer` 无重启热切换到完整运行模式；已初始化实例在数据库故障时快速失败退出，不再误退回安装态。
 - **文件化安装令牌与安全会话**：`secrets/setup.token` 最多保存 5 条短期 SHA-256 令牌哈希，`skinloom setup-link` 不再依赖数据库；前端提取 URL `?token=` 后立即通过 `history.replaceState` 剥离并兑换路径作用域 `skinloom_setup` HttpOnly Cookie 与 CSRF 保护。

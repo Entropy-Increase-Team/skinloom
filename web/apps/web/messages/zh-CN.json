@@ -1240,6 +1240,12 @@
     "title": "设置"
   },
   "settingKeys": {
+    "plugin": {
+      "registries": {
+        "label": "插件与主题市场源",
+        "help": "插件市场索引源（index.v1.json）及自定义源签名公钥配置。官方市场源强制使用内置 Ed25519 公钥验签。"
+      }
+    },
     "plugins": {
       "trusted_keys": {
         "label": "受信任的插件签名公钥",
@@ -1665,7 +1671,8 @@
       "applyPreview": "应用到全站",
       "exitPreview": "退出预览",
       "loadingPlugin": "正在加载扩展组件…",
-      "pluginNotFound": "未找到对应的插件页面或插件未启用。"
+      "pluginNotFound": "未找到对应的插件页面或插件未启用。",
+      "browseMarket": "浏览主题市场"
     },
     "tabs": {
       "themes": "主题",
@@ -2244,6 +2251,51 @@
       "purgeLabel": "同时永久清理该插件的 KV、文档数据与私有文件（不可恢复）",
       "confirm": "确认卸载",
       "cancel": "取消"
+    },
+    "tabs": {
+      "installed": "已安装",
+      "market": "插件与主题市场"
+    },
+    "market": {
+      "hostCapsule": "{platform} · SkinLoom {skinloom} · {go}",
+      "compatibleOnly": "仅显示兼容插件",
+      "refreshIndex": "刷新市场索引",
+      "refreshedToast": "已刷新市场索引",
+      "blockedDisabledToast": "已按安全阻断名单自动停用 {count} 个风险插件",
+      "searchPlaceholder": "搜索插件、主题、作者或 ID…",
+      "categories": {
+        "all": "全部",
+        "recommended": "官方推荐",
+        "sandbox": "轻量沙箱",
+        "native": "系统原生",
+        "theme": "主题",
+        "security": "登录安全",
+        "score": "运营积分",
+        "migration": "迁移工具"
+      },
+      "officialBadge": "官方认证",
+      "installedBadge": "已安装 v{version}",
+      "upgradeBadge": "可升级至 v{version}",
+      "platformAny": "全平台通用",
+      "platformLinux": "Linux",
+      "platformWindows": "Windows",
+      "platformMacOS": "macOS",
+      "compatOk": "兼容当前环境 (v{version})",
+      "compatIncompatible": "环境不兼容：{reason}",
+      "installButton": "一键安装",
+      "upgradeButton": "一键升级",
+      "reinstallButton": "重新安装",
+      "changelogButton": "版本与更新日志",
+      "emptyTitle": "未找到匹配的插件或主题",
+      "emptyDescription": "尝试清空搜索词或取消勾选“仅显示兼容插件”以查看全部扩展。",
+      "registryErrorTitle": "市场源加载异常（{name}）",
+      "cascadeTitle": "将自动级联安装的依赖插件",
+      "cascadeHint": "安装该扩展前，系统将按拓扑顺序自动下载、验签并安装以下依赖插件：",
+      "changelogDrawerTitle": "版本历史与更新日志：{name}",
+      "changelogDrawerDescription": "查看各版本兼容性状态、构建平台与更新说明，或选择特定版本安装。",
+      "noChangelog": "该版本未提供详细更新说明。",
+      "yankedBadge": "已撤回",
+      "installVersion": "安装 v{version}"
     }
   },
   "adminNav": {

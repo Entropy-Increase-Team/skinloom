@@ -16,7 +16,7 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "@skinloom/ui": "workspace:*",
+    "@skinloom/ui": "*",
     "@tanstack/react-query": "^5",
     "react": "^19"
   },

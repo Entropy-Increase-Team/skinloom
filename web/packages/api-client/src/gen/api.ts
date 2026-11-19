@@ -9,6 +9,7 @@ import type {
   AdminGiveInputBody,
   AdminListClosetParams,
   AdminListPlayersParams,
+  AdminMarketInstallResult,
   AdminOverview,
   AdminPlayerPage,
   AdminPlayerView,
@@ -56,6 +57,7 @@ import type {
   InstallPluginPackageBody,
   ListAuditParams,
   ListClosetParams,
+  ListMarketPackagesParams,
   ListMyReportsParams,
   ListNotificationsParams,
   ListReportsParams,
@@ -64,6 +66,11 @@ import type {
   LoginInputBody,
   MailTestInputBody,
   MarkedRead,
+  MarketInspectRequest,
+  MarketInspectResult,
+  MarketInstallRequest,
+  MarketListResult,
+  MarketRefreshResult,
   NewPersonalToken,
   NotificationPage,
   OAuthClientList,
@@ -384,6 +391,213 @@ return apiFetch<sendTestMailResponse>(getSendTestMailUrl(),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(mailTestInputBody)
+  }
+);}
+
+
+
+export type inspectMarketPackageResponse200 = {
+  data: MarketInspectResult
+  status: 200
+}
+
+export type inspectMarketPackageResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type inspectMarketPackageResponseSuccess = (inspectMarketPackageResponse200) & {
+  headers: Headers;
+};
+export type inspectMarketPackageResponseError = (inspectMarketPackageResponseDefault) & {
+  headers: Headers;
+};
+
+export type inspectMarketPackageResponse = (inspectMarketPackageResponseSuccess | inspectMarketPackageResponseError)
+
+export const getInspectMarketPackageUrl = () => {
+
+
+
+
+  return `/api/v1/admin/market/inspect`
+}
+
+/**
+ * @summary Download and pre-inspect a market package for the current host platform
+ */
+export const inspectMarketPackage = async (marketInspectRequest: NonReadonly<MarketInspectRequest>, options?: Parameters<typeof apiFetch>[1]): Promise<inspectMarketPackageResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<inspectMarketPackageResponse>(getInspectMarketPackageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(marketInspectRequest)
+  }
+);}
+
+
+
+export type installMarketPackageResponse201 = {
+  data: AdminMarketInstallResult
+  status: 201
+}
+
+export type installMarketPackageResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 201>
+}
+
+export type installMarketPackageResponseSuccess = (installMarketPackageResponse201) & {
+  headers: Headers;
+};
+export type installMarketPackageResponseError = (installMarketPackageResponseDefault) & {
+  headers: Headers;
+};
+
+export type installMarketPackageResponse = (installMarketPackageResponseSuccess | installMarketPackageResponseError)
+
+export const getInstallMarketPackageUrl = () => {
+
+
+
+
+  return `/api/v1/admin/market/install`
+}
+
+/**
+ * @summary Install or upgrade a plugin or theme from the market with optional cascade dependencies
+ */
+export const installMarketPackage = async (marketInstallRequest: NonReadonly<MarketInstallRequest>, options?: Parameters<typeof apiFetch>[1]): Promise<installMarketPackageResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<installMarketPackageResponse>(getInstallMarketPackageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(marketInstallRequest)
+  }
+);}
+
+
+
+export type listMarketPackagesResponse200 = {
+  data: MarketListResult
+  status: 200
+}
+
+export type listMarketPackagesResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listMarketPackagesResponseSuccess = (listMarketPackagesResponse200) & {
+  headers: Headers;
+};
+export type listMarketPackagesResponseError = (listMarketPackagesResponseDefault) & {
+  headers: Headers;
+};
+
+export type listMarketPackagesResponse = (listMarketPackagesResponseSuccess | listMarketPackagesResponseError)
+
+export const getListMarketPackagesUrl = (params?: ListMarketPackagesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/admin/market/packages?${stringifiedParams}` : `/api/v1/admin/market/packages`
+}
+
+/**
+ * @summary List and filter official/configured plugin and theme market packages
+ */
+export const listMarketPackages = async (params?: ListMarketPackagesParams, options?: Parameters<typeof apiFetch>[1]): Promise<listMarketPackagesResponse> => {
+
+  return apiFetch<listMarketPackagesResponse>(getListMarketPackagesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type refreshMarketPackagesResponse200 = {
+  data: MarketRefreshResult
+  status: 200
+}
+
+export type refreshMarketPackagesResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type refreshMarketPackagesResponseSuccess = (refreshMarketPackagesResponse200) & {
+  headers: Headers;
+};
+export type refreshMarketPackagesResponseError = (refreshMarketPackagesResponseDefault) & {
+  headers: Headers;
+};
+
+export type refreshMarketPackagesResponse = (refreshMarketPackagesResponseSuccess | refreshMarketPackagesResponseError)
+
+export const getRefreshMarketPackagesUrl = () => {
+
+
+
+
+  return `/api/v1/admin/market/refresh`
+}
+
+/**
+ * @summary Force refresh market indexes and enforce security blocklists
+ */
+export const refreshMarketPackages = async ( options?: Parameters<typeof apiFetch>[1]): Promise<refreshMarketPackagesResponse> => {
+
+  return apiFetch<refreshMarketPackagesResponse>(getRefreshMarketPackagesUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
   }
 );}
 
