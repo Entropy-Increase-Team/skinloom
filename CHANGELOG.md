@@ -19,6 +19,9 @@
   - 支持 `.slp` 单包安装、Ed25519 签名验证、可信公钥管理（`plugins.trusted_keys`）、无损热升级与多副本 `plugin_packages` Blob 自动拉取对齐。
   - 内置多源插件与主题市场客户端（`plugin.registries`，默认接入官方双镜像源并强制校验内置官方 Ed25519 公钥），支持五维兼容性过滤（`apiVersion`、宿主 SemVer、`os/arch`、数据库方言、运行角色）、拓扑依赖级联安装，以及 `blocked` 恶意包吊销黑名单 6 小时定时巡检热禁用 + 审计日志 + 超级管理员通知。
   - 管理后台新增 `/admin/plugins`（已安装管理、`.slp` 上传审查、动态设置抽屉、遥测监控与在线插件/主题市场），外观页新增「浏览主题市场」入口；命令行新增 `skinloom plugin {list,install,enable,disable,remove,reload,search,market-install,upgrade}`。
+- **插件 API v1.0 正式冻结、独立官方插件集与开发者文档定稿（P2-6A ~ P2-6C）**：
+  - 正式冻结 `apiVersion: 1` 与 `native.protocolVersion: 1` 插件契约，并在文档站 `website/docs/plugins/` 补齐 TS 沙箱插件快速入门、Go 原生插件进阶指南、主题 L1–L5 指南与 API v1.0 完整参考手册（29 项权限、47 个 Hook、20 处插槽、5 处表单、7 个主题覆盖目标）及里程碑开发日志。
+  - 更新核心 BS 迁移报告（`internal/importer/bs/`），引导站长在完成核心迁移后通过插件市场按需安装独立官方插件集（`skinloom-plugins`：`invitation-codes`、`mojang-verification`、`texture-description`、`theme-atelier` 与可卸载 Tier 2 原生插件 `bs-importer`）完成 BS 第三方插件数据迁移。
 
 ### 新增（交互式安装向导与迁移体验升级，ADR 0044）
 - **Pre-Core 启动模式与进程内热切换**：未初始化实例启动时不写默认 SQLite 库与 `config.toml`，直接以只读最小路由运行初始化向导（非向导 API 返回 503），向导完成后原子落盘 `config.toml` 并通过 `gateway` `atomic.Pointer` 无重启热切换到完整运行模式；已初始化实例在数据库故障时快速失败退出，不再误退回安装态。

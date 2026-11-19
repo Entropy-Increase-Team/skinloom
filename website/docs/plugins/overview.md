@@ -5,7 +5,15 @@ sidebar_position: 1
 
 # 插件与主题
 
-SkinLoom 提供统一的双层插件与主题平台（`apiVersion: 1`，ADR 0045–0050）。插件与主题共用同一套 `plugin.json` 清单标准、`.slp`（Ed25519 签名 + SHA-256 校验）单包分发格式与[官方签名市场（`skinloom-registry`）](https://github.com/Entropy-Increase-Team/skinloom-registry)。完整设计规范见[设计文档 05](/design/05-plugin-theme-standard)与[设计文档 10](/design/10-dual-tier-plugin-and-market-plan)。
+SkinLoom 提供统一的双层插件与主题平台（**`apiVersion: 1`** 与 **`native.protocolVersion: 1`** 已正式冻结，ADR 0045–0050）。插件与主题共用同一套 `plugin.json` 清单标准、`.slp`（Ed25519 签名 + SHA-256 校验）单包分发格式与[官方签名市场（`skinloom-registry`）](https://github.com/Entropy-Increase-Team/skinloom-registry)。
+
+| 我想…… | 推荐阅读 |
+| --- | --- |
+| 15 分钟写一个轻量 TS 沙箱插件 | [快速入门：开发 TS 插件](./quickstart-ts.md) |
+| 用 Go 开发隔离 SQL / 流式反代原生插件 | [进阶指南：开发 Go 原生插件](./native-go.md) |
+| 开发 5 层定制主题（含 Level ⑤ 组件覆盖） | [开发主题](./themes.md) |
+| 查阅全部 29 项权限、47 个 Hook 与 20 处插槽 | [插件 API v1.0 参考手册](./reference.md) |
+| 参考官方实战源码 | [`Entropy-Increase-Team/skinloom-plugins`](https://github.com/Entropy-Increase-Team/skinloom-plugins) |
 
 ## 双层插件运行时
 

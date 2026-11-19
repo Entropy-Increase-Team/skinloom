@@ -34,7 +34,24 @@ const sidebars: SidebarsConfig = {
     },
     'acknowledgements',
   ],
-  dev: ['development/setup', 'development/architecture', 'development/api', 'development/docs-and-logs', 'plugins/overview', 'plugins/themes'],
+  dev: [
+    'development/setup',
+    'development/architecture',
+    'development/api',
+    'development/docs-and-logs',
+    {
+      type: 'category',
+      label: '插件与主题开发',
+      collapsed: false,
+      items: [
+        'plugins/overview',
+        'plugins/quickstart-ts',
+        'plugins/native-go',
+        'plugins/themes',
+        'plugins/reference',
+      ],
+    },
+  ],
 }
 
 export default sidebars

@@ -31,9 +31,9 @@ var pluginFates = map[string]pluginFate{
 	"oauth":                         {Warning, "sign-in with GitHub, Microsoft and others is SkinLoom's social login: set the providers up in the site settings; users whose email is not verified link them again from their profile"},
 	"yggdrasil-connect": {Warning, "its Yggdrasil API is served by SkinLoom (UUIDs and the signing key came along), but not its Yggdrasil Connect sign-in (OAuth through a Janus server): " +
 		"launchers that sign in that way stop working after the switch, and a Janus server reading BS's database no longer sees new accounts"},
-	"texture-description": {Warning, "texture descriptions are not imported: SkinLoom has no descriptions yet"},
-	"mojang-verification": {Warning, "verified Minecraft accounts are not imported: SkinLoom has no premium-account verification yet"},
-	"invitation-codes":    {Warning, "registration by invitation code is not in SkinLoom: codes are not imported and anyone may register unless registration is closed"},
+	"texture-description": {Warning, "texture descriptions are not imported during core setup: install the official 'texture-description' and 'bs-importer' plugins from Admin -> Plugins -> Market to migrate them (you can uninstall bs-importer afterward)"},
+	"mojang-verification": {Warning, "verified Minecraft accounts are not imported during core setup: install the official 'mojang-verification' and 'bs-importer' plugins from Admin -> Plugins -> Market to migrate them (you can uninstall bs-importer afterward)"},
+	"invitation-codes":    {Warning, "invitation codes are not imported during core setup (close registration until ready): install the official 'invitation-codes' and 'bs-importer' plugins from Admin -> Plugins -> Market to migrate existing codes"},
 }
 
 // planPlugins reports each plugin enabled in BS: what SkinLoom does in its place, or

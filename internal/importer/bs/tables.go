@@ -83,9 +83,9 @@ var tableFates = map[string]pluginFate{
 	"oauth_auth_codes":     {Dropped, "short-lived OAuth codes: never imported"},
 	"ygg_log":              {Dropped, "the Yggdrasil plugin's activity log: not imported"},
 	"code_id_to_uuid":      {Dropped, "yggdrasil-connect's own table: not imported"},
-	"textures_description": {Warning, "texture descriptions (texture-description plugin): not imported"},
-	"mojang_verifications": {Warning, "verified Minecraft accounts (mojang-verification plugin): not imported"},
-	"invitation_codes":     {Warning, "invitation codes (invitation-codes plugin): not imported"},
+	"textures_description": {Warning, "texture descriptions (texture-description plugin): migrate after setup via official plugins 'texture-description' + 'bs-importer' from the Plugin Market"},
+	"mojang_verifications": {Warning, "verified Minecraft accounts (mojang-verification plugin): migrate after setup via official plugins 'mojang-verification' + 'bs-importer' from the Plugin Market"},
+	"invitation_codes":     {Warning, "invitation codes (invitation-codes plugin): migrate after setup via official plugins 'invitation-codes' + 'bs-importer' from the Plugin Market"},
 }
 
 // planTables reports the tables left behind that hold rows.

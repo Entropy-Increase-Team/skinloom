@@ -376,45 +376,37 @@ flowchart TB
 
 #### 阶段 E（P2-6A）：初始化 `skinloom-plugins` 独立仓库、轻量级 TS 沙箱官方插件与 Level ⑤ 示例主题
 
-- [ ] **E0. 初始化官方插件仓库（`Entropy-Increase-Team/skinloom-plugins`）**
-  - 建立规范的多插件工作区结构（根目录 `README.md`、`CONTRIBUTING.md`、`LICENSE`、统一的 TS/Go CI 测试工作流与按插件打 Tag 规范 `<plugin-id>/vX.Y.Z`），供 `skinloom-registry` 通过 `repository: https://github.com/Entropy-Increase-Team/skinloom-plugins` + `subdir` + 40 位 Commit SHA 受控拉取编译。
-- [ ] **E1. 官方插件 ①：`skinloom-plugins/invitation-codes`（Tier 1 · TS 沙箱）**
-  - 清单声明 `forms["auth.register"]` 附加 `invite_code` 字段；`storage.collections.codes`（`code: string:unique`, `usedBy: number`, `createdAt: time`）。
-  - 后端：`auth.register` Guard 校验邀请码有效性；`user.registered` Event 标记已用；支持批量生成（数量/前缀/有效期/次数限制）、撤销、导出 CSV；可选“玩家消耗积分生成邀请码”；暴露 `ctx.services.expose('importCodes', ...)` 供 `bs-importer` 调用。
-  - 前端：`admin/codes` 管理页 + 可选 `user/invites` 页；配套完整 `createTestHost` 单测。
-- [ ] **E2. 官方插件 ②：`skinloom-plugins/mojang-verification`（Tier 1 · TS 沙箱）**
-  - 权限：`storage.docs`, `http.fetch`（白名单 `login.live.com`, `user.auth.xboxlive.com`, `xsts.auth.xboxlive.com`, `api.minecraftservices.com`, `api.mojang.com`）, `players.read`, `players.write`, `score.write`, `notify.send`, `mail.send`。
-  - 后端：实现 Microsoft OAuth → XBL → XSTS → Minecraft Services 正版档案校验；同名角色冲突按设置策略自动回收（退还原主积分并发送站内信/邮件）或拒绝；同步正版 32 位 UUID；通过 `user.badges` Filter 颁发「正版认证」徽章；发放绑定积分奖励；暴露 `ctx.services.expose('importVerifications', ...)`。
-  - 前端：挂载 `user.dashboard.widgets` 与 `user.profile.sections` 插槽卡片（支持发起绑定与刷新正版角色名）；配套完整单测。
-- [ ] **E3. 官方 Level ⑤ 示例主题：`skinloom-plugins/theme-atelier`（`kind: "theme"`）**
-  - 展示 Token + CSS + 布局 + 首页区块 + `theme.settings` + Level ⑤ `overrides`（覆盖 `site.footer` 与 `texture.card`），验证主题 `.slp` 从市场一键安装、预览模式与热切换。
+- [x] **E0. 初始化官方插件仓库（`Entropy-Increase-Team/skinloom-plugins`）**
+  - 已在独立并行目录 `../skinloom-plugins` 建立多插件工作区（根目录 `README.md` / `README.en.md`、`LICENSE`、`package.json`、`tsconfig.base.json`、`vitest.config.mjs`、`scripts/run-all.mjs` 及 `.github/workflows/ci.yml`），零冗余依赖复用主仓库工具链与 Go SDK。
+- [x] **E1. 官方插件 ①：`skinloom-plugins/invitation-codes`（Tier 1 · TS 沙箱）**
+  - 清单声明 `forms["auth.register"]` 附加 `invite_code` 字段；`storage.collections.codes`（`code: string:unique`, `status: string`, `creatorId: number`, `usedBy: number`, `createdAt: time`, `expiresAt: time`）。
+  - 后端：`auth.register` Guard 校验邀请码有效性；`user.registered` Event 消费计数并触发邀请人与新用户积分奖励；支持管理员批量生成/撤销/删除/防公式注入 CSV 导出、玩家积分兑换邀请码；暴露 `importCodes` 服务；附完整 `createTestHost` 单测并实测 `lint` / `typecheck` / `test` / `pack`（`9.1 KB` `.slp`）通过。
+- [x] **E2. 官方插件 ②：`skinloom-plugins/mojang-verification` & `skinloom-plugins/texture-description`（Tier 1 · TS 沙箱）**
+  - `mojang-verification`：实现 Microsoft OAuth → XBL → XSTS → Minecraft Services 正版档案校验、同名角色冲突回收退分 + 站内信/邮件通知、改名同步、`user.badges` Filter 颁发「正版认证」徽章、`user.dashboard.widgets` / `user.profile.sections` 插槽卡片与 `importVerifications` 服务，附完整 `fetchMock` 端到端单测并打包验证（`7.2 KB` `.slp`）。
+  - `texture-description`（同步补齐第 3 张 BS 扩展表闭环）：声明 `forms["texture.upload"]`、`texture.upload` Guard / `texture.uploaded` / `texture.deleted` Event、`skinlib.detail.below` 插槽展示与作者/管理员在线编辑、私有权限隔离与 `importDescriptions` 服务，附单测并打包验证（`4.5 KB` `.slp`）。
+- [x] **E3. 官方 Level ⑤ 示例主题：`skinloom-plugins/theme-atelier`（`kind: "theme"`）**
+  - 展示 L1 亮暗 `oklch` Token + L2 分栏/标签布局与首页 + L3 `theme.settings` + L4 无 Layer `theme.css` + L5 `overrides`（覆盖 `site.footer` 与 `texture.card`），`lint` / `typecheck` / `test` / `pack`（`4.1 KB` `.slp`）全部通过。
 
 #### 阶段 F（P2-6B）：系统级原生 Go 官方插件 `skinloom-plugins/bs-importer` 与官方市场闭环实战
 
-- [ ] **F1. 官方插件 ③：`skinloom-plugins/bs-importer`（Tier 2 · 原生 Go 系统级插件，按需安装、迁完即卸）**
-  - **定位与边界（方案 A）**：仅承接核心迁移完成后的 **BS 第三方插件生态数据补迁**，绝不侵入核心 Pre-Core 建库流程、不触碰主库密码哈希/私钥/自增 ID 分配；迁完后支持一键禁用或 `remove --purge` 彻底清零隔离库与后台入口。
-  - **为什么用原生 Go**：完美发挥系统级优势——既支持 HTTP 对接 `blessing-skin-export-bridge`（同步更新 `blessing-skin-export-bridge` 的 `BridgeController.php` 开放 `invitation_codes`、`mojang_verifications`、`textures_description` 分页读取），又支持**直接用 Go 原生 MySQL / PostgreSQL / SQLite 驱动直连 BS 数据库高速批量拉取**，并通过本地 HTTP/SSE 流式推送实时导入进度，同时用自身隔离 SQL 库（`plugindb`）记录导入任务历史与冲突报告！
-  - **导入闭环**：
-    1. 读取 `invitation_codes` → 调用 `invitation-codes` 插件的 `importCodes` 服务幂等写入；
-    2. 读取 `mojang_verifications` → 调用 `mojang-verification` 插件的 `importVerifications` 服务幂等写入；
-    3. 读取 `textures_description` → 调用宿主 `HostService.Textures.Update` 写回 SkinLoom 材质描述或对应扩展数据。
-  - **前端 UI**：复用 `@skinloom/plugin-sdk/web` 与 `@skinloom/ui` 在 `admin/bs-importer` 提供可视化连接测试、Dry-Run 预览、分表勾选导入、实时进度日志与「迁移完成建议卸载」提示。
-  - **五平台打包验证**：通过 `skinloom-plugin build --native` 与 `pack --split-platforms` 产出五平台分包并在 CI 中验证签名与端到端测试。
-  - 同步更新主仓库 [internal/importer/bs/plugins.go](file:///e:/Dnyo/Documents/work/bs-community/skinloom/internal/importer/bs/plugins.go) 迁移报告提示文案，明确引导站长前往后台「插件市场」安装对应插件与 `bs-importer` 完成扩展数据迁移。
-- [ ] **F2. 官方市场 GitOps 实战上架与端到端闭环验证**
-  - 将 `invitation-codes`、`mojang-verification`、`theme-atelier`、`bs-importer` 四个官方包通过正式 PR 提交至 `Entropy-Increase-Team/skinloom-registry`；
-  - 实测跑通 `pr-check.yml`（源码检出 + `plugin.json` 强校验 + `go vet`/`govulncheck`/CodeQL）→ 合并触发 `publish.yml`（`production-signing` 环境受控 5 平台交叉编译 + 官方 Ed25519 私钥签名 + 同步 `dist` 分支 / R2）；
-  - 在本地 SkinLoom 实例后台「插件市场」完整验证拉取索引、官方公钥验签、五维兼容筛选、依赖拓扑安装、热升级与 `blocked.yaml` 熔断自动禁用。
+- [x] **F1. 官方插件 ③：`skinloom-plugins/bs-importer`（Tier 2 · 原生 Go 系统级插件，按需安装、迁完即卸）**
+  - 遵循方案 A：仅承接核心迁移完成后的 **BS 第三方插件生态数据补迁**（`invitation_codes`、`mojang_verifications`、`textures_description`），支持 Go 原生直连 MySQL / PostgreSQL / SQLite（严格正则表前缀防注入）以及 HTTP 对接 `blessing-skin-export-bridge`（已同步升级 `blessing-skin-export-bridge/src/Controllers/BridgeController.php` 开放三张扩展表分页读取）。
+  - 使用 `sdk/go/plugindb` 隔离 SQL 库（三方言迁移 `migrations/{sqlite,mysql,postgres}/001_init.sql`）持久化任务历史与报告，通过 `ctx.HTTP.StreamFunc` 提供实时 SSE 进度流，经由跨插件 `ctx.Services.Call` 幂等写入三大目标插件。
+  - 前端 UI（`admin:/bs-importer`）展示方案 A 卸载指引、数据源切换测试、Dry-Run 预览、分表勾选、SSE 实时日志与历史任务表；通过 `plugintest` 双模式（SQLite 直连 + HTTP Bridge + SSE）单测，并实测 `skinloom-plugin pack --native --split-platforms` 交叉编译生成 `linux/amd64`、`windows/amd64`、`darwin/arm64` 分包（约 8.2–8.7 MiB）与 `artifacts.json`。
+  - 已同步更新主仓库 [internal/importer/bs/plugins.go](file:///e:/Dnyo/Documents/work/bs-community/skinloom/internal/importer/bs/plugins.go) 与 [internal/importer/bs/tables.go](file:///e:/Dnyo/Documents/work/bs-community/skinloom/internal/importer/bs/tables.go) 迁移报告提示文案并通过全部 `internal/importer/bs` 回归测试。
+- [ ] **F2. 官方市场 GitOps 实战上架与云端 Runner 闭环验证（待远端建仓与配置签名私钥）**
+  - 将本地 `../skinloom-plugins` 推送至 GitHub `Entropy-Increase-Team/skinloom-plugins` 并打首发 Tag；
+  - 在 `Entropy-Increase-Team/skinloom-registry` 配置 `production-signing` Environment 与正式 `SKINLOOM_REGISTRY_PRIVATE_KEY` Secret；
+  - 提交 5 个官方包的 PR 触发 `pr-check.yml` → 合并触发 `publish.yml` 实测云端 5 平台编译签名与本地 SkinLoom 市场一键安装。
 
 #### 阶段 G（P2-6C）：文档站定稿与插件 API v1 冻结
 
-- [ ] **G1. 文档站「插件与主题开发」栏目补齐（`website/docs/plugins/`）**
-  - 快速入门：15 分钟写一个 TS 轻量级插件（以 `skinloom-plugins/invitation-codes` 为例）；
-  - 进阶指南：开发 Go 系统级原生插件（以 `skinloom-plugins/bs-importer` 为例，覆盖 `sdk/go`、双向 gRPC、隔离 SQL 建表迁移、本地流式 HTTP/WS、五平台打包）；
-  - 参考手册（自动生成）：`plugin.json` Schema、Hook 目录、插槽目录、权限分级、底层 Provider 接口；
-  - 主题开发 L1–L5 指南（含 `overrides` 与预览模式）；
-  - 官方插件市场（`skinloom-registry`）上架与审核规范指南。
-- [ ] **G2. CI 验收与发布准备**
+- [x] **G1. 文档站「插件与主题开发」栏目补齐（`website/docs/plugins/`）**
+  - 新增 [quickstart-ts.md](file:///e:/Dnyo/Documents/work/bs-community/skinloom/website/docs/plugins/quickstart-ts.md)（15 分钟写一个 TS 轻量级插件）；
+  - 新增 [native-go.md](file:///e:/Dnyo/Documents/work/bs-community/skinloom/website/docs/plugins/native-go.md)（开发 Go 系统级原生插件：`sdk/go`、双向 gRPC、隔离 SQL、流式 SSE、五平台打包）；
+  - 新增 [reference.md](file:///e:/Dnyo/Documents/work/bs-community/skinloom/website/docs/plugins/reference.md)（API v1.0 参考手册：29 项权限分级、47 个 Hook、20 个插槽、5 处表单、7 个主题覆盖目标与 `.slp` 市场规范）；
+  - 完善 [overview.md](file:///e:/Dnyo/Documents/work/bs-community/skinloom/website/docs/plugins/overview.md)、[themes.md](file:///e:/Dnyo/Documents/work/bs-community/skinloom/website/docs/plugins/themes.md) 与 [website/sidebars.ts](file:///e:/Dnyo/Documents/work/bs-community/skinloom/website/sidebars.ts)。
+- [x] **G2. CI 验收与 API v1.0 冻结**
   - `cd website && bun run build` 零死链构建通过；
-  - 更新 `CHANGELOG.md` 与 `website/devlog/`；
-  - 冻结 `apiVersion: 1` 与 `native.protocolVersion: 1`。
+  - 更新 [CHANGELOG.md](file:///e:/Dnyo/Documents/work/bs-community/skinloom/CHANGELOG.md) 并发布里程碑开发日志 [2026-11-19-dual-tier-plugins-and-market.md](file:///e:/Dnyo/Documents/work/bs-community/skinloom/website/devlog/2026-11-19-dual-tier-plugins-and-market.md)；
+  - 正式冻结 `apiVersion: 1` 与 `native.protocolVersion: 1`。
