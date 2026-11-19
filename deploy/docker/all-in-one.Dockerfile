@@ -25,6 +25,9 @@ COPY web/package.json web/bun.lock web/bunfig.toml ./
 COPY web/apps/web/package.json apps/web/
 COPY web/packages/ui/package.json packages/ui/
 COPY web/packages/api-client/package.json packages/api-client/
+COPY web/packages/plugin-sdk/package.json packages/plugin-sdk/
+COPY web/packages/cli/package.json packages/cli/
+COPY web/packages/create-plugin/package.json packages/create-plugin/
 RUN bun install --frozen-lockfile
 COPY web/ ./
 ENV NEXT_TELEMETRY_DISABLED=1
