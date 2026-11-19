@@ -3,7 +3,9 @@ import { cookies } from 'next/headers'
 import { getTranslations } from 'next-intl/server'
 import type * as React from 'react'
 
+import { Slot } from '@/components/slot'
 import { getBootstrap } from '@/lib/bootstrap'
+import { safeHref } from '@/lib/safe-url'
 import { layoutOf } from '@/lib/theme'
 import type { Viewer } from '@/lib/viewer'
 
@@ -20,8 +22,8 @@ export async function AppShell({ area, viewer, children }: { area: 'user' | 'adm
   const [boot, t, store] = await Promise.all([getBootstrap(), getTranslations(), cookies()])
   const saved = store.get('sidebar_state')?.value
   // Like the header: "nav.*" is a message key, anything else literal text (MenuItem.title).
-  const title = (key: string) => (key.startsWith('nav.') ? t(key as 'nav.skinlib') : key)
-  const plugin = (boot.menus[area] ?? []).slice().sort((a, b) => a.order - b.order).map((m) => ({ href: m.href, label: title(m.title), icon: m.icon }))
+  const title = (key: string) => (key.startsWith('nav.') && t.has(key as 'nav.skinlib') ? t(key as 'nav.skinlib') : key)
+  const plugin = (boot.menus[area] ?? []).slice().sort((a, b) => a.order - b.order).map((m) => ({ href: safeHref(m.href, '/'), label: title(m.title), icon: m.icon }))
 
   let sections: SidebarSection[]
   let footer: SidebarLink | undefined
@@ -68,9 +70,12 @@ export async function AppShell({ area, viewer, children }: { area: 'user' | 'adm
           { href: '/admin/settings', label: t('admin.settings'), icon: 'settings' },
         ],
       },
+      {
+        label: t('adminNav.plugins'),
+        links: [{ href: '/admin/plugins', label: t('admin.plugins'), icon: 'puzzle', exact: true }, ...plugin],
+      },
       { label: t('adminNav.system'), links: [{ href: '/admin/status', label: t('admin.systemStatus'), icon: 'activity' }] },
     ]
-    if (plugin.length) sections.push({ label: t('adminNav.plugins'), links: plugin })
     footer = { href: '/user', label: t('shell.backToUser'), icon: 'arrow-left', exact: true }
   }
 
@@ -81,6 +86,7 @@ export async function AppShell({ area, viewer, children }: { area: 'user' | 'adm
       <div data-sl-area={area} className="flex min-h-svh flex-col">
         {skip}
         <SiteHeader variant="public" />
+        <Slot name="site.banner" />
         <AppTabNav sections={sections} footer={footer} />
         <main id="main" tabIndex={-1} className="mx-auto flex w-full max-w-[90rem] flex-1 scroll-mt-14 flex-col px-4 py-6 outline-none sm:px-6 lg:px-8 lg:py-7">
           {children}
@@ -94,6 +100,7 @@ export async function AppShell({ area, viewer, children }: { area: 'user' | 'adm
       <AppSidebarProvider initialOpen={saved === undefined ? undefined : saved === 'true'}>
         {skip}
         <SiteHeader variant="app" />
+        <Slot name="site.banner" />
         <div className="flex flex-1">
           <AppSidebar sections={sections} footer={footer} />
           <SidebarInset id="main" tabIndex={-1} className="min-w-0 scroll-mt-14 bg-background outline-none">

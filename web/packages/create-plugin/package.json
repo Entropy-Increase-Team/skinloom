@@ -1,0 +1,25 @@
+{
+  "name": "create-skinloom-plugin",
+  "version": "1.0.0",
+  "description": "Scaffolding CLI (npm create skinloom-plugin) for SkinLoom plugins and themes.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "create-skinloom-plugin": "./bin/create-skinloom-plugin.mjs"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "esbuild src/cli.ts src/index.ts --bundle --format=esm --platform=node --target=node22 --external:@skinloom/cli --outdir=dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@skinloom/cli": "workspace:*",
+    "@types/node": "^24",
+    "esbuild": "^0.28.0",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.5"
+  }
+}

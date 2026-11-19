@@ -1,6 +1,12 @@
 package settings
 
 import (
+	"crypto/ed25519"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -110,6 +116,38 @@ func coreDefs() []Def {
 			},
 		},
 		{
+			Key: "theme.trusted_web", Type: TypeJSON, Default: []string{}, Superadmin: true,
+			Doc: `Theme IDs whose local Level-5 JS/override entry has been explicitly confirmed by a super administrator.`,
+			Validate: func(v any) error {
+				items, ok := stringListArg(v)
+				if !ok {
+					return fmt.Errorf("want an array of theme IDs")
+				}
+				for _, s := range items {
+					if s == "" {
+						return fmt.Errorf("each entry must be a non-empty theme ID string")
+					}
+				}
+				return nil
+			},
+		},
+		{
+			Key: "plugins.trusted_keys", Type: TypeJSON, Default: []string{}, Superadmin: true,
+			Doc: `Additional Ed25519 public keys (SPKI PEM, base64, or 64-hex) trusted to sign .slp plugin packages.`,
+			Validate: func(v any) error {
+				items, ok := stringListArg(v)
+				if !ok {
+					return fmt.Errorf("want an array of Ed25519 public key strings")
+				}
+				for _, s := range items {
+					if !validEd25519PublicKey(s) {
+						return fmt.Errorf("each entry must be a valid Ed25519 SPKI PEM, base64, or hex public key")
+					}
+				}
+				return nil
+			},
+		},
+		{
 			Key: "i18n.overrides", Type: TypeJSON, Default: map[string]any{}, Validate: validateOverrides,
 			Doc: `The administrator's wording of interface texts: {"zh-CN": {"nav.skinlib": "…"}, "en": {…}}, by message key. ` +
 				`Texts keep the default's {placeholders}. (BS language_lines)`,
@@ -206,4 +244,71 @@ func Location(s *Snapshot) *time.Location {
 		return time.UTC
 	}
 	return loc
+}
+
+func stringListArg(v any) ([]string, bool) {
+	switch list := v.(type) {
+	case []string:
+		return list, true
+	case []any:
+		out := make([]string, 0, len(list))
+		for _, item := range list {
+			s, ok := item.(string)
+			if !ok {
+				return nil, false
+			}
+			out = append(out, s)
+		}
+		return out, true
+	default:
+		return nil, false
+	}
+}
+
+// ParseEd25519PublicKey decodes a PEM SPKI, base64 SPKI/raw, or 64-hex Ed25519 public key.
+func ParseEd25519PublicKey(spec string) (ed25519.PublicKey, error) {
+	s := strings.TrimSpace(spec)
+	if s == "" {
+		return nil, errors.New("empty public key")
+	}
+	if strings.Contains(s, "BEGIN PUBLIC KEY") {
+		blk, _ := pem.Decode([]byte(s))
+		if blk == nil {
+			return nil, errors.New("invalid PEM block")
+		}
+		pubAny, err := x509.ParsePKIXPublicKey(blk.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("parse PKIX public key: %w", err)
+		}
+		pub, ok := pubAny.(ed25519.PublicKey)
+		if !ok || len(pub) != ed25519.PublicKeySize {
+			return nil, errors.New("public key is not Ed25519")
+		}
+		return pub, nil
+	}
+	if len(s) == ed25519.PublicKeySize*2 {
+		if raw, err := hex.DecodeString(s); err == nil && len(raw) == ed25519.PublicKeySize {
+			return ed25519.PublicKey(raw), nil
+		}
+	}
+	for _, enc := range []*base64.Encoding{base64.StdEncoding, base64.RawStdEncoding} {
+		raw, err := enc.DecodeString(s)
+		if err != nil {
+			continue
+		}
+		if len(raw) == ed25519.PublicKeySize {
+			return ed25519.PublicKey(raw), nil
+		}
+		if pubAny, err := x509.ParsePKIXPublicKey(raw); err == nil {
+			if pub, ok := pubAny.(ed25519.PublicKey); ok && len(pub) == ed25519.PublicKeySize {
+				return pub, nil
+			}
+		}
+	}
+	return nil, errors.New("unsupported Ed25519 public key format")
+}
+
+func validEd25519PublicKey(spec string) bool {
+	_, err := ParseEd25519PublicKey(spec)
+	return err == nil
 }

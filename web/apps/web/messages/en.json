@@ -12,6 +12,7 @@
     "backHome": "Back to home",
     "verifyFirst": "Verify your email address first: this site requires it for this.",
     "cancel": "Cancel",
+    "confirm": "Confirm",
     "save": "Save",
     "loading": "Loading…"
   },
@@ -458,7 +459,8 @@
     "emailTaken": "This email is already registered",
     "captchaRequired": "Complete the captcha first",
     "captchaWrong": "The captcha is wrong or expired. Try again.",
-    "wrongPassword": "Incorrect password"
+    "wrongPassword": "Incorrect password",
+    "required": "This field is required"
   },
   "forgot": {
     "title": "Reset password",
@@ -621,6 +623,7 @@
     "playersOf": "Players",
     "settings": "Settings",
     "appearance": "Appearance",
+    "plugins": "Plugins",
     "translations": "Translations",
     "systemStatus": "System status",
     "menu": "More actions for {name}",
@@ -1237,6 +1240,12 @@
     "title": "Settings"
   },
   "settingKeys": {
+    "plugins": {
+      "trusted_keys": {
+        "label": "Trusted plugin signing keys",
+        "help": "Additional Ed25519 public keys (SPKI PEM, base64, or 64-hex) trusted to sign .slp plugin packages alongside the official key."
+      }
+    },
     "site": {
       "name": {
         "label": "Site name"
@@ -1498,6 +1507,10 @@
       }
     },
     "theme": {
+      "trusted_web": {
+        "label": "Trusted theme JS bundles",
+        "help": "Theme IDs allowed to load Level-5 client override JS bundles"
+      },
       "custom_css": {
         "label": "Custom CSS"
       },
@@ -1570,7 +1583,15 @@
       "local": "Local",
       "reload": "Rescan",
       "reloaded": "Themes directory rescanned",
-      "extends": "Extends {parent}"
+      "extends": "Extends {parent}",
+      "preview": "Preview",
+      "trustWeb": "Enable script",
+      "trustedWeb": "Script enabled",
+      "previewBar": "Previewing theme {name}",
+      "applyPreview": "Apply sitewide",
+      "exitPreview": "Exit preview",
+      "loadingPlugin": "Loading extension…",
+      "pluginNotFound": "Plugin page not found or inactive."
     },
     "tabs": {
       "themes": "Themes",
@@ -1819,7 +1840,8 @@
       "theme": "Theme",
       "changed": "Settings changed",
       "plugins": "Plugins",
-      "pluginsLater": "The plugin platform comes in phase 2"
+      "pluginsCount": "{enabled} enabled / {total} installed",
+      "pluginsManaged": "Manage under Extensions"
     }
   },
   "ui": {
@@ -1985,6 +2007,170 @@
     "developer": "Developers",
     "apps": "Apps and tokens",
     "plugins": "Extensions"
+  },
+  "adminPlugins": {
+    "title": "Plugins and themes",
+    "intro": "Install signed .slp extension packages, review granted permissions, configure plugin settings, and inspect live sandbox status",
+    "uploadButton": "Upload .slp",
+    "reloadCluster": "Sync cluster",
+    "emptyTitle": "No plugins or themes installed",
+    "emptyDescription": "Upload a .slp archive to extend authentication, hooks, pages, or appearance",
+    "errors": {
+      "load": "Could not load installed plugins",
+      "action": "Plugin action failed",
+      "inspect": "Package inspection failed",
+      "install": "Package installation failed",
+      "settingsSave": "Could not save plugin settings"
+    },
+    "toasts": {
+      "enabled": "Plugin enabled",
+      "disabled": "Plugin disabled",
+      "reloaded": "Plugin reloaded",
+      "installed": "Package {id} v{version} installed",
+      "uninstalled": "Removed {id}",
+      "settingsSaved": "Plugin settings saved"
+    },
+    "kinds": {
+      "plugin": "Plugin",
+      "theme": "Theme"
+    },
+    "runtimes": {
+      "js": "Sandbox (JS)",
+      "native": "Native (Go)"
+    },
+    "statuses": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "failed": "Failed"
+    },
+    "sources": {
+      "package": "Package",
+      "market": "Market",
+      "local": "Local dev"
+    },
+    "nativeRunningPid": "PID {pid}",
+    "circuitAlert": "Auto-disabled after {count} consecutive runtime failures",
+    "noPermissions": "No special permissions",
+    "actions": {
+      "refresh": "Refresh",
+      "configure": "Settings",
+      "details": "Details & logs",
+      "reload": "Reload",
+      "uninstall": "Uninstall"
+    },
+    "inspect": {
+      "title": "Install extension package",
+      "dropTitle": "Drop a .slp package here",
+      "dropHint": "Choose or drag a .slp archive (JS/theme max 20 MiB; Native Go up to 150 MiB). Checksums and Ed25519 signatures are verified before installation.",
+      "verifying": "Verifying archive…",
+      "invalidPackageType": "Only .slp package files are supported",
+      "packageTooLarge": "Package archive exceeds the 150 MiB maximum limit",
+      "upgradeBadge": "Upgrade from v{version}",
+      "officialVerified": "Official source-compiled build",
+      "sigTrusted": "Verified signature ({signer})",
+      "sigUntrusted": "Signed with an untrusted public key",
+      "sigUnsigned": "Unsigned archive",
+      "sigUntrustedWarning": "This package cannot be verified by any trusted Ed25519 key. Only install if you built or explicitly audited it.",
+      "nativeBlockedTitle": "Native plugin blocked in production mode",
+      "nativeBlockedDefault": "Unsigned or untrusted Tier 2 native Go plugins cannot be installed in production mode. Only official or administrator-trusted Ed25519 signatures are accepted.",
+      "nativeRiskTitle": "Native subprocess permission (native.exec)",
+      "nativeRiskDescription": "This Tier 2 Go plugin runs as an isolated OS subprocess outside the QuickJS/WASM sandbox. Confirm you trust the publisher and review its capabilities carefully.",
+      "platformIncompatibleTitle": "Incompatible server platform ({platform})",
+      "platformIncompatibleDescription": "This archive does not include a native binary for the current host platform ({platform}). Supported in archive: {supported}.",
+      "platformsLabel": "Platforms",
+      "hostPlatformLabel": "Host: {platform}",
+      "allowUnsignedToggle": "I understand the risks and explicitly allow installing this unsigned or untrusted local package",
+      "permissionsTitle": "Requested permissions",
+      "permissionsHint": "Review permissions by risk tier. Sensitive and high-risk capabilities require explicit approval.",
+      "tierNormal": "Normal permissions",
+      "tierSensitive": "Sensitive permissions",
+      "tierHighRisk": "High-risk permissions",
+      "newPermission": "New in this version",
+      "requiredPermission": "Required",
+      "confirmIdLabel": "Type the package ID {id} to confirm installation",
+      "confirmInstall": "Confirm & install",
+      "cancel": "Cancel",
+      "superadminRequired": "Only super administrators may install or uninstall .slp packages",
+      "startOver": "Choose another file",
+      "capabilities": "Capabilities",
+      "serverRuntime": "Server JS sandbox",
+      "nativeRuntime": "Native Go subprocess",
+      "webUi": "Frontend ESM bundle",
+      "routesCount": "{count} HTTP routes",
+      "hooksCount": "{count} hooks",
+      "slotsCount": "{count} UI slots",
+      "packageSize": "Archive size"
+    },
+    "settingsDrawer": {
+      "title": "Settings: {name}",
+      "description": "Changes take effect immediately across all replicas via hot reload",
+      "empty": "This plugin declares no configurable settings",
+      "save": "Save settings",
+      "cancel": "Cancel",
+      "secretSetPlaceholder": "Stored secret (leave blank or ******** to keep unchanged)",
+      "secretUnsetPlaceholder": "Enter secret value",
+      "secretSetBadge": "Set",
+      "clearSecret": "Clear secret",
+      "selectPlaceholder": "Select an option",
+      "unsetOption": "Unset",
+      "addListItem": "Add item",
+      "removeItem": "Remove",
+      "invalidJson": "Invalid JSON syntax for {key}",
+      "imageHint": "Image URL or /path/…",
+      "validation": {
+        "required": "This field is required",
+        "finiteNumber": "Must be a valid number",
+        "min": "Must be at least {min}",
+        "max": "Must be at most {max}",
+        "listNumber": "List items must be valid numbers",
+        "listJson": "Invalid JSON in list item",
+        "jsonSyntax": "Invalid JSON syntax",
+        "jsonObject": "Must be a JSON object"
+      }
+    },
+    "detailsDrawer": {
+      "title": "Runtime details: {name}",
+      "tabs": {
+        "overview": "Overview",
+        "logs": "Recent logs",
+        "routes": "Routes",
+        "permissions": "Permissions"
+      },
+      "poolTitle": "WASM isolate pool",
+      "poolInstances": "Instances (idle / size)",
+      "poolInUse": "In-flight calls",
+      "poolTimeouts": "Timeouts",
+      "poolOoms": "OOM kills",
+      "poolRecreated": "Recreated",
+      "nativeTitle": "Native Go subprocess",
+      "nativeState": "Process status",
+      "nativeRunning": "Running",
+      "nativeStopped": "Stopped",
+      "nativePid": "Process PID",
+      "nativeUptime": "Uptime",
+      "nativeRestarts": "Restarts",
+      "nativeMemory": "Memory (RSS)",
+      "nativeDbDriver": "Isolated SQL mode",
+      "nativeDbPrefix": "SQL table prefix",
+      "nativeDbUnused": "Not provisioned",
+      "nativeProxy": "Local stream proxy",
+      "nativeProxyEnabled": "Enabled (SSE/WS)",
+      "nativeProxyDisabled": "Disabled",
+      "streamProxyBadge": "Stream proxy",
+      "usageTitle": "Stored plugin data",
+      "usageKv": "KV keys",
+      "usageDocs": "Documents",
+      "usageFiles": "Private files",
+      "noLogs": "No recent runtime logs recorded",
+      "noRoutes": "This plugin registers no HTTP routes"
+    },
+    "uninstallDialog": {
+      "title": "Uninstall {name}?",
+      "description": "This disables the plugin and removes its runtime code. Your stored settings and data are kept unless you choose Purge.",
+      "purgeLabel": "Also purge plugin KV, document collections, and private files (irreversible)",
+      "confirm": "Uninstall",
+      "cancel": "Cancel"
+    }
   },
   "adminNav": {
     "content": "Content",

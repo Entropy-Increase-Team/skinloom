@@ -1,0 +1,485 @@
+syntax = "proto3";
+
+package skinloom.plugin.v1;
+
+option go_package = "github.com/Entropy-Increase-Team/skinloom/api/proto/plugin/v1;pluginv1";
+
+// Empty is a reusable empty payload so this contract avoids external WKT imports.
+message Empty {}
+
+// ============================================================================
+// Control Plane (Host -> Plugin): PluginService
+// ============================================================================
+
+service PluginService {
+  // Init runs once right after subprocess startup to deliver config, permissions,
+  // isolated DB credentials, and the HostService GRPCBroker ID.
+  rpc Init(InitRequest) returns (InitResponse);
+
+  // Lifecycle delivers plugin lifecycle hooks (onInstall, onEnable, onDisable,
+  // onUpgrade, onUninstall).
+  rpc Lifecycle(LifecycleRequest) returns (LifecycleResponse);
+
+  // Hook dispatchers
+  rpc InvokeGuard(InvokeGuardRequest) returns (InvokeGuardResponse);
+  rpc InvokeFilter(InvokeFilterRequest) returns (InvokeFilterResponse);
+  rpc InvokeEvent(InvokeEventRequest) returns (InvokeEventResponse);
+
+  // Regular JSON HTTP handler dispatch (when httpProxy is not used for a route)
+  rpc InvokeHTTP(InvokeHTTPRequest) returns (InvokeHTTPResponse);
+
+  // Scheduled cron & cross-plugin RPC service dispatch
+  rpc InvokeCron(InvokeCronRequest) returns (InvokeCronResponse);
+  rpc InvokeService(InvokeServiceRequest) returns (InvokeServiceResponse);
+
+  // Extension callbacks (auth, password verifier, captcha, cdn, yggdrasil meta)
+  rpc InvokeExtension(InvokeExtensionRequest) returns (InvokeExtensionResponse);
+
+  // Settings change notification
+  rpc NotifySettingsChanged(NotifySettingsChangedRequest) returns (NotifySettingsChangedResponse);
+
+  // HealthCheck is polled periodically by the host supervisor.
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message DatabaseConfig {
+  string driver = 1; // "sqlite" | "mysql" | "postgres"
+  string dsn = 2;
+  string prefix = 3; // "plg_<safe_id>_"
+  string schema = 4; // optional PostgreSQL schema ("plg_<safe_id>")
+}
+
+message InitRequest {
+  string plugin_id = 1;
+  string version = 2;
+  bytes settings_json = 3;
+  repeated string granted_permissions = 4;
+  string data_dir = 5;
+  string runtime_dir = 6;
+  DatabaseConfig database = 7;
+  uint32 host_broker_id = 8;
+  string proxy_socket_path = 9; // suggested Unix socket path (empty on Windows -> 127.0.0.1:0)
+  string proxy_token = 10;      // 256-bit secret expected in X-SkinLoom-Proxy-Token
+}
+
+message HookRegistration {
+  string kind = 1;       // "guard" | "filter" | "event"
+  string name = 2;
+  int32 order = 3;
+  string handler_id = 4;
+}
+
+message RouteRegistration {
+  string method = 1;     // "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "ANY"
+  string pattern = 2;    // e.g. "/status", "/items/:id", "/*"
+  string auth = 3;       // "public" | "user" | "admin" | "superadmin"
+  string handler_id = 4;
+  bool stream_proxy = 5; // true to forward via local HTTP/WS ReverseProxy
+}
+
+message CronRegistration {
+  string name = 1;
+  string expr = 2;
+  string handler_id = 3;
+}
+
+message AuthProviderRegistration {
+  string id = 1;
+  string name = 2;
+  string icon = 3;
+  string auth_url = 4;
+  string mode = 5;       // "credentials" | "redirect"
+  string handler_id = 6; // empty for redirect-only
+}
+
+message PasswordVerifierRegistration {
+  string algo = 1;
+  string handler_id = 2;
+}
+
+message NamedProviderRegistration {
+  string id = 1;
+  string name = 2;
+  string handler_id = 3;
+}
+
+message YggdrasilMetaExtension {
+  repeated string skin_domains = 1;
+  bytes meta_json = 2;
+}
+
+message ProviderCapabilities {
+  bool storage = 1;
+  bool search = 2;
+  bool render = 3;
+}
+
+message HTTPProxyInfo {
+  bool enabled = 1;
+  string network = 2; // "unix" | "tcp"
+  string address = 3; // socket path or "127.0.0.1:<port>"
+  string token = 4;   // 256-bit shared proxy secret (defaults to InitRequest.proxy_token)
+}
+
+message InitResponse {
+  repeated HookRegistration hooks = 1;
+  repeated RouteRegistration routes = 2;
+  repeated CronRegistration crons = 3;
+  repeated string services = 4;
+  repeated AuthProviderRegistration auth_providers = 5;
+  repeated PasswordVerifierRegistration password_verifiers = 6;
+  repeated NamedProviderRegistration captcha_providers = 7;
+  repeated NamedProviderRegistration cdn_providers = 8;
+  bool has_yggdrasil_meta_provider = 9;
+  string yggdrasil_meta_handler_id = 10;
+  YggdrasilMetaExtension static_yggdrasil_meta = 11;
+  ProviderCapabilities providers = 12;
+  HTTPProxyInfo http_proxy = 13;
+  bool listens_settings_change = 14;
+}
+
+message LifecycleRequest {
+  string event = 1; // "onInstall" | "onEnable" | "onDisable" | "onUpgrade" | "onUninstall"
+  bytes payload_json = 2;
+}
+
+message LifecycleResponse {
+  string error = 1;
+}
+
+message InvokeGuardRequest {
+  string hook_name = 1;
+  string handler_id = 2;
+  bytes payload_json = 3;
+  string locale = 4;
+}
+
+message InvokeGuardResponse {
+  bool rejected = 1;
+  string reason = 2;
+}
+
+message InvokeFilterRequest {
+  string hook_name = 1;
+  string handler_id = 2;
+  bytes value_json = 3;
+  bytes context_json = 4;
+  string locale = 5;
+}
+
+message InvokeFilterResponse {
+  bytes value_json = 1;
+}
+
+message InvokeEventRequest {
+  string hook_name = 1;
+  string handler_id = 2;
+  bytes payload_json = 3;
+  string locale = 4;
+}
+
+message InvokeEventResponse {}
+
+message ViewerInfo {
+  bool authenticated = 1;
+  int64 user_id = 2;
+  string email = 3;
+  string nickname = 4;
+  string role = 5;
+}
+
+message InvokeHTTPRequest {
+  string handler_id = 1;
+  string method = 2;
+  string path = 3;
+  map<string, string> params = 4;
+  map<string, string> query = 5;
+  map<string, string> headers = 6;
+  bytes body = 7;
+  string locale = 8;
+  ViewerInfo user = 9;
+}
+
+message InvokeHTTPResponse {
+  int32 status = 1;
+  map<string, string> headers = 2;
+  bytes body = 3;
+  bool rejected = 4;
+  string reject_reason = 5;
+}
+
+message InvokeCronRequest {
+  string job_name = 1;
+  string handler_id = 2;
+}
+
+message InvokeCronResponse {}
+
+message InvokeServiceRequest {
+  string service_name = 1;
+  string handler_id = 2;
+  bytes args_json = 3;
+  string caller_plugin_id = 4;
+}
+
+message InvokeServiceResponse {
+  bytes result_json = 1;
+}
+
+message InvokeExtensionRequest {
+  string kind = 1;       // "auth" | "password_verifier" | "captcha" | "cdn" | "yggdrasil_meta"
+  string id = 2;
+  string handler_id = 3;
+  bytes payload_json = 4;
+}
+
+message InvokeExtensionResponse {
+  bytes result_json = 1;
+}
+
+message NotifySettingsChangedRequest {
+  bytes settings_json = 1;
+}
+
+message NotifySettingsChangedResponse {}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  bool healthy = 1;
+  string message = 2;
+  uint64 memory_rss_bytes = 3;
+  int64 uptime_seconds = 4;
+}
+
+// ============================================================================
+// Callback Plane (Plugin -> Host via go-plugin GRPCBroker): HostService
+// ============================================================================
+
+service HostService {
+  rpc KV(HostOpRequest) returns (HostOpResponse);
+  rpc Docs(HostOpRequest) returns (HostOpResponse);
+  rpc FilesPut(FilesPutRequest) returns (FilesPutResponse);
+  rpc FilesGet(FilesKeyRequest) returns (FilesGetResponse);
+  rpc FilesDelete(FilesKeyRequest) returns (FilesDeleteResponse);
+  rpc FilesURL(FilesKeyRequest) returns (FilesURLResponse);
+  rpc Fetch(FetchRequest) returns (FetchResponse);
+  rpc Settings(HostOpRequest) returns (HostOpResponse);
+  rpc Site(HostOpRequest) returns (HostOpResponse);
+  rpc Users(HostOpRequest) returns (HostOpResponse);
+  rpc Players(HostOpRequest) returns (HostOpResponse);
+  rpc Textures(HostOpRequest) returns (HostOpResponse);
+  rpc Closet(HostOpRequest) returns (HostOpResponse);
+  rpc Score(HostOpRequest) returns (HostOpResponse);
+  rpc Notify(HostOpRequest) returns (HostOpResponse);
+  rpc Mail(MailSendRequest) returns (HostOpResponse);
+  rpc Yggdrasil(HostOpRequest) returns (HostOpResponse);
+  rpc Audit(AuditRecordRequest) returns (Empty);
+  rpc EmitEvent(EmitEventRequest) returns (Empty);
+  rpc CallPluginService(CallPluginServiceRequest) returns (HostOpResponse);
+  rpc Log(LogRequest) returns (Empty);
+  rpc Cache(HostOpRequest) returns (HostOpResponse);
+  rpc I18n(HostOpRequest) returns (HostOpResponse);
+}
+
+message HostOpRequest {
+  string op = 1;
+  bytes args_json = 2;   // JSON array of operation arguments
+  string locale = 3;
+  bytes binary_data = 4; // optional raw binary payload (e.g. texture image bytes)
+}
+
+message HostOpResponse {
+  bytes result_json = 1;
+  bytes binary_data = 2;
+}
+
+message FilesPutRequest {
+  string key = 1;
+  bytes data = 2;
+}
+
+message FilesPutResponse {
+  string url = 1;
+}
+
+message FilesKeyRequest {
+  string key = 1;
+}
+
+message FilesGetResponse {
+  bool found = 1;
+  bytes data = 2;
+}
+
+message FilesDeleteResponse {
+  bool deleted = 1;
+}
+
+message FilesURLResponse {
+  string url = 1;
+}
+
+message FetchRequest {
+  string url = 1;
+  string method = 2;
+  map<string, string> headers = 3;
+  bytes body = 4;
+  int32 timeout_ms = 5;
+}
+
+message FetchResponse {
+  bool ok = 1;
+  int32 status = 2;
+  string status_text = 3;
+  map<string, string> headers = 4;
+  string url = 5;
+  bytes body = 6;
+}
+
+message MailSendRequest {
+  bytes options_json = 1;
+  string locale = 2;
+}
+
+message AuditRecordRequest {
+  string action = 1;
+  string target_type = 2;
+  string target_id = 3;
+  bytes meta_json = 4;
+}
+
+message EmitEventRequest {
+  string local_name = 1;
+  bytes payload_json = 2;
+}
+
+message CallPluginServiceRequest {
+  string target_plugin_id = 1;
+  string service_name = 2;
+  bytes args_json = 3;
+}
+
+message LogRequest {
+  string level = 1;
+  string message = 2;
+}
+
+// ============================================================================
+// Infrastructure Provider Services (Host -> Plugin, Native-Only)
+// ============================================================================
+
+service StorageProviderService {
+  rpc Put(StoragePutRequest) returns (Empty);
+  rpc Get(StorageKeyRequest) returns (StorageGetResponse);
+  rpc Delete(StorageKeyRequest) returns (Empty);
+  rpc Stat(StorageKeyRequest) returns (StorageStatResponse);
+  rpc List(StorageListRequest) returns (StorageListResponse);
+  rpc URL(StorageKeyRequest) returns (StorageURLResponse);
+}
+
+message StoragePutRequest {
+  string key = 1;
+  bytes data = 2;
+}
+
+message StorageKeyRequest {
+  string key = 1;
+}
+
+message StorageGetResponse {
+  bool found = 1;
+  bytes data = 2;
+  int64 mod_time_unix_nano = 3;
+}
+
+message StorageStatResponse {
+  bool exists = 1;
+  int64 mod_time_unix_nano = 2;
+  int64 size = 3;
+}
+
+message StorageEntry {
+  string key = 1;
+  int64 mod_time_unix_nano = 2;
+}
+
+message StorageListRequest {
+  string cursor = 1;
+  int32 limit = 2;
+}
+
+message StorageListResponse {
+  repeated StorageEntry entries = 1;
+  string next_cursor = 2;
+}
+
+message StorageURLResponse {
+  string url = 1;
+}
+
+service SearchProviderService {
+  rpc Index(SearchIndexRequest) returns (Empty);
+  rpc Delete(SearchDeleteRequest) returns (Empty);
+  rpc Search(SearchQueryRequest) returns (SearchQueryResponse);
+}
+
+message TextureSearchDoc {
+  int64 id = 1;
+  string name = 2;
+  string type = 3;
+  string hash = 4;
+  int64 uploader_id = 5;
+  bool public = 6;
+  int32 likes = 7;
+  int64 created_at_unix = 8;
+  int64 updated_at_unix = 9;
+}
+
+message SearchIndexRequest {
+  TextureSearchDoc doc = 1;
+}
+
+message SearchDeleteRequest {
+  int64 texture_id = 1;
+}
+
+message SearchQueryRequest {
+  string query = 1;
+  string category = 2;
+  int64 uploader_id = 3;
+  bool include_private = 4;
+  string sort = 5;
+  string cursor = 6;
+  int32 limit = 7;
+}
+
+message SearchQueryResponse {
+  repeated int64 texture_ids = 1;
+  string next_cursor = 2;
+  int64 total = 3;
+}
+
+service RenderProviderService {
+  rpc RenderAvatar(RenderAvatarRequest) returns (RenderImageResponse);
+  rpc RenderPreview(RenderPreviewRequest) returns (RenderImageResponse);
+}
+
+message RenderAvatarRequest {
+  bytes skin_png = 1;
+  int32 size = 2;
+  bool is_3d = 3;
+  string format = 4; // "png" | "webp"
+}
+
+message RenderPreviewRequest {
+  bytes texture_png = 1;
+  string texture_type = 2; // "steve" | "alex" | "cape"
+  int32 height = 3;
+  string format = 4; // "png" | "webp"
+}
+
+message RenderImageResponse {
+  bytes image_bytes = 1;
+  string format = 2;
+}

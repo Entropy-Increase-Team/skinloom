@@ -4,9 +4,11 @@ import { getTranslations } from 'next-intl/server'
 
 import { VerifyBanner } from '@/components/auth/verify-email'
 import { Logo } from '@/components/logo'
+import { Slot } from '@/components/slot'
+import { ThemeOverride } from '@/components/theme-override'
 import { NotificationBell } from '@/components/user/notification-bell'
 import { getBootstrap } from '@/lib/bootstrap'
-import { safeImageUrl } from '@/lib/safe-url'
+import { safeHref, safeImageUrl } from '@/lib/safe-url'
 import { getViewer } from '@/lib/viewer'
 
 import { AccountMenu } from './account-menu'
@@ -27,10 +29,10 @@ export async function SiteHeader({ variant = 'public' }: { variant?: 'public' | 
   const [boot, viewer] = await Promise.all([getBootstrap(), getViewer()])
   const t = await getTranslations()
   const logo = safeImageUrl(boot.site.logo)
-  const title = (key: string) => (key.startsWith('nav.') ? t(key as 'nav.skinlib') : key)
+  const title = (key: string) => (key.startsWith('nav.') && t.has(key as 'nav.skinlib') ? t(key as 'nav.skinlib') : key)
   const links: NavLink[] = [
     ...[...(boot.menus.explore ?? [])].sort((a, b) => a.order - b.order).map((m) => ({
-      href: m.href,
+      href: safeHref(m.href, '/'),
       label: title(m.title),
       icon: m.icon || (m.href === '/skinlib' ? 'layout-grid' : undefined),
     })),
@@ -39,21 +41,24 @@ export async function SiteHeader({ variant = 'public' }: { variant?: 'public' | 
   const canRegister = boot.auth.registration === 'open' && !boot.needsSetup
   const app = variant === 'app'
 
-  return (
+  const logoMark = logo ? (
+    // An administrator's URL of any size and host: next/image would need each host configured.
+    <img src={logo} alt="" className="h-7 w-auto max-w-32 shrink-0 object-contain" />
+  ) : (
+    <Logo className="size-7 shrink-0" />
+  )
+
+  const headerElement = (
     <header className="sl-header sticky top-0 z-40 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
       <div className={cn('flex h-14 items-center gap-2 md:gap-6', app ? 'px-3 md:px-5' : 'mx-auto max-w-[75rem] px-4 sm:px-6 lg:px-8')}>
         {app && <AppSidebarTrigger />}
         <Link href="/" className="flex min-w-0 items-center gap-2.5 rounded-md">
-          {logo ? (
-            // An administrator's URL of any size and host: next/image would need each host configured.
-            <img src={logo} alt="" className="h-7 w-auto max-w-32 shrink-0 object-contain" />
-          ) : (
-            <Logo className="size-7 shrink-0" />
-          )}
+          <ThemeOverride name="site.logo" props={{ siteName: boot.site.name, logoUrl: logo ?? '' }} fallback={logoMark} />
           <span className="truncate text-[0.9375rem] font-medium">{boot.site.name}</span>
         </Link>
         <HeaderNav links={links} className="max-md:hidden" />
         <div className="ml-auto flex shrink-0 items-center gap-1">
+          <Slot name="site.header.actions" />
           {viewer ? (
             <>
               <NotificationBell />
@@ -83,7 +88,7 @@ export async function SiteHeader({ variant = 'public' }: { variant?: 'public' | 
       {boot.needsSetup && (
         <div className="flex flex-wrap items-center justify-center gap-3 bg-primary/10 px-4 py-2 text-center text-sm">
           <span>{t.rich('setupPending', { code: (chunks) => <code className="font-mono">{chunks}</code> })}</span>
-          <ButtonLink render={<Link href="/setup" />} size="xs">
+          <ButtonLink render={<Link href="/setup" />} size="xs" className="pointer-coarse:h-10">
             {t('setupPendingAction')}
           </ButtonLink>
         </div>
@@ -93,4 +98,6 @@ export async function SiteHeader({ variant = 'public' }: { variant?: 'public' | 
       )}
     </header>
   )
+
+  return <ThemeOverride name="site.header" props={{ variant, siteName: boot.site.name, signedIn: Boolean(viewer) }} fallback={headerElement} />
 }

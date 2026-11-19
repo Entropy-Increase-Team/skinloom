@@ -8,10 +8,14 @@ require (
 	ariga.io/atlas v0.36.2-0.20250730182955-2c6300d0a3e1
 	entgo.io/ent v0.14.6
 	github.com/HugoSmits86/nativewebp v1.3.0
+	github.com/bufbuild/protocompile v0.14.1
 	github.com/danielgtaylor/huma/v2 v2.39.1
+	github.com/fastschema/qjs v0.0.6
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-sql-driver/mysql v1.10.1
+	github.com/hashicorp/go-hclog v1.6.3
+	github.com/hashicorp/go-plugin v1.8.0
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/kardianos/service v1.3.0
 	github.com/knadh/koanf/parsers/toml/v2 v2.2.2
@@ -27,6 +31,8 @@ require (
 	golang.org/x/image v0.47.0
 	golang.org/x/sync v0.24.0
 	golang.org/x/sys v0.49.0
+	google.golang.org/grpc v1.85.0
+	google.golang.org/protobuf v1.36.12
 	modernc.org/sqlite v1.61.0
 )
 
@@ -37,13 +43,15 @@ require (
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
-	github.com/fastschema/qjs v0.0.6 // indirect
+	github.com/fatih/color v1.19.0 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.18.1 // indirect
+	github.com/hashicorp/yamux v0.1.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
@@ -52,6 +60,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
+	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect
 	github.com/minio/crc64nvme v1.1.1 // indirect
@@ -60,6 +69,7 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/ncruces/go-strftime v1.1.0 // indirect
+	github.com/oklog/run v1.1.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
@@ -76,6 +86,7 @@ require (
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261005182115-fad411399dd8 // indirect
 	gopkg.in/ini.v1 v1.67.3 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	modernc.org/libc v1.79.0 // indirect

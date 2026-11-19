@@ -12,6 +12,7 @@ import type {
   AdminOverview,
   AdminPlayerPage,
   AdminPlayerView,
+  AdminPluginView,
   AdminReportPage,
   AdminReportView,
   AdminUpdatePlayerInputBody,
@@ -49,8 +50,10 @@ import type {
   ForgotInputBody,
   GetAuthorizationParams,
   GetBootstrapParams,
+  InspectPluginPackageBody,
   InspectRestoreInput,
   InspectRestoreResult,
+  InstallPluginPackageBody,
   ListAuditParams,
   ListClosetParams,
   ListMyReportsParams,
@@ -68,6 +71,7 @@ import type {
   OAuthClientView,
   OAuthGrantList,
   OAuthScopes,
+  PackageInspectResult,
   ParseBSEnvInput,
   ParseBSEnvResult,
   PersonalTokenList,
@@ -76,6 +80,9 @@ import type {
   PlayerNameInputBody,
   PlayerRules,
   PlayerView,
+  PluginDevReloadInputBody,
+  PluginInfo,
+  PluginSettingsResponse,
   PurgeInputBody,
   PurgeResult,
   RegisterInputBody,
@@ -115,11 +122,16 @@ import type {
   TexturePage,
   TextureRules,
   TextureView,
+  ThemePreviewInputBody,
+  ThemePreviewOutputBody,
   ThemeView,
   Unfavorited,
+  UninstallPluginParams,
+  UninstallPluginResult,
   UnreadCount,
   UpdateClientInputBody,
   UpdateMeInputBody,
+  UpdatePluginSettingsBody,
   UpdateSettingsBody,
   UpdateTextureInputBody,
   UpdateUserInputBody,
@@ -687,6 +699,540 @@ return apiFetch<adminWearPlayerResponse>(getAdminWearPlayerUrl(id),
 
 
 
+export type listPluginsResponse200 = {
+  data: AdminPluginView[]
+  status: 200
+}
+
+export type listPluginsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listPluginsResponseSuccess = (listPluginsResponse200) & {
+  headers: Headers;
+};
+export type listPluginsResponseError = (listPluginsResponseDefault) & {
+  headers: Headers;
+};
+
+export type listPluginsResponse = (listPluginsResponseSuccess | listPluginsResponseError)
+
+export const getListPluginsUrl = () => {
+
+
+
+
+  return `/api/v1/admin/plugins`
+}
+
+/**
+ * @summary List installed plugins and themes
+ */
+export const listPlugins = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listPluginsResponse> => {
+
+  return apiFetch<listPluginsResponse>(getListPluginsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type devReloadPluginResponse200 = {
+  data: PluginInfo
+  status: 200
+}
+
+export type devReloadPluginResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type devReloadPluginResponseSuccess = (devReloadPluginResponse200) & {
+  headers: Headers;
+};
+export type devReloadPluginResponseError = (devReloadPluginResponseDefault) & {
+  headers: Headers;
+};
+
+export type devReloadPluginResponse = (devReloadPluginResponseSuccess | devReloadPluginResponseError)
+
+export const getDevReloadPluginUrl = () => {
+
+
+
+
+  return `/api/v1/admin/plugins/dev-reload`
+}
+
+/**
+ * Used by skinloom-plugin dev during local development. Replaces the active JS or native Go plugin runtime atomically without restarting the server.
+ * @summary Hot-reload an unpacked development plugin bundle
+ */
+export const devReloadPlugin = async (pluginDevReloadInputBody: NonReadonly<PluginDevReloadInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<devReloadPluginResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<devReloadPluginResponse>(getDevReloadPluginUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(pluginDevReloadInputBody)
+  }
+);}
+
+
+
+export type inspectPluginPackageResponse200 = {
+  data: PackageInspectResult
+  status: 200
+}
+
+export type inspectPluginPackageResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type inspectPluginPackageResponseSuccess = (inspectPluginPackageResponse200) & {
+  headers: Headers;
+};
+export type inspectPluginPackageResponseError = (inspectPluginPackageResponseDefault) & {
+  headers: Headers;
+};
+
+export type inspectPluginPackageResponse = (inspectPluginPackageResponseSuccess | inspectPluginPackageResponseError)
+
+export const getInspectPluginPackageUrl = () => {
+
+
+
+
+  return `/api/v1/admin/plugins/inspect`
+}
+
+/**
+ * Verifies integrity checksums, Ed25519 signature status, upgrade delta, dual-tier platform compatibility, and permission risk tiers without installing.
+ * @summary Validate and inspect an uploaded .slp package
+ */
+export const inspectPluginPackage = async (inspectPluginPackageBody?: InspectPluginPackageBody, options?: Parameters<typeof apiFetch>[1]): Promise<inspectPluginPackageResponse> => {
+    const formData = new FormData();
+if(inspectPluginPackageBody?.file !== undefined) {
+ formData.append(`file`, inspectPluginPackageBody.file);
+ }
+
+  return apiFetch<inspectPluginPackageResponse>(getInspectPluginPackageUrl(),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+);}
+
+
+
+export type installPluginPackageResponse201 = {
+  data: AdminPluginView
+  status: 201
+}
+
+export type installPluginPackageResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 201>
+}
+
+export type installPluginPackageResponseSuccess = (installPluginPackageResponse201) & {
+  headers: Headers;
+};
+export type installPluginPackageResponseError = (installPluginPackageResponseDefault) & {
+  headers: Headers;
+};
+
+export type installPluginPackageResponse = (installPluginPackageResponseSuccess | installPluginPackageResponseError)
+
+export const getInstallPluginPackageUrl = () => {
+
+
+
+
+  return `/api/v1/admin/plugins/install`
+}
+
+/**
+ * Super administrators only. Verifies archive integrity, Ed25519 trust, and explicit permission confirmation before installing or upgrading.
+ * @summary Install or upgrade a .slp plugin or theme package
+ */
+export const installPluginPackage = async (installPluginPackageBody?: InstallPluginPackageBody, options?: Parameters<typeof apiFetch>[1]): Promise<installPluginPackageResponse> => {
+    const formData = new FormData();
+if(installPluginPackageBody?.allowUnsigned !== undefined) {
+ formData.append(`allowUnsigned`, installPluginPackageBody.allowUnsigned.toString())
+ }
+if(installPluginPackageBody?.disabled !== undefined) {
+ formData.append(`disabled`, installPluginPackageBody.disabled.toString())
+ }
+if(installPluginPackageBody?.file !== undefined) {
+ formData.append(`file`, installPluginPackageBody.file);
+ }
+if(installPluginPackageBody?.grantAll !== undefined) {
+ formData.append(`grantAll`, installPluginPackageBody.grantAll.toString())
+ }
+if(installPluginPackageBody?.grantedPermissions !== undefined) {
+ formData.append(`grantedPermissions`, installPluginPackageBody.grantedPermissions instanceof Blob ? installPluginPackageBody.grantedPermissions : new Blob([installPluginPackageBody.grantedPermissions], { type: 'text/plain' }));
+ }
+
+  return apiFetch<installPluginPackageResponse>(getInstallPluginPackageUrl(),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+);}
+
+
+
+export type uninstallPluginResponse200 = {
+  data: UninstallPluginResult
+  status: 200
+}
+
+export type uninstallPluginResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type uninstallPluginResponseSuccess = (uninstallPluginResponse200) & {
+  headers: Headers;
+};
+export type uninstallPluginResponseError = (uninstallPluginResponseDefault) & {
+  headers: Headers;
+};
+
+export type uninstallPluginResponse = (uninstallPluginResponseSuccess | uninstallPluginResponseError)
+
+export const getUninstallPluginUrl = (id: string,
+    params?: UninstallPluginParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/admin/plugins/${id}?${stringifiedParams}` : `/api/v1/admin/plugins/${id}`
+}
+
+/**
+ * @summary Uninstall a plugin
+ */
+export const uninstallPlugin = async (id: string,
+    params?: UninstallPluginParams, options?: Parameters<typeof apiFetch>[1]): Promise<uninstallPluginResponse> => {
+
+  return apiFetch<uninstallPluginResponse>(getUninstallPluginUrl(id,params),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type getPluginResponse200 = {
+  data: AdminPluginView
+  status: 200
+}
+
+export type getPluginResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getPluginResponseSuccess = (getPluginResponse200) & {
+  headers: Headers;
+};
+export type getPluginResponseError = (getPluginResponseDefault) & {
+  headers: Headers;
+};
+
+export type getPluginResponse = (getPluginResponseSuccess | getPluginResponseError)
+
+export const getGetPluginUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/admin/plugins/${id}`
+}
+
+/**
+ * @summary Inspect one installed plugin
+ */
+export const getPlugin = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPluginResponse> => {
+
+  return apiFetch<getPluginResponse>(getGetPluginUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type disablePluginResponse200 = {
+  data: AdminPluginView
+  status: 200
+}
+
+export type disablePluginResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type disablePluginResponseSuccess = (disablePluginResponse200) & {
+  headers: Headers;
+};
+export type disablePluginResponseError = (disablePluginResponseDefault) & {
+  headers: Headers;
+};
+
+export type disablePluginResponse = (disablePluginResponseSuccess | disablePluginResponseError)
+
+export const getDisablePluginUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/admin/plugins/${id}/disable`
+}
+
+/**
+ * @summary Disable an active plugin
+ */
+export const disablePlugin = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<disablePluginResponse> => {
+
+  return apiFetch<disablePluginResponse>(getDisablePluginUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type enablePluginResponse200 = {
+  data: AdminPluginView
+  status: 200
+}
+
+export type enablePluginResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type enablePluginResponseSuccess = (enablePluginResponse200) & {
+  headers: Headers;
+};
+export type enablePluginResponseError = (enablePluginResponseDefault) & {
+  headers: Headers;
+};
+
+export type enablePluginResponse = (enablePluginResponseSuccess | enablePluginResponseError)
+
+export const getEnablePluginUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/admin/plugins/${id}/enable`
+}
+
+/**
+ * @summary Enable an installed plugin
+ */
+export const enablePlugin = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<enablePluginResponse> => {
+
+  return apiFetch<enablePluginResponse>(getEnablePluginUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type reloadPluginResponse200 = {
+  data: AdminPluginView
+  status: 200
+}
+
+export type reloadPluginResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type reloadPluginResponseSuccess = (reloadPluginResponse200) & {
+  headers: Headers;
+};
+export type reloadPluginResponseError = (reloadPluginResponseDefault) & {
+  headers: Headers;
+};
+
+export type reloadPluginResponse = (reloadPluginResponseSuccess | reloadPluginResponseError)
+
+export const getReloadPluginUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/admin/plugins/${id}/reload`
+}
+
+/**
+ * @summary Reload a plugin bundle cleanly
+ */
+export const reloadPlugin = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<reloadPluginResponse> => {
+
+  return apiFetch<reloadPluginResponse>(getReloadPluginUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type getPluginSettingsResponse200 = {
+  data: PluginSettingsResponse
+  status: 200
+}
+
+export type getPluginSettingsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getPluginSettingsResponseSuccess = (getPluginSettingsResponse200) & {
+  headers: Headers;
+};
+export type getPluginSettingsResponseError = (getPluginSettingsResponseDefault) & {
+  headers: Headers;
+};
+
+export type getPluginSettingsResponse = (getPluginSettingsResponseSuccess | getPluginSettingsResponseError)
+
+export const getGetPluginSettingsUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/admin/plugins/${id}/settings`
+}
+
+/**
+ * @summary Get a plugin's settings schema and redacted values
+ */
+export const getPluginSettings = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPluginSettingsResponse> => {
+
+  return apiFetch<getPluginSettingsResponse>(getGetPluginSettingsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updatePluginSettingsResponse200 = {
+  data: PluginSettingsResponse
+  status: 200
+}
+
+export type updatePluginSettingsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type updatePluginSettingsResponseSuccess = (updatePluginSettingsResponse200) & {
+  headers: Headers;
+};
+export type updatePluginSettingsResponseError = (updatePluginSettingsResponseDefault) & {
+  headers: Headers;
+};
+
+export type updatePluginSettingsResponse = (updatePluginSettingsResponseSuccess | updatePluginSettingsResponseError)
+
+export const getUpdatePluginSettingsUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/admin/plugins/${id}/settings`
+}
+
+/**
+ * @summary Update a plugin's settings
+ */
+export const updatePluginSettings = async (id: string,
+    updatePluginSettingsBody: UpdatePluginSettingsBody, options?: Parameters<typeof apiFetch>[1]): Promise<updatePluginSettingsResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updatePluginSettingsResponse>(getUpdatePluginSettingsUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updatePluginSettingsBody)
+  }
+);}
+
+
+
 export type listReportsResponse200 = {
   data: AdminReportPage
   status: 200
@@ -1024,6 +1570,64 @@ export const listThemes = async ( options?: Parameters<typeof apiFetch>[1]): Pro
     method: 'GET'
 
 
+  }
+);}
+
+
+
+export type setThemePreviewResponse200 = {
+  data: ThemePreviewOutputBody
+  status: 200
+}
+
+export type setThemePreviewResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type setThemePreviewResponseSuccess = (setThemePreviewResponse200) & {
+  headers: Headers;
+};
+export type setThemePreviewResponseError = (setThemePreviewResponseDefault) & {
+  headers: Headers;
+};
+
+export type setThemePreviewResponse = (setThemePreviewResponseSuccess | setThemePreviewResponseError)
+
+export const getSetThemePreviewUrl = () => {
+
+
+
+
+  return `/api/v1/admin/themes/preview`
+}
+
+/**
+ * Stores the previewed theme ID in an HttpOnly cookie affecting only this administrator session.
+ * @summary Set or clear administrator session theme preview
+ */
+export const setThemePreview = async (themePreviewInputBody: NonReadonly<ThemePreviewInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<setThemePreviewResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<setThemePreviewResponse>(getSetThemePreviewUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(themePreviewInputBody)
   }
 );}
 

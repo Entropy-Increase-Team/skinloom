@@ -98,6 +98,12 @@ var htmlLayout = htmltemplate.Must(htmltemplate.New("mail").Parse(`<!doctype htm
 {{if .Footer}}<p style="font-size:13px;color:#71717a;line-height:1.6">{{.Footer}}</p>{{end}}
 </div></body></html>`))
 
+// HasTemplate reports whether kind names a built-in email template.
+func HasTemplate(kind string) bool {
+	_, ok := texts[kind]
+	return ok
+}
+
 // Render builds a message for kind in locale (falling back to zh-CN).
 func Render(kind, locale, to string, d Data) Message {
 	byLocale := texts[kind]

@@ -1,233 +1,15 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://skinloom.cn/schema/plugin.v1.json",
-  "title": "SkinLoom Plugin & Theme Manifest (v1)",
-  "description": "Manifest file (plugin.json) for SkinLoom themes and plugins (ADR 0005, ADR 0043).",
-  "type": "object",
-  "required": ["id", "kind", "version", "name", "apiVersion"],
-  "properties": {
-    "$schema": {
-      "type": "string"
-    },
-    "id": {
-      "type": "string",
-      "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-      "description": "Unique identifier (1-32 lowercase letters, digits or hyphens)."
-    },
-    "kind": {
-      "type": "string",
-      "enum": ["theme", "plugin"]
-    },
-    "version": {
-      "type": "string",
-      "description": "Semantic version (e.g. 1.0.0)."
-    },
-    "name": {
-      "$ref": "#/definitions/localizedString"
-    },
-    "description": {
-      "$ref": "#/definitions/localizedString"
-    },
-    "authors": {
-      "type": "array",
-      "items": { "type": "string" }
-    },
-    "license": {
-      "type": "string"
-    },
-    "homepage": {
-      "type": "string"
-    },
-    "repository": {
-      "type": "string"
-    },
-    "engines": {
-      "type": "object",
-      "properties": {
-        "skinloom": { "type": "string" }
-      },
-      "additionalProperties": false
-    },
-    "apiVersion": {
-      "type": "integer",
-      "enum": [1]
-    },
-    "extends": {
-      "type": "string",
-      "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
-      "description": "Parent theme ID for single-level theme inheritance (ADR 0043)."
-    },
-    "screenshot": {
-      "type": "string",
-      "description": "Relative path to a 16:10 preview image in the theme package (e.g. screenshot.webp)."
-    },
-    "settings": {
-      "$ref": "#/definitions/themeSettings"
-    },
-    "theme": {
-      "type": "object",
-      "properties": {
-        "colorScheme": {
-          "type": "string",
-          "enum": ["both", "light", "dark"],
-          "default": "both",
-          "description": "Supported colour mode(s). When light or dark, hides the visitor switcher and forces that mode."
-        },
-        "tokens": {
-          "type": "object",
-          "properties": {
-            "light": { "$ref": "#/definitions/colorTokens" },
-            "dark": { "$ref": "#/definitions/colorTokens" },
-            "fonts": {
-              "type": "object",
-              "properties": {
-                "sans": { "type": "string", "description": "Body and UI font stack (--sl-font-sans)." },
-                "mono": { "type": "string", "description": "Monospace font stack (--sl-font-mono)." },
-                "display": { "type": "string", "description": "Display / hero heading font stack (--sl-font-display)." }
-              },
-              "additionalProperties": { "type": "string" }
-            },
-            "viewer": {
-              "type": "object",
-              "properties": {
-                "background": {
-                  "type": "string",
-                  "description": "CSS background value or relative asset path (assets/...) for the 3D skin viewer."
-                }
-              },
-              "additionalProperties": { "type": "string" }
-            }
-          },
-          "additionalProperties": false
-        },
-        "css": {
-          "type": "string",
-          "description": "Relative path to the theme's stylesheet (e.g. theme.css)."
-        },
-        "layout": {
-          "type": "object",
-          "properties": {
-            "auth": { "type": "string", "enum": ["card", "split"] },
-            "skinlib": { "type": "string", "enum": ["comfortable", "compact"] },
-            "user": { "type": "string", "enum": ["sidebar", "tabs"] },
-            "texture": { "type": "string", "enum": ["split", "stacked"] }
-          },
-          "additionalProperties": { "type": "string" }
-        },
-        "home": {
-          "type": "array",
-          "description": "Default home page blocks when home.blocks is not customised.",
-          "items": { "$ref": "#/definitions/block" }
-        },
-        "settings": {
-          "$ref": "#/definitions/themeSettings"
-        }
-      },
-      "additionalProperties": false
-    }
-  },
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
-    "localizedString": {
-      "type": "object",
-      "properties": {
-        "zh-CN": { "type": "string" },
-        "en": { "type": "string" }
-      },
-      "additionalProperties": { "type": "string" }
-    },
-    "colorTokens": {
-      "type": "object",
-      "properties": {
-        "background": { "type": "string" },
-        "foreground": { "type": "string" },
-        "card": { "type": "string" },
-        "card-foreground": { "type": "string" },
-        "popover": { "type": "string" },
-        "popover-foreground": { "type": "string" },
-        "muted": { "type": "string" },
-        "muted-foreground": { "type": "string" },
-        "faint-foreground": { "type": "string" },
-        "secondary": { "type": "string" },
-        "secondary-foreground": { "type": "string" },
-        "accent": { "type": "string" },
-        "accent-foreground": { "type": "string" },
-        "primary": { "type": "string" },
-        "primary-foreground": { "type": "string" },
-        "highlight": { "type": "string" },
-        "highlight-foreground": { "type": "string" },
-        "warning": { "type": "string" },
-        "warning-foreground": { "type": "string" },
-        "success": { "type": "string" },
-        "success-foreground": { "type": "string" },
-        "destructive": { "type": "string" },
-        "destructive-foreground": { "type": "string" },
-        "border": { "type": "string" },
-        "input": { "type": "string" },
-        "overlay": { "type": "string" },
-        "ring": { "type": "string" },
-        "chart-1": { "type": "string" },
-        "chart-2": { "type": "string" },
-        "chart-3": { "type": "string" },
-        "chart-4": { "type": "string" },
-        "chart-5": { "type": "string" },
-        "sidebar": { "type": "string" },
-        "sidebar-foreground": { "type": "string" },
-        "sidebar-primary": { "type": "string" },
-        "sidebar-primary-foreground": { "type": "string" },
-        "sidebar-accent": { "type": "string" },
-        "sidebar-accent-foreground": { "type": "string" },
-        "sidebar-border": { "type": "string" },
-        "sidebar-ring": { "type": "string" },
-        "pixel-a": { "type": "string" },
-        "pixel-b": { "type": "string" },
-        "shadow-popover": { "type": "string" },
-        "shadow-dialog": { "type": "string" },
-        "radius": { "type": "string" },
-        "brand-gradient": { "type": "string" }
-      },
-      "additionalProperties": { "type": "string" }
-    },
-    "themeSettings": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "required": ["type"],
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": ["color", "image", "choice", "text", "boolean"]
-          },
-          "label": {
-            "oneOf": [
-              { "type": "string" },
-              { "$ref": "#/definitions/localizedString" }
-            ]
-          },
-          "default": {
-            "oneOf": [
-              { "type": "string" },
-              { "type": "boolean" }
-            ]
-          },
-          "options": {
-            "type": "array",
-            "items": { "type": "string" }
-          },
-          "token": {
-            "type": "string",
-            "pattern": "^[a-z0-9-]{1,64}$",
-            "description": "When set on a color or text setting, writes the setting's value directly to this token."
-          }
-        },
-        "additionalProperties": false
-      }
-    },
     "block": {
-      "type": "object",
-      "required": ["type"],
+      "additionalProperties": false,
       "properties": {
+        "props": {
+          "additionalProperties": true,
+          "type": "object"
+        },
         "type": {
-          "type": "string",
           "enum": [
             "hero",
             "announcement",
@@ -239,14 +21,931 @@
             "image",
             "buttons",
             "launcher-guide"
-          ]
-        },
-        "props": {
-          "type": "object",
-          "additionalProperties": true
+          ],
+          "type": "string"
         }
       },
-      "additionalProperties": false
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    "colorTokens": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "properties": {
+        "accent": {
+          "type": "string"
+        },
+        "accent-foreground": {
+          "type": "string"
+        },
+        "background": {
+          "type": "string"
+        },
+        "border": {
+          "type": "string"
+        },
+        "brand-gradient": {
+          "type": "string"
+        },
+        "card": {
+          "type": "string"
+        },
+        "card-foreground": {
+          "type": "string"
+        },
+        "chart-1": {
+          "type": "string"
+        },
+        "chart-2": {
+          "type": "string"
+        },
+        "chart-3": {
+          "type": "string"
+        },
+        "chart-4": {
+          "type": "string"
+        },
+        "chart-5": {
+          "type": "string"
+        },
+        "destructive": {
+          "type": "string"
+        },
+        "destructive-foreground": {
+          "type": "string"
+        },
+        "faint-foreground": {
+          "type": "string"
+        },
+        "foreground": {
+          "type": "string"
+        },
+        "highlight": {
+          "type": "string"
+        },
+        "highlight-foreground": {
+          "type": "string"
+        },
+        "input": {
+          "type": "string"
+        },
+        "muted": {
+          "type": "string"
+        },
+        "muted-foreground": {
+          "type": "string"
+        },
+        "overlay": {
+          "type": "string"
+        },
+        "pixel-a": {
+          "type": "string"
+        },
+        "pixel-b": {
+          "type": "string"
+        },
+        "popover": {
+          "type": "string"
+        },
+        "popover-foreground": {
+          "type": "string"
+        },
+        "primary": {
+          "type": "string"
+        },
+        "primary-foreground": {
+          "type": "string"
+        },
+        "radius": {
+          "type": "string"
+        },
+        "ring": {
+          "type": "string"
+        },
+        "secondary": {
+          "type": "string"
+        },
+        "secondary-foreground": {
+          "type": "string"
+        },
+        "shadow-dialog": {
+          "type": "string"
+        },
+        "shadow-popover": {
+          "type": "string"
+        },
+        "sidebar": {
+          "type": "string"
+        },
+        "sidebar-accent": {
+          "type": "string"
+        },
+        "sidebar-accent-foreground": {
+          "type": "string"
+        },
+        "sidebar-border": {
+          "type": "string"
+        },
+        "sidebar-foreground": {
+          "type": "string"
+        },
+        "sidebar-primary": {
+          "type": "string"
+        },
+        "sidebar-primary-foreground": {
+          "type": "string"
+        },
+        "sidebar-ring": {
+          "type": "string"
+        },
+        "success": {
+          "type": "string"
+        },
+        "success-foreground": {
+          "type": "string"
+        },
+        "warning": {
+          "type": "string"
+        },
+        "warning-foreground": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "formDef": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "$ref": "#/definitions/localizedString"
+        },
+        "label": {
+          "$ref": "#/definitions/localizedString"
+        },
+        "maxLength": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "options": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "placeholder": {
+          "$ref": "#/definitions/localizedString"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "enum": [
+            "text",
+            "number",
+            "boolean",
+            "select",
+            "textarea"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "label"
+      ],
+      "type": "object"
+    },
+    "localizedString": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "properties": {
+            "en": {
+              "type": "string"
+            },
+            "zh-CN": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "menuDef": {
+      "additionalProperties": false,
+      "properties": {
+        "area": {
+          "enum": [
+            "user",
+            "admin",
+            "explore"
+          ],
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "order": {
+          "type": "integer"
+        },
+        "path": {
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "admin",
+            "superadmin"
+          ],
+          "type": "string"
+        },
+        "title": {
+          "$ref": "#/definitions/localizedString"
+        }
+      },
+      "required": [
+        "area",
+        "path",
+        "title"
+      ],
+      "type": "object"
+    },
+    "settingsMap": {
+      "additionalProperties": {
+        "additionalProperties": true,
+        "properties": {
+          "default": {},
+          "description": {
+            "$ref": "#/definitions/localizedString"
+          },
+          "fields": {
+            "$ref": "#/definitions/settingsMap"
+          },
+          "item": {
+            "additionalProperties": true,
+            "properties": {
+              "placeholder": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "label": {
+            "$ref": "#/definitions/localizedString"
+          },
+          "max": {
+            "type": "number"
+          },
+          "min": {
+            "type": "number"
+          },
+          "options": {
+            "type": "array"
+          },
+          "order": {
+            "type": "integer"
+          },
+          "pattern": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "scope": {
+            "enum": [
+              "site",
+              "user"
+            ],
+            "type": "string"
+          },
+          "showIf": {
+            "type": "object"
+          },
+          "step": {
+            "type": "number"
+          },
+          "token": {
+            "pattern": "^[a-z0-9-]{1,64}$",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "string",
+              "text",
+              "markdown",
+              "number",
+              "boolean",
+              "select",
+              "multiselect",
+              "color",
+              "image",
+              "secret",
+              "json",
+              "list",
+              "group",
+              "choice"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "type": "object"
     }
-  }
+  },
+  "description": "Auto-generated by internal/tools/plugingen. Manifest file (plugin.json) for SkinLoom plugins and themes.",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "apiVersion": {
+      "enum": [
+        1
+      ],
+      "type": "integer"
+    },
+    "authors": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "blocks": {
+      "additionalProperties": {
+        "additionalProperties": true,
+        "properties": {
+          "defaultProps": {
+            "type": "object"
+          },
+          "name": {
+            "$ref": "#/definitions/localizedString"
+          }
+        },
+        "type": "object"
+      },
+      "type": "object"
+    },
+    "dependencies": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "description": {
+      "$ref": "#/definitions/localizedString"
+    },
+    "engines": {
+      "additionalProperties": false,
+      "properties": {
+        "go": {
+          "description": "Minimum Go toolchain version for native plugins (e.g. \u003e=1.26).",
+          "type": "string"
+        },
+        "skinloom": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "extends": {
+      "description": "Parent theme ID for single-level theme inheritance (ADR 0043).",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
+      "type": "string"
+    },
+    "forms": {
+      "additionalProperties": false,
+      "properties": {
+        "auth.login": {
+          "items": {
+            "$ref": "#/definitions/formDef"
+          },
+          "type": "array"
+        },
+        "auth.register": {
+          "items": {
+            "$ref": "#/definitions/formDef"
+          },
+          "type": "array"
+        },
+        "player.create": {
+          "items": {
+            "$ref": "#/definitions/formDef"
+          },
+          "type": "array"
+        },
+        "texture.upload": {
+          "items": {
+            "$ref": "#/definitions/formDef"
+          },
+          "type": "array"
+        },
+        "user.profile": {
+          "items": {
+            "$ref": "#/definitions/formDef"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "homepage": {
+      "type": "string"
+    },
+    "hooks": {
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "items": {
+            "oneOf": [
+              {
+                "enum": [
+                  "closet.added",
+                  "closet.removed",
+                  "player.created",
+                  "player.deleted",
+                  "player.renamed",
+                  "player.updated",
+                  "report.resolved",
+                  "report.submitted",
+                  "score.changed",
+                  "settings.changed",
+                  "texture.deleted",
+                  "texture.updated",
+                  "texture.uploaded",
+                  "user.banned",
+                  "user.deleted",
+                  "user.loggedIn",
+                  "user.registered",
+                  "user.updated",
+                  "yggdrasil.joined"
+                ],
+                "type": "string"
+              },
+              {
+                "pattern": "^plugin:[a-z0-9-]+\\.[a-zA-Z0-9._-]+$",
+                "type": "string"
+              }
+            ]
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "filter": {
+          "items": {
+            "enum": [
+              "closet.itemName",
+              "player.name",
+              "profile.textures",
+              "score.checkinAmount",
+              "texture.name",
+              "user.badges",
+              "yggdrasil.profileProperties"
+            ],
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "guard": {
+          "items": {
+            "enum": [
+              "auth.login",
+              "auth.register",
+              "closet.add",
+              "closet.remove",
+              "closet.rename",
+              "player.create",
+              "player.delete",
+              "player.rename",
+              "player.textures.clear",
+              "player.textures.set",
+              "report.submit",
+              "score.checkin",
+              "texture.delete",
+              "texture.rename",
+              "texture.type",
+              "texture.upload",
+              "texture.visibility",
+              "user.avatar.update",
+              "user.profile.update",
+              "yggdrasil.authenticate",
+              "yggdrasil.join"
+            ],
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "type": "object"
+    },
+    "http": {
+      "additionalProperties": false,
+      "properties": {
+        "allow": {
+          "description": "Declared outbound HTTPS/HTTP hostnames or *.domain patterns allowed for ctx.fetch.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "maxBodyBytes": {
+          "maximum": 10485760,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "icon": {
+      "description": "Relative asset path or icon name.",
+      "type": "string"
+    },
+    "id": {
+      "description": "Unique identifier (kebab-case: plugins 3-40 chars, themes 1-32 chars).",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "plugin",
+        "theme"
+      ],
+      "type": "string"
+    },
+    "license": {
+      "type": "string"
+    },
+    "menus": {
+      "items": {
+        "$ref": "#/definitions/menuDef"
+      },
+      "type": "array"
+    },
+    "name": {
+      "$ref": "#/definitions/localizedString"
+    },
+    "native": {
+      "additionalProperties": false,
+      "properties": {
+        "database": {
+          "additionalProperties": false,
+          "properties": {
+            "required": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
+        "executable": {
+          "description": "Relative POSIX base path of the native Go binary (e.g. bin/my-plugin).",
+          "type": "string"
+        },
+        "httpProxy": {
+          "default": false,
+          "description": "Enable local Unix socket / loopback reverse proxy for streaming HTTP/WebSocket routes.",
+          "type": "boolean"
+        },
+        "platforms": {
+          "items": {
+            "pattern": "^[a-z0-9]+/[a-z0-9]+$",
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "protocolVersion": {
+          "default": 1,
+          "enum": [
+            1
+          ],
+          "type": "integer"
+        }
+      },
+      "required": [
+        "executable"
+      ],
+      "type": "object"
+    },
+    "optionalDependencies": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "permissions": {
+      "items": {
+        "enum": [
+          "admin.ui",
+          "auth.password",
+          "auth.provider",
+          "captcha.provider",
+          "cdn.provider",
+          "closet.write",
+          "cron",
+          "http.fetch",
+          "http.stream",
+          "mail.send",
+          "native.exec",
+          "notify.send",
+          "players.read",
+          "players.write",
+          "provider.render",
+          "provider.search",
+          "provider.storage",
+          "routes.public",
+          "score.write",
+          "storage.docs",
+          "storage.files",
+          "storage.kv",
+          "storage.sql",
+          "textures.read",
+          "textures.write",
+          "users.ban",
+          "users.read",
+          "users.write",
+          "yggdrasil.extend"
+        ],
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "repository": {
+      "type": "string"
+    },
+    "routes": {
+      "additionalProperties": false,
+      "properties": {
+        "public": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "runtime": {
+      "default": "js",
+      "description": "Execution tier: 'js' (QuickJS/WASM sandbox) or 'native' (isolated Go gRPC subprocess).",
+      "enum": [
+        "js",
+        "native"
+      ],
+      "type": "string"
+    },
+    "screenshot": {
+      "description": "Relative path to a preview image in the package.",
+      "type": "string"
+    },
+    "server": {
+      "description": "Relative path to bundled ES2023 server entry (e.g. server.js).",
+      "type": "string"
+    },
+    "services": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "settings": {
+      "$ref": "#/definitions/settingsMap"
+    },
+    "slots": {
+      "items": {
+        "enum": [
+          "site.header.actions",
+          "site.footer",
+          "site.banner",
+          "auth.login.below",
+          "auth.login.providers",
+          "auth.register.below",
+          "auth.register.providers",
+          "user.dashboard.widgets",
+          "user.profile.sections",
+          "user.player.actions",
+          "user.closet.item.actions",
+          "skinlib.card.badges",
+          "skinlib.detail.sidebar",
+          "skinlib.detail.below",
+          "skinlib.upload.below",
+          "admin.dashboard.widgets",
+          "admin.user.actions",
+          "admin.user.tabs",
+          "admin.texture.actions",
+          "admin.status.cards"
+        ],
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "storage": {
+      "additionalProperties": false,
+      "properties": {
+        "collections": {
+          "additionalProperties": {
+            "additionalProperties": false,
+            "properties": {
+              "indexes": {
+                "additionalProperties": {
+                  "enum": [
+                    "string",
+                    "string:unique",
+                    "number",
+                    "time"
+                  ],
+                  "type": "string"
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "type": "object"
+        },
+        "quota": {
+          "additionalProperties": false,
+          "properties": {
+            "docs": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "filesBytes": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "kvKeys": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "theme": {
+      "additionalProperties": false,
+      "properties": {
+        "colorScheme": {
+          "default": "both",
+          "enum": [
+            "both",
+            "light",
+            "dark"
+          ],
+          "type": "string"
+        },
+        "css": {
+          "type": "string"
+        },
+        "home": {
+          "items": {
+            "$ref": "#/definitions/block"
+          },
+          "type": "array"
+        },
+        "layout": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "properties": {
+            "auth": {
+              "enum": [
+                "card",
+                "split"
+              ],
+              "type": "string"
+            },
+            "site": {
+              "enum": [
+                "topnav",
+                "sidebar"
+              ],
+              "type": "string"
+            },
+            "skinlib": {
+              "enum": [
+                "comfortable",
+                "compact"
+              ],
+              "type": "string"
+            },
+            "texture": {
+              "enum": [
+                "split",
+                "stacked"
+              ],
+              "type": "string"
+            },
+            "user": {
+              "enum": [
+                "sidebar",
+                "tabs"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "overrides": {
+          "items": {
+            "enum": [
+              "site.header",
+              "site.footer",
+              "site.logo",
+              "auth.background",
+              "home.hero",
+              "texture.card",
+              "player.card"
+            ],
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "settings": {
+          "$ref": "#/definitions/settingsMap"
+        },
+        "tokens": {
+          "additionalProperties": false,
+          "properties": {
+            "dark": {
+              "$ref": "#/definitions/colorTokens"
+            },
+            "fonts": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "properties": {
+                "display": {
+                  "type": "string"
+                },
+                "mono": {
+                  "type": "string"
+                },
+                "sans": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "light": {
+              "$ref": "#/definitions/colorTokens"
+            },
+            "viewer": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "properties": {
+                "background": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "version": {
+      "description": "Semantic version (e.g. 1.0.0).",
+      "type": "string"
+    },
+    "web": {
+      "description": "Relative path to bundled ESM web entry (e.g. web/index.js).",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "kind",
+    "version",
+    "name",
+    "apiVersion"
+  ],
+  "title": "SkinLoom Plugin \u0026 Theme Manifest (v1)",
+  "type": "object"
 }

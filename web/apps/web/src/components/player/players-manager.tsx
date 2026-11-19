@@ -50,6 +50,10 @@ import { Copy, FileJson, MoreHorizontal, Pencil, Plus, Shirt, Trash2, Users, X }
 import { useTranslations } from 'next-intl'
 import { type FormEvent, useState } from 'react'
 
+import { findMissingPluginFormErrors, PluginForms } from '@/components/plugin-forms'
+import { useBootstrap } from '@/components/providers'
+import { Slot } from '@/components/slot'
+import { ThemeOverride } from '@/components/theme-override'
 import { problemOf } from '@/lib/problem'
 import { dashedUUID } from '@/lib/uuid'
 
@@ -153,64 +157,81 @@ export function PlayersManager({ rules, initialScore }: { rules: PlayerRules; in
       {list && list.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {list.map((p) => (
-            <PlayerCard
+            <ThemeOverride
               key={p.id}
-              name={p.name}
-              uuid={dashedUUID(p.uuid)}
-              skin={p.skin && p.skin.type !== 'cape' ? { id: p.skin.id, type: p.skin.type } : null}
-              details={[
-                { label: t('skin'), value: p.skin?.name ?? '—' },
-                { label: t('cape'), value: p.cape?.name ?? '—' },
-              ]}
-              actions={
-                <>
-                  <Button variant="outline" size="sm" onClick={() => setPicking({ player: p, kind: 'skin' })}>
-                    <Shirt />
-                    {t('chooseSkin')}
-                  </Button>
-                  <span className="flex-1" />
-                  <DropdownMenu>
-                    <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t('more', { name: p.name })} title={t('more', { name: p.name })} />}>
-                      <MoreHorizontal />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={() => setPicking({ player: p, kind: 'cape' })}>
+              name="player.card"
+              props={{ id: p.id, name: p.name, uuid: dashedUUID(p.uuid), skin: p.skin, cape: p.cape }}
+              fallback={
+                <PlayerCard
+                  name={p.name}
+                  uuid={dashedUUID(p.uuid)}
+                  skin={p.skin && p.skin.type !== 'cape' ? { id: p.skin.id, type: p.skin.type } : null}
+                  details={[
+                    { label: t('skin'), value: p.skin?.name ?? '—' },
+                    { label: t('cape'), value: p.cape?.name ?? '—' },
+                  ]}
+                  actions={
+                    <>
+                      <Button variant="outline" size="sm" className="pointer-coarse:h-10" onClick={() => setPicking({ player: p, kind: 'skin' })}>
                         <Shirt />
-                        {t('chooseCape')}
-                      </DropdownMenuItem>
-                      {p.skin && (
-                        <DropdownMenuItem onClick={() => void wear(p, { skin: 0 })}>
-                          <X />
-                          {t('removeSkin')}
-                        </DropdownMenuItem>
-                      )}
-                      {p.cape && (
-                        <DropdownMenuItem onClick={() => void wear(p, { cape: 0 })}>
-                          <X />
-                          {t('removeCape')}
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setEditing({ kind: 'rename', player: p })}>
-                        <Pencil />
-                        {t('rename')}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => void copyUUID(p)}>
-                        <Copy />
-                        {t('copyUUID')}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem render={<a href={`/${encodeURIComponent(p.name)}.json`} target="_blank" rel="noreferrer" />}>
-                        <FileJson />
-                        {t('profileLink')}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem variant="destructive" onClick={() => void remove(p)}>
-                        <Trash2 />
-                        {t('delete')}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </>
+                        {t('chooseSkin')}
+                      </Button>
+                      <Slot name="user.player.actions" props={{ playerId: p.id, name: p.name, uuid: dashedUUID(p.uuid) }} />
+                      <span className="flex-1" />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="pointer-coarse:size-10"
+                              aria-label={t('more', { name: p.name })}
+                              title={t('more', { name: p.name })}
+                            />
+                          }
+                        >
+                          <MoreHorizontal />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={() => setPicking({ player: p, kind: 'cape' })}>
+                            <Shirt />
+                            {t('chooseCape')}
+                          </DropdownMenuItem>
+                          {p.skin && (
+                            <DropdownMenuItem onClick={() => void wear(p, { skin: 0 })}>
+                              <X />
+                              {t('removeSkin')}
+                            </DropdownMenuItem>
+                          )}
+                          {p.cape && (
+                            <DropdownMenuItem onClick={() => void wear(p, { cape: 0 })}>
+                              <X />
+                              {t('removeCape')}
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setEditing({ kind: 'rename', player: p })}>
+                            <Pencil />
+                            {t('rename')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => void copyUUID(p)}>
+                            <Copy />
+                            {t('copyUUID')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem render={<a href={`/${encodeURIComponent(p.name)}.json`} target="_blank" rel="noreferrer" />}>
+                            <FileJson />
+                            {t('profileLink')}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem variant="destructive" onClick={() => void remove(p)}>
+                            <Trash2 />
+                            {t('delete')}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </>
+                  }
+                />
               }
             />
           ))}
@@ -265,8 +286,12 @@ function NameDialog({
 }) {
   const t = useTranslations('player')
   const tc = useTranslations('common')
+  const tf = useTranslations('fieldErrors')
+  const boot = useBootstrap()
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [extraForm, setExtraForm] = useState<Record<string, unknown>>({})
   const hint = t(`rules.${rules.nameRule}`, { min: rules.minLength, max: rules.maxLength })
   const renaming = editing?.kind === 'rename' ? editing.player : null
 
@@ -274,14 +299,25 @@ function NameDialog({
     e.preventDefault()
     const name = String(new FormData(e.currentTarget).get('name') ?? '').trim()
     if (renaming && name === renaming.name) return onClose()
+    if (!renaming) {
+      const missingExtra = findMissingPluginFormErrors(boot.forms, 'player.create', extraForm, tf('required'))
+      if (Object.keys(missingExtra).length > 0) {
+        setFieldErrors(missingExtra)
+        return
+      }
+    }
     setPending(true)
     setError(null)
+    setFieldErrors({})
     try {
       if (renaming) onRenamed((await renamePlayer(renaming.id, { name })).data as PlayerView)
-      else onCreated((await createPlayer({ name })).data as PlayerCreated)
+      else onCreated((await createPlayer({ name, ...(Object.keys(extraForm).length > 0 ? { form: extraForm } : {}) })).data as PlayerCreated)
+      setExtraForm({})
+      setFieldErrors({})
       onClose()
     } catch (err) {
       const p = problemOf(err)
+      setFieldErrors(p.fields)
       setError(
         p.unverified
           ? tc('verifyFirst')
@@ -291,9 +327,11 @@ function NameDialog({
               ? t('errors.taken')
               : p.fields.name
                 ? t('errors.name')
-                : p.status === 422 && p.detail
+                : p.status === 422 && p.detail && Object.keys(p.fields).length === 0
                   ? p.detail
-                  : t('errors.failed'),
+                  : Object.keys(p.fields).some((k) => k !== 'name')
+                    ? null
+                    : t('errors.failed'),
       )
     } finally {
       setPending(false)
@@ -304,11 +342,15 @@ function NameDialog({
     <Dialog
       open={editing !== null}
       onOpenChange={(open) => {
-        if (!open) onClose()
+        if (!open) {
+          setExtraForm({})
+          setFieldErrors({})
+          onClose()
+        }
         setError(null)
       }}
     >
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-sm">
         <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{renaming ? t('renameTitle', { name: renaming.name }) : t('createTitle')}</DialogTitle>
@@ -329,6 +371,7 @@ function NameDialog({
             />
             {error ? <FieldError>{error}</FieldError> : <FieldDescription>{hint}</FieldDescription>}
           </Field>
+          {!renaming && <PluginForms scope="player.create" values={extraForm} onChange={setExtraForm} errors={fieldErrors} />}
           {!renaming && rules.cost > 0 && (
             <p className="text-caption text-muted-foreground">
               {t('cost', { cost: rules.cost, score })}

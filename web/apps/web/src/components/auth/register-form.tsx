@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { type FormEvent, useState } from 'react'
 
+import { findMissingPluginFormErrors, PluginForms } from '@/components/plugin-forms'
+import { useBootstrap } from '@/components/providers'
+import { Slot } from '@/components/slot'
 import { problemOf } from '@/lib/problem'
 
 import { Captcha } from './captcha'
@@ -14,12 +17,14 @@ import { Field, FormError } from './field'
 export function RegisterForm({ captcha }: { captcha: CaptchaInfo }) {
   const t = useTranslations('register')
   const tf = useTranslations('fieldErrors')
+  const boot = useBootstrap()
   const router = useRouter()
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fields, setFields] = useState<Record<string, string>>({})
   const [answer, setAnswer] = useState<Answer | null>(null)
   const [resetKey, setResetKey] = useState(0)
+  const [extraForm, setExtraForm] = useState<Record<string, unknown>>({})
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -33,6 +38,11 @@ export function RegisterForm({ captcha }: { captcha: CaptchaInfo }) {
       setFields({ captcha: tf('captchaRequired') })
       return
     }
+    const missingExtra = findMissingPluginFormErrors(boot.forms, 'auth.register', extraForm, tf('required'))
+    if (Object.keys(missingExtra).length > 0) {
+      setFields(missingExtra)
+      return
+    }
     setPending(true)
     setError(null)
     setFields({})
@@ -42,6 +52,7 @@ export function RegisterForm({ captcha }: { captcha: CaptchaInfo }) {
         nickname: get('nickname'),
         password: get('password'),
         ...(answer ? { captcha: answer } : {}),
+        ...(Object.keys(extraForm).length > 0 ? { form: extraForm } : {}),
       })
       router.replace('/')
       router.refresh()
@@ -82,10 +93,12 @@ export function RegisterForm({ captcha }: { captcha: CaptchaInfo }) {
         error={fields.password}
       />
       <Field id="confirm" label={t('confirm')} type="password" autoComplete="new-password" required error={fields.confirm} />
+      <PluginForms scope="auth.register" values={extraForm} onChange={setExtraForm} errors={fields} />
       <Captcha config={captcha} onChange={setAnswer} resetKey={resetKey} error={fields.captcha} />
       <Button type="submit" size="lg" loading={pending}>
         {t('submit')}
       </Button>
+      <Slot name="auth.register.below" />
     </form>
   )
 }

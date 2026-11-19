@@ -3,6 +3,7 @@ import { ButtonLink, cn } from '@skinloom/ui'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 
+import { ThemeOverride } from '@/components/theme-override'
 import { getBootstrap } from '@/lib/bootstrap'
 import { safeHref, safeImageUrl } from '@/lib/safe-url'
 import { getViewer } from '@/lib/viewer'
@@ -69,8 +70,8 @@ export async function HeroBlock({ props }: { props: Props }) {
     </div>
   )
 
-  if (layout === 'split') {
-    return (
+  const heroElement =
+    layout === 'split' ? (
       <section className="sl-block-hero">
         <div className={cn(CONTAINER, 'grid items-center gap-8 py-10 sm:py-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,40rem)] lg:gap-12 lg:py-20')}>
           {text}
@@ -90,14 +91,14 @@ export async function HeroBlock({ props }: { props: Props }) {
           />
         </div>
       </section>
+    ) : (
+      <section
+        className={cn('sl-block-hero', banner && 'sl-hero relative isolate overflow-hidden bg-cover bg-center text-primary-foreground')}
+        style={background ? { backgroundImage: `url(${JSON.stringify(background)})` } : undefined}
+      >
+        <div className={cn(CONTAINER, 'relative z-10 py-16 sm:py-24', layout === 'centered' && 'max-w-3xl')}>{text}</div>
+      </section>
     )
-  }
-  return (
-    <section
-      className={cn('sl-block-hero', banner && 'sl-hero relative isolate overflow-hidden bg-cover bg-center text-primary-foreground')}
-      style={background ? { backgroundImage: `url(${JSON.stringify(background)})` } : undefined}
-    >
-      <div className={cn(CONTAINER, 'relative z-10 py-16 sm:py-24', layout === 'centered' && 'max-w-3xl')}>{text}</div>
-    </section>
-  )
+
+  return <ThemeOverride name="home.hero" props={{ title, subtitle, layout, background }} fallback={heroElement} />
 }

@@ -17,7 +17,11 @@ export interface ResolvedTheme {
   id: string;
   js: string[];
   layout: ResolvedThemeLayout;
+  overrides?: string[];
+  previewName?: string;
+  previewing?: boolean;
   settings?: ResolvedThemeSettings;
   tokens: Tokens;
   version: string;
+  webEntry?: string;
 }

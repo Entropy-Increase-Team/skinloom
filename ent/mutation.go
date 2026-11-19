@@ -9820,6 +9820,7 @@ type PluginMutation struct {
 	typ                       string
 	id                        *string
 	kind                      *plugin.Kind
+	runtime                   *plugin.Runtime
 	version                   *string
 	status                    *plugin.Status
 	granted_permissions       *[]string
@@ -9828,6 +9829,8 @@ type PluginMutation struct {
 	error                     *string
 	source                    *string
 	package_sha256            *string
+	platform_packages         *map[string]string
+	registry_source           *string
 	installed_at              *time.Time
 	updated_at                *time.Time
 	clearedFields             map[string]struct{}
@@ -9974,6 +9977,42 @@ func (m *PluginMutation) OldKind(ctx context.Context) (v plugin.Kind, err error)
 // ResetKind resets all changes to the "kind" field.
 func (m *PluginMutation) ResetKind() {
 	m.kind = nil
+}
+
+// SetRuntime sets the "runtime" field.
+func (m *PluginMutation) SetRuntime(pl plugin.Runtime) {
+	m.runtime = &pl
+}
+
+// Runtime returns the value of the "runtime" field in the mutation.
+func (m *PluginMutation) Runtime() (r plugin.Runtime, exists bool) {
+	v := m.runtime
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRuntime returns the old "runtime" field's value of the Plugin entity.
+// If the Plugin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginMutation) OldRuntime(ctx context.Context) (v plugin.Runtime, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRuntime is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRuntime requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRuntime: %w", err)
+	}
+	return oldValue.Runtime, nil
+}
+
+// ResetRuntime resets all changes to the "runtime" field.
+func (m *PluginMutation) ResetRuntime() {
+	m.runtime = nil
 }
 
 // SetVersion sets the "version" field.
@@ -10296,6 +10335,104 @@ func (m *PluginMutation) ResetPackageSha256() {
 	delete(m.clearedFields, plugin.FieldPackageSha256)
 }
 
+// SetPlatformPackages sets the "platform_packages" field.
+func (m *PluginMutation) SetPlatformPackages(value map[string]string) {
+	m.platform_packages = &value
+}
+
+// PlatformPackages returns the value of the "platform_packages" field in the mutation.
+func (m *PluginMutation) PlatformPackages() (r map[string]string, exists bool) {
+	v := m.platform_packages
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlatformPackages returns the old "platform_packages" field's value of the Plugin entity.
+// If the Plugin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginMutation) OldPlatformPackages(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlatformPackages is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlatformPackages requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlatformPackages: %w", err)
+	}
+	return oldValue.PlatformPackages, nil
+}
+
+// ClearPlatformPackages clears the value of the "platform_packages" field.
+func (m *PluginMutation) ClearPlatformPackages() {
+	m.platform_packages = nil
+	m.clearedFields[plugin.FieldPlatformPackages] = struct{}{}
+}
+
+// PlatformPackagesCleared returns if the "platform_packages" field was cleared in this mutation.
+func (m *PluginMutation) PlatformPackagesCleared() bool {
+	_, ok := m.clearedFields[plugin.FieldPlatformPackages]
+	return ok
+}
+
+// ResetPlatformPackages resets all changes to the "platform_packages" field.
+func (m *PluginMutation) ResetPlatformPackages() {
+	m.platform_packages = nil
+	delete(m.clearedFields, plugin.FieldPlatformPackages)
+}
+
+// SetRegistrySource sets the "registry_source" field.
+func (m *PluginMutation) SetRegistrySource(s string) {
+	m.registry_source = &s
+}
+
+// RegistrySource returns the value of the "registry_source" field in the mutation.
+func (m *PluginMutation) RegistrySource() (r string, exists bool) {
+	v := m.registry_source
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRegistrySource returns the old "registry_source" field's value of the Plugin entity.
+// If the Plugin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginMutation) OldRegistrySource(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRegistrySource is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRegistrySource requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRegistrySource: %w", err)
+	}
+	return oldValue.RegistrySource, nil
+}
+
+// ClearRegistrySource clears the value of the "registry_source" field.
+func (m *PluginMutation) ClearRegistrySource() {
+	m.registry_source = nil
+	m.clearedFields[plugin.FieldRegistrySource] = struct{}{}
+}
+
+// RegistrySourceCleared returns if the "registry_source" field was cleared in this mutation.
+func (m *PluginMutation) RegistrySourceCleared() bool {
+	_, ok := m.clearedFields[plugin.FieldRegistrySource]
+	return ok
+}
+
+// ResetRegistrySource resets all changes to the "registry_source" field.
+func (m *PluginMutation) ResetRegistrySource() {
+	m.registry_source = nil
+	delete(m.clearedFields, plugin.FieldRegistrySource)
+}
+
 // SetInstalledAt sets the "installed_at" field.
 func (m *PluginMutation) SetInstalledAt(t time.Time) {
 	m.installed_at = &t
@@ -10402,9 +10539,12 @@ func (m *PluginMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PluginMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 13)
 	if m.kind != nil {
 		fields = append(fields, plugin.FieldKind)
+	}
+	if m.runtime != nil {
+		fields = append(fields, plugin.FieldRuntime)
 	}
 	if m.version != nil {
 		fields = append(fields, plugin.FieldVersion)
@@ -10427,6 +10567,12 @@ func (m *PluginMutation) Fields() []string {
 	if m.package_sha256 != nil {
 		fields = append(fields, plugin.FieldPackageSha256)
 	}
+	if m.platform_packages != nil {
+		fields = append(fields, plugin.FieldPlatformPackages)
+	}
+	if m.registry_source != nil {
+		fields = append(fields, plugin.FieldRegistrySource)
+	}
 	if m.installed_at != nil {
 		fields = append(fields, plugin.FieldInstalledAt)
 	}
@@ -10443,6 +10589,8 @@ func (m *PluginMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case plugin.FieldKind:
 		return m.Kind()
+	case plugin.FieldRuntime:
+		return m.Runtime()
 	case plugin.FieldVersion:
 		return m.Version()
 	case plugin.FieldStatus:
@@ -10457,6 +10605,10 @@ func (m *PluginMutation) Field(name string) (ent.Value, bool) {
 		return m.Source()
 	case plugin.FieldPackageSha256:
 		return m.PackageSha256()
+	case plugin.FieldPlatformPackages:
+		return m.PlatformPackages()
+	case plugin.FieldRegistrySource:
+		return m.RegistrySource()
 	case plugin.FieldInstalledAt:
 		return m.InstalledAt()
 	case plugin.FieldUpdatedAt:
@@ -10472,6 +10624,8 @@ func (m *PluginMutation) OldField(ctx context.Context, name string) (ent.Value, 
 	switch name {
 	case plugin.FieldKind:
 		return m.OldKind(ctx)
+	case plugin.FieldRuntime:
+		return m.OldRuntime(ctx)
 	case plugin.FieldVersion:
 		return m.OldVersion(ctx)
 	case plugin.FieldStatus:
@@ -10486,6 +10640,10 @@ func (m *PluginMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldSource(ctx)
 	case plugin.FieldPackageSha256:
 		return m.OldPackageSha256(ctx)
+	case plugin.FieldPlatformPackages:
+		return m.OldPlatformPackages(ctx)
+	case plugin.FieldRegistrySource:
+		return m.OldRegistrySource(ctx)
 	case plugin.FieldInstalledAt:
 		return m.OldInstalledAt(ctx)
 	case plugin.FieldUpdatedAt:
@@ -10505,6 +10663,13 @@ func (m *PluginMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetKind(v)
+		return nil
+	case plugin.FieldRuntime:
+		v, ok := value.(plugin.Runtime)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRuntime(v)
 		return nil
 	case plugin.FieldVersion:
 		v, ok := value.(string)
@@ -10554,6 +10719,20 @@ func (m *PluginMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPackageSha256(v)
+		return nil
+	case plugin.FieldPlatformPackages:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlatformPackages(v)
+		return nil
+	case plugin.FieldRegistrySource:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRegistrySource(v)
 		return nil
 	case plugin.FieldInstalledAt:
 		v, ok := value.(time.Time)
@@ -10611,6 +10790,12 @@ func (m *PluginMutation) ClearedFields() []string {
 	if m.FieldCleared(plugin.FieldPackageSha256) {
 		fields = append(fields, plugin.FieldPackageSha256)
 	}
+	if m.FieldCleared(plugin.FieldPlatformPackages) {
+		fields = append(fields, plugin.FieldPlatformPackages)
+	}
+	if m.FieldCleared(plugin.FieldRegistrySource) {
+		fields = append(fields, plugin.FieldRegistrySource)
+	}
 	return fields
 }
 
@@ -10637,6 +10822,12 @@ func (m *PluginMutation) ClearField(name string) error {
 	case plugin.FieldPackageSha256:
 		m.ClearPackageSha256()
 		return nil
+	case plugin.FieldPlatformPackages:
+		m.ClearPlatformPackages()
+		return nil
+	case plugin.FieldRegistrySource:
+		m.ClearRegistrySource()
+		return nil
 	}
 	return fmt.Errorf("unknown Plugin nullable field %s", name)
 }
@@ -10647,6 +10838,9 @@ func (m *PluginMutation) ResetField(name string) error {
 	switch name {
 	case plugin.FieldKind:
 		m.ResetKind()
+		return nil
+	case plugin.FieldRuntime:
+		m.ResetRuntime()
 		return nil
 	case plugin.FieldVersion:
 		m.ResetVersion()
@@ -10668,6 +10862,12 @@ func (m *PluginMutation) ResetField(name string) error {
 		return nil
 	case plugin.FieldPackageSha256:
 		m.ResetPackageSha256()
+		return nil
+	case plugin.FieldPlatformPackages:
+		m.ResetPlatformPackages()
+		return nil
+	case plugin.FieldRegistrySource:
+		m.ResetRegistrySource()
 		return nil
 	case plugin.FieldInstalledAt:
 		m.ResetInstalledAt()

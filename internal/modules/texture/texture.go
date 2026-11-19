@@ -44,6 +44,7 @@ type Service struct {
 	decoding chan struct{}
 	notify   func()    // see SetJobNotifier
 	hooks    *hook.Bus // see SetHooks
+	search   searchProviderSlot
 }
 
 // NewService creates the service.
@@ -217,6 +218,7 @@ func (s *Service) Upload(ctx context.Context, uploader int64, in UploadInput, p 
 	if res.Texture, err = s.db.Texture.Query().Where(tex.ID(res.Texture.ID)).WithUploader(selectUploader).Only(ctx); err != nil {
 		return nil, err
 	}
+	s.notifySearchIndex(ctx, res.Texture)
 	return res, nil
 }
 
@@ -281,6 +283,18 @@ type Filter struct {
 // ones" into every page would keep the query from walking one index in order.)
 func (s *Service) List(ctx context.Context, f Filter, v Viewer) ([]*ent.Texture, string, error) {
 	limit := pageSize(f.Limit)
+	if q := strings.TrimSpace(f.Query); q != "" {
+		if sp := s.activeSearchProvider(); sp != nil {
+			if list, next, ok := s.listViaSearchProvider(ctx, sp, f, v, limit); ok {
+				return list, next, nil
+			}
+		}
+	}
+	// If a SearchProvider cursor ("sp:...") falls back to SQL because the provider
+	// failed or was disabled between pages, reset the cursor instead of failing with 422.
+	if strings.HasPrefix(f.Cursor, searchProviderCursorPrefix) {
+		f.Cursor = ""
+	}
 	var where []predicate.Texture
 	if c := categoryOf(f.Category); c != nil {
 		where = append(where, c)

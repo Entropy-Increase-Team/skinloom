@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.0.0-dev
  */
 import type { AuthInfo } from './authInfo';
+import type { BootstrapForms } from './bootstrapForms';
 import type { BootstrapMenus } from './bootstrapMenus';
 import type { BootstrapMessages } from './bootstrapMessages';
 import type { LocaleInfo } from './localeInfo';
@@ -18,6 +19,8 @@ export interface Bootstrap {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
   auth: AuthInfo;
+  /** Declarative form fields grouped by scope */
+  forms?: BootstrapForms;
   locale: string;
   locales: LocaleInfo[];
   /** Keyed by area: explore, user, admin */

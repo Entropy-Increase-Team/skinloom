@@ -37,16 +37,20 @@ type Target struct {
 
 // Result is what Restore wrote.
 type Result struct {
-	Manifest Manifest
-	Database string // the SQLite file written, or "" when the archive has none
-	Textures int
+	Manifest        Manifest
+	Database        string // the SQLite file written, or "" when the archive has none
+	Textures        int
+	PluginDataFiles int
 }
 
-// Entry size caps: a texture is read into memory (uploads are at most 8 MB), the config
-// and the secrets are small. A bigger entry is refused, not truncated.
+// Entry size caps: the object store holds both textures (<= 8 MiB) and cached .slp
+// plugin archives (up to 150 MiB for multi-platform native fat packages). A bigger
+// entry is refused, not truncated.
 const (
-	maxTexture = 64 << 20
-	maxSmall   = 1 << 20
+	maxTexture         = 160 << 20
+	maxSmall           = 1 << 20
+	maxPluginData      = 256 << 20
+	maxTotalPluginData = 2 << 30
 )
 
 // Restore unpacks an archive into an install that is not running. The texture files go
@@ -113,6 +117,9 @@ func Restore(ctx context.Context, r io.Reader, t Target) (Result, error) {
 			if res.Manifest.HasDatabase && db.IsSQLite(c.Database.Driver) {
 				paths = append(paths, db.SQLitePath(c.Database.DSN, t.DataDir))
 			}
+			if res.Manifest.PluginDataFiles > 0 {
+				paths = append(paths, filepath.Join(t.DataDir, "plugins-data"))
+			}
 			if err := refuseExisting(paths...); err != nil {
 				return err
 			}
@@ -144,6 +151,7 @@ func Restore(ctx context.Context, r io.Reader, t Target) (Result, error) {
 		}
 		return io.ReadAll(tr)
 	}
+	var totalPluginData int64
 	for {
 		hdr, err := tr.Next()
 		if errors.Is(err, io.EOF) {
@@ -156,7 +164,7 @@ func Restore(ctx context.Context, r io.Reader, t Target) (Result, error) {
 			return res, fmt.Errorf("unexpected entry %q", hdr.Name)
 		}
 		name := hdr.Name
-		if cfg == nil && (name == databaseName || textureName.MatchString(name)) {
+		if cfg == nil && (name == databaseName || textureName.MatchString(name) || isSafePluginDataEntry(name)) {
 			if err := commit(); err != nil {
 				return res, err
 			}
@@ -216,6 +224,36 @@ func Restore(ctx context.Context, r io.Reader, t Target) (Result, error) {
 				return res, fmt.Errorf("texture %s: %w", name, err)
 			}
 			res.Textures++
+		case isSafePluginDataEntry(name):
+			if hdr.Size < 0 || hdr.Size > maxPluginData {
+				return res, fmt.Errorf("plugin data %s is too large", name)
+			}
+			if totalPluginData+hdr.Size > maxTotalPluginData {
+				return res, fmt.Errorf("plugin data exceeds %d byte total restore limit", maxTotalPluginData)
+			}
+			rel := strings.TrimPrefix(name, "plugins-data/")
+			pluginDataRoot := filepath.Join(t.DataDir, "plugins-data")
+			targetPath := filepath.Join(pluginDataRoot, filepath.FromSlash(rel))
+			if err := checkNoSymlinkPath(pluginDataRoot, filepath.FromSlash(rel)); err != nil {
+				return res, fmt.Errorf("plugin data %s: %w", name, err)
+			}
+			if !t.Force {
+				if err := refuseExisting(targetPath); err != nil {
+					return res, err
+				}
+			}
+			if strings.HasSuffix(strings.ToLower(rel), ".db") || strings.HasSuffix(strings.ToLower(rel), ".sqlite") {
+				for _, side := range []string{"-wal", "-shm"} {
+					if err := os.Remove(targetPath + side); err != nil && !errors.Is(err, fs.ErrNotExist) {
+						return res, err
+					}
+				}
+			}
+			if err := writeFile(targetPath, io.LimitReader(tr, maxPluginData), 0o600); err != nil {
+				return res, fmt.Errorf("plugin data %s: %w", name, err)
+			}
+			totalPluginData += hdr.Size
+			res.PluginDataFiles++
 		default:
 			return res, fmt.Errorf("unexpected entry %q", name)
 		}
@@ -231,8 +269,26 @@ func Restore(ctx context.Context, r io.Reader, t Target) (Result, error) {
 // refuseExisting fails when any of paths exists.
 func refuseExisting(paths ...string) error {
 	for _, p := range paths {
-		if _, err := os.Stat(p); err == nil {
+		if _, err := os.Lstat(p); err == nil {
 			return fmt.Errorf("%w (%s): restore into an empty one, or pass --force", ErrExists, p)
+		}
+	}
+	return nil
+}
+
+// checkNoSymlinkPath rejects any existing symlink along root/<rel>.
+func checkNoSymlinkPath(root, rel string) error {
+	cur := root
+	if info, err := os.Lstat(cur); err == nil && info.Mode()&os.ModeSymlink != 0 {
+		return errors.New("refusing to write through symbolic link")
+	}
+	for _, seg := range strings.Split(filepath.ToSlash(rel), "/") {
+		if seg == "" || seg == "." {
+			continue
+		}
+		cur = filepath.Join(cur, seg)
+		if info, err := os.Lstat(cur); err == nil && info.Mode()&os.ModeSymlink != 0 {
+			return errors.New("refusing to write through symbolic link")
 		}
 	}
 	return nil

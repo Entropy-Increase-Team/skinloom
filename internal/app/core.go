@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/config"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
@@ -101,17 +103,23 @@ type Core struct {
 
 	ownsBroker bool
 	logFile    *os.File // nil without log.file
+
+	bgCtx    context.Context
+	bgCancel context.CancelFunc
+	bgWg     sync.WaitGroup
 }
 
 // CoreOptions customizes OpenCoreWithOptions (used when transitioning from Pre-Core
 // Setup Mode into Running Mode with an already-running Broker and Theme registry).
 type CoreOptions struct {
-	Broker             *pubsub.Broker
-	Themes             *theme.Registry
-	SettingsReg        *settings.Registry
-	LogCtl             *logging.Logger
-	Log                *slog.Logger
-	SkipConfigTemplate bool
+	Broker              *pubsub.Broker
+	Themes              *theme.Registry
+	SettingsReg         *settings.Registry
+	LogCtl              *logging.Logger
+	Log                 *slog.Logger
+	SkipConfigTemplate  bool
+	AllowUnsignedNative bool
+	SkipPluginStart     bool
 }
 
 func initLogger(cfg config.Config, p Paths) (*logging.Logger, *slog.Logger, *os.File, error) {
@@ -178,7 +186,8 @@ func OpenCoreWithOptions(ctx context.Context, p Paths, opts CoreOptions) (*Core,
 	if err != nil {
 		return nil, err
 	}
-	c := &Core{Paths: p, Config: cfg, FreshConfig: fresh}
+	bgCtx, bgCancel := context.WithCancel(context.Background())
+	c := &Core{Paths: p, Config: cfg, FreshConfig: fresh, bgCtx: bgCtx, bgCancel: bgCancel}
 	ok := false
 	defer func() { // every error return below
 		if !ok {
@@ -222,12 +231,29 @@ func OpenCoreWithOptions(ctx context.Context, p Paths, opts CoreOptions) (*Core,
 		c.Themes = themesReg
 		opts.SettingsReg = reg
 	}
-	store, err := openStore(ctx, cfg.Storage, p.DataDir)
+	baseStore, err := openStore(ctx, cfg.Storage, p.DataDir)
 	if err != nil {
 		return nil, err
 	}
+	store := storage.NewSwappable(baseStore)
 	c.Settings = settings.NewService(opts.SettingsReg, client, c.Broker, c.Bus, log.With("component", "settings"))
-	c.Settings.SetOnReload(c.Themes.Reload)
+	c.Settings.SetOnReload(func() {
+		c.Themes.Reload()
+		if c.Plugins != nil && c.bgCtx.Err() == nil {
+			c.bgWg.Add(1)
+			go func() {
+				defer c.bgWg.Done()
+				if c.bgCtx.Err() != nil {
+					return
+				}
+				syncCtx, cancel := context.WithTimeout(c.bgCtx, 30*time.Second)
+				defer cancel()
+				if err := c.Plugins.SyncCluster(syncCtx); err != nil && !errors.Is(err, context.Canceled) {
+					log.Warn("plugin cluster sync failed", "err", err)
+				}
+			}()
+		}
+	})
 	if err := c.Settings.Load(ctx); err != nil {
 		return nil, err
 	}
@@ -263,19 +289,45 @@ func OpenCoreWithOptions(ctx context.Context, p Paths, opts CoreOptions) (*Core,
 	if err := c.CDN.Start(); err != nil {
 		return nil, err
 	}
+	if reg := c.Settings.Registry(); reg != nil {
+		reg.SetDynamicEnum("captcha.provider", c.Captcha.CustomProviders)
+		reg.SetDynamicEnum("cdn.provider", c.CDN.CustomProviders)
+	}
+	pluginDBAlloc := plugin.NewDBAllocator(plugin.DBAllocatorOptions{
+		MainDriver: cfg.Database.Driver,
+		MainDSN:    cfg.Database.DSN,
+		MainSQL:    c.DB.SQL,
+		Override:   cfg.Plugins.Database,
+		DataDir:    p.DataDir,
+	})
 	c.Plugins, err = plugin.NewManager(plugin.ManagerDeps{
-		DB:       client,
-		Bus:      c.Bus,
-		Settings: c.Settings,
-		Notify:   c.Notify,
-		DataDir:  p.DataDir,
-		Log:      log.With("component", "plugin"),
+		DB:                  client,
+		Bus:                 c.Bus,
+		Settings:            c.Settings,
+		Accounts:            c.Accounts,
+		Players:             c.Players,
+		Textures:            c.Textures,
+		Renders:             c.Renders,
+		Notify:              c.Notify,
+		Mailer:              c.Mailer,
+		Captcha:             c.Captcha,
+		CDN:                 c.CDN,
+		Yggdrasil:           c.Yggdrasil,
+		Store:               baseStore,
+		StorageHook:         store,
+		Themes:              c.Themes,
+		DBAllocator:         pluginDBAlloc,
+		DataDir:             p.DataDir,
+		AllowUnsignedNative: opts.AllowUnsignedNative || cfg.Plugins.AllowUnsignedNative || cfg.Web.Mode == "dev",
+		Log:                 log.With("component", "plugin"),
 	})
 	if err != nil {
 		return nil, err
 	}
-	if err := c.Plugins.Start(ctx); err != nil {
-		return nil, err
+	if !opts.SkipPluginStart {
+		if err := c.Plugins.Start(ctx); err != nil {
+			return nil, err
+		}
 	}
 	ok = true
 	return c, nil
@@ -337,6 +389,10 @@ func (c *Core) SetupLink(ctx context.Context, base string) (string, error) {
 
 // Close releases resources, also those of a Core that OpenCore did not finish.
 func (c *Core) Close(ctx context.Context) {
+	if c.bgCancel != nil {
+		c.bgCancel()
+	}
+	c.bgWg.Wait()
 	if c.Plugins != nil {
 		_ = c.Plugins.Shutdown(ctx)
 	}

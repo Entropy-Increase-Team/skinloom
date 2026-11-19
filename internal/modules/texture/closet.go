@@ -101,6 +101,11 @@ func (s *Service) Favorite(ctx context.Context, v Viewer, id int64, name string,
 		}
 		return hook.OnClosetAdded.Publish(ctx, s.hooks, tx, hook.ClosetEvent{UserID: v.UserID, TextureID: id})
 	})
+	if err == nil && s.activeSearchProvider() != nil {
+		if updated, gErr := s.db.Texture.Get(ctx, id); gErr == nil {
+			s.notifySearchIndex(ctx, updated)
+		}
+	}
 	return item, balance, err
 }
 
@@ -155,6 +160,11 @@ func (s *Service) Unfavorite(ctx context.Context, userID, id int64, refund bool,
 		}
 		return audit.Write(ctx, tx, rec.With("refunded", returned))
 	})
+	if err == nil && s.activeSearchProvider() != nil {
+		if updated, gErr := s.db.Texture.Get(ctx, id); gErr == nil {
+			s.notifySearchIndex(ctx, updated)
+		}
+	}
 	return returned, err
 }
 
@@ -280,6 +290,11 @@ func (s *Service) GiveToCloset(ctx context.Context, userID, id int64, rec *audit
 		}
 		return audit.Write(ctx, tx, rec)
 	})
+	if err == nil && s.activeSearchProvider() != nil {
+		if updated, gErr := s.db.Texture.Get(ctx, id); gErr == nil {
+			s.notifySearchIndex(ctx, updated)
+		}
+	}
 	return item, err
 }
 

@@ -10,6 +10,21 @@ describe('savedBlocks', () => {
     expect(savedBlocks([{ type: 'plugin-gallery', props: { album: 7 } }], [])).toEqual([{ type: 'plugin-gallery', props: { album: 7 } }])
   })
 
+  it('keeps props of schema-less plugin blocks registered in the catalog', () => {
+    const types = [
+      { type: 'announcement', props: [] },
+      { type: 'spotlight:showcase', props: [] },
+    ] as never
+    const blocks = [
+      { type: 'announcement', props: { stale: true } },
+      { type: 'spotlight:showcase', props: { album: 7, layout: 'grid' } },
+    ]
+    expect(savedBlocks(blocks, types)).toEqual([
+      { type: 'announcement' },
+      { type: 'spotlight:showcase', props: { album: 7, layout: 'grid' } },
+    ])
+  })
+
   it('drops a button that has no link yet (the server would refuse the whole list)', () => {
     const types = [{ type: 'hero', props: [{ name: 'actions', type: 'buttons' }] }] as never
     const blocks = [{ type: 'hero', props: { actions: [{ label: 'Go', href: '/skinlib' }, { label: undefined, href: '' }] } }]

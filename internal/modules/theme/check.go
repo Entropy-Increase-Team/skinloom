@@ -39,6 +39,9 @@ func Check(files fs.FS, base *Registry) (*Theme, []string, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	if IsBuiltinID(t.ID) || (base != nil && base.IsBuiltin(t.ID)) {
+		return nil, nil, fmt.Errorf("cannot override built-in theme %q", t.ID)
+	}
 	if t.Extends != "" {
 		if base == nil {
 			return nil, nil, fmt.Errorf("cannot resolve extends %q without a base theme registry", t.Extends)
@@ -160,7 +163,7 @@ func Scaffold(themesDir, id, extends string) (string, error) {
 	if !idPattern.MatchString(id) {
 		return "", fmt.Errorf("invalid theme id %q: use 1 to 32 lowercase letters, digits or dashes", id)
 	}
-	if id == DefaultID || id == "brocade" {
+	if IsBuiltinID(id) {
 		return "", fmt.Errorf("theme id %q is reserved by a built-in theme", id)
 	}
 	target := filepath.Join(themesDir, id)

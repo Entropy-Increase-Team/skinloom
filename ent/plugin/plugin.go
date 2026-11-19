@@ -16,6 +16,8 @@ const (
 	FieldID = "id"
 	// FieldKind holds the string denoting the kind field in the database.
 	FieldKind = "kind"
+	// FieldRuntime holds the string denoting the runtime field in the database.
+	FieldRuntime = "runtime"
 	// FieldVersion holds the string denoting the version field in the database.
 	FieldVersion = "version"
 	// FieldStatus holds the string denoting the status field in the database.
@@ -30,6 +32,10 @@ const (
 	FieldSource = "source"
 	// FieldPackageSha256 holds the string denoting the package_sha256 field in the database.
 	FieldPackageSha256 = "package_sha256"
+	// FieldPlatformPackages holds the string denoting the platform_packages field in the database.
+	FieldPlatformPackages = "platform_packages"
+	// FieldRegistrySource holds the string denoting the registry_source field in the database.
+	FieldRegistrySource = "registry_source"
 	// FieldInstalledAt holds the string denoting the installed_at field in the database.
 	FieldInstalledAt = "installed_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -42,6 +48,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldKind,
+	FieldRuntime,
 	FieldVersion,
 	FieldStatus,
 	FieldGrantedPermissions,
@@ -49,6 +56,8 @@ var Columns = []string{
 	FieldError,
 	FieldSource,
 	FieldPackageSha256,
+	FieldPlatformPackages,
+	FieldRegistrySource,
 	FieldInstalledAt,
 	FieldUpdatedAt,
 }
@@ -76,6 +85,10 @@ var (
 	SourceValidator func(string) error
 	// PackageSha256Validator is a validator for the "package_sha256" field. It is called by the builders before save.
 	PackageSha256Validator func(string) error
+	// DefaultRegistrySource holds the default value on creation for the "registry_source" field.
+	DefaultRegistrySource string
+	// RegistrySourceValidator is a validator for the "registry_source" field. It is called by the builders before save.
+	RegistrySourceValidator func(string) error
 	// DefaultInstalledAt holds the default value on creation for the "installed_at" field.
 	DefaultInstalledAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -109,6 +122,32 @@ func KindValidator(k Kind) error {
 		return nil
 	default:
 		return fmt.Errorf("plugin: invalid enum value for kind field: %q", k)
+	}
+}
+
+// Runtime defines the type for the "runtime" enum field.
+type Runtime string
+
+// RuntimeJs is the default value of the Runtime enum.
+const DefaultRuntime = RuntimeJs
+
+// Runtime values.
+const (
+	RuntimeJs     Runtime = "js"
+	RuntimeNative Runtime = "native"
+)
+
+func (r Runtime) String() string {
+	return string(r)
+}
+
+// RuntimeValidator is a validator for the "runtime" field enum values. It is called by the builders before save.
+func RuntimeValidator(r Runtime) error {
+	switch r {
+	case RuntimeJs, RuntimeNative:
+		return nil
+	default:
+		return fmt.Errorf("plugin: invalid enum value for runtime field: %q", r)
 	}
 }
 
@@ -152,6 +191,11 @@ func ByKind(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKind, opts...).ToFunc()
 }
 
+// ByRuntime orders the results by the runtime field.
+func ByRuntime(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRuntime, opts...).ToFunc()
+}
+
 // ByVersion orders the results by the version field.
 func ByVersion(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldVersion, opts...).ToFunc()
@@ -175,6 +219,11 @@ func BySource(opts ...sql.OrderTermOption) OrderOption {
 // ByPackageSha256 orders the results by the package_sha256 field.
 func ByPackageSha256(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPackageSha256, opts...).ToFunc()
+}
+
+// ByRegistrySource orders the results by the registry_source field.
+func ByRegistrySource(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRegistrySource, opts...).ToFunc()
 }
 
 // ByInstalledAt orders the results by the installed_at field.

@@ -7,6 +7,7 @@ import (
 	"context"
 	"log/slog"
 	"math"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -47,6 +48,10 @@ type Service struct {
 	notify             func()                                          // see SetJobNotifier
 	hooks              *hook.Bus                                       // see SetHooks
 	onDelete           func(context.Context, *ent.Client, int64) error // see SetBeforeDelete
+
+	extMu         sync.RWMutex
+	verifiers     map[string]verifierEntry
+	authProviders map[string]AuthProviderDef
 }
 
 // NewService creates the service. Failed logins are limited per 15 minutes:

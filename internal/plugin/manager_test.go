@@ -214,8 +214,8 @@ func TestPermissionEnforcement(t *testing.T) {
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/api/plugins/perm-denied"+path, nil)
 		env.mgr.ServePluginAPI(rec, req, "perm-denied", path, Viewer{}, "en")
-		if rec.Code != http.StatusInternalServerError {
-			t.Fatalf("path %s: expected 500, got %d (%s)", path, rec.Code, rec.Body.String())
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("path %s: expected 403, got %d (%s)", path, rec.Code, rec.Body.String())
 		}
 		if !strings.Contains(rec.Body.String(), "permission denied") {
 			t.Fatalf("path %s: expected 'permission denied' in body, got %s", path, rec.Body.String())
@@ -458,7 +458,7 @@ func TestFileStoreAndAssets(t *testing.T) {
 	}
 
 	// Serve private file & bundled static asset via AssetHandler
-	manifestJSON := []byte(`{"id":"file-plug","kind":"plugin","version":"2.1.0","name":"Files","apiVersion":1}`)
+	manifestJSON := []byte(`{"id":"file-plug","kind":"plugin","version":"2.1.0","name":"Files","apiVersion":1,"permissions":["storage.files"]}`)
 	static := map[string][]byte{
 		"web/index.js": []byte(`export default function(){ return "ok"; }`),
 	}
@@ -476,7 +476,7 @@ func TestFileStoreAndAssets(t *testing.T) {
 
 	recFile := httptest.NewRecorder()
 	handler.ServeHTTP(recFile, httptest.NewRequest(http.MethodGet, assetURL, nil))
-	if recFile.Code != http.StatusOK || recFile.Body.String() != "PNGDATA" || recFile.Header().Get("Content-Security-Policy") != "sandbox" {
+	if recFile.Code != http.StatusOK || recFile.Body.String() != "PNGDATA" || recFile.Header().Get("Content-Security-Policy") != pluginSandboxCSP {
 		t.Fatalf("_files asset serve failed: status=%d csp=%q body=%q",
 			recFile.Code, recFile.Header().Get("Content-Security-Policy"), recFile.Body.String())
 	}
@@ -880,4 +880,122 @@ func TestPluginTimeoutAndCircuitBreaker(t *testing.T) {
 	}
 	_ = jsrt.ErrTimeout
 	_ = ent.Plugin{}
+}
+
+func TestFileStoreIsolationFromPluginDBAndDisabledPluginBlock(t *testing.T) {
+	env := newTestEnv(t)
+	ctx := context.Background()
+
+	fs := NewFileStore("iso-plug", env.dir, 1024*1024, NewPermissionSet([]string{PermStorageFiles}, []string{PermStorageFiles}))
+	assetURL, err := fs.Put(ctx, "public/hello.txt", []byte("public-content"))
+	if err != nil {
+		t.Fatalf("fs.Put: %v", err)
+	}
+	// Simulate a private plugin.db in the parent plugins-data/iso-plug/ directory.
+	privateDBPath := filepath.Join(env.dir, "plugins-data", "iso-plug", "plugin.db")
+	if err := os.WriteFile(privateDBPath, []byte("SUPER_SECRET_SQLITE_DB"), 0o600); err != nil {
+		t.Fatalf("WriteFile plugin.db: %v", err)
+	}
+
+	manifestJSON := []byte(`{"id":"iso-plug","kind":"plugin","version":"1.0.0","name":"Iso","apiVersion":1,"permissions":["storage.files"]}`)
+	if _, err := env.mgr.LoadFromBytes(ctx, manifestJSON, nil, nil, nil, true); err != nil {
+		t.Fatalf("LoadFromBytes: %v", err)
+	}
+
+	handler := env.mgr.AssetHandler()
+
+	// 1. Publicly stored file under files/ is reachable while plugin is active.
+	recOK := httptest.NewRecorder()
+	handler.ServeHTTP(recOK, httptest.NewRequest(http.MethodGet, assetURL, nil))
+	if recOK.Code != http.StatusOK || recOK.Body.String() != "public-content" {
+		t.Fatalf("expected 200 public-content, got %d %q", recOK.Code, recOK.Body.String())
+	}
+
+	// 2. Private plugin.db in parent DataDir must NOT be reachable via /_files/plugin.db.
+	recDB := httptest.NewRecorder()
+	handler.ServeHTTP(recDB, httptest.NewRequest(http.MethodGet, "/plugins-assets/iso-plug/_files/plugin.db", nil))
+	if recDB.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for /_files/plugin.db, got %d (%q)", recDB.Code, recDB.Body.String())
+	}
+
+	// 3. Disabling the plugin immediately blocks /_files/* access.
+	if err := env.mgr.Disable(ctx, "iso-plug"); err != nil {
+		t.Fatalf("Disable: %v", err)
+	}
+	recDisabled := httptest.NewRecorder()
+	handler.ServeHTTP(recDisabled, httptest.NewRequest(http.MethodGet, assetURL, nil))
+	if recDisabled.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for /_files/* when plugin is disabled, got %d", recDisabled.Code)
+	}
+}
+
+func TestJSDriverBroadcastSettingsAcrossWarmPool(t *testing.T) {
+	env := newTestEnv(t)
+	ctx := context.Background()
+
+	manifestJSON := []byte(`{
+		"id": "pool-cfg",
+		"kind": "plugin",
+		"version": "1.0.0",
+		"name": "Pool Cfg",
+		"apiVersion": 1,
+		"server": "server.js",
+		"routes": {"public": ["/cfg"]},
+		"settings": {
+			"greeting": {"type": "string", "default": "v1"},
+			"optionalText": {"type": "string"}
+		}
+	}`)
+	serverJS := []byte(`
+		export default {
+			setup(ctx) {
+				ctx.http.get("/cfg", { auth: "public" }, async () => {
+					const g = await ctx.settings.get("greeting");
+					const opt = await ctx.settings.get("optionalText");
+					return { greeting: g, optIsUndefined: opt === undefined };
+				});
+			}
+		};
+	`)
+	if _, err := env.mgr.LoadFromBytes(ctx, manifestJSON, serverJS, nil, nil, true); err != nil {
+		t.Fatalf("LoadFromBytes: %v", err)
+	}
+
+	// Warm multiple isolates concurrently.
+	for i := 0; i < 4; i++ {
+		rec := httptest.NewRecorder()
+		env.mgr.ServePluginAPI(rec, httptest.NewRequest(http.MethodGet, "/api/plugins/pool-cfg/cfg", nil), "pool-cfg", "/cfg", Viewer{}, "en")
+		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"greeting":"v1"`) || !strings.Contains(rec.Body.String(), `"optIsUndefined":true`) {
+			t.Fatalf("initial /cfg failed: %d %s", rec.Code, rec.Body.String())
+		}
+	}
+
+	// Hot-update setting and verify every subsequent call sees "v2".
+	if err := env.mgr.UpdateSettings(ctx, "pool-cfg", map[string]any{"greeting": "v2"}); err != nil {
+		t.Fatalf("UpdateSettings: %v", err)
+	}
+	for i := 0; i < 6; i++ {
+		rec := httptest.NewRecorder()
+		env.mgr.ServePluginAPI(rec, httptest.NewRequest(http.MethodGet, "/api/plugins/pool-cfg/cfg", nil), "pool-cfg", "/cfg", Viewer{}, "en")
+		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"greeting":"v2"`) {
+			t.Fatalf("call #%d after UpdateSettings expected v2, got %d %s", i+1, rec.Code, rec.Body.String())
+		}
+	}
+}
+
+func TestLoadFromDirUnsignedNativeBlockedInProduction(t *testing.T) {
+	env := newTestEnv(t)
+	ctx := context.Background()
+
+	natDir := filepath.Join(env.dir, "unsigned-nat")
+	if err := os.MkdirAll(filepath.Join(natDir, "bin"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mf := `{"id":"unsigned-nat","kind":"plugin","runtime":"native","version":"1.0.0","name":"Nat","apiVersion":1,"native":{"protocolVersion":1,"executable":"bin/unsigned-nat"}}`
+	if err := os.WriteFile(filepath.Join(natDir, "plugin.json"), []byte(mf), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.mgr.LoadFromDir(ctx, natDir, true); !errors.Is(err, ErrUnsignedNativeForbidden) {
+		t.Fatalf("expected ErrUnsignedNativeForbidden when AllowUnsignedNative=false, got %v", err)
+	}
 }

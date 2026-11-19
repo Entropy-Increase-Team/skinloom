@@ -20,6 +20,8 @@ type Plugin struct {
 	ID string `json:"id,omitempty"`
 	// Kind holds the value of the "kind" field.
 	Kind plugin.Kind `json:"kind,omitempty"`
+	// Runtime holds the value of the "runtime" field.
+	Runtime plugin.Runtime `json:"runtime,omitempty"`
 	// Version holds the value of the "version" field.
 	Version string `json:"version,omitempty"`
 	// Status holds the value of the "status" field.
@@ -34,6 +36,10 @@ type Plugin struct {
 	Source string `json:"source,omitempty"`
 	// PackageSha256 holds the value of the "package_sha256" field.
 	PackageSha256 string `json:"package_sha256,omitempty"`
+	// PlatformPackages holds the value of the "platform_packages" field.
+	PlatformPackages map[string]string `json:"platform_packages,omitempty"`
+	// RegistrySource holds the value of the "registry_source" field.
+	RegistrySource string `json:"registry_source,omitempty"`
 	// InstalledAt holds the value of the "installed_at" field.
 	InstalledAt time.Time `json:"installed_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -46,9 +52,9 @@ func (*Plugin) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case plugin.FieldGrantedPermissions, plugin.FieldSettings:
+		case plugin.FieldGrantedPermissions, plugin.FieldSettings, plugin.FieldPlatformPackages:
 			values[i] = new([]byte)
-		case plugin.FieldID, plugin.FieldKind, plugin.FieldVersion, plugin.FieldStatus, plugin.FieldError, plugin.FieldSource, plugin.FieldPackageSha256:
+		case plugin.FieldID, plugin.FieldKind, plugin.FieldRuntime, plugin.FieldVersion, plugin.FieldStatus, plugin.FieldError, plugin.FieldSource, plugin.FieldPackageSha256, plugin.FieldRegistrySource:
 			values[i] = new(sql.NullString)
 		case plugin.FieldInstalledAt, plugin.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -78,6 +84,12 @@ func (_m *Plugin) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field kind", values[i])
 			} else if value.Valid {
 				_m.Kind = plugin.Kind(value.String)
+			}
+		case plugin.FieldRuntime:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field runtime", values[i])
+			} else if value.Valid {
+				_m.Runtime = plugin.Runtime(value.String)
 			}
 		case plugin.FieldVersion:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -124,6 +136,20 @@ func (_m *Plugin) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field package_sha256", values[i])
 			} else if value.Valid {
 				_m.PackageSha256 = value.String
+			}
+		case plugin.FieldPlatformPackages:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field platform_packages", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.PlatformPackages); err != nil {
+					return fmt.Errorf("unmarshal field platform_packages: %w", err)
+				}
+			}
+		case plugin.FieldRegistrySource:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field registry_source", values[i])
+			} else if value.Valid {
+				_m.RegistrySource = value.String
 			}
 		case plugin.FieldInstalledAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -176,6 +202,9 @@ func (_m *Plugin) String() string {
 	builder.WriteString("kind=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Kind))
 	builder.WriteString(", ")
+	builder.WriteString("runtime=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Runtime))
+	builder.WriteString(", ")
 	builder.WriteString("version=")
 	builder.WriteString(_m.Version)
 	builder.WriteString(", ")
@@ -196,6 +225,12 @@ func (_m *Plugin) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("package_sha256=")
 	builder.WriteString(_m.PackageSha256)
+	builder.WriteString(", ")
+	builder.WriteString("platform_packages=")
+	builder.WriteString(fmt.Sprintf("%v", _m.PlatformPackages))
+	builder.WriteString(", ")
+	builder.WriteString("registry_source=")
+	builder.WriteString(_m.RegistrySource)
 	builder.WriteString(", ")
 	builder.WriteString("installed_at=")
 	builder.WriteString(_m.InstalledAt.Format(time.ANSIC))

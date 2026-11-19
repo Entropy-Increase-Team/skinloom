@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
+import { Slot } from '@/components/slot'
+import { ThemeOverride } from '@/components/theme-override'
 import { filterHref, type LibraryFilter } from '@/lib/library'
 import { textureGridClass } from '@/lib/theme'
 
@@ -63,17 +65,27 @@ export function TextureGrid({ initial, filter, density }: { initial: TexturePage
   return (
     <div className="flex flex-col gap-6">
       <div className={textureGridClass(density)}>
-        {items.map((x) => (
-          <TextureCard
-            key={x.id}
-            linkAs={Link}
-            href={`/skinlib/show/${x.id}`}
-            density={density}
-            texture={{ ...x, uploader: x.uploader ? { name: x.uploader.nickname, userId: x.uploader.id } : { name: tt('deletedUser') } }}
-            privateLabel={tt('private')}
-            likesLabel={tt('likes')}
-          />
-        ))}
+        {items.map((x) => {
+          const card = (
+            <TextureCard
+              linkAs={Link}
+              href={`/skinlib/show/${x.id}`}
+              density={density}
+              texture={{ ...x, uploader: x.uploader ? { name: x.uploader.nickname, userId: x.uploader.id } : { name: tt('deletedUser') } }}
+              badges={<Slot name="skinlib.card.badges" props={{ textureId: x.id, name: x.name, type: x.type, public: x.public, likes: x.likes }} />}
+              privateLabel={tt('private')}
+              likesLabel={tt('likes')}
+            />
+          )
+          return (
+            <ThemeOverride
+              key={x.id}
+              name="texture.card"
+              props={{ texture: x, density, href: `/skinlib/show/${x.id}` }}
+              fallback={card}
+            />
+          )
+        })}
       </div>
       {failed && <p className="text-center text-sm text-destructive">{t('loadFailed')}</p>}
       {next && (

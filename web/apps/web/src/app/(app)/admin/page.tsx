@@ -7,6 +7,7 @@ import { getFormatter, getTranslations } from 'next-intl/server'
 
 import { DailyChart } from '@/components/admin/daily-chart'
 import { SendNotification } from '@/components/admin/send-notification'
+import { Slot } from '@/components/slot'
 import { asVisitor } from '@/lib/visitor'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -47,7 +48,7 @@ export default async function AdminOverviewPage() {
           )}
         >
           <span className="flex items-center gap-1.5 text-caption text-muted-foreground">
-            <Flag className={cn('size-3.5', pending && 'text-highlight-foreground')} aria-hidden />
+            <Flag className={cn('size-3.5', pending && 'text-highlight-foreground dark:text-highlight')} aria-hidden />
             {t('pendingReports')}
           </span>
           <span className="text-3xl leading-none font-medium tabular-nums">{format.number(o.pendingReports)}</span>
@@ -66,6 +67,7 @@ export default async function AdminOverviewPage() {
           <DailyChart title={t('uploads')} days={o.days.map((d) => ({ date: d.date, value: d.uploads }))} />
         </section>
       </div>
+      <Slot name="admin.dashboard.widgets" />
     </div>
   )
 }

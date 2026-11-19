@@ -8,6 +8,7 @@ import { getFormatter, getTranslations } from 'next-intl/server'
 import { cache } from 'react'
 
 import { WearOnPlayer } from '@/components/player/wear-on-player'
+import { Slot } from '@/components/slot'
 import { ReportButton } from '@/components/texture/report-button'
 import { FavoriteButton, OwnerMenu } from '@/components/texture/texture-actions'
 import { UserBadges } from '@/components/user/user-badges'
@@ -77,7 +78,7 @@ export default async function TexturePage({ params }: { params: Promise<{ tid: s
 
   return (
     <div className={stacked ? 'mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8 lg:py-8' : 'mx-auto flex w-full max-w-[75rem] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8 lg:py-8'}>
-      <ButtonLink variant="ghost" size="sm" className="-ml-2.5 w-fit text-muted-foreground" render={<Link href="/skinlib" />}>
+      <ButtonLink variant="ghost" size="sm" className="-ml-2.5 w-fit text-muted-foreground pointer-coarse:h-10" render={<Link href="/skinlib" />}>
         <ArrowLeft aria-hidden />
         {t('back')}
       </ButtonLink>
@@ -110,7 +111,17 @@ export default async function TexturePage({ params }: { params: Promise<{ tid: s
                 {x.inCloset && <Badge variant="outline">{t('inCloset')}</Badge>}
               </div>
             </div>
-            {canManage && rules && <OwnerMenu texture={x} rates={rules.rates} charged={x.mine} />}
+            {canManage && rules && (
+              <div className="flex max-w-full shrink-0 flex-wrap items-center gap-1">
+                {viewer && viewer.role !== 'user' && (
+                  <Slot
+                    name="admin.texture.actions"
+                    props={{ textureId: x.id, name: x.name, public: x.public, uploaderId: x.uploader?.id ?? null }}
+                  />
+                )}
+                <OwnerMenu texture={x} rates={rules.rates} charged={x.mine} />
+              </div>
+            )}
           </div>
 
           {x.uploader ? (
@@ -185,8 +196,16 @@ export default async function TexturePage({ params }: { params: Promise<{ tid: s
           </div>
 
           {viewer && !x.mine && rules && <ReportButton textureId={x.id} rates={rules.rates} />}
+          <Slot
+            name="skinlib.detail.sidebar"
+            props={{ textureId: x.id, name: x.name, type: x.type, public: x.public, uploaderId: x.uploader?.id ?? null }}
+          />
         </div>
       </div>
+      <Slot
+        name="skinlib.detail.below"
+        props={{ textureId: x.id, name: x.name, type: x.type, public: x.public }}
+      />
     </div>
   )
 }

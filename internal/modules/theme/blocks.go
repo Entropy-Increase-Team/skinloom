@@ -1,12 +1,16 @@
 package theme
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"regexp"
 	"slices"
+	"sort"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
@@ -50,13 +54,14 @@ type BlockType struct {
 
 // Limits of a page composition.
 const (
-	MaxBlocks      = 30
-	maxText        = 200
-	maxMarkdown    = 10000
-	maxLink        = 500
-	maxButtons     = 6
-	textureListMin = 4
-	textureListMax = 24
+	MaxBlocks           = 30
+	maxText             = 200
+	maxMarkdown         = 10000
+	maxLink             = 500
+	maxButtons          = 6
+	maxPluginBlockBytes = 64 * 1024
+	textureListMin      = 4
+	textureListMax      = 24
 )
 
 // BlockTypes are the built-in blocks, rendered on the server by the frontend
@@ -89,12 +94,102 @@ func textureListProps() []Prop {
 	}
 }
 
-func blockType(name string) (BlockType, bool) {
-	i := slices.IndexFunc(BlockTypes, func(b BlockType) bool { return b.Type == name })
-	if i < 0 {
-		return BlockType{}, false
+var (
+	pluginBlocksMu sync.RWMutex
+	pluginBlocks   = map[string][]BlockType{}
+)
+
+// RegisterPluginBlocks registers homepage block definitions contributed by pluginID.
+func RegisterPluginBlocks(pluginID string, types []BlockType) {
+	pluginBlocksMu.Lock()
+	defer pluginBlocksMu.Unlock()
+	copied := make([]BlockType, 0, len(types))
+	for _, bt := range types {
+		if bt.Type == "" || isBuiltinBlock(bt.Type) {
+			continue
+		}
+		props := slices.Clone(bt.Props)
+		if props == nil {
+			props = []Prop{}
+		}
+		copied = append(copied, BlockType{Type: bt.Type, Props: props})
 	}
-	return BlockTypes[i], true
+	if len(copied) == 0 {
+		delete(pluginBlocks, pluginID)
+		return
+	}
+	pluginBlocks[pluginID] = copied
+}
+
+// UnregisterPluginBlocks removes any block types previously registered by pluginID.
+func UnregisterPluginBlocks(pluginID string) {
+	pluginBlocksMu.Lock()
+	delete(pluginBlocks, pluginID)
+	pluginBlocksMu.Unlock()
+}
+
+// AllBlockTypes returns built-in block definitions followed by active plugin blocks.
+// If a plugin block type collides with an earlier block type name, it is emitted in
+// its qualified "<pluginId>:<type>" form so every block type in the list is unique.
+func AllBlockTypes() []BlockType {
+	out := slices.Clone(BlockTypes)
+	seen := make(map[string]bool, len(out))
+	for _, b := range out {
+		seen[b.Type] = true
+	}
+	pluginBlocksMu.RLock()
+	owners := make([]string, 0, len(pluginBlocks))
+	for id := range pluginBlocks {
+		owners = append(owners, id)
+	}
+	sort.Strings(owners)
+	for _, id := range owners {
+		for _, bt := range pluginBlocks[id] {
+			name := bt.Type
+			if seen[name] {
+				name = id + ":" + bt.Type
+			}
+			if seen[name] {
+				continue
+			}
+			seen[name] = true
+			out = append(out, BlockType{Type: name, Props: slices.Clone(bt.Props)})
+		}
+	}
+	pluginBlocksMu.RUnlock()
+	return out
+}
+
+func blockType(name string) (BlockType, bool) {
+	if i := slices.IndexFunc(BlockTypes, func(b BlockType) bool { return b.Type == name }); i >= 0 {
+		return BlockTypes[i], true
+	}
+	pluginBlocksMu.RLock()
+	defer pluginBlocksMu.RUnlock()
+	owners := make([]string, 0, len(pluginBlocks))
+	for owner := range pluginBlocks {
+		owners = append(owners, owner)
+	}
+	sort.Strings(owners)
+	for _, owner := range owners {
+		for _, bt := range pluginBlocks[owner] {
+			if owner+":"+bt.Type == name {
+				return bt, true
+			}
+		}
+	}
+	for _, owner := range owners {
+		for _, bt := range pluginBlocks[owner] {
+			if bt.Type == name {
+				return bt, true
+			}
+		}
+	}
+	return BlockType{}, false
+}
+
+func isBuiltinBlock(name string) bool {
+	return slices.ContainsFunc(BlockTypes, func(b BlockType) bool { return b.Type == name })
 }
 
 // ValidateHome is the validator of the home.blocks setting: null, or blocks that
@@ -140,6 +235,19 @@ func ValidateBlocks(blocks []Block) error {
 		bt, ok := blockType(b.Type)
 		if !ok {
 			return fmt.Errorf("block %d: unknown type %q", i+1, b.Type)
+		}
+		// Plugin blocks without an explicit property schema accept bounded JSON props.
+		if !isBuiltinBlock(b.Type) && len(bt.Props) == 0 {
+			if len(b.Props) > 0 {
+				raw, err := json.Marshal(b.Props)
+				if err != nil {
+					return fmt.Errorf("block %d (%s): props %w", i+1, b.Type, err)
+				}
+				if len(raw) > maxPluginBlockBytes {
+					return fmt.Errorf("block %d (%s): props exceed %d bytes", i+1, b.Type, maxPluginBlockBytes)
+				}
+			}
+			continue
 		}
 		for name, v := range b.Props {
 			j := slices.IndexFunc(bt.Props, func(p Prop) bool { return p.Name == name })
@@ -249,6 +357,10 @@ func LocalizeBlocks(blocks []Block, locale string, markdown func(string) string)
 		out[i] = Block{Type: b.Type}
 		bt, ok := blockType(b.Type)
 		if !ok || len(b.Props) == 0 {
+			continue
+		}
+		if !isBuiltinBlock(b.Type) && len(bt.Props) == 0 {
+			out[i].Props = maps.Clone(b.Props)
 			continue
 		}
 		props := make(map[string]any, len(b.Props))

@@ -49,3 +49,6 @@
 | [0043](0043-local-themes-and-manifest-extensions.md) | 本地主题目录与主题清单扩展 | 已接受（P4 实现） |
 | [0044](0044-interactive-setup-wizard.md) | 交互式安装向导与 Pre-Core 启动模式 | 已接受 |
 | [0045](0045-plugin-storage-slots-and-jsrt-pool.md) | 插件存储预置槽位与 `jsrt` 沙箱实例池设计 | 已接受 |
+| [0046](0046-plugin-host-extensions-and-sdk-toolchain.md) | 插件全量宿主扩展点、单源类型生成与 SDK/CLI 工具链 | 已接受 |
+| [0047](0047-frontend-plugin-runtime-and-theme-overrides.md) | 前端插件运行时、20 处插槽挂载与主题 Level ⑤ 组件覆盖 | 已接受 |
+| [0048](0048-plugin-package-signing-and-cluster-hot-reload.md) | `.slp` 扩展包签名校验、热升级与多副本聚类同步 | 已接受 |

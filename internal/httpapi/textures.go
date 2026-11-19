@@ -152,7 +152,7 @@ type listTexturesInput struct {
 	Query    string `query:"q" maxLength:"50" doc:"Name fragment"`
 	Uploader int64  `query:"uploader" minimum:"0"`
 	Sort     string `query:"sort" enum:"time,likes," doc:"time (default, newest first) or likes"`
-	Cursor   string `query:"cursor" maxLength:"40"`
+	Cursor   string `query:"cursor" maxLength:"256"`
 	Limit    int    `query:"limit" minimum:"0" maximum:"100"`
 }
 

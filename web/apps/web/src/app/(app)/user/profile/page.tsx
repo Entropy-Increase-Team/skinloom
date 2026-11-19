@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 
+import { Slot } from '@/components/slot'
 import {
   AvatarSection,
   DeleteSection,
@@ -44,6 +45,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       />
       <SessionsSection />
       <LaunchersSection />
+      <Slot name="user.profile.sections" />
       {admin ? <p className="border-t pt-8 text-sm text-muted-foreground">{t('adminNoDelete')}</p> : <DeleteSection viewer={viewer} />}
       </div>
     </div>

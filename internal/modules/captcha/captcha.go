@@ -13,7 +13,9 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -66,12 +68,72 @@ type Options struct {
 	Log       *slog.Logger
 }
 
+// CustomVerifier verifies a widget/challenge answer for a plugin-provided provider.
+type CustomVerifier func(ctx context.Context, a Answer, remoteIP string) error
+
+type customProviderEntry struct {
+	owner string
+	fn    CustomVerifier
+}
+
 // Service issues image challenges and verifies answers for every provider.
 type Service struct {
 	images    *store
 	client    *http.Client
 	endpoints map[string]string
 	log       *slog.Logger
+
+	customMu sync.RWMutex
+	custom   map[string]customProviderEntry
+}
+
+// RegisterProvider registers a plugin CAPTCHA verification provider owned by owner.
+func (s *Service) RegisterProvider(owner, id string, fn CustomVerifier) error {
+	id = strings.TrimSpace(id)
+	if id == "" || fn == nil {
+		return fmt.Errorf("invalid captcha provider %q", id)
+	}
+	switch id {
+	case None, Image, Turnstile, ReCAPTCHA, HCaptcha:
+		return fmt.Errorf("cannot override built-in captcha provider %q", id)
+	}
+	s.customMu.Lock()
+	defer s.customMu.Unlock()
+	if s.custom == nil {
+		s.custom = map[string]customProviderEntry{}
+	}
+	if existing, exists := s.custom[id]; exists && existing.owner != owner {
+		return fmt.Errorf("captcha provider %q is already registered by %s", id, existing.owner)
+	}
+	s.custom[id] = customProviderEntry{owner: owner, fn: fn}
+	return nil
+}
+
+// UnregisterProviders removes every custom CAPTCHA provider owned by owner.
+func (s *Service) UnregisterProviders(owner string) {
+	s.customMu.Lock()
+	defer s.customMu.Unlock()
+	for id, ent := range s.custom {
+		if ent.owner == owner {
+			delete(s.custom, id)
+		}
+	}
+}
+
+// CustomProviders returns sorted IDs of currently registered plugin CAPTCHA providers.
+func (s *Service) CustomProviders() []any {
+	s.customMu.RLock()
+	defer s.customMu.RUnlock()
+	ids := make([]string, 0, len(s.custom))
+	for id := range s.custom {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	out := make([]any, len(ids))
+	for i, id := range ids {
+		out[i] = id
+	}
+	return out
 }
 
 // NewService creates a Service.
@@ -123,8 +185,26 @@ func (s *Service) Verify(ctx context.Context, c Config, a Answer, remoteIP strin
 		}
 		return s.siteverify(ctx, c, a.Value, remoteIP)
 	default:
-		return fmt.Errorf("unknown captcha provider %q", c.Provider)
+		s.customMu.RLock()
+		entry, ok := s.custom[c.Provider]
+		s.customMu.RUnlock()
+		if ok && entry.fn != nil {
+			if strings.TrimSpace(a.Value) == "" {
+				return ErrInvalid
+			}
+			return safeCallCaptchaVerifier(ctx, entry.fn, a, remoteIP)
+		}
+		return fmt.Errorf("%w: unknown captcha provider %q", ErrUnavailable, c.Provider)
 	}
+}
+
+func safeCallCaptchaVerifier(ctx context.Context, fn func(context.Context, Answer, string) error, a Answer, remoteIP string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%w: captcha provider panic: %v", ErrUnavailable, r)
+		}
+	}()
+	return fn(ctx, a, remoteIP)
 }
 
 // siteverify implements the protocol Turnstile, reCAPTCHA and hCaptcha share: a

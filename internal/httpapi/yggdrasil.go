@@ -169,8 +169,19 @@ func yggAnswer(w http.ResponseWriter, d Deps, out any, err error) {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
+	raw, mErr := json.Marshal(out)
+	if mErr != nil {
+		if d.Log != nil {
+			d.Log.Error("yggdrasil response marshal failed", "err", mErr)
+		}
+		h.Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "InternalServerError", "errorMessage": "Something went wrong on the server."})
+		return
+	}
 	h.Set("Content-Type", "application/json; charset=utf-8")
-	_ = json.NewEncoder(w).Encode(out)
+	_, _ = w.Write(raw)
+	_, _ = w.Write([]byte("\n"))
 }
 
 // isNil reports whether out is nil, including a typed nil pointer.
@@ -220,14 +231,26 @@ func yggMeta(d Deps) http.HandlerFunc {
 			add(x)
 		}
 		locale := Locales[0].Code
+		meta := map[string]any{
+			"serverName":              snap.Localized("site.name", locale),
+			"implementationName":      "SkinLoom",
+			"implementationVersion":   buildinfo.Version,
+			"links":                   links,
+			"feature.non_email_login": true,
+		}
+		extraDomains, extraMeta := d.Yggdrasil.MetaExtensions(r.Context())
+		for _, dom := range extraDomains {
+			add(dom)
+		}
+		for k, v := range extraMeta {
+			if _, reserved := meta[k]; !reserved {
+				if _, mErr := json.Marshal(v); mErr == nil {
+					meta[k] = v
+				}
+			}
+		}
 		yggAnswer(w, d, map[string]any{
-			"meta": map[string]any{
-				"serverName":              snap.Localized("site.name", locale),
-				"implementationName":      "SkinLoom",
-				"implementationVersion":   buildinfo.Version,
-				"links":                   links,
-				"feature.non_email_login": true,
-			},
+			"meta":               meta,
 			"skinDomains":        domains,
 			"signaturePublickey": pemText,
 		}, nil)

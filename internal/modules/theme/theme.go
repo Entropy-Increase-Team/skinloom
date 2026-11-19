@@ -34,6 +34,24 @@ import (
 // DefaultID is the built-in fallback theme.
 const DefaultID = "default"
 
+// IsBuiltinID reports whether id is reserved by a built-in embedded theme.
+func IsBuiltinID(id string) bool {
+	return id == DefaultID || id == "brocade"
+}
+
+// IsBuiltin reports whether id is reserved by a built-in theme (including registry-loaded built-ins).
+func (r *Registry) IsBuiltin(id string) bool {
+	if IsBuiltinID(id) {
+		return true
+	}
+	if r != nil {
+		if t, ok := r.Get(id); ok && t.Source == "builtin" {
+			return true
+		}
+	}
+	return false
+}
+
 // Layouts are the layout variants a theme may choose (docs/design/05 §6.1 ③, ADR 0043),
 // the default first. Keys not listed here are ignored.
 var Layouts = map[string][]string{
@@ -45,6 +63,17 @@ var Layouts = map[string][]string{
 
 // ColorSchemes are the color modes a theme may support (ADR 0043).
 var ColorSchemes = []string{"both", "light", "dark"}
+
+// OverrideTargets are the Level 5 React component override points (docs/design/09 §3.2).
+var OverrideTargets = []string{
+	"site.header",
+	"site.footer",
+	"site.logo",
+	"auth.background",
+	"home.hero",
+	"texture.card",
+	"player.card",
+}
 
 // DocumentedColorTokens are the color, shadow and radius tokens in web/design.md §2.2.
 // Unlisted token names remain allowed for a theme's own CSS.
@@ -152,16 +181,39 @@ func (s *Setting) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// LocalizedMap is a locale-to-string map that also unmarshals from a plain JSON string.
+type LocalizedMap map[string]string
+
+// UnmarshalJSON accepts either a plain string or a locale map {"zh-CN": "…", "en": "…"}.
+func (m *LocalizedMap) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 || string(data) == "null" {
+		*m = nil
+		return nil
+	}
+	var str string
+	if err := json.Unmarshal(data, &str); err == nil {
+		*m = LocalizedMap{"zh-CN": str, "en": str}
+		return nil
+	}
+	var obj map[string]string
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return fmt.Errorf("must be a string or localized object: %w", err)
+	}
+	*m = LocalizedMap(obj)
+	return nil
+}
+
 // Manifest is the subset of plugin.json a theme uses (docs/design/05 §6.2, ADR 0043).
 type Manifest struct {
 	ID          string             `json:"id"`
 	Kind        string             `json:"kind"`
 	Version     string             `json:"version"`
-	Name        map[string]string  `json:"name"`
-	Description map[string]string  `json:"description,omitempty"`
+	Name        LocalizedMap       `json:"name"`
+	Description LocalizedMap       `json:"description,omitempty"`
 	APIVersion  int                `json:"apiVersion"`
 	Extends     string             `json:"extends,omitempty"`
 	Screenshot  string             `json:"screenshot,omitempty"`
+	Web         string             `json:"web,omitempty"`
 	Settings    map[string]Setting `json:"settings,omitempty"`
 	Theme       struct {
 		ColorScheme string             `json:"colorScheme,omitempty"`
@@ -169,6 +221,7 @@ type Manifest struct {
 		CSS         string             `json:"css,omitempty"`
 		Layout      map[string]string  `json:"layout,omitempty"`
 		Home        []Block            `json:"home,omitempty"`
+		Overrides   []string           `json:"overrides,omitempty"`
 		Settings    map[string]Setting `json:"settings,omitempty"`
 	} `json:"theme"`
 }
@@ -180,6 +233,9 @@ type Theme struct {
 	Error         string   // non-empty when a local theme failed to load
 	ScreenshotURL string   // resolved AssetURL of Screenshot
 	CSSFiles      []string // resolved AssetURLs (parent first when Extends is set)
+	WebEntry      string   // resolved AssetURL of Web (e.g. web/index.js)
+	WebCSS        string   // resolved AssetURL of optional web/index.css alongside Web
+	Overrides     []string // validated Level 5 component override targets
 	rev           string   // Version for builtin, content hash for local
 	files         fs.FS
 }
@@ -193,6 +249,10 @@ type ResolvedTheme struct {
 	Tokens      Tokens            `json:"tokens"`
 	CSS         []string          `json:"css"`
 	JS          []string          `json:"js"`
+	WebEntry    string            `json:"webEntry,omitempty"`
+	Overrides   []string          `json:"overrides,omitempty"`
+	Previewing  bool              `json:"previewing,omitempty"`
+	PreviewName string            `json:"previewName,omitempty"`
 	Layout      map[string]string `json:"layout"`
 	Home        []Block           `json:"home"`
 	Settings    map[string]string `json:"settings,omitempty"`
@@ -478,6 +538,11 @@ func inherit(child, parent *Theme) {
 	if len(child.Theme.Home) == 0 && len(parent.Theme.Home) > 0 {
 		child.Theme.Home = slices.Clone(parent.Theme.Home)
 	}
+	if child.WebEntry == "" && parent.WebEntry != "" {
+		child.WebEntry = parent.WebEntry
+		child.WebCSS = parent.WebCSS
+		child.Overrides = slices.Clone(parent.Overrides)
+	}
 	if len(parent.Theme.Settings) > 0 || len(child.Theme.Settings) > 0 {
 		s := make(map[string]Setting, len(parent.Theme.Settings)+len(child.Theme.Settings))
 		maps.Copy(s, parent.Theme.Settings)
@@ -561,6 +626,25 @@ func loadWithPartial(files fs.FS, source string) (*Theme, Manifest, error) {
 			return nil, m, fmt.Errorf("css file %q: %w", m.Theme.CSS, err)
 		}
 		t.CSSFiles = []string{AssetURL(t, clean)}
+	}
+	if len(m.Theme.Overrides) > 0 {
+		for _, target := range m.Theme.Overrides {
+			if !slices.Contains(OverrideTargets, target) {
+				return nil, m, fmt.Errorf("unknown override target %q (want one of %v)", target, OverrideTargets)
+			}
+		}
+		t.Overrides = slices.Clone(m.Theme.Overrides)
+	}
+	if m.Web != "" {
+		clean, err := checkFileExt(files, m.Web, []string{".js", ".mjs"})
+		if err != nil {
+			return nil, m, fmt.Errorf("web file %q: %w", m.Web, err)
+		}
+		t.WebEntry = AssetURL(t, clean)
+		cssCand := path.Clean(path.Dir(clean) + "/index.css")
+		if _, err := checkFileExt(files, cssCand, []string{".css"}); err == nil {
+			t.WebCSS = AssetURL(t, cssCand)
+		}
 	}
 	for area, v := range m.Theme.Layout {
 		if options, ok := Layouts[area]; ok && !slices.Contains(options, v) {
@@ -930,7 +1014,14 @@ func ValidateOverrides(v any) error {
 
 // Resolve applies the active theme, theme settings, admin token overrides and the home layout.
 func (r *Registry) Resolve(s *settings.Snapshot) ResolvedTheme {
-	t, ok := r.Get(s.String("theme.active"))
+	return r.ResolveTheme(s, "", nil)
+}
+
+// ResolveTheme resolves either the site's active theme or an explicit override theme ID
+// (used for administrator session previews), gating Level-5 JS overrides behind webTrusted.
+func (r *Registry) ResolveTheme(s *settings.Snapshot, overrideID string, webTrusted func(id string) bool) ResolvedTheme {
+	targetID := cmp.Or(overrideID, s.String("theme.active"))
+	t, ok := r.Get(targetID)
 	if !ok {
 		t, _ = r.Get(DefaultID)
 	}
@@ -1008,6 +1099,15 @@ func (r *Registry) Resolve(s *settings.Snapshot) ResolvedTheme {
 	if len(css) == 0 && t.Theme.CSS != "" {
 		css = append(css, AssetURL(t, t.Theme.CSS))
 	}
+	var webEntry string
+	var compOverrides []string
+	if t.WebEntry != "" && (t.Source == "builtin" || (webTrusted != nil && webTrusted(t.ID))) {
+		webEntry = t.WebEntry
+		compOverrides = slices.Clone(t.Overrides)
+		if t.WebCSS != "" && !slices.Contains(css, t.WebCSS) {
+			css = append(css, t.WebCSS)
+		}
+	}
 	if custom := s.String("theme.custom_css"); custom != "" {
 		css = append(css, CustomCSSURL(custom)) // after the theme's, so it wins
 	}
@@ -1026,6 +1126,8 @@ func (r *Registry) Resolve(s *settings.Snapshot) ResolvedTheme {
 		Tokens:      tokens,
 		CSS:         css,
 		JS:          js,
+		WebEntry:    webEntry,
+		Overrides:   compOverrides,
 		Layout:      layout,
 		Home:        home,
 		Settings:    resolvedSettings,
@@ -1132,6 +1234,12 @@ func AssetURL(t *Theme, file string) string {
 
 // AssetHandler serves /themes-assets/{id}/{version-or-hash}/{file...}.
 func (r *Registry) AssetHandler() http.Handler {
+	return r.AssetHandlerWithTrust(nil)
+}
+
+// AssetHandlerWithTrust serves static theme assets, allowing web/*.js|mjs scripts only
+// when the theme is built-in or approved by webTrusted (signed package or superadmin confirmation).
+func (r *Registry) AssetHandlerWithTrust(webTrusted func(themeID string) bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		rest := strings.TrimPrefix(req.URL.Path, "/themes-assets/")
 		parts := strings.SplitN(rest, "/", 3)
@@ -1146,7 +1254,17 @@ func (r *Registry) AssetHandler() http.Handler {
 		}
 		file := path.Clean(parts[2])
 		ext := strings.ToLower(path.Ext(file))
-		if !fs.ValidPath(file) || file == "." || file == "plugin.json" || !slices.Contains(assetExts, ext) {
+		isWebScript := (ext == ".js" || ext == ".mjs") && (strings.HasPrefix(file, "web/") || (t.Manifest.Web != "" && file == path.Clean(t.Manifest.Web)))
+		if isWebScript {
+			if t.Source != "builtin" && (webTrusted == nil || !webTrusted(t.ID)) {
+				http.Error(w, "theme web scripts require superadmin approval", http.StatusForbidden)
+				return
+			}
+		} else if !fs.ValidPath(file) || file == "." || file == "plugin.json" || !slices.Contains(assetExts, ext) {
+			http.NotFound(w, req)
+			return
+		}
+		if !fs.ValidPath(file) || file == "." || file == "plugin.json" {
 			http.NotFound(w, req)
 			return
 		}
@@ -1156,8 +1274,11 @@ func (r *Registry) AssetHandler() http.Handler {
 			return
 		}
 		w.Header().Set("X-Content-Type-Options", "nosniff")
+		if isWebScript {
+			w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+		}
 		if ext == ".svg" {
-			w.Header().Set("Content-Security-Policy", "sandbox")
+			w.Header().Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'self'; sandbox")
 		}
 		if parts[1] == cmp.Or(t.rev, t.Version) {
 			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")

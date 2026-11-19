@@ -15,6 +15,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/blob"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
+	entplugin "github.com/Entropy-Increase-Team/skinloom/ent/plugin"
 	tex "github.com/Entropy-Increase-Team/skinloom/ent/texture"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/jobs"
@@ -49,13 +50,51 @@ type sweepPayload struct {
 	Hash string `json:"hash"`
 }
 
+// pluginPackageSHAs returns every .slp archive SHA-256 currently referenced by
+// any installed plugin's package_sha256 or multi-arch platform_packages map.
+func (s *Service) pluginPackageSHAs(ctx context.Context) (map[string]bool, error) {
+	rows, err := s.db.Plugin.Query().
+		Select(entplugin.FieldPackageSha256, entplugin.FieldPlatformPackages).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	keep := make(map[string]bool, len(rows))
+	for _, r := range rows {
+		if r.PackageSha256 != "" {
+			keep[r.PackageSha256] = true
+		}
+		for _, sha := range r.PlatformPackages {
+			if sha != "" {
+				keep[sha] = true
+			}
+		}
+	}
+	return keep, nil
+}
+
 // SweepFile deletes a stored file that no blob row names and that nothing has written
 // for SweepGrace. Both conditions matter: the row is created only after an upload's
 // file is written, and writing the same image again refreshes the file's time.
 func (s *Service) SweepFile(ctx context.Context, hash string, now time.Time) (bool, error) {
+	return s.sweepFile(ctx, hash, now, nil)
+}
+
+func (s *Service) sweepFile(ctx context.Context, hash string, now time.Time, preloadedPluginKeep map[string]bool) (bool, error) {
 	used, err := s.db.Blob.Query().Where(blob.ID(hash)).Exist(ctx)
 	if err != nil || used {
 		return false, err
+	}
+	pkgSHAs := preloadedPluginKeep
+	if pkgSHAs == nil {
+		var pErr error
+		pkgSHAs, pErr = s.pluginPackageSHAs(ctx)
+		if pErr != nil {
+			return false, pErr
+		}
+	}
+	if pkgSHAs[hash] {
+		return false, nil
 	}
 	written, err := s.store.Stat(ctx, hash)
 	if err != nil {
@@ -80,6 +119,10 @@ func (s *Service) SweepOrphans(ctx context.Context, now time.Time) (int, error) 
 	if err != nil {
 		return 0, err
 	}
+	pluginKeep, err := s.pluginPackageSHAs(ctx)
+	if err != nil {
+		return 0, err
+	}
 	deleted := 0
 	for len(old) > 0 {
 		chunk := old[:min(len(old), 500)]
@@ -88,15 +131,18 @@ func (s *Service) SweepOrphans(ctx context.Context, now time.Time) (int, error) 
 		if err != nil {
 			return deleted, err
 		}
-		keep := make(map[string]bool, len(known))
+		keep := make(map[string]bool, len(known)+len(pluginKeep))
 		for _, k := range known {
+			keep[k] = true
+		}
+		for k := range pluginKeep {
 			keep[k] = true
 		}
 		for _, k := range chunk {
 			if keep[k] {
 				continue
 			}
-			if ok, err := s.SweepFile(ctx, k, now); err != nil {
+			if ok, err := s.sweepFile(ctx, k, now, pluginKeep); err != nil {
 				return deleted, err
 			} else if ok {
 				deleted++
@@ -199,6 +245,11 @@ func (s *Service) calibrate(ctx context.Context, id int64) (bool, error) {
 		changed = true
 		return tx.Texture.UpdateOneID(id).SetLikes(n).Exec(ctx)
 	})
+	if changed && s.activeSearchProvider() != nil {
+		if updated, gErr := s.db.Texture.Get(ctx, id); gErr == nil {
+			s.notifySearchIndex(ctx, updated)
+		}
+	}
 	return changed, err
 }
 

@@ -48,6 +48,8 @@ import { useLocale, useTranslations } from 'next-intl'
 import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from 'react'
 
 import { Field, FormError } from '@/components/auth/field'
+import { findMissingPluginFormErrors, PluginForms } from '@/components/plugin-forms'
+import { useBootstrap } from '@/components/providers'
 import { ProviderIcon, SocialError } from '@/components/auth/social-buttons'
 import { UserBadges } from '@/components/user/user-badges'
 import { problemOf } from '@/lib/problem'
@@ -139,13 +141,14 @@ export function AvatarSection({ viewer }: { viewer: Viewer }) {
         <UserAvatar of={{ user: viewer.id, version: viewer.avatarTextureId }} size={64} cube className="bg-transparent" />
         <div className="flex flex-col gap-2">
           <UserBadges badges={viewer.badges} />
-          <ButtonLink variant="outline" size="sm" render={<Link href="/user/closet" />}>
+          <ButtonLink variant="outline" size="sm" className="pointer-coarse:h-10" render={<Link href="/user/closet" />}>
             {t('chooseAvatar')}
           </ButtonLink>
           {viewer.avatarTextureId && (
             <Button
               variant="ghost"
               size="sm"
+              className="pointer-coarse:h-10"
               loading={s.pending}
               onClick={async () => {
                 if (await s.run(() => setAvatar({ textureId: 0 }), t('avatarRemoved'))) router.refresh()
@@ -163,15 +166,31 @@ export function AvatarSection({ viewer }: { viewer: Viewer }) {
 
 export function ProfileSection({ viewer, locales }: { viewer: Viewer; locales: LocaleInfo[] }) {
   const t = useTranslations('profile')
+  const tf = useTranslations('fieldErrors')
+  const boot = useBootstrap()
   const router = useRouter()
   const s = useSubmit()
+  const [extraForm, setExtraForm] = useState<Record<string, unknown>>({})
   const languages = [{ value: AUTO, label: t('followBrowser') }, ...locales.map((l) => ({ value: l.code, label: l.name }))]
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const f = new FormData(e.currentTarget)
+    const missingExtra = findMissingPluginFormErrors(boot.forms, 'user.profile', extraForm, tf('required'))
+    if (Object.keys(missingExtra).length > 0) {
+      s.setFields(missingExtra)
+      return
+    }
     const picked = String(f.get('locale') ?? '')
     const locale = picked === AUTO ? '' : picked
-    const ok = await s.run(() => updateMe({ nickname: String(f.get('nickname') ?? ''), locale }), t('saved'))
+    const ok = await s.run(
+      () =>
+        updateMe({
+          nickname: String(f.get('nickname') ?? ''),
+          locale,
+          ...(Object.keys(extraForm).length > 0 ? { form: extraForm } : {}),
+        }),
+      t('saved'),
+    )
     if (ok) {
       // The preference also decides the language of mail; apply it to this browser now.
       if (locale) document.cookie = `locale=${encodeURIComponent(locale)}; path=/; max-age=31536000; samesite=lax`
@@ -180,7 +199,7 @@ export function ProfileSection({ viewer, locales }: { viewer: Viewer; locales: L
   }
   return (
     <Section title={t('profile')}>
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
         <FormError message={s.error} />
         <Field id="nickname" label={t('nickname')} defaultValue={viewer.nickname} maxLength={32} required error={s.fields.nickname} />
         <UiField>
@@ -199,6 +218,7 @@ export function ProfileSection({ viewer, locales }: { viewer: Viewer; locales: L
           </Select>
           <FieldDescription>{t('languageHint')}</FieldDescription>
         </UiField>
+        <PluginForms scope="user.profile" values={extraForm} onChange={setExtraForm} errors={s.fields} />
         <Button type="submit" className="self-start" loading={s.pending}>
           {t('save')}
         </Button>
@@ -331,6 +351,7 @@ export function SessionsSection() {
   const t = useTranslations('profile')
   const [list, setList] = useState<SessionView[] | null>(null)
   const [failed, setFailed] = useState(false)
+  const [revoking, setRevoking] = useState<string | null>(null)
   const load = useCallback(async () => {
     try {
       setList((await listSessions()).data as SessionView[])
@@ -366,9 +387,17 @@ export function SessionsSection() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="pointer-coarse:h-10"
+                    loading={revoking === x.id}
+                    disabled={revoking !== null}
                     onClick={async () => {
-                      await revokeSession(x.id).catch(() => undefined)
-                      await load()
+                      setRevoking(x.id)
+                      try {
+                        await revokeSession(x.id).catch(() => undefined)
+                        await load()
+                      } finally {
+                        setRevoking(null)
+                      }
                     }}
                   >
                     {t('signOutDevice')}
@@ -381,9 +410,16 @@ export function SessionsSection() {
             <Button
               variant="outline"
               className="self-start"
+              loading={revoking === 'others'}
+              disabled={revoking !== null}
               onClick={async () => {
-                await revokeOtherSessions().catch(() => undefined)
-                await load()
+                setRevoking('others')
+                try {
+                  await revokeOtherSessions().catch(() => undefined)
+                  await load()
+                } finally {
+                  setRevoking(null)
+                }
               }}
             >
               {t('signOutOthers')}
@@ -479,6 +515,7 @@ export function SocialSection({ viewer, linked, error }: { viewer: Viewer; linke
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="pointer-coarse:h-10"
                   disabled={s.pending || (keepLast && Boolean(l.providerType))}
                   onClick={async () => {
                     const ok = await confirm({
@@ -504,6 +541,7 @@ export function SocialSection({ viewer, linked, error }: { viewer: Viewer; linke
                 key={p.id}
                 variant="outline"
                 size="sm"
+                className="pointer-coarse:h-10"
                 disabled={s.pending}
                 onClick={() =>
                   void s.run(async () => {

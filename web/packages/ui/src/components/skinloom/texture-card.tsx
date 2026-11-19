@@ -29,6 +29,7 @@ export function TextureCard({
   linkAs: LinkAs = 'a',
   density = 'comfortable',
   meta,
+  badges,
   privateLabel,
   likesLabel,
   className,
@@ -40,6 +41,8 @@ export function TextureCard({
   density?: keyof typeof HEIGHTS
   /** Replaces the uploader line, e.g. with the type and the uploader in words. */
   meta?: React.ReactNode
+  /** Inline badges rendered alongside the title (e.g. skinlib.card.badges plugin slot). */
+  badges?: React.ReactNode
   privateLabel?: string
   likesLabel?: string
   className?: string
@@ -65,7 +68,12 @@ export function TextureCard({
         )}
       </PixelBackdrop>
       <div className={cn('flex flex-col gap-1.5', density === 'compact' ? 'px-1.5 pt-2 pb-1.5' : 'px-2 pt-2.5 pb-2')}>
-        <span className="truncate text-sm font-medium">{texture.name}</span>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="min-w-0 flex-1 truncate text-sm font-medium">{texture.name}</span>
+          {badges ? (
+            <span className="flex min-w-0 max-w-[45%] shrink-0 items-center gap-1 overflow-hidden">{badges}</span>
+          ) : null}
+        </div>
         <span className="flex items-center gap-1.5 text-xs text-faint-foreground">
           {meta ?? (
             <>
@@ -136,7 +144,7 @@ export function PlayerCard({
             ))}
           </dl>
         )}
-        {actions && <div className="-mx-1 flex items-center gap-1">{actions}</div>}
+        {actions && <div className="-mx-1 flex flex-wrap items-center gap-1">{actions}</div>}
       </div>
     </>
   )

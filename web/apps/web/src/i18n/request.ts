@@ -15,6 +15,7 @@ export default getRequestConfig(async () => {
   const messages = (await import(`../../messages/${locale}.json`)).default as Messages
   return {
     locale,
+    timeZone: process.env.TZ || 'Asia/Shanghai',
     // The overrides are the bootstrap locale's: laid over another language they would mix two.
     messages: locale === boot.locale ? withOverrides(messages, boot.messages) : messages,
   }

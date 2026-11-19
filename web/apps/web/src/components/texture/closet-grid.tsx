@@ -40,6 +40,8 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 
+import { Slot } from '@/components/slot'
+import { ThemeOverride } from '@/components/theme-override'
 import { problemOf } from '@/lib/problem'
 
 type Category = 'skin' | 'cape'
@@ -177,21 +179,30 @@ export function ClosetGrid() {
           {items.map((it) => (
             // The card is a link; the menu sits over it as a sibling (links cannot hold buttons).
             <div key={it.id} className="relative">
-              <TextureCard
-                linkAs={Link}
-                href={`/skinlib/show/${it.texture.id}`}
-                texture={{ ...it.texture, name: it.name, uploader: null }}
-                meta={<span className="truncate">{tt(`types.${it.texture.type}`)}</span>}
-                privateLabel={tt('private')}
-                likesLabel={tt('likes')}
+              <ThemeOverride
+                name="texture.card"
+                props={{ texture: it.texture, name: it.name, href: `/skinlib/show/${it.texture.id}` }}
+                fallback={
+                  <TextureCard
+                    linkAs={Link}
+                    href={`/skinlib/show/${it.texture.id}`}
+                    texture={{ ...it.texture, name: it.name, uploader: null }}
+                    meta={<span className="truncate">{tt(`types.${it.texture.type}`)}</span>}
+                    privateLabel={tt('private')}
+                    likesLabel={tt('likes')}
+                  />
+                }
               />
+              <div className="mt-1.5 flex items-center gap-1 empty:hidden">
+                <Slot name="user.closet.item.actions" props={{ textureId: it.texture.id, name: it.name, type: it.texture.type }} />
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
                     <Button
                       variant="outline"
                       size="icon-sm"
-                      className="absolute top-2.5 right-2.5 bg-card/90 shadow-xs backdrop-blur-sm"
+                      className="absolute top-2.5 right-2.5 bg-card/90 shadow-xs backdrop-blur-sm pointer-coarse:size-10"
                       aria-label={t('itemMenu', { name: it.name })}
                       title={t('itemMenu', { name: it.name })}
                     />

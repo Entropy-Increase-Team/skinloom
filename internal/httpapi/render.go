@@ -175,22 +175,43 @@ func serveAvatar(w http.ResponseWriter, r *http.Request, d Deps, hash, cache str
 	cube := q.Has("3d")
 	format := imageFormat(r, size, size)
 	key := fmt.Sprintf("avatar:%s:%t:%d:%s", hash, cube, size, format)
+	if tag := d.Renders.ProviderCacheTag(); tag != "" {
+		key += ":" + tag
+	}
 	// The texture's file is missing (an imported site often has such rows): the
 	// placeholder, as Blessing Skin shows, for a short while: the file may come back.
 	missing := func() { serveAvatar(w, r, d, "", shortCache(d)) }
-	serveImage(w, r, d, key, format, cache, missing, func() (image.Image, error) {
-		skin := render.Placeholder()
+	serveEncodedImage(w, r, d, key, format, cache, missing, func() ([]byte, bool, error) {
+		var raw []byte
 		if hash != "" {
-			img, err := decodeFile(r, d, hash)
+			var err error
+			raw, err = d.Textures.ReadFile(r.Context(), hash)
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
-			skin = render.Normalize(img)
 		}
-		if cube {
-			return render.Avatar3D(skin, size), nil
-		}
-		return render.Avatar2D(skin, size), nil
+		return d.Renders.RenderAvatarWithProviderStatus(r.Context(), render.AvatarRequest{
+			SkinPNG: raw,
+			Size:    size,
+			Is3D:    cube,
+			Format:  format,
+		}, func() ([]byte, error) {
+			skin := render.Placeholder()
+			if len(raw) > 0 {
+				img, _, err := image.Decode(bytes.NewReader(raw))
+				if err != nil {
+					return nil, err
+				}
+				skin = render.Normalize(img)
+			}
+			var out image.Image
+			if cube {
+				out = render.Avatar3D(skin, size)
+			} else {
+				out = render.Avatar2D(skin, size)
+			}
+			return render.Encode(out, format)
+		})
 	})
 }
 
@@ -205,36 +226,47 @@ func servePreview(w http.ResponseWriter, r *http.Request, d Deps, t *ent.Texture
 	// The key holds the type: a texture's image never changes, but its type can (an
 	// Alex skin is drawn with slim arms), so the hash alone is not enough.
 	key := fmt.Sprintf("preview2:%s:%s:%d:%s", t.Hash, t.Type, height, format)
+	if tag := d.Renders.ProviderCacheTag(); tag != "" {
+		key += ":" + tag
+	}
 	missing := func() { http.NotFound(w, r) } // as Blessing Skin when the file is gone
-	serveImage(w, r, d, key, format, cache, missing, func() (image.Image, error) {
-		img, err := decodeFile(r, d, t.Hash)
+	serveEncodedImage(w, r, d, key, format, cache, missing, func() ([]byte, bool, error) {
+		raw, err := d.Textures.ReadFile(r.Context(), t.Hash)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
-		if t.Type == tex.TypeCape {
-			return render.CapePreview(img, height), nil
-		}
-		return render.SkinPreview(render.Normalize(img), t.Type == tex.TypeAlex, height), nil
+		return d.Renders.RenderPreviewWithProviderStatus(r.Context(), render.PreviewRequest{
+			TexturePNG:  raw,
+			TextureType: string(t.Type),
+			Height:      height,
+			Format:      format,
+		}, func() ([]byte, error) {
+			img, _, err := image.Decode(bytes.NewReader(raw))
+			if err != nil {
+				return nil, err
+			}
+			var out image.Image
+			if t.Type == tex.TypeCape {
+				out = render.CapePreview(img, height)
+			} else {
+				out = render.SkinPreview(render.Normalize(img), t.Type == tex.TypeAlex, height)
+			}
+			return render.Encode(out, format)
+		})
 	})
 }
 
-func decodeFile(r *http.Request, d Deps, hash string) (image.Image, error) {
-	data, err := d.Textures.ReadFile(r.Context(), hash)
-	if err != nil {
-		return nil, err
-	}
-	img, _, err := image.Decode(bytes.NewReader(data))
-	return img, err
-}
-
-// serveImage answers with the cached render for key, rendering it on a miss. The same
+// serveEncodedImage answers with the cached render for key, rendering it on a miss. The same
 // key is the same bytes, so the ETag follows from the key and a revalidation is
 // answered before anything is rendered. It is a digest of the key: the key names the
 // file, and a private texture's hash must not appear in a public answer (an avatar
 // may show the head of its owner's private skin; /textures/{hash} serves any file).
 // missing answers instead when the texture's file is not in storage; nothing is cached
 // under key then, so the real render appears once the file is put back.
-func serveImage(w http.ResponseWriter, r *http.Request, d Deps, key, format, cache string, missing func(), draw func() (image.Image, error)) {
+// When a custom RenderProvider failed and fell back to the built-in renderer
+// (cacheable == false), the fallback image is served with Cache-Control: no-store
+// and without ETag so transient provider glitches never poison immutable caches.
+func serveEncodedImage(w http.ResponseWriter, r *http.Request, d Deps, key, format, cache string, missing func(), draw func() ([]byte, bool, error)) {
 	sum := sha256.Sum256([]byte(key))
 	etag := `"` + hex.EncodeToString(sum[:16]) + `"`
 	validators := func() {
@@ -248,13 +280,7 @@ func serveImage(w http.ResponseWriter, r *http.Request, d Deps, key, format, cac
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
-	data, err := d.Renders.Get(r.Context(), key, func() ([]byte, error) {
-		img, err := draw()
-		if err != nil {
-			return nil, err
-		}
-		return render.Encode(img, format)
-	})
+	data, cacheable, err := d.Renders.GetWithCacheable(r.Context(), key, draw)
 	if errors.Is(err, storage.ErrNotFound) {
 		missing()
 		return
@@ -263,7 +289,12 @@ func serveImage(w http.ResponseWriter, r *http.Request, d Deps, key, format, cac
 		renderFailed(w, d, err) // without the cache headers: a failure is not kept
 		return
 	}
-	validators()
+	if cacheable {
+		validators()
+	} else {
+		w.Header().Set("Vary", "Accept")
+		w.Header().Set("Cache-Control", "no-store")
+	}
 	w.Header().Set("Content-Type", "image/"+format)
 	http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(data))
 }

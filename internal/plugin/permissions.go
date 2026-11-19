@@ -38,11 +38,17 @@ const (
 	PermYggdrasilExtend = "yggdrasil.extend"
 	PermCDNProvider     = "cdn.provider"
 	PermCaptchaProvider = "captcha.provider"
+	PermStorageSQL      = "storage.sql"
+	PermHTTPStream      = "http.stream"
+	PermProviderSearch  = "provider.search"
+	PermProviderRender  = "provider.render"
 
 	// High-risk permissions
-	PermUsersBan     = "users.ban"
-	PermAuthProvider = "auth.provider"
-	PermAuthPassword = "auth.password"
+	PermUsersBan        = "users.ban"
+	PermAuthProvider    = "auth.provider"
+	PermAuthPassword    = "auth.password"
+	PermProviderStorage = "provider.storage"
+	PermNativeExec      = "native.exec"
 )
 
 // PermissionDef describes a known capability permission and its risk tier.
@@ -50,32 +56,39 @@ type PermissionDef struct {
 	Name        string   `json:"name"`
 	Tier        RiskTier `json:"tier"`
 	Description string   `json:"description"`
+	NativeOnly  bool     `json:"nativeOnly,omitempty"`
 }
 
 var permissionCatalog = map[string]PermissionDef{
-	PermStorageKV:       {PermStorageKV, RiskNormal, "Read and write plugin-scoped key/value data."},
-	PermStorageDocs:     {PermStorageDocs, RiskNormal, "Read and write plugin-scoped structured documents."},
-	PermStorageFiles:    {PermStorageFiles, RiskNormal, "Read and write files in the plugin's private file space."},
-	PermCron:            {PermCron, RiskNormal, "Schedule recurring background jobs."},
-	PermAdminUI:         {PermAdminUI, RiskNormal, "Register custom pages under the admin panel."},
-	PermUsersRead:       {PermUsersRead, RiskNormal, "Query basic account information."},
-	PermPlayersRead:     {PermPlayersRead, RiskNormal, "Query player profiles and worn textures."},
-	PermTexturesRead:    {PermTexturesRead, RiskNormal, "Read skin and cape metadata or image bytes."},
-	PermNotifySend:      {PermNotifySend, RiskNormal, "Send in-site notifications or announcements."},
-	PermHTTPFetch:       {PermHTTPFetch, RiskSensitive, "Make outbound HTTP requests to declared http.allow hosts."},
-	PermMailSend:        {PermMailSend, RiskSensitive, "Send emails via the host mail queue."},
-	PermPlayersWrite:    {PermPlayersWrite, RiskSensitive, "Create, rename, equip, or delete players."},
-	PermTexturesWrite:   {PermTexturesWrite, RiskSensitive, "Create, edit, or delete textures."},
-	PermClosetWrite:     {PermClosetWrite, RiskSensitive, "Modify user closets."},
-	PermScoreWrite:      {PermScoreWrite, RiskSensitive, "Credit or debit user score balances through the ledger."},
-	PermUsersWrite:      {PermUsersWrite, RiskSensitive, "Update limited user profile fields or preferences."},
-	PermRoutesPublic:    {PermRoutesPublic, RiskSensitive, "Mount public routes at site root patterns."},
-	PermYggdrasilExtend: {PermYggdrasilExtend, RiskSensitive, "Extend Yggdrasil profiles and metadata."},
-	PermCDNProvider:     {PermCDNProvider, RiskSensitive, "Register a CDN cache purger provider."},
-	PermCaptchaProvider: {PermCaptchaProvider, RiskSensitive, "Register a CAPTCHA verification provider."},
-	PermUsersBan:        {PermUsersBan, RiskHighRisk, "Ban or unban user accounts."},
-	PermAuthProvider:    {PermAuthProvider, RiskHighRisk, "Register a login / sign-in identity provider."},
-	PermAuthPassword:    {PermAuthPassword, RiskHighRisk, "Register an external password verification algorithm."},
+	PermStorageKV:       {Name: PermStorageKV, Tier: RiskNormal, Description: "Read and write plugin-scoped key/value data."},
+	PermStorageDocs:     {Name: PermStorageDocs, Tier: RiskNormal, Description: "Read and write plugin-scoped structured documents."},
+	PermStorageFiles:    {Name: PermStorageFiles, Tier: RiskNormal, Description: "Read and write files in the plugin's private file space."},
+	PermCron:            {Name: PermCron, Tier: RiskNormal, Description: "Schedule recurring background jobs."},
+	PermAdminUI:         {Name: PermAdminUI, Tier: RiskNormal, Description: "Register custom pages under the admin panel."},
+	PermUsersRead:       {Name: PermUsersRead, Tier: RiskNormal, Description: "Query basic account information."},
+	PermPlayersRead:     {Name: PermPlayersRead, Tier: RiskNormal, Description: "Query player profiles and worn textures."},
+	PermTexturesRead:    {Name: PermTexturesRead, Tier: RiskNormal, Description: "Read skin and cape metadata or image bytes."},
+	PermNotifySend:      {Name: PermNotifySend, Tier: RiskNormal, Description: "Send in-site notifications or announcements."},
+	PermHTTPFetch:       {Name: PermHTTPFetch, Tier: RiskSensitive, Description: "Make outbound HTTP requests to declared http.allow hosts."},
+	PermMailSend:        {Name: PermMailSend, Tier: RiskSensitive, Description: "Send emails via the host mail queue."},
+	PermPlayersWrite:    {Name: PermPlayersWrite, Tier: RiskSensitive, Description: "Create, rename, equip, or delete players."},
+	PermTexturesWrite:   {Name: PermTexturesWrite, Tier: RiskSensitive, Description: "Create, edit, or delete textures."},
+	PermClosetWrite:     {Name: PermClosetWrite, Tier: RiskSensitive, Description: "Modify user closets."},
+	PermScoreWrite:      {Name: PermScoreWrite, Tier: RiskSensitive, Description: "Credit or debit user score balances through the ledger."},
+	PermUsersWrite:      {Name: PermUsersWrite, Tier: RiskSensitive, Description: "Update limited user profile fields or preferences."},
+	PermRoutesPublic:    {Name: PermRoutesPublic, Tier: RiskSensitive, Description: "Mount public routes at site root patterns."},
+	PermYggdrasilExtend: {Name: PermYggdrasilExtend, Tier: RiskSensitive, Description: "Extend Yggdrasil profiles and metadata."},
+	PermCDNProvider:     {Name: PermCDNProvider, Tier: RiskSensitive, Description: "Register a CDN cache purger provider."},
+	PermCaptchaProvider: {Name: PermCaptchaProvider, Tier: RiskSensitive, Description: "Register a CAPTCHA verification provider."},
+	PermStorageSQL:      {Name: PermStorageSQL, Tier: RiskSensitive, Description: "Access the host-allocated isolated SQL database space (plg_<id>_ prefix).", NativeOnly: true},
+	PermHTTPStream:      {Name: PermHTTPStream, Tier: RiskSensitive, Description: "Expose a local HTTP/WebSocket streaming reverse proxy endpoint.", NativeOnly: true},
+	PermProviderSearch:  {Name: PermProviderSearch, Tier: RiskSensitive, Description: "Register a custom full-text texture search engine provider.", NativeOnly: true},
+	PermProviderRender:  {Name: PermProviderRender, Tier: RiskSensitive, Description: "Register a custom 2D/3D avatar and texture preview render provider.", NativeOnly: true},
+	PermUsersBan:        {Name: PermUsersBan, Tier: RiskHighRisk, Description: "Ban or unban user accounts."},
+	PermAuthProvider:    {Name: PermAuthProvider, Tier: RiskHighRisk, Description: "Register a login / sign-in identity provider."},
+	PermAuthPassword:    {Name: PermAuthPassword, Tier: RiskHighRisk, Description: "Register an external password verification algorithm."},
+	PermProviderStorage: {Name: PermProviderStorage, Tier: RiskHighRisk, Description: "Register a custom texture object storage driver provider.", NativeOnly: true},
+	PermNativeExec:      {Name: PermNativeExec, Tier: RiskHighRisk, Description: "Execute as a native OS subprocess outside the WASM sandbox.", NativeOnly: true},
 }
 
 // ErrPermissionDenied indicates a plugin invoked a capability it lacks permission for.

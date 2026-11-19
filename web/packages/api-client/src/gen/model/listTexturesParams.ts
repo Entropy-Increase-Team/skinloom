@@ -27,7 +27,7 @@ uploader?: number;
  */
 sort?: ListTexturesSort;
 /**
- * @maxLength 40
+ * @maxLength 256
  */
 cursor?: string;
 /**

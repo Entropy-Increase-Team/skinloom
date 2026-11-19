@@ -28,6 +28,9 @@ import { type FormEvent, useEffect, useState } from 'react'
 import { inferModelType, loadSkinToCanvas } from 'skinview-utils'
 
 import { FormError } from '@/components/auth/field'
+import { findMissingPluginFormErrors, PluginForms } from '@/components/plugin-forms'
+import { useBootstrap } from '@/components/providers'
+import { Slot } from '@/components/slot'
 import { problemOf } from '@/lib/problem'
 import { looksLikeCape, uploadCost } from '@/lib/skin'
 
@@ -73,6 +76,8 @@ export function UploadForm({ rules, score }: { rules: TextureRules; score: numbe
   const t = useTranslations('upload')
   const tt = useTranslations('texture')
   const tc = useTranslations('common')
+  const tf = useTranslations('fieldErrors')
+  const boot = useBootstrap()
   const router = useRouter()
   const [file, setFile] = useState<File | null>(null)
   const [picked, setPicked] = useState<{ url: string; width: number; height: number } | null>(null)
@@ -83,6 +88,7 @@ export function UploadForm({ rules, score }: { rules: TextureRules; score: numbe
   const [error, setError] = useState<string | null>(null)
   const [fields, setFields] = useState<Record<string, string>>({})
   const [duplicate, setDuplicate] = useState<number | null>(null)
+  const [extraForm, setExtraForm] = useState<Record<string, unknown>>({})
 
   useEffect(() => {
     if (!picked) return
@@ -121,11 +127,22 @@ export function UploadForm({ rules, score }: { rules: TextureRules; score: numbe
       setFields({ file: t('errors.noFile') })
       return
     }
+    const missingExtra = findMissingPluginFormErrors(boot.forms, 'texture.upload', extraForm, tf('required'))
+    if (Object.keys(missingExtra).length > 0) {
+      setFields(missingExtra)
+      return
+    }
     setPending(true)
     setError(null)
     setFields({})
     try {
-      const res = await uploadTextureFile({ file, name, type, public: isPublic })
+      const res = await uploadTextureFile({
+        file,
+        name,
+        type,
+        public: isPublic,
+        ...(Object.keys(extraForm).length > 0 ? { form: extraForm } : {}),
+      })
       if (res.duplicate) {
         setDuplicate(res.texture.id)
         setPending(false)
@@ -232,12 +249,15 @@ export function UploadForm({ rules, score }: { rules: TextureRules; score: numbe
           </p>
         </div>
 
+        <PluginForms scope="texture.upload" values={extraForm} onChange={setExtraForm} errors={fields} />
+
         {rules.contentPolicy && <p className="text-caption whitespace-pre-line text-muted-foreground">{rules.contentPolicy}</p>}
 
         <FormError message={error} />
         <Button type="submit" size="lg" loading={pending} disabled={!file}>
           {t('submit')}
         </Button>
+        <Slot name="skinlib.upload.below" />
       </div>
     </form>
   )

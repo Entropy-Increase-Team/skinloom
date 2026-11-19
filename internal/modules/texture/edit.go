@@ -218,7 +218,12 @@ func (s *Service) Update(ctx context.Context, v Viewer, id int64, e Edit, p Poli
 	if err != nil {
 		return nil, err
 	}
-	return s.db.Texture.Query().Where(tex.ID(id)).WithUploader(selectUploader).Only(ctx)
+	updated, err := s.db.Texture.Query().Where(tex.ID(id)).WithUploader(selectUploader).Only(ctx)
+	if err != nil {
+		return nil, err
+	}
+	s.notifySearchIndex(ctx, updated)
+	return updated, nil
 }
 
 // dropOthers removes t from every closet but its uploader's, as when it goes
@@ -334,7 +339,11 @@ func (s *Service) remove(ctx context.Context, tx *ent.Client, t *ent.Texture) er
 	if err := clearAvatars(ctx, tx, t.ID); err != nil {
 		return err
 	}
-	return s.unref(ctx, tx, t.Hash)
+	if err := s.unref(ctx, tx, t.Hash); err != nil {
+		return err
+	}
+	s.notifySearchDelete(ctx, t.ID)
+	return nil
 }
 
 // clearAvatars unsets a deleted texture as anyone's avatar: users.avatar_texture_id

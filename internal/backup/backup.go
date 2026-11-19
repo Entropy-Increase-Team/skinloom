@@ -10,16 +10,23 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
+	"strings"
 	"time"
+
+	_ "modernc.org/sqlite"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/fsperm"
@@ -39,9 +46,39 @@ const (
 )
 
 var (
-	secretName  = regexp.MustCompile(`^secrets/[A-Za-z0-9_-][A-Za-z0-9._-]{0,99}$`) // not "." or ".."
-	textureName = regexp.MustCompile(`^textures/[0-9a-f]{64}$`)
+	secretName   = regexp.MustCompile(`^secrets/[A-Za-z0-9_-][A-Za-z0-9._-]{0,99}$`) // not "." or ".."
+	textureName  = regexp.MustCompile(`^textures/[0-9a-f]{64}$`)
+	pluginIDSeg  = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)
+	sqliteHeader = []byte("SQLite format 3\x00")
 )
+
+// isSafePluginDataEntry checks that name is a clean relative path under plugins-data/<id>/...
+// with no path traversal, backslashes, NUL bytes, or transient SQLite WAL/SHM sidecars.
+func isSafePluginDataEntry(name string) bool {
+	rest, ok := strings.CutPrefix(name, "plugins-data/")
+	if !ok || rest == "" || strings.ContainsRune(rest, '\\') || strings.ContainsRune(rest, ':') {
+		return false
+	}
+	for i := 0; i < len(rest); i++ {
+		if rest[i] < 0x20 || rest[i] == 0x7f {
+			return false
+		}
+	}
+	if strings.HasSuffix(rest, "-wal") || strings.HasSuffix(rest, "-shm") {
+		return false
+	}
+	segs := strings.Split(rest, "/")
+	if len(segs) < 2 || !pluginIDSeg.MatchString(segs[0]) {
+		return false
+	}
+	for _, seg := range segs[1:] {
+		if seg == "" || seg == "." || seg == ".." {
+			return false
+		}
+	}
+	clean := path.Clean(name)
+	return clean == name && filepath.IsLocal(filepath.FromSlash(rest))
+}
 
 // Manifest describes an archive; it is its first entry.
 type Manifest struct {
@@ -51,9 +88,10 @@ type Manifest struct {
 	Database  string    `json:"database"` // dialect
 	Migration int64     `json:"migration"`
 	// HasDatabase is false for MySQL and PostgreSQL: dump those with their own tools.
-	HasDatabase  bool  `json:"hasDatabase"`
-	Textures     int   `json:"textures"`
-	TextureBytes int64 `json:"textureBytes"`
+	HasDatabase     bool  `json:"hasDatabase"`
+	Textures        int   `json:"textures"`
+	TextureBytes    int64 `json:"textureBytes"`
+	PluginDataFiles int   `json:"pluginDataFiles,omitempty"`
 }
 
 // Sources is what Write reads.
@@ -98,6 +136,63 @@ func Write(ctx context.Context, w io.Writer, src Sources) (Manifest, error) {
 		}
 	}
 	m.Textures = len(keys)
+
+	type pluginDataItem struct {
+		archiveName string
+		diskPath    string
+		cleanup     bool
+	}
+	var pluginItems []pluginDataItem
+	defer func() {
+		for _, it := range pluginItems {
+			if it.cleanup {
+				_ = os.Remove(it.diskPath)
+			}
+		}
+	}()
+	pluginDataRoot := filepath.Join(src.DataDir, "plugins-data")
+	if _, statErr := os.Stat(pluginDataRoot); statErr == nil {
+		var rels []string
+		err := filepath.WalkDir(pluginDataRoot, func(p string, d fs.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
+			}
+			if d.IsDir() {
+				return nil
+			}
+			if !d.Type().IsRegular() {
+				return nil
+			}
+			rel, rErr := filepath.Rel(pluginDataRoot, p)
+			if rErr != nil {
+				return rErr
+			}
+			archiveName := "plugins-data/" + filepath.ToSlash(rel)
+			if !isSafePluginDataEntry(archiveName) {
+				return nil
+			}
+			rels = append(rels, archiveName)
+			return nil
+		})
+		if err != nil {
+			return m, fmt.Errorf("plugins-data: %w", err)
+		}
+		sort.Strings(rels)
+		for _, archiveName := range rels {
+			rel := strings.TrimPrefix(archiveName, "plugins-data/")
+			full := filepath.Join(pluginDataRoot, filepath.FromSlash(rel))
+			if isSQLiteFile(full) {
+				snap, snapErr := snapshotSQLiteFile(ctx, full, src.DataDir)
+				if snapErr != nil {
+					return m, fmt.Errorf("snapshot %s: %w", archiveName, snapErr)
+				}
+				pluginItems = append(pluginItems, pluginDataItem{archiveName: archiveName, diskPath: snap, cleanup: true})
+			} else {
+				pluginItems = append(pluginItems, pluginDataItem{archiveName: archiveName, diskPath: full})
+			}
+		}
+	}
+	m.PluginDataFiles = len(pluginItems)
 
 	gz := gzip.NewWriter(w)
 	tw := tar.NewWriter(gz)
@@ -144,6 +239,11 @@ func Write(ctx context.Context, w io.Writer, src Sources) (Manifest, error) {
 			return m, fmt.Errorf("database: %w", err)
 		}
 	}
+	for _, item := range pluginItems {
+		if err := putFile(item.archiveName, item.diskPath); err != nil {
+			return m, fmt.Errorf("%s: %w", item.archiveName, err)
+		}
+	}
 	for _, key := range keys {
 		f, err := src.Store.Open(ctx, key)
 		if errors.Is(err, storage.ErrNotFound) {
@@ -185,4 +285,43 @@ func snapshot(ctx context.Context, d *db.DB, dataDir string) (string, error) {
 		return "", err
 	}
 	return path, nil
+}
+
+func isSQLiteFile(p string) bool {
+	if !strings.HasSuffix(strings.ToLower(p), ".db") && !strings.HasSuffix(strings.ToLower(p), ".sqlite") {
+		return false
+	}
+	f, err := os.Open(p)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	buf := make([]byte, len(sqliteHeader))
+	n, err := io.ReadFull(f, buf)
+	return err == nil && n == len(sqliteHeader) && bytes.Equal(buf, sqliteHeader)
+}
+
+func snapshotSQLiteFile(ctx context.Context, srcPath, dataDir string) (string, error) {
+	dir := filepath.Join(dataDir, "backups")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return "", err
+	}
+	if err := fsperm.Private(dir); err != nil {
+		return "", err
+	}
+	b := make([]byte, 8)
+	_, _ = rand.Read(b)
+	dst := filepath.Join(dir, ".plugin-snapshot-"+hex.EncodeToString(b)+".db")
+
+	q := url.Values{"_pragma": {"busy_timeout(5000)"}}
+	pool, err := sql.Open("sqlite", "file:"+filepath.ToSlash(srcPath)+"?"+q.Encode())
+	if err != nil {
+		return "", err
+	}
+	defer pool.Close()
+	if _, err := pool.ExecContext(ctx, `VACUUM INTO ?`, filepath.ToSlash(dst)); err != nil {
+		_ = os.Remove(dst)
+		return "", err
+	}
+	return dst, nil
 }

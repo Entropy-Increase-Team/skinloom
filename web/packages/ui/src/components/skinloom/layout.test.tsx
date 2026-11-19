@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
 import { Card, CardHeader, CardTitle } from '../ui/card'
-import { UsageMeter } from './layout'
+import { PageHeader, UsageMeter } from './layout'
 
 describe('UsageMeter accessibility', () => {
   it('links role="meter" to its visible label via aria-labelledby and sets aria-valuetext', () => {
@@ -33,5 +33,14 @@ describe('CardTitle semantic heading support', () => {
       </Card>,
     )
     expect(html).toMatch(/<h1[^>]*data-slot="card-title"[^>]*>Sign in<\/h1>/)
+  })
+})
+
+describe('PageHeader mobile flex-wrap layout', () => {
+  it('assigns basis-64 to the heading column so action buttons wrap cleanly on narrow screens', () => {
+    const html = renderToStaticMarkup(
+      <PageHeader title="Plugins and themes" description="Manage extensions" actions={<button type="button">Upload</button>} />,
+    )
+    expect(html).toContain('basis-64')
   })
 })

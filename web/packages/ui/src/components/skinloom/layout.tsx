@@ -19,7 +19,7 @@ export function PageHeader({
 }) {
   return (
     <div data-slot="page-header" className={cn('sl-page-header flex flex-wrap items-end gap-x-4 gap-y-3', className)}>
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+      <div className="flex min-w-0 flex-1 basis-64 flex-col gap-1.5">
         <h1 className="text-2xl font-medium">{title}</h1>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>

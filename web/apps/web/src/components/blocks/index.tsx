@@ -6,6 +6,7 @@ import { FeaturesBlock } from './features'
 import { HeroBlock } from './hero'
 import { LauncherGuideBlock } from './launcher-guide'
 import type { Props } from './props'
+import { PluginBlock } from './plugin-block'
 import { StatsBlock } from './stats'
 import { LatestTexturesBlock, PopularTexturesBlock } from './textures'
 
@@ -33,7 +34,9 @@ export function Blocks({ blocks }: { blocks: Block[] }) {
     <>
       {blocks.map((b, i) => {
         const Component = builtin[b.type]
-        if (!Component) return null // unknown or plugin block: skipped until P2
+        if (!Component) {
+          return <PluginBlock key={`${b.type}-${i}`} type={b.type} props={(b.props ?? {}) as Record<string, unknown>} />
+        }
         return <Component key={`${b.type}-${i}`} props={(b.props ?? {}) as Props} />
       })}
     </>

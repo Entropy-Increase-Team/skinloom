@@ -4,6 +4,8 @@ import (
 	"cmp"
 	"context"
 	"net/http"
+	"path"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -11,6 +13,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"golang.org/x/sync/singleflight"
 
+	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/captcha"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/notify"
@@ -19,7 +22,10 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/stats"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/theme"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/buildinfo"
+	"github.com/Entropy-Increase-Team/skinloom/internal/plugin"
 )
+
+const themePreviewCookie = "skinloom_theme_preview"
 
 // LocaleInfo describes a supported UI language.
 type LocaleInfo struct {
@@ -103,24 +109,46 @@ type MenuItem struct {
 	Order int    `json:"order"`
 }
 
-// PluginFrontend tells the frontend which plugin modules to load (empty until P2).
+// PluginFrontend tells the frontend which enabled plugin bundles and metadata to load.
 type PluginFrontend struct {
-	ID      string `json:"id"`
-	Version string `json:"version"`
-	Entry   string `json:"entry"`
-	Style   string `json:"style,omitempty"`
+	ID        string                 `json:"id"`
+	Kind      string                 `json:"kind,omitempty"`
+	Version   string                 `json:"version"`
+	Rev       string                 `json:"rev,omitempty"`
+	Name      string                 `json:"name,omitempty"`
+	Entry     string                 `json:"entry,omitempty"`
+	Style     string                 `json:"style,omitempty"`
+	Slots     []string               `json:"slots,omitempty"`
+	Blocks    []plugin.FrontendBlock `json:"blocks,omitempty"`
+	Overrides []string               `json:"overrides,omitempty"`
+	Settings  map[string]any         `json:"settings,omitempty"`
+	Messages  map[string]string      `json:"messages,omitempty"`
+}
+
+// PluginFormField describes an extension field declared by a plugin for a host form scope.
+type PluginFormField struct {
+	PluginID    string   `json:"pluginId"`
+	Name        string   `json:"name"`
+	Type        string   `json:"type"`
+	Label       string   `json:"label"`
+	Description string   `json:"description,omitempty"`
+	Placeholder string   `json:"placeholder,omitempty"`
+	Required    bool     `json:"required,omitempty"`
+	MaxLength   int      `json:"maxLength,omitempty"`
+	Options     []string `json:"options,omitempty"`
 }
 
 // Bootstrap is everything the frontend needs to render any page.
 type Bootstrap struct {
-	Version int64                 `json:"version" doc:"Config version; changes whenever settings, themes or plugins change"`
-	Locale  string                `json:"locale"`
-	Locales []LocaleInfo          `json:"locales"`
-	Site    SiteInfo              `json:"site"`
-	Theme   theme.ResolvedTheme   `json:"theme"`
-	Menus   map[string][]MenuItem `json:"menus" doc:"Keyed by area: explore, user, admin"`
-	Plugins []PluginFrontend      `json:"plugins"`
-	Server  ServerInfo            `json:"server"`
+	Version int64                        `json:"version" doc:"Config version; changes whenever settings, themes or plugins change"`
+	Locale  string                       `json:"locale"`
+	Locales []LocaleInfo                 `json:"locales"`
+	Site    SiteInfo                     `json:"site"`
+	Theme   theme.ResolvedTheme          `json:"theme"`
+	Menus   map[string][]MenuItem        `json:"menus" doc:"Keyed by area: explore, user, admin"`
+	Plugins []PluginFrontend             `json:"plugins"`
+	Forms   map[string][]PluginFormField `json:"forms,omitempty" doc:"Declarative form fields grouped by scope"`
+	Server  ServerInfo                   `json:"server"`
 	// NeedsSetup is true until the first administrator is created (see /api/v1/setup).
 	NeedsSetup bool     `json:"needsSetup"`
 	Auth       AuthInfo `json:"auth"`
@@ -145,7 +173,7 @@ type AuthInfo struct {
 
 // CaptchaInfo is the public half of the captcha configuration.
 type CaptchaInfo struct {
-	Provider string `json:"provider" enum:"none,image,turnstile,recaptcha,hcaptcha"`
+	Provider string `json:"provider" doc:"Active captcha provider (none, image, turnstile, recaptcha, hcaptcha, or a plugin-registered provider ID)"`
 	SiteKey  string `json:"siteKey,omitempty" doc:"Widget site key (turnstile, recaptcha, hcaptcha)"`
 }
 
@@ -156,9 +184,10 @@ type ServerInfo struct {
 }
 
 type bootstrapInput struct {
-	Lang           string `query:"lang" doc:"Force a UI language"`
-	LocaleCookie   string `cookie:"locale"`
-	AcceptLanguage string `header:"Accept-Language"`
+	Lang               string `query:"lang" doc:"Force a UI language"`
+	LocaleCookie       string `cookie:"locale"`
+	PreviewThemeCookie string `cookie:"skinloom_theme_preview"`
+	AcceptLanguage     string `header:"Accept-Language"`
 }
 
 type bootstrapOutput struct {
@@ -214,6 +243,9 @@ func registerSite(api huma.API, d Deps) {
 			}
 			snap = settings.NewSnapshot(reg, 0, nil)
 		}
+		locale := PickLocale(in.Lang, in.LocaleCookie, in.AcceptLanguage)
+		viewer := requestInfo(ctx).viewer()
+		trustFn := trustThemeWebFn(d)
 		resolved := theme.ResolvedTheme{
 			ID:          "none",
 			ColorScheme: "both",
@@ -224,9 +256,20 @@ func registerSite(api huma.API, d Deps) {
 			Home:        []theme.Block{},
 		}
 		if d.Themes != nil {
-			resolved = d.Themes.Resolve(snap)
+			previewID := ""
+			if in.PreviewThemeCookie != "" && viewer != nil && viewer.User != nil && viewer.User.Role != user.RoleUser {
+				if pt, ok := d.Themes.Get(in.PreviewThemeCookie); ok && pt.Error == "" {
+					previewID = pt.ID
+				}
+			}
+			resolved = d.Themes.ResolveTheme(snap, previewID, trustFn)
+			if previewID != "" && resolved.ID == previewID {
+				resolved.Previewing = true
+				if pt, ok := d.Themes.Get(previewID); ok {
+					resolved.PreviewName = cmp.Or(settings.PickLocalized(pt.Name, locale), pt.ID)
+				}
+			}
 		}
-		locale := PickLocale(in.Lang, in.LocaleCookie, in.AcceptLanguage)
 		out := &bootstrapOutput{CacheControl: "no-store", ConfigVersion: snap.Version}
 		out.Body = Bootstrap{
 			Version: snap.Version,
@@ -252,17 +295,28 @@ func registerSite(api huma.API, d Deps) {
 			Plugins: []PluginFrontend{},
 			Server:  ServerInfo{Name: "SkinLoom", Version: buildinfo.Version},
 		}
-		parts := cache.get(snap.Version, locale, func() localizedParts {
-			p := localizedParts{
-				home:     theme.LocalizeBlocks(out.Body.Theme.Home, locale, notify.Markdown),
-				messages: settings.Decode[map[string]map[string]string](snap, "i18n.overrides")[locale],
+		if resolved.Previewing {
+			out.Body.Theme.Home = theme.LocalizeBlocks(out.Body.Theme.Home, locale, notify.Markdown)
+			out.Body.Messages = settings.Decode[map[string]map[string]string](snap, "i18n.overrides")[locale]
+			if out.Body.Messages == nil {
+				out.Body.Messages = map[string]string{}
 			}
-			if p.messages == nil {
-				p.messages = map[string]string{}
-			}
-			return p
-		})
-		out.Body.Theme.Home, out.Body.Messages = parts.home, parts.messages
+		} else {
+			parts := cache.get(snap.Version, locale, func() localizedParts {
+				p := localizedParts{
+					home:     theme.LocalizeBlocks(out.Body.Theme.Home, locale, notify.Markdown),
+					messages: settings.Decode[map[string]map[string]string](snap, "i18n.overrides")[locale],
+				}
+				if p.messages == nil {
+					p.messages = map[string]string{}
+				}
+				return p
+			})
+			out.Body.Theme.Home, out.Body.Messages = parts.home, parts.messages
+		}
+		if d.Plugins != nil {
+			populatePluginBootstrap(&out.Body, d.Plugins.FrontendPlugins(locale), viewer)
+		}
 		cc := captcha.ConfigFrom(snap)
 		out.Body.Auth = AuthInfo{
 			Registration: cmp.Or(snap.String("auth.registration"), account.RegistrationClosed),
@@ -323,6 +377,98 @@ func PickLocale(lang, cookie, accept string) string {
 		}
 	}
 	return Locales[0].Code
+}
+
+func populatePluginBootstrap(boot *Bootstrap, list []plugin.FrontendPlugin, viewer *account.Viewer) {
+	if len(list) == 0 {
+		return
+	}
+	forms := map[string][]PluginFormField{}
+	isAdmin := viewer != nil && viewer.User != nil && viewer.User.Role != user.RoleUser
+	isSuperadmin := viewer != nil && viewer.User != nil && viewer.User.Role == user.RoleSuperadmin
+
+	for _, fp := range list {
+		isActiveThemePkg := fp.Kind == plugin.KindTheme
+		if isActiveThemePkg {
+			if fp.ID != boot.Theme.ID {
+				continue
+			}
+			// If a kind:theme package overrides the currently active/previewed theme, attach its Level-5 web entry
+			// when trusted without double-loading the bundle as a regular JS/CSS plugin.
+			if fp.Entry != "" && boot.Theme.WebEntry == "" {
+				boot.Theme.WebEntry = fp.Entry
+				boot.Theme.Overrides = slices.Clone(fp.Overrides)
+				if fp.Style != "" && !slices.Contains(boot.Theme.CSS, fp.Style) {
+					boot.Theme.CSS = append(boot.Theme.CSS, fp.Style)
+				}
+			}
+			fp.Entry = ""
+			fp.Style = ""
+			fp.Overrides = nil
+		}
+		boot.Plugins = append(boot.Plugins, PluginFrontend{
+			ID:        fp.ID,
+			Kind:      fp.Kind,
+			Version:   fp.Version,
+			Rev:       fp.Rev,
+			Name:      fp.Name,
+			Entry:     fp.Entry,
+			Style:     fp.Style,
+			Slots:     fp.Slots,
+			Blocks:    fp.Blocks,
+			Overrides: fp.Overrides,
+			Settings:  fp.Settings,
+			Messages:  fp.Messages,
+		})
+		for _, m := range fp.Menus {
+			clean := "/" + strings.TrimPrefix(path.Clean("/"+m.Path), "/")
+			if clean == "/" {
+				clean = ""
+			}
+			if (m.Role == "admin" && !isAdmin) || (m.Role == "superadmin" && !isSuperadmin) {
+				continue
+			}
+			var prefix string
+			switch m.Area {
+			case "explore":
+				prefix = "/p/" + fp.ID
+			case "user":
+				prefix = "/user/p/" + fp.ID
+			case "admin":
+				if !isAdmin {
+					continue
+				}
+				prefix = "/admin/p/" + fp.ID
+			default:
+				continue
+			}
+			boot.Menus[m.Area] = append(boot.Menus[m.Area], MenuItem{
+				ID:    "plugin:" + fp.ID + clean,
+				Title: m.Title,
+				Href:  prefix + clean,
+				Icon:  m.Icon,
+				Order: m.Order,
+			})
+		}
+		for scope, defs := range fp.Forms {
+			for _, d := range defs {
+				forms[scope] = append(forms[scope], PluginFormField{
+					PluginID:    fp.ID,
+					Name:        d.Name,
+					Type:        d.Type,
+					Label:       d.Label,
+					Description: d.Description,
+					Placeholder: d.Placeholder,
+					Required:    d.Required,
+					MaxLength:   d.MaxLength,
+					Options:     d.Options,
+				})
+			}
+		}
+	}
+	if len(forms) > 0 {
+		boot.Forms = forms
+	}
 }
 
 func matchLocale(tag string) (string, bool) {

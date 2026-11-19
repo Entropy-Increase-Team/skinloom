@@ -6,9 +6,12 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getFormatter, getTranslations } from 'next-intl/server'
 
+import { Slot } from '@/components/slot'
+import { ThemeOverride } from '@/components/theme-override'
 import { SignInCard } from '@/components/user/sign-in-card'
 import { UserBadges } from '@/components/user/user-badges'
 import { kb } from '@/lib/skin'
+import { dashedUUID } from '@/lib/uuid'
 import { getViewer } from '@/lib/viewer'
 import { asVisitor } from '@/lib/visitor'
 
@@ -62,7 +65,7 @@ export default async function DashboardPage() {
           <div className="flex items-center gap-4">
             <h2 className="flex-1 text-lg font-medium">{t('myPlayers')}</h2>
             {players.length > 0 && (
-              <ButtonLink variant="ghost" size="sm" render={<Link href="/user/player" />}>
+              <ButtonLink variant="ghost" size="sm" className="pointer-coarse:h-10" render={<Link href="/user/player" />}>
                 {t('links.players')}
                 <ArrowRight aria-hidden />
               </ButtonLink>
@@ -87,17 +90,24 @@ export default async function DashboardPage() {
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
               {players.slice(0, SHOWN).map((p) => (
-                <PlayerCard
+                <ThemeOverride
                   key={p.id}
-                  href="/user/player"
-                  linkAs={Link}
-                  size="sm"
-                  name={p.name}
-                  skin={p.skin && p.skin.type !== 'cape' ? { id: p.skin.id, type: p.skin.type } : null}
-                  details={[
-                    { label: tp('skin'), value: p.skin?.name ?? '—' },
-                    { label: tp('cape'), value: p.cape?.name ?? '—' },
-                  ]}
+                  name="player.card"
+                  props={{ id: p.id, name: p.name, uuid: dashedUUID(p.uuid), skin: p.skin, cape: p.cape, href: '/user/player', size: 'sm' }}
+                  fallback={
+                    <PlayerCard
+                      href="/user/player"
+                      linkAs={Link}
+                      size="sm"
+                      name={p.name}
+                      uuid={dashedUUID(p.uuid)}
+                      skin={p.skin && p.skin.type !== 'cape' ? { id: p.skin.id, type: p.skin.type } : null}
+                      details={[
+                        { label: tp('skin'), value: p.skin?.name ?? '—' },
+                        { label: tp('cape'), value: p.cape?.name ?? '—' },
+                      ]}
+                    />
+                  }
                 />
               ))}
             </div>
@@ -106,6 +116,7 @@ export default async function DashboardPage() {
 
         <div className="flex flex-col gap-4">
           <SignInCard sign={dash.sign} />
+          <Slot name="user.dashboard.widgets" />
           {dash.announcement?.trim() && (
             <section className="flex flex-col gap-2 rounded-xl border bg-card p-5" aria-label={t('announcement')}>
               <h2 className="flex items-center gap-2 text-sm font-medium">

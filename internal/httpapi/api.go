@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -105,7 +106,7 @@ const docsPath = "/api/docs"
 func New(d Deps) (http.Handler, huma.API) {
 	r := chi.NewRouter()
 	r.Use(httpx.WithSecurityHeaders, httpx.WithBackendPolicy(docsPath), middleware.RequestID, middleware.Recoverer, requestLog(d.Log),
-		withRequestInfo(d), csrfGuard(d), setupModeGuard(d))
+		withRequestInfo(d), csrfGuard(d), setupModeGuard(d), pluginUploadGuard(d))
 
 	cfg := huma.DefaultConfig("SkinLoom API", buildinfo.Version)
 	cfg.Info.Description = "SkinLoom (云织) REST API. Game protocols (CSL/USM/Legacy/Yggdrasil) are documented separately."
@@ -139,6 +140,7 @@ func New(d Deps) (http.Handler, huma.API) {
 	registerSocial(api, d)
 	registerStatus(api, d)
 	registerCDN(api, d)
+	registerAdminPlugins(api, d)
 	mountSetupRaw(r, d)
 	mountFiles(r, d)
 	mountGame(r, d)
@@ -186,7 +188,7 @@ func New(d Deps) (http.Handler, huma.API) {
 				}
 				return d.Settings.Current().String("theme.custom_js")
 			}))
-		r.Handle("/themes-assets/*", d.Themes.AssetHandler())
+		r.Handle("/themes-assets/*", d.Themes.AssetHandlerWithTrust(trustThemeWebFn(d)))
 	}
 	if d.Plugins != nil {
 		servePlug := func(w http.ResponseWriter, r *http.Request) {
@@ -203,6 +205,22 @@ func New(d Deps) (http.Handler, huma.API) {
 		r.Handle("/plugins-assets/*", d.Plugins.AssetHandler())
 	}
 	return r, api
+}
+
+func trustThemeWebFn(d Deps) func(string) bool {
+	return func(themeID string) bool {
+		if d.Plugins != nil && d.Plugins.HasTrustedThemeWeb(themeID) {
+			return true
+		}
+		if d.Settings == nil {
+			return false
+		}
+		snap := d.Settings.Current()
+		if snap == nil {
+			return false
+		}
+		return slices.Contains(settings.Decode[[]string](snap, "theme.trusted_web"), themeID)
+	}
 }
 
 func pluginViewerFromReq(r *http.Request, d Deps) plugin.Viewer {

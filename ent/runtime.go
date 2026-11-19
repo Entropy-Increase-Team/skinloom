@@ -428,7 +428,7 @@ func init() {
 	pluginFields := schema.Plugin{}.Fields()
 	_ = pluginFields
 	// pluginDescVersion is the schema descriptor for version field.
-	pluginDescVersion := pluginFields[2].Descriptor()
+	pluginDescVersion := pluginFields[3].Descriptor()
 	// plugin.VersionValidator is a validator for the "version" field. It is called by the builders before save.
 	plugin.VersionValidator = func() func(string) error {
 		validators := pluginDescVersion.Validators
@@ -446,27 +446,33 @@ func init() {
 		}
 	}()
 	// pluginDescError is the schema descriptor for error field.
-	pluginDescError := pluginFields[6].Descriptor()
+	pluginDescError := pluginFields[7].Descriptor()
 	// plugin.DefaultError holds the default value on creation for the error field.
 	plugin.DefaultError = pluginDescError.Default.(string)
 	// plugin.ErrorValidator is a validator for the "error" field. It is called by the builders before save.
 	plugin.ErrorValidator = pluginDescError.Validators[0].(func(string) error)
 	// pluginDescSource is the schema descriptor for source field.
-	pluginDescSource := pluginFields[7].Descriptor()
+	pluginDescSource := pluginFields[8].Descriptor()
 	// plugin.DefaultSource holds the default value on creation for the source field.
 	plugin.DefaultSource = pluginDescSource.Default.(string)
 	// plugin.SourceValidator is a validator for the "source" field. It is called by the builders before save.
 	plugin.SourceValidator = pluginDescSource.Validators[0].(func(string) error)
 	// pluginDescPackageSha256 is the schema descriptor for package_sha256 field.
-	pluginDescPackageSha256 := pluginFields[8].Descriptor()
+	pluginDescPackageSha256 := pluginFields[9].Descriptor()
 	// plugin.PackageSha256Validator is a validator for the "package_sha256" field. It is called by the builders before save.
 	plugin.PackageSha256Validator = pluginDescPackageSha256.Validators[0].(func(string) error)
+	// pluginDescRegistrySource is the schema descriptor for registry_source field.
+	pluginDescRegistrySource := pluginFields[11].Descriptor()
+	// plugin.DefaultRegistrySource holds the default value on creation for the registry_source field.
+	plugin.DefaultRegistrySource = pluginDescRegistrySource.Default.(string)
+	// plugin.RegistrySourceValidator is a validator for the "registry_source" field. It is called by the builders before save.
+	plugin.RegistrySourceValidator = pluginDescRegistrySource.Validators[0].(func(string) error)
 	// pluginDescInstalledAt is the schema descriptor for installed_at field.
-	pluginDescInstalledAt := pluginFields[9].Descriptor()
+	pluginDescInstalledAt := pluginFields[12].Descriptor()
 	// plugin.DefaultInstalledAt holds the default value on creation for the installed_at field.
 	plugin.DefaultInstalledAt = pluginDescInstalledAt.Default.(func() time.Time)
 	// pluginDescUpdatedAt is the schema descriptor for updated_at field.
-	pluginDescUpdatedAt := pluginFields[10].Descriptor()
+	pluginDescUpdatedAt := pluginFields[13].Descriptor()
 	// plugin.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	plugin.DefaultUpdatedAt = pluginDescUpdatedAt.Default.(func() time.Time)
 	// plugin.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

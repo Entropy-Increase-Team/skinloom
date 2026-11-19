@@ -18,14 +18,17 @@ export interface ThemeView {
   description?: ThemeViewDescription;
   error?: string;
   extends?: string;
+  hasWeb?: boolean;
   /** The theme's home page, used while home.blocks is null */
   home: Block[];
   id: string;
   layout: ThemeViewLayout;
   name: ThemeViewName;
+  overrides?: string[];
   screenshot?: string;
   settings?: ThemeViewSettings;
   source: string;
   tokens: Tokens;
   version: string;
+  webTrusted?: boolean;
 }

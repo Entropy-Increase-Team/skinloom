@@ -62,13 +62,14 @@ export function Captcha({
   error?: string
 }) {
   if (config.provider === 'none') return null
+  const isWidget = config.provider in widgets
   return (
     <div className="flex flex-col gap-2">
       {config.provider === 'image' ? (
         <ImageCaptcha onChange={onChange} resetKey={resetKey} />
-      ) : (
-        <WidgetCaptcha name={config.provider} siteKey={config.siteKey ?? ''} onChange={onChange} resetKey={resetKey} />
-      )}
+      ) : isWidget ? (
+        <WidgetCaptcha name={config.provider as WidgetName} siteKey={config.siteKey ?? ''} onChange={onChange} resetKey={resetKey} />
+      ) : null}
       {error && (
         <p role="alert" className="text-xs text-destructive">
           {error}

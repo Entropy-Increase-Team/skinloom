@@ -43,6 +43,20 @@ func (_u *PluginUpdate) SetNillableKind(v *plugin.Kind) *PluginUpdate {
 	return _u
 }
 
+// SetRuntime sets the "runtime" field.
+func (_u *PluginUpdate) SetRuntime(v plugin.Runtime) *PluginUpdate {
+	_u.mutation.SetRuntime(v)
+	return _u
+}
+
+// SetNillableRuntime sets the "runtime" field if the given value is not nil.
+func (_u *PluginUpdate) SetNillableRuntime(v *plugin.Runtime) *PluginUpdate {
+	if v != nil {
+		_u.SetRuntime(*v)
+	}
+	return _u
+}
+
 // SetVersion sets the "version" field.
 func (_u *PluginUpdate) SetVersion(v string) *PluginUpdate {
 	_u.mutation.SetVersion(v)
@@ -155,6 +169,38 @@ func (_u *PluginUpdate) ClearPackageSha256() *PluginUpdate {
 	return _u
 }
 
+// SetPlatformPackages sets the "platform_packages" field.
+func (_u *PluginUpdate) SetPlatformPackages(v map[string]string) *PluginUpdate {
+	_u.mutation.SetPlatformPackages(v)
+	return _u
+}
+
+// ClearPlatformPackages clears the value of the "platform_packages" field.
+func (_u *PluginUpdate) ClearPlatformPackages() *PluginUpdate {
+	_u.mutation.ClearPlatformPackages()
+	return _u
+}
+
+// SetRegistrySource sets the "registry_source" field.
+func (_u *PluginUpdate) SetRegistrySource(v string) *PluginUpdate {
+	_u.mutation.SetRegistrySource(v)
+	return _u
+}
+
+// SetNillableRegistrySource sets the "registry_source" field if the given value is not nil.
+func (_u *PluginUpdate) SetNillableRegistrySource(v *string) *PluginUpdate {
+	if v != nil {
+		_u.SetRegistrySource(*v)
+	}
+	return _u
+}
+
+// ClearRegistrySource clears the value of the "registry_source" field.
+func (_u *PluginUpdate) ClearRegistrySource() *PluginUpdate {
+	_u.mutation.ClearRegistrySource()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *PluginUpdate) SetUpdatedAt(v time.Time) *PluginUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -209,6 +255,11 @@ func (_u *PluginUpdate) check() error {
 			return &ValidationError{Name: "kind", err: fmt.Errorf(`ent: validator failed for field "Plugin.kind": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Runtime(); ok {
+		if err := plugin.RuntimeValidator(v); err != nil {
+			return &ValidationError{Name: "runtime", err: fmt.Errorf(`ent: validator failed for field "Plugin.runtime": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Version(); ok {
 		if err := plugin.VersionValidator(v); err != nil {
 			return &ValidationError{Name: "version", err: fmt.Errorf(`ent: validator failed for field "Plugin.version": %w`, err)}
@@ -234,6 +285,11 @@ func (_u *PluginUpdate) check() error {
 			return &ValidationError{Name: "package_sha256", err: fmt.Errorf(`ent: validator failed for field "Plugin.package_sha256": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.RegistrySource(); ok {
+		if err := plugin.RegistrySourceValidator(v); err != nil {
+			return &ValidationError{Name: "registry_source", err: fmt.Errorf(`ent: validator failed for field "Plugin.registry_source": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -251,6 +307,9 @@ func (_u *PluginUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Kind(); ok {
 		_spec.SetField(plugin.FieldKind, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.Runtime(); ok {
+		_spec.SetField(plugin.FieldRuntime, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.Version(); ok {
 		_spec.SetField(plugin.FieldVersion, field.TypeString, value)
@@ -290,6 +349,18 @@ func (_u *PluginUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.PackageSha256Cleared() {
 		_spec.ClearField(plugin.FieldPackageSha256, field.TypeString)
 	}
+	if value, ok := _u.mutation.PlatformPackages(); ok {
+		_spec.SetField(plugin.FieldPlatformPackages, field.TypeJSON, value)
+	}
+	if _u.mutation.PlatformPackagesCleared() {
+		_spec.ClearField(plugin.FieldPlatformPackages, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.RegistrySource(); ok {
+		_spec.SetField(plugin.FieldRegistrySource, field.TypeString, value)
+	}
+	if _u.mutation.RegistrySourceCleared() {
+		_spec.ClearField(plugin.FieldRegistrySource, field.TypeString)
+	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(plugin.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -323,6 +394,20 @@ func (_u *PluginUpdateOne) SetKind(v plugin.Kind) *PluginUpdateOne {
 func (_u *PluginUpdateOne) SetNillableKind(v *plugin.Kind) *PluginUpdateOne {
 	if v != nil {
 		_u.SetKind(*v)
+	}
+	return _u
+}
+
+// SetRuntime sets the "runtime" field.
+func (_u *PluginUpdateOne) SetRuntime(v plugin.Runtime) *PluginUpdateOne {
+	_u.mutation.SetRuntime(v)
+	return _u
+}
+
+// SetNillableRuntime sets the "runtime" field if the given value is not nil.
+func (_u *PluginUpdateOne) SetNillableRuntime(v *plugin.Runtime) *PluginUpdateOne {
+	if v != nil {
+		_u.SetRuntime(*v)
 	}
 	return _u
 }
@@ -439,6 +524,38 @@ func (_u *PluginUpdateOne) ClearPackageSha256() *PluginUpdateOne {
 	return _u
 }
 
+// SetPlatformPackages sets the "platform_packages" field.
+func (_u *PluginUpdateOne) SetPlatformPackages(v map[string]string) *PluginUpdateOne {
+	_u.mutation.SetPlatformPackages(v)
+	return _u
+}
+
+// ClearPlatformPackages clears the value of the "platform_packages" field.
+func (_u *PluginUpdateOne) ClearPlatformPackages() *PluginUpdateOne {
+	_u.mutation.ClearPlatformPackages()
+	return _u
+}
+
+// SetRegistrySource sets the "registry_source" field.
+func (_u *PluginUpdateOne) SetRegistrySource(v string) *PluginUpdateOne {
+	_u.mutation.SetRegistrySource(v)
+	return _u
+}
+
+// SetNillableRegistrySource sets the "registry_source" field if the given value is not nil.
+func (_u *PluginUpdateOne) SetNillableRegistrySource(v *string) *PluginUpdateOne {
+	if v != nil {
+		_u.SetRegistrySource(*v)
+	}
+	return _u
+}
+
+// ClearRegistrySource clears the value of the "registry_source" field.
+func (_u *PluginUpdateOne) ClearRegistrySource() *PluginUpdateOne {
+	_u.mutation.ClearRegistrySource()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *PluginUpdateOne) SetUpdatedAt(v time.Time) *PluginUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
@@ -506,6 +623,11 @@ func (_u *PluginUpdateOne) check() error {
 			return &ValidationError{Name: "kind", err: fmt.Errorf(`ent: validator failed for field "Plugin.kind": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Runtime(); ok {
+		if err := plugin.RuntimeValidator(v); err != nil {
+			return &ValidationError{Name: "runtime", err: fmt.Errorf(`ent: validator failed for field "Plugin.runtime": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Version(); ok {
 		if err := plugin.VersionValidator(v); err != nil {
 			return &ValidationError{Name: "version", err: fmt.Errorf(`ent: validator failed for field "Plugin.version": %w`, err)}
@@ -529,6 +651,11 @@ func (_u *PluginUpdateOne) check() error {
 	if v, ok := _u.mutation.PackageSha256(); ok {
 		if err := plugin.PackageSha256Validator(v); err != nil {
 			return &ValidationError{Name: "package_sha256", err: fmt.Errorf(`ent: validator failed for field "Plugin.package_sha256": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.RegistrySource(); ok {
+		if err := plugin.RegistrySourceValidator(v); err != nil {
+			return &ValidationError{Name: "registry_source", err: fmt.Errorf(`ent: validator failed for field "Plugin.registry_source": %w`, err)}
 		}
 	}
 	return nil
@@ -565,6 +692,9 @@ func (_u *PluginUpdateOne) sqlSave(ctx context.Context) (_node *Plugin, err erro
 	}
 	if value, ok := _u.mutation.Kind(); ok {
 		_spec.SetField(plugin.FieldKind, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.Runtime(); ok {
+		_spec.SetField(plugin.FieldRuntime, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.Version(); ok {
 		_spec.SetField(plugin.FieldVersion, field.TypeString, value)
@@ -603,6 +733,18 @@ func (_u *PluginUpdateOne) sqlSave(ctx context.Context) (_node *Plugin, err erro
 	}
 	if _u.mutation.PackageSha256Cleared() {
 		_spec.ClearField(plugin.FieldPackageSha256, field.TypeString)
+	}
+	if value, ok := _u.mutation.PlatformPackages(); ok {
+		_spec.SetField(plugin.FieldPlatformPackages, field.TypeJSON, value)
+	}
+	if _u.mutation.PlatformPackagesCleared() {
+		_spec.ClearField(plugin.FieldPlatformPackages, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.RegistrySource(); ok {
+		_spec.SetField(plugin.FieldRegistrySource, field.TypeString, value)
+	}
+	if _u.mutation.RegistrySourceCleared() {
+		_spec.ClearField(plugin.FieldRegistrySource, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(plugin.FieldUpdatedAt, field.TypeTime, value)

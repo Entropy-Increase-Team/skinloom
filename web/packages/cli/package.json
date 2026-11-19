@@ -1,0 +1,29 @@
+{
+  "name": "@skinloom/cli",
+  "version": "1.0.0",
+  "description": "CLI toolkit (skinloom-plugin) for building, linting, dev-reloading, packing, and signing SkinLoom plugins and themes.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "skinloom-plugin": "./bin/skinloom-plugin.mjs"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "esbuild src/cli.ts src/index.ts --bundle --format=esm --platform=node --target=node22 --external:esbuild --outdir=dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@skinloom/plugin-sdk": "workspace:*",
+    "esbuild": "^0.28.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "@types/react": "^19.3.0",
+    "react": "19.3.1",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.5"
+  }
+}

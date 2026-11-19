@@ -13,3 +13,4 @@ SkinLoom 立项阶段的分析与方案，记录的是动工前的设想。实�
 | [07 前端重构方案](07-frontend-redesign.md) | 设计系统、组件库、页面重构与主题系统扩展（草案）；规则见 `web/design.md` |
 | [08 安装与迁移引导方案](08-setup-wizard-plan.md) | Pre-Core 启动模式、交互式安装向导与 BS 只读桥接迁移方案 |
 | [09 插件平台与主题系统实施方案](09-plugin-platform-plan.md) | v2.0 插件平台、JS 沙箱、SDK/CLI、组件覆盖、静态签名市场与首批官方插件完整开发顺序与执行方案 |
+| [10 双轨插件架构与官方市场方案](10-dual-tier-plugin-and-market-plan.md) | 混合双轨插件架构（JS 轻量沙箱 + Go 原生子进程）、三方言隔离 SQL、多维环境筛选分包市场与严格分阶段任务清单 |

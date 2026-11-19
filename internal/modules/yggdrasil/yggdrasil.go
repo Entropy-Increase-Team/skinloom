@@ -123,6 +123,110 @@ type Service struct {
 
 	sigMu sync.Mutex
 	sigs  map[string]string // signed property value → signature
+
+	metaMu sync.RWMutex
+	metas  []metaContributorEntry
+}
+
+// MetaExtension describes dynamic Yggdrasil API root additions from a plugin.
+type MetaExtension struct {
+	SkinDomains []string       `json:"skinDomains,omitempty"`
+	Meta        map[string]any `json:"meta,omitempty"`
+}
+
+type metaContributorEntry struct {
+	owner string
+	fn    func(context.Context) (MetaExtension, error)
+}
+
+// RegisterMetaContributor registers a plugin callback that contributes extra skinDomains
+// or root metadata keys for GET /api/yggdrasil.
+func (s *Service) RegisterMetaContributor(owner string, fn func(context.Context) (MetaExtension, error)) {
+	if fn == nil {
+		return
+	}
+	s.metaMu.Lock()
+	defer s.metaMu.Unlock()
+	s.metas = append(s.metas, metaContributorEntry{owner: owner, fn: fn})
+}
+
+// UnregisterMetaContributors removes all metadata contributors registered by owner.
+func (s *Service) UnregisterMetaContributors(owner string) {
+	s.metaMu.Lock()
+	defer s.metaMu.Unlock()
+	kept := s.metas[:0]
+	for _, m := range s.metas {
+		if m.owner != owner {
+			kept = append(kept, m)
+		}
+	}
+	clear(s.metas[len(kept):])
+	s.metas = kept
+}
+
+func validYggdrasilDomain(d string) (string, bool) {
+	d = strings.TrimSpace(d)
+	if d == "" || len(d) > 255 || strings.Contains(d, "://") || strings.ContainsAny(d, " \t\r\n/?#\\:*") {
+		return "", false
+	}
+	host := strings.TrimPrefix(d, ".")
+	if host == "" || strings.HasPrefix(host, ".") || strings.HasSuffix(host, ".") || strings.Contains(host, "..") {
+		return "", false
+	}
+	labels := strings.Split(host, ".")
+	if len(labels) < 2 && !strings.EqualFold(host, "localhost") {
+		return "", false
+	}
+	for _, lbl := range labels {
+		if lbl == "" || len(lbl) > 63 || strings.HasPrefix(lbl, "-") || strings.HasSuffix(lbl, "-") {
+			return "", false
+		}
+		for i := 0; i < len(lbl); i++ {
+			c := lbl[i]
+			if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-') {
+				return "", false
+			}
+		}
+	}
+	return d, true
+}
+
+func safeCallMetaContributor(ctx context.Context, fn func(context.Context) (MetaExtension, error)) (ext MetaExtension, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			ext = MetaExtension{}
+			err = fmt.Errorf("yggdrasil metadata contributor panic: %v", r)
+		}
+	}()
+	return fn(ctx)
+}
+
+// MetaExtensions collects extensions contributed by enabled plugins.
+func (s *Service) MetaExtensions(ctx context.Context) (domains []string, meta map[string]any) {
+	s.metaMu.RLock()
+	entries := append([]metaContributorEntry(nil), s.metas...)
+	s.metaMu.RUnlock()
+	for _, ent := range entries {
+		ext, err := safeCallMetaContributor(ctx, ent.fn)
+		if err != nil {
+			s.log.Warn("yggdrasil metadata extension failed", "owner", ent.owner, "err", err)
+			continue
+		}
+		for _, rawDom := range ext.SkinDomains {
+			if dom, ok := validYggdrasilDomain(rawDom); ok {
+				domains = append(domains, dom)
+			}
+		}
+		if len(ext.Meta) > 0 {
+			if meta == nil {
+				meta = map[string]any{}
+			}
+			for k, v := range ext.Meta {
+				meta[k] = v
+			}
+		}
+	}
+	return domains, meta
 }
 
 // NewService creates the service.

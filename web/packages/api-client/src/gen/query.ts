@@ -31,6 +31,7 @@ import type {
   AdminOverview,
   AdminPlayerPage,
   AdminPlayerView,
+  AdminPluginView,
   AdminReportPage,
   AdminReportView,
   AdminUpdatePlayerInputBody,
@@ -68,8 +69,10 @@ import type {
   ForgotInputBody,
   GetAuthorizationParams,
   GetBootstrapParams,
+  InspectPluginPackageBody,
   InspectRestoreInput,
   InspectRestoreResult,
+  InstallPluginPackageBody,
   ListAuditParams,
   ListClosetParams,
   ListMyReportsParams,
@@ -87,6 +90,7 @@ import type {
   OAuthClientView,
   OAuthGrantList,
   OAuthScopes,
+  PackageInspectResult,
   ParseBSEnvInput,
   ParseBSEnvResult,
   PersonalTokenList,
@@ -95,6 +99,9 @@ import type {
   PlayerNameInputBody,
   PlayerRules,
   PlayerView,
+  PluginDevReloadInputBody,
+  PluginInfo,
+  PluginSettingsResponse,
   PurgeInputBody,
   PurgeResult,
   RegisterInputBody,
@@ -134,11 +141,16 @@ import type {
   TexturePage,
   TextureRules,
   TextureView,
+  ThemePreviewInputBody,
+  ThemePreviewOutputBody,
   ThemeView,
   Unfavorited,
+  UninstallPluginParams,
+  UninstallPluginResult,
   UnreadCount,
   UpdateClientInputBody,
   UpdateMeInputBody,
+  UpdatePluginSettingsBody,
   UpdateSettingsBody,
   UpdateTextureInputBody,
   UpdateUserInputBody,
@@ -1334,6 +1346,1171 @@ export const useAdminWearPlayer = <TError = ErrorModel,
       return useMutation(getAdminWearPlayerMutationOptions(options), queryClient);
     }
 
+export type listPluginsResponse200 = {
+  data: AdminPluginView[]
+  status: 200
+}
+
+export type listPluginsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type listPluginsResponseSuccess = (listPluginsResponse200) & {
+  headers: Headers;
+};
+export type listPluginsResponseError = (listPluginsResponseDefault) & {
+  headers: Headers;
+};
+
+export type listPluginsResponse = (listPluginsResponseSuccess | listPluginsResponseError)
+
+export const getListPluginsUrl = () => {
+
+
+
+
+  return `/api/v1/admin/plugins`
+}
+
+/**
+ * @summary List installed plugins and themes
+ */
+export const listPlugins = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listPluginsResponse> => {
+
+  return apiFetch<listPluginsResponse>(getListPluginsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPluginsQueryKey = () => {
+    return [
+    `/api/v1/admin/plugins`
+    ] as const;
+    }
+
+
+export const getListPluginsQueryOptions = <TData = Awaited<ReturnType<typeof listPlugins>>, TError = ErrorModel>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPlugins>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPluginsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPlugins>>> = ({ signal }) => listPlugins({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPlugins>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListPluginsQueryResult = NonNullable<Awaited<ReturnType<typeof listPlugins>>>
+export type ListPluginsQueryError = ErrorModel
+
+
+export function useListPlugins<TData = Awaited<ReturnType<typeof listPlugins>>, TError = ErrorModel>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPlugins>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPlugins>>,
+          TError,
+          Awaited<ReturnType<typeof listPlugins>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListPlugins<TData = Awaited<ReturnType<typeof listPlugins>>, TError = ErrorModel>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPlugins>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPlugins>>,
+          TError,
+          Awaited<ReturnType<typeof listPlugins>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListPlugins<TData = Awaited<ReturnType<typeof listPlugins>>, TError = ErrorModel>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPlugins>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List installed plugins and themes
+ */
+
+export function useListPlugins<TData = Awaited<ReturnType<typeof listPlugins>>, TError = ErrorModel>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPlugins>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListPluginsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type devReloadPluginResponse200 = {
+  data: PluginInfo
+  status: 200
+}
+
+export type devReloadPluginResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type devReloadPluginResponseSuccess = (devReloadPluginResponse200) & {
+  headers: Headers;
+};
+export type devReloadPluginResponseError = (devReloadPluginResponseDefault) & {
+  headers: Headers;
+};
+
+export type devReloadPluginResponse = (devReloadPluginResponseSuccess | devReloadPluginResponseError)
+
+export const getDevReloadPluginUrl = () => {
+
+
+
+
+  return `/api/v1/admin/plugins/dev-reload`
+}
+
+/**
+ * Used by skinloom-plugin dev during local development. Replaces the active JS or native Go plugin runtime atomically without restarting the server.
+ * @summary Hot-reload an unpacked development plugin bundle
+ */
+export const devReloadPlugin = async (pluginDevReloadInputBody: NonReadonly<PluginDevReloadInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<devReloadPluginResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<devReloadPluginResponse>(getDevReloadPluginUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(pluginDevReloadInputBody)
+  }
+);}
+
+
+
+
+
+export const getDevReloadPluginMutationKey = () => ['devReloadPlugin'] as const;
+
+export const getDevReloadPluginMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof devReloadPlugin>>, TError,DevReloadPluginMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof devReloadPlugin>>, TError,DevReloadPluginMutationVariables, TContext> => {
+
+const mutationKey = getDevReloadPluginMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof devReloadPlugin>>, DevReloadPluginMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  devReloadPlugin(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DevReloadPluginMutationResult = NonNullable<Awaited<ReturnType<typeof devReloadPlugin>>>
+    export type DevReloadPluginMutationBody = NonReadonly<PluginDevReloadInputBody>
+    export type DevReloadPluginMutationError = ErrorModel
+    export type DevReloadPluginMutationVariables = {data: NonReadonly<PluginDevReloadInputBody>}
+
+    /**
+ * @summary Hot-reload an unpacked development plugin bundle
+ */
+export const useDevReloadPlugin = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof devReloadPlugin>>, TError,DevReloadPluginMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof devReloadPlugin>>,
+        TError,
+        DevReloadPluginMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDevReloadPluginMutationOptions(options), queryClient);
+    }
+
+export type inspectPluginPackageResponse200 = {
+  data: PackageInspectResult
+  status: 200
+}
+
+export type inspectPluginPackageResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type inspectPluginPackageResponseSuccess = (inspectPluginPackageResponse200) & {
+  headers: Headers;
+};
+export type inspectPluginPackageResponseError = (inspectPluginPackageResponseDefault) & {
+  headers: Headers;
+};
+
+export type inspectPluginPackageResponse = (inspectPluginPackageResponseSuccess | inspectPluginPackageResponseError)
+
+export const getInspectPluginPackageUrl = () => {
+
+
+
+
+  return `/api/v1/admin/plugins/inspect`
+}
+
+/**
+ * Verifies integrity checksums, Ed25519 signature status, upgrade delta, dual-tier platform compatibility, and permission risk tiers without installing.
+ * @summary Validate and inspect an uploaded .slp package
+ */
+export const inspectPluginPackage = async (inspectPluginPackageBody?: InspectPluginPackageBody, options?: Parameters<typeof apiFetch>[1]): Promise<inspectPluginPackageResponse> => {
+    const formData = new FormData();
+if(inspectPluginPackageBody?.file !== undefined) {
+ formData.append(`file`, inspectPluginPackageBody.file);
+ }
+
+  return apiFetch<inspectPluginPackageResponse>(getInspectPluginPackageUrl(),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+);}
+
+
+
+
+
+export const getInspectPluginPackageMutationKey = () => ['inspectPluginPackage'] as const;
+
+export const getInspectPluginPackageMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof inspectPluginPackage>>, TError,InspectPluginPackageMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof inspectPluginPackage>>, TError,InspectPluginPackageMutationVariables, TContext> => {
+
+const mutationKey = getInspectPluginPackageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof inspectPluginPackage>>, InspectPluginPackageMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  inspectPluginPackage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InspectPluginPackageMutationResult = NonNullable<Awaited<ReturnType<typeof inspectPluginPackage>>>
+    export type InspectPluginPackageMutationBody = InspectPluginPackageBody | undefined
+    export type InspectPluginPackageMutationError = ErrorModel
+    export type InspectPluginPackageMutationVariables = {data?: InspectPluginPackageBody}
+
+    /**
+ * @summary Validate and inspect an uploaded .slp package
+ */
+export const useInspectPluginPackage = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof inspectPluginPackage>>, TError,InspectPluginPackageMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof inspectPluginPackage>>,
+        TError,
+        InspectPluginPackageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getInspectPluginPackageMutationOptions(options), queryClient);
+    }
+
+export type installPluginPackageResponse201 = {
+  data: AdminPluginView
+  status: 201
+}
+
+export type installPluginPackageResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 201>
+}
+
+export type installPluginPackageResponseSuccess = (installPluginPackageResponse201) & {
+  headers: Headers;
+};
+export type installPluginPackageResponseError = (installPluginPackageResponseDefault) & {
+  headers: Headers;
+};
+
+export type installPluginPackageResponse = (installPluginPackageResponseSuccess | installPluginPackageResponseError)
+
+export const getInstallPluginPackageUrl = () => {
+
+
+
+
+  return `/api/v1/admin/plugins/install`
+}
+
+/**
+ * Super administrators only. Verifies archive integrity, Ed25519 trust, and explicit permission confirmation before installing or upgrading.
+ * @summary Install or upgrade a .slp plugin or theme package
+ */
+export const installPluginPackage = async (installPluginPackageBody?: InstallPluginPackageBody, options?: Parameters<typeof apiFetch>[1]): Promise<installPluginPackageResponse> => {
+    const formData = new FormData();
+if(installPluginPackageBody?.allowUnsigned !== undefined) {
+ formData.append(`allowUnsigned`, installPluginPackageBody.allowUnsigned.toString())
+ }
+if(installPluginPackageBody?.disabled !== undefined) {
+ formData.append(`disabled`, installPluginPackageBody.disabled.toString())
+ }
+if(installPluginPackageBody?.file !== undefined) {
+ formData.append(`file`, installPluginPackageBody.file);
+ }
+if(installPluginPackageBody?.grantAll !== undefined) {
+ formData.append(`grantAll`, installPluginPackageBody.grantAll.toString())
+ }
+if(installPluginPackageBody?.grantedPermissions !== undefined) {
+ formData.append(`grantedPermissions`, installPluginPackageBody.grantedPermissions instanceof Blob ? installPluginPackageBody.grantedPermissions : new Blob([installPluginPackageBody.grantedPermissions], { type: 'text/plain' }));
+ }
+
+  return apiFetch<installPluginPackageResponse>(getInstallPluginPackageUrl(),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+);}
+
+
+
+
+
+export const getInstallPluginPackageMutationKey = () => ['installPluginPackage'] as const;
+
+export const getInstallPluginPackageMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof installPluginPackage>>, TError,InstallPluginPackageMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof installPluginPackage>>, TError,InstallPluginPackageMutationVariables, TContext> => {
+
+const mutationKey = getInstallPluginPackageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof installPluginPackage>>, InstallPluginPackageMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  installPluginPackage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InstallPluginPackageMutationResult = NonNullable<Awaited<ReturnType<typeof installPluginPackage>>>
+    export type InstallPluginPackageMutationBody = InstallPluginPackageBody | undefined
+    export type InstallPluginPackageMutationError = ErrorModel
+    export type InstallPluginPackageMutationVariables = {data?: InstallPluginPackageBody}
+
+    /**
+ * @summary Install or upgrade a .slp plugin or theme package
+ */
+export const useInstallPluginPackage = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof installPluginPackage>>, TError,InstallPluginPackageMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof installPluginPackage>>,
+        TError,
+        InstallPluginPackageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getInstallPluginPackageMutationOptions(options), queryClient);
+    }
+
+export type uninstallPluginResponse200 = {
+  data: UninstallPluginResult
+  status: 200
+}
+
+export type uninstallPluginResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type uninstallPluginResponseSuccess = (uninstallPluginResponse200) & {
+  headers: Headers;
+};
+export type uninstallPluginResponseError = (uninstallPluginResponseDefault) & {
+  headers: Headers;
+};
+
+export type uninstallPluginResponse = (uninstallPluginResponseSuccess | uninstallPluginResponseError)
+
+export const getUninstallPluginUrl = (id: string,
+    params?: UninstallPluginParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/admin/plugins/${id}?${stringifiedParams}` : `/api/v1/admin/plugins/${id}`
+}
+
+/**
+ * @summary Uninstall a plugin
+ */
+export const uninstallPlugin = async (id: string,
+    params?: UninstallPluginParams, options?: Parameters<typeof apiFetch>[1]): Promise<uninstallPluginResponse> => {
+
+  return apiFetch<uninstallPluginResponse>(getUninstallPluginUrl(id,params),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUninstallPluginMutationKey = () => ['uninstallPlugin'] as const;
+
+export const getUninstallPluginMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uninstallPlugin>>, TError,UninstallPluginMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uninstallPlugin>>, TError,UninstallPluginMutationVariables, TContext> => {
+
+const mutationKey = getUninstallPluginMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uninstallPlugin>>, UninstallPluginMutationVariables> = (props) => {
+          const {id,params} = props ?? {};
+
+          return  uninstallPlugin(id,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UninstallPluginMutationResult = NonNullable<Awaited<ReturnType<typeof uninstallPlugin>>>
+
+    export type UninstallPluginMutationError = ErrorModel
+    export type UninstallPluginMutationVariables = {id: string;params?: UninstallPluginParams}
+
+    /**
+ * @summary Uninstall a plugin
+ */
+export const useUninstallPlugin = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uninstallPlugin>>, TError,UninstallPluginMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof uninstallPlugin>>,
+        TError,
+        UninstallPluginMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUninstallPluginMutationOptions(options), queryClient);
+    }
+
+export type getPluginResponse200 = {
+  data: AdminPluginView
+  status: 200
+}
+
+export type getPluginResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getPluginResponseSuccess = (getPluginResponse200) & {
+  headers: Headers;
+};
+export type getPluginResponseError = (getPluginResponseDefault) & {
+  headers: Headers;
+};
+
+export type getPluginResponse = (getPluginResponseSuccess | getPluginResponseError)
+
+export const getGetPluginUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/admin/plugins/${id}`
+}
+
+/**
+ * @summary Inspect one installed plugin
+ */
+export const getPlugin = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPluginResponse> => {
+
+  return apiFetch<getPluginResponse>(getGetPluginUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPluginQueryKey = (id: string,) => {
+    return [
+    `/api/v1/admin/plugins/${id}`
+    ] as const;
+    }
+
+
+export const getGetPluginQueryOptions = <TData = Awaited<ReturnType<typeof getPlugin>>, TError = ErrorModel>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPlugin>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPluginQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlugin>>> = ({ signal }) => getPlugin(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlugin>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPluginQueryResult = NonNullable<Awaited<ReturnType<typeof getPlugin>>>
+export type GetPluginQueryError = ErrorModel
+
+
+export function useGetPlugin<TData = Awaited<ReturnType<typeof getPlugin>>, TError = ErrorModel>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPlugin>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPlugin>>,
+          TError,
+          Awaited<ReturnType<typeof getPlugin>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPlugin<TData = Awaited<ReturnType<typeof getPlugin>>, TError = ErrorModel>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPlugin>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPlugin>>,
+          TError,
+          Awaited<ReturnType<typeof getPlugin>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPlugin<TData = Awaited<ReturnType<typeof getPlugin>>, TError = ErrorModel>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPlugin>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Inspect one installed plugin
+ */
+
+export function useGetPlugin<TData = Awaited<ReturnType<typeof getPlugin>>, TError = ErrorModel>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPlugin>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetPluginQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type disablePluginResponse200 = {
+  data: AdminPluginView
+  status: 200
+}
+
+export type disablePluginResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type disablePluginResponseSuccess = (disablePluginResponse200) & {
+  headers: Headers;
+};
+export type disablePluginResponseError = (disablePluginResponseDefault) & {
+  headers: Headers;
+};
+
+export type disablePluginResponse = (disablePluginResponseSuccess | disablePluginResponseError)
+
+export const getDisablePluginUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/admin/plugins/${id}/disable`
+}
+
+/**
+ * @summary Disable an active plugin
+ */
+export const disablePlugin = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<disablePluginResponse> => {
+
+  return apiFetch<disablePluginResponse>(getDisablePluginUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getDisablePluginMutationKey = () => ['disablePlugin'] as const;
+
+export const getDisablePluginMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disablePlugin>>, TError,DisablePluginMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof disablePlugin>>, TError,DisablePluginMutationVariables, TContext> => {
+
+const mutationKey = getDisablePluginMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof disablePlugin>>, DisablePluginMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  disablePlugin(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DisablePluginMutationResult = NonNullable<Awaited<ReturnType<typeof disablePlugin>>>
+
+    export type DisablePluginMutationError = ErrorModel
+    export type DisablePluginMutationVariables = {id: string}
+
+    /**
+ * @summary Disable an active plugin
+ */
+export const useDisablePlugin = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disablePlugin>>, TError,DisablePluginMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof disablePlugin>>,
+        TError,
+        DisablePluginMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDisablePluginMutationOptions(options), queryClient);
+    }
+
+export type enablePluginResponse200 = {
+  data: AdminPluginView
+  status: 200
+}
+
+export type enablePluginResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type enablePluginResponseSuccess = (enablePluginResponse200) & {
+  headers: Headers;
+};
+export type enablePluginResponseError = (enablePluginResponseDefault) & {
+  headers: Headers;
+};
+
+export type enablePluginResponse = (enablePluginResponseSuccess | enablePluginResponseError)
+
+export const getEnablePluginUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/admin/plugins/${id}/enable`
+}
+
+/**
+ * @summary Enable an installed plugin
+ */
+export const enablePlugin = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<enablePluginResponse> => {
+
+  return apiFetch<enablePluginResponse>(getEnablePluginUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getEnablePluginMutationKey = () => ['enablePlugin'] as const;
+
+export const getEnablePluginMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof enablePlugin>>, TError,EnablePluginMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof enablePlugin>>, TError,EnablePluginMutationVariables, TContext> => {
+
+const mutationKey = getEnablePluginMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof enablePlugin>>, EnablePluginMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  enablePlugin(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EnablePluginMutationResult = NonNullable<Awaited<ReturnType<typeof enablePlugin>>>
+
+    export type EnablePluginMutationError = ErrorModel
+    export type EnablePluginMutationVariables = {id: string}
+
+    /**
+ * @summary Enable an installed plugin
+ */
+export const useEnablePlugin = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof enablePlugin>>, TError,EnablePluginMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof enablePlugin>>,
+        TError,
+        EnablePluginMutationVariables,
+        TContext
+      > => {
+      return useMutation(getEnablePluginMutationOptions(options), queryClient);
+    }
+
+export type reloadPluginResponse200 = {
+  data: AdminPluginView
+  status: 200
+}
+
+export type reloadPluginResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type reloadPluginResponseSuccess = (reloadPluginResponse200) & {
+  headers: Headers;
+};
+export type reloadPluginResponseError = (reloadPluginResponseDefault) & {
+  headers: Headers;
+};
+
+export type reloadPluginResponse = (reloadPluginResponseSuccess | reloadPluginResponseError)
+
+export const getReloadPluginUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/admin/plugins/${id}/reload`
+}
+
+/**
+ * @summary Reload a plugin bundle cleanly
+ */
+export const reloadPlugin = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<reloadPluginResponse> => {
+
+  return apiFetch<reloadPluginResponse>(getReloadPluginUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getReloadPluginMutationKey = () => ['reloadPlugin'] as const;
+
+export const getReloadPluginMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reloadPlugin>>, TError,ReloadPluginMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reloadPlugin>>, TError,ReloadPluginMutationVariables, TContext> => {
+
+const mutationKey = getReloadPluginMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reloadPlugin>>, ReloadPluginMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  reloadPlugin(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReloadPluginMutationResult = NonNullable<Awaited<ReturnType<typeof reloadPlugin>>>
+
+    export type ReloadPluginMutationError = ErrorModel
+    export type ReloadPluginMutationVariables = {id: string}
+
+    /**
+ * @summary Reload a plugin bundle cleanly
+ */
+export const useReloadPlugin = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reloadPlugin>>, TError,ReloadPluginMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof reloadPlugin>>,
+        TError,
+        ReloadPluginMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReloadPluginMutationOptions(options), queryClient);
+    }
+
+export type getPluginSettingsResponse200 = {
+  data: PluginSettingsResponse
+  status: 200
+}
+
+export type getPluginSettingsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type getPluginSettingsResponseSuccess = (getPluginSettingsResponse200) & {
+  headers: Headers;
+};
+export type getPluginSettingsResponseError = (getPluginSettingsResponseDefault) & {
+  headers: Headers;
+};
+
+export type getPluginSettingsResponse = (getPluginSettingsResponseSuccess | getPluginSettingsResponseError)
+
+export const getGetPluginSettingsUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/admin/plugins/${id}/settings`
+}
+
+/**
+ * @summary Get a plugin's settings schema and redacted values
+ */
+export const getPluginSettings = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPluginSettingsResponse> => {
+
+  return apiFetch<getPluginSettingsResponse>(getGetPluginSettingsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPluginSettingsQueryKey = (id: string,) => {
+    return [
+    `/api/v1/admin/plugins/${id}/settings`
+    ] as const;
+    }
+
+
+export const getGetPluginSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getPluginSettings>>, TError = ErrorModel>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPluginSettings>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPluginSettingsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPluginSettings>>> = ({ signal }) => getPluginSettings(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPluginSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPluginSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getPluginSettings>>>
+export type GetPluginSettingsQueryError = ErrorModel
+
+
+export function useGetPluginSettings<TData = Awaited<ReturnType<typeof getPluginSettings>>, TError = ErrorModel>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPluginSettings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPluginSettings>>,
+          TError,
+          Awaited<ReturnType<typeof getPluginSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPluginSettings<TData = Awaited<ReturnType<typeof getPluginSettings>>, TError = ErrorModel>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPluginSettings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPluginSettings>>,
+          TError,
+          Awaited<ReturnType<typeof getPluginSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPluginSettings<TData = Awaited<ReturnType<typeof getPluginSettings>>, TError = ErrorModel>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPluginSettings>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get a plugin's settings schema and redacted values
+ */
+
+export function useGetPluginSettings<TData = Awaited<ReturnType<typeof getPluginSettings>>, TError = ErrorModel>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPluginSettings>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetPluginSettingsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type updatePluginSettingsResponse200 = {
+  data: PluginSettingsResponse
+  status: 200
+}
+
+export type updatePluginSettingsResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type updatePluginSettingsResponseSuccess = (updatePluginSettingsResponse200) & {
+  headers: Headers;
+};
+export type updatePluginSettingsResponseError = (updatePluginSettingsResponseDefault) & {
+  headers: Headers;
+};
+
+export type updatePluginSettingsResponse = (updatePluginSettingsResponseSuccess | updatePluginSettingsResponseError)
+
+export const getUpdatePluginSettingsUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/admin/plugins/${id}/settings`
+}
+
+/**
+ * @summary Update a plugin's settings
+ */
+export const updatePluginSettings = async (id: string,
+    updatePluginSettingsBody: UpdatePluginSettingsBody, options?: Parameters<typeof apiFetch>[1]): Promise<updatePluginSettingsResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updatePluginSettingsResponse>(getUpdatePluginSettingsUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updatePluginSettingsBody)
+  }
+);}
+
+
+
+
+
+export const getUpdatePluginSettingsMutationKey = () => ['updatePluginSettings'] as const;
+
+export const getUpdatePluginSettingsMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePluginSettings>>, TError,UpdatePluginSettingsMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePluginSettings>>, TError,UpdatePluginSettingsMutationVariables, TContext> => {
+
+const mutationKey = getUpdatePluginSettingsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePluginSettings>>, UpdatePluginSettingsMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updatePluginSettings(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePluginSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updatePluginSettings>>>
+    export type UpdatePluginSettingsMutationBody = UpdatePluginSettingsBody
+    export type UpdatePluginSettingsMutationError = ErrorModel
+    export type UpdatePluginSettingsMutationVariables = {id: string;data: UpdatePluginSettingsBody}
+
+    /**
+ * @summary Update a plugin's settings
+ */
+export const useUpdatePluginSettings = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePluginSettings>>, TError,UpdatePluginSettingsMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updatePluginSettings>>,
+        TError,
+        UpdatePluginSettingsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdatePluginSettingsMutationOptions(options), queryClient);
+    }
+
 export type listReportsResponse200 = {
   data: AdminReportPage
   status: 200
@@ -2133,6 +3310,114 @@ export function useListThemes<TData = Awaited<ReturnType<typeof listThemes>>, TE
 
 
 
+
+export type setThemePreviewResponse200 = {
+  data: ThemePreviewOutputBody
+  status: 200
+}
+
+export type setThemePreviewResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type setThemePreviewResponseSuccess = (setThemePreviewResponse200) & {
+  headers: Headers;
+};
+export type setThemePreviewResponseError = (setThemePreviewResponseDefault) & {
+  headers: Headers;
+};
+
+export type setThemePreviewResponse = (setThemePreviewResponseSuccess | setThemePreviewResponseError)
+
+export const getSetThemePreviewUrl = () => {
+
+
+
+
+  return `/api/v1/admin/themes/preview`
+}
+
+/**
+ * Stores the previewed theme ID in an HttpOnly cookie affecting only this administrator session.
+ * @summary Set or clear administrator session theme preview
+ */
+export const setThemePreview = async (themePreviewInputBody: NonReadonly<ThemePreviewInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<setThemePreviewResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<setThemePreviewResponse>(getSetThemePreviewUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(themePreviewInputBody)
+  }
+);}
+
+
+
+
+
+export const getSetThemePreviewMutationKey = () => ['setThemePreview'] as const;
+
+export const getSetThemePreviewMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setThemePreview>>, TError,SetThemePreviewMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setThemePreview>>, TError,SetThemePreviewMutationVariables, TContext> => {
+
+const mutationKey = getSetThemePreviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setThemePreview>>, SetThemePreviewMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  setThemePreview(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetThemePreviewMutationResult = NonNullable<Awaited<ReturnType<typeof setThemePreview>>>
+    export type SetThemePreviewMutationBody = NonReadonly<ThemePreviewInputBody>
+    export type SetThemePreviewMutationError = ErrorModel
+    export type SetThemePreviewMutationVariables = {data: NonReadonly<ThemePreviewInputBody>}
+
+    /**
+ * @summary Set or clear administrator session theme preview
+ */
+export const useSetThemePreview = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setThemePreview>>, TError,SetThemePreviewMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof setThemePreview>>,
+        TError,
+        SetThemePreviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSetThemePreviewMutationOptions(options), queryClient);
+    }
 
 export type reloadThemesResponse200 = {
   data: ThemeView[]

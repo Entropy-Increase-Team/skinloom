@@ -12,6 +12,7 @@
     "backHome": "返回首页",
     "verifyFirst": "请先验证邮箱：本站要求验证后才能进行这项操作",
     "cancel": "取消",
+    "confirm": "确认",
     "save": "保存",
     "loading": "加载中…"
   },
@@ -458,7 +459,8 @@
     "emailTaken": "这个邮箱已经注册过了",
     "captchaRequired": "请先完成验证码",
     "captchaWrong": "验证码不正确或已过期，请重新验证",
-    "wrongPassword": "密码不正确"
+    "wrongPassword": "密码不正确",
+    "required": "请填写此项"
   },
   "forgot": {
     "title": "找回密码",
@@ -621,6 +623,7 @@
     "playersOf": "角色",
     "settings": "设置",
     "appearance": "外观",
+    "plugins": "插件",
     "translations": "翻译",
     "systemStatus": "系统状态",
     "menu": "{name} 的更多操作",
@@ -1237,6 +1240,12 @@
     "title": "设置"
   },
   "settingKeys": {
+    "plugins": {
+      "trusted_keys": {
+        "label": "受信任的插件签名公钥",
+        "help": "除内置官方公钥外，额外信任的用于验证 .slp 安装包的 Ed25519 公钥列表（支持 SPKI PEM、Base64 或 64 位十六进制）。"
+      }
+    },
     "site": {
       "name": {
         "label": "站点名称",
@@ -1561,6 +1570,10 @@
       }
     },
     "theme": {
+      "trusted_web": {
+        "label": "受信任的主题脚本",
+        "help": "允许加载 Level-5 客户端覆盖脚本的主题 ID 列表"
+      },
       "custom_css": {
         "label": "自定义 CSS",
         "help": "作为单独的样式表加载，排在主题样式之后，最多 64 KB。只有超级管理员可以修改。对应 BS 的 custom_css。"
@@ -1644,7 +1657,15 @@
       "local": "本地",
       "reload": "重新扫描",
       "reloaded": "已重新扫描主题目录",
-      "extends": "继承自 {parent}"
+      "extends": "继承自 {parent}",
+      "preview": "预览",
+      "trustWeb": "启用脚本",
+      "trustedWeb": "脚本已信任",
+      "previewBar": "正在预览主题：{name}",
+      "applyPreview": "应用到全站",
+      "exitPreview": "退出预览",
+      "loadingPlugin": "正在加载扩展组件…",
+      "pluginNotFound": "未找到对应的插件页面或插件未启用。"
     },
     "tabs": {
       "themes": "主题",
@@ -1893,7 +1914,8 @@
       "theme": "当前主题",
       "changed": "改过的设置",
       "plugins": "插件",
-      "pluginsLater": "插件平台在第二阶段提供"
+      "pluginsCount": "已启用 {enabled} 个 / 共 {total} 个",
+      "pluginsManaged": "请在「扩展」中管理"
     }
   },
   "ui": {
@@ -2059,6 +2081,170 @@
     "developer": "开发者",
     "apps": "应用与令牌",
     "plugins": "扩展"
+  },
+  "adminPlugins": {
+    "title": "插件与主题",
+    "intro": "上传并安装签名 .slp 扩展包，按风险分级确认权限、动态配置插件参数，并监控沙箱运行时状态",
+    "uploadButton": "上传 .slp 安装包",
+    "reloadCluster": "同步集群节点",
+    "emptyTitle": "尚未安装插件或主题",
+    "emptyDescription": "上传 .slp 扩展包以增强认证、钩子逻辑、自定义页面或主题外观",
+    "errors": {
+      "load": "加载插件列表失败",
+      "action": "执行插件操作失败",
+      "inspect": "安装包解析与验签失败",
+      "install": "安装包安装失败",
+      "settingsSave": "保存插件配置失败"
+    },
+    "toasts": {
+      "enabled": "插件已启用",
+      "disabled": "插件已禁用",
+      "reloaded": "插件已重载",
+      "installed": "已完成安装 {id} v{version}",
+      "uninstalled": "已卸载 {id}",
+      "settingsSaved": "插件配置已保存"
+    },
+    "kinds": {
+      "plugin": "插件",
+      "theme": "主题"
+    },
+    "runtimes": {
+      "js": "轻量沙箱 (JS)",
+      "native": "系统原生 (Go)"
+    },
+    "statuses": {
+      "enabled": "运行中",
+      "disabled": "已停用",
+      "failed": "异常停用"
+    },
+    "sources": {
+      "package": "安装包",
+      "market": "市场",
+      "local": "本地开发"
+    },
+    "nativeRunningPid": "PID {pid}",
+    "circuitAlert": "连续运行异常达 {count} 次后已自动熔断停用",
+    "noPermissions": "无需特殊权限",
+    "actions": {
+      "refresh": "刷新",
+      "configure": "配置",
+      "details": "详情与日志",
+      "reload": "重载",
+      "uninstall": "卸载"
+    },
+    "inspect": {
+      "title": "安装扩展包",
+      "dropTitle": "拖入或选择 .slp 安装包",
+      "dropHint": "支持上传 .slp 归档包（JS/主题 ≤ 20 MiB，原生 Go ≤ 150 MiB），安装前会自动校验 SHA-256 摘要与 Ed25519 签名。",
+      "verifying": "正在校验安装包与权限…",
+      "invalidPackageType": "仅支持选择 .slp 格式的安装包",
+      "packageTooLarge": "安装包体积超过 150 MiB 上限",
+      "upgradeBadge": "从 v{version} 升级",
+      "officialVerified": "官方源码编译认证",
+      "sigTrusted": "签名验证通过（{signer}）",
+      "sigUntrusted": "签名公钥不在信任列表中",
+      "sigUnsigned": "未签名安装包",
+      "sigUntrustedWarning": "此扩展包未能通过任何受信任的 Ed25519 公钥验证，仅建议在明确审阅代码或本地开发时启用强制安装。",
+      "nativeBlockedTitle": "生产模式禁止安装未签名原生插件",
+      "nativeBlockedDefault": "当前站点处于生产模式，禁止安装未携带官方签名或超管受信任 Ed25519 签名的系统原生 (Go) 插件。",
+      "nativeRiskTitle": "原生子进程权限（native.exec）",
+      "nativeRiskDescription": "该插件以独立操作系统子进程运行于 QuickJS/WASM 沙箱之外，具备完整 Go 原生运行时能力。请确认完全信任其来源并仔细核对权限清单。",
+      "platformIncompatibleTitle": "与当前服务器架构不兼容（{platform}）",
+      "platformIncompatibleDescription": "此安装包不包含适用于当前宿主机平台（{platform}）的可执行文件。包内适用平台：{supported}。",
+      "platformsLabel": "适用平台",
+      "hostPlatformLabel": "宿主机：{platform}",
+      "allowUnsignedToggle": "我已了解安全风险，允许安装此未签名或未验证公钥的本地开发包",
+      "permissionsTitle": "申请权限清单",
+      "permissionsHint": "权限已按安全风险分级展示，敏感与高危权限需由超级管理员显式勾选确认。",
+      "tierNormal": "普通权限",
+      "tierSensitive": "敏感权限",
+      "tierHighRisk": "高危权限",
+      "newPermission": "本次新增权限",
+      "requiredPermission": "必需",
+      "confirmIdLabel": "请输入插件 ID {id} 以确认本次高危、原生或未验签安装",
+      "confirmInstall": "确认安装",
+      "cancel": "取消",
+      "superadminRequired": "仅超级管理员有权安装或卸载 .slp 安装包",
+      "startOver": "重新选择安装包",
+      "capabilities": "能力概览",
+      "serverRuntime": "服务端 JS 沙箱",
+      "nativeRuntime": "原生 Go 子进程",
+      "webUi": "前端 ESM 界面",
+      "routesCount": "{count} 条 HTTP 路由",
+      "hooksCount": "{count} 个钩子",
+      "slotsCount": "{count} 个界面插槽",
+      "packageSize": "安装包体积"
+    },
+    "settingsDrawer": {
+      "title": "插件配置：{name}",
+      "description": "保存后会通过全局配置版本广播实时热同步到全部服务节点",
+      "empty": "该插件未声明可配置项",
+      "save": "保存配置",
+      "cancel": "取消",
+      "secretSetPlaceholder": "已保存密钥（留空或保留 ******** 则不修改）",
+      "secretUnsetPlaceholder": "输入密钥内容",
+      "secretSetBadge": "已配置",
+      "clearSecret": "清空密钥",
+      "selectPlaceholder": "请选择",
+      "unsetOption": "未设置",
+      "addListItem": "新增条目",
+      "removeItem": "移除",
+      "invalidJson": "{key} 的 JSON 格式无效",
+      "imageHint": "图片 URL 或站内路径 /…",
+      "validation": {
+        "required": "此项为必填项",
+        "finiteNumber": "必须输入有效数字",
+        "min": "不能小于 {min}",
+        "max": "不能大于 {max}",
+        "listNumber": "列表项必须为有效数字",
+        "listJson": "列表项包含无效的 JSON",
+        "jsonSyntax": "JSON 语法格式无效",
+        "jsonObject": "必须为 JSON 对象"
+      }
+    },
+    "detailsDrawer": {
+      "title": "运行状态与日志：{name}",
+      "tabs": {
+        "overview": "运行概览",
+        "logs": "最近日志",
+        "routes": "注册路由",
+        "permissions": "已授权限"
+      },
+      "poolTitle": "WASM 沙箱实例池",
+      "poolInstances": "实例数（空闲 / 容量）",
+      "poolInUse": "并发执行中",
+      "poolTimeouts": "超时中断次数",
+      "poolOoms": "OOM 重建次数",
+      "poolRecreated": "实例重建次数",
+      "nativeTitle": "原生 Go 子进程状态",
+      "nativeState": "进程状态",
+      "nativeRunning": "运行中",
+      "nativeStopped": "未运行",
+      "nativePid": "子进程 PID",
+      "nativeUptime": "存活时间",
+      "nativeRestarts": "重启次数",
+      "nativeMemory": "内存 / RSS 占用",
+      "nativeDbDriver": "隔离数据库模式",
+      "nativeDbPrefix": "专属表前缀",
+      "nativeDbUnused": "未分配",
+      "nativeProxy": "本地流式反代",
+      "nativeProxyEnabled": "已启用 (SSE/WS)",
+      "nativeProxyDisabled": "未启用",
+      "streamProxyBadge": "流式反代",
+      "usageTitle": "持久化存储用量",
+      "usageKv": "KV 键数量",
+      "usageDocs": "文档记录数",
+      "usageFiles": "私有文件用量",
+      "noLogs": "暂无最近运行时日志",
+      "noRoutes": "该插件未注册自定义 HTTP 路由"
+    },
+    "uninstallDialog": {
+      "title": "确认卸载 {name}？",
+      "description": "卸载将停用该插件并移除其运行代码；除非勾选“同时清理数据”，否则 KV 与文档集合数据会保留。",
+      "purgeLabel": "同时永久清理该插件的 KV、文档数据与私有文件（不可恢复）",
+      "confirm": "确认卸载",
+      "cancel": "取消"
+    }
   },
   "adminNav": {
     "content": "内容",

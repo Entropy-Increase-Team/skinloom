@@ -37,6 +37,20 @@ func (_c *PluginCreate) SetNillableKind(v *plugin.Kind) *PluginCreate {
 	return _c
 }
 
+// SetRuntime sets the "runtime" field.
+func (_c *PluginCreate) SetRuntime(v plugin.Runtime) *PluginCreate {
+	_c.mutation.SetRuntime(v)
+	return _c
+}
+
+// SetNillableRuntime sets the "runtime" field if the given value is not nil.
+func (_c *PluginCreate) SetNillableRuntime(v *plugin.Runtime) *PluginCreate {
+	if v != nil {
+		_c.SetRuntime(*v)
+	}
+	return _c
+}
+
 // SetVersion sets the "version" field.
 func (_c *PluginCreate) SetVersion(v string) *PluginCreate {
 	_c.mutation.SetVersion(v)
@@ -107,6 +121,26 @@ func (_c *PluginCreate) SetPackageSha256(v string) *PluginCreate {
 func (_c *PluginCreate) SetNillablePackageSha256(v *string) *PluginCreate {
 	if v != nil {
 		_c.SetPackageSha256(*v)
+	}
+	return _c
+}
+
+// SetPlatformPackages sets the "platform_packages" field.
+func (_c *PluginCreate) SetPlatformPackages(v map[string]string) *PluginCreate {
+	_c.mutation.SetPlatformPackages(v)
+	return _c
+}
+
+// SetRegistrySource sets the "registry_source" field.
+func (_c *PluginCreate) SetRegistrySource(v string) *PluginCreate {
+	_c.mutation.SetRegistrySource(v)
+	return _c
+}
+
+// SetNillableRegistrySource sets the "registry_source" field if the given value is not nil.
+func (_c *PluginCreate) SetNillableRegistrySource(v *string) *PluginCreate {
+	if v != nil {
+		_c.SetRegistrySource(*v)
 	}
 	return _c
 }
@@ -184,6 +218,10 @@ func (_c *PluginCreate) defaults() {
 		v := plugin.DefaultKind
 		_c.mutation.SetKind(v)
 	}
+	if _, ok := _c.mutation.Runtime(); !ok {
+		v := plugin.DefaultRuntime
+		_c.mutation.SetRuntime(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := plugin.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -195,6 +233,10 @@ func (_c *PluginCreate) defaults() {
 	if _, ok := _c.mutation.Source(); !ok {
 		v := plugin.DefaultSource
 		_c.mutation.SetSource(v)
+	}
+	if _, ok := _c.mutation.RegistrySource(); !ok {
+		v := plugin.DefaultRegistrySource
+		_c.mutation.SetRegistrySource(v)
 	}
 	if _, ok := _c.mutation.InstalledAt(); !ok {
 		v := plugin.DefaultInstalledAt()
@@ -214,6 +256,14 @@ func (_c *PluginCreate) check() error {
 	if v, ok := _c.mutation.Kind(); ok {
 		if err := plugin.KindValidator(v); err != nil {
 			return &ValidationError{Name: "kind", err: fmt.Errorf(`ent: validator failed for field "Plugin.kind": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Runtime(); !ok {
+		return &ValidationError{Name: "runtime", err: errors.New(`ent: missing required field "Plugin.runtime"`)}
+	}
+	if v, ok := _c.mutation.Runtime(); ok {
+		if err := plugin.RuntimeValidator(v); err != nil {
+			return &ValidationError{Name: "runtime", err: fmt.Errorf(`ent: validator failed for field "Plugin.runtime": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Version(); !ok {
@@ -248,6 +298,11 @@ func (_c *PluginCreate) check() error {
 	if v, ok := _c.mutation.PackageSha256(); ok {
 		if err := plugin.PackageSha256Validator(v); err != nil {
 			return &ValidationError{Name: "package_sha256", err: fmt.Errorf(`ent: validator failed for field "Plugin.package_sha256": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.RegistrySource(); ok {
+		if err := plugin.RegistrySourceValidator(v); err != nil {
+			return &ValidationError{Name: "registry_source", err: fmt.Errorf(`ent: validator failed for field "Plugin.registry_source": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.InstalledAt(); !ok {
@@ -301,6 +356,10 @@ func (_c *PluginCreate) createSpec() (*Plugin, *sqlgraph.CreateSpec) {
 		_spec.SetField(plugin.FieldKind, field.TypeEnum, value)
 		_node.Kind = value
 	}
+	if value, ok := _c.mutation.Runtime(); ok {
+		_spec.SetField(plugin.FieldRuntime, field.TypeEnum, value)
+		_node.Runtime = value
+	}
 	if value, ok := _c.mutation.Version(); ok {
 		_spec.SetField(plugin.FieldVersion, field.TypeString, value)
 		_node.Version = value
@@ -328,6 +387,14 @@ func (_c *PluginCreate) createSpec() (*Plugin, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.PackageSha256(); ok {
 		_spec.SetField(plugin.FieldPackageSha256, field.TypeString, value)
 		_node.PackageSha256 = value
+	}
+	if value, ok := _c.mutation.PlatformPackages(); ok {
+		_spec.SetField(plugin.FieldPlatformPackages, field.TypeJSON, value)
+		_node.PlatformPackages = value
+	}
+	if value, ok := _c.mutation.RegistrySource(); ok {
+		_spec.SetField(plugin.FieldRegistrySource, field.TypeString, value)
+		_node.RegistrySource = value
 	}
 	if value, ok := _c.mutation.InstalledAt(); ok {
 		_spec.SetField(plugin.FieldInstalledAt, field.TypeTime, value)
@@ -398,6 +465,18 @@ func (u *PluginUpsert) SetKind(v plugin.Kind) *PluginUpsert {
 // UpdateKind sets the "kind" field to the value that was provided on create.
 func (u *PluginUpsert) UpdateKind() *PluginUpsert {
 	u.SetExcluded(plugin.FieldKind)
+	return u
+}
+
+// SetRuntime sets the "runtime" field.
+func (u *PluginUpsert) SetRuntime(v plugin.Runtime) *PluginUpsert {
+	u.Set(plugin.FieldRuntime, v)
+	return u
+}
+
+// UpdateRuntime sets the "runtime" field to the value that was provided on create.
+func (u *PluginUpsert) UpdateRuntime() *PluginUpsert {
+	u.SetExcluded(plugin.FieldRuntime)
 	return u
 }
 
@@ -509,6 +588,42 @@ func (u *PluginUpsert) ClearPackageSha256() *PluginUpsert {
 	return u
 }
 
+// SetPlatformPackages sets the "platform_packages" field.
+func (u *PluginUpsert) SetPlatformPackages(v map[string]string) *PluginUpsert {
+	u.Set(plugin.FieldPlatformPackages, v)
+	return u
+}
+
+// UpdatePlatformPackages sets the "platform_packages" field to the value that was provided on create.
+func (u *PluginUpsert) UpdatePlatformPackages() *PluginUpsert {
+	u.SetExcluded(plugin.FieldPlatformPackages)
+	return u
+}
+
+// ClearPlatformPackages clears the value of the "platform_packages" field.
+func (u *PluginUpsert) ClearPlatformPackages() *PluginUpsert {
+	u.SetNull(plugin.FieldPlatformPackages)
+	return u
+}
+
+// SetRegistrySource sets the "registry_source" field.
+func (u *PluginUpsert) SetRegistrySource(v string) *PluginUpsert {
+	u.Set(plugin.FieldRegistrySource, v)
+	return u
+}
+
+// UpdateRegistrySource sets the "registry_source" field to the value that was provided on create.
+func (u *PluginUpsert) UpdateRegistrySource() *PluginUpsert {
+	u.SetExcluded(plugin.FieldRegistrySource)
+	return u
+}
+
+// ClearRegistrySource clears the value of the "registry_source" field.
+func (u *PluginUpsert) ClearRegistrySource() *PluginUpsert {
+	u.SetNull(plugin.FieldRegistrySource)
+	return u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (u *PluginUpsert) SetUpdatedAt(v time.Time) *PluginUpsert {
 	u.Set(plugin.FieldUpdatedAt, v)
@@ -583,6 +698,20 @@ func (u *PluginUpsertOne) SetKind(v plugin.Kind) *PluginUpsertOne {
 func (u *PluginUpsertOne) UpdateKind() *PluginUpsertOne {
 	return u.Update(func(s *PluginUpsert) {
 		s.UpdateKind()
+	})
+}
+
+// SetRuntime sets the "runtime" field.
+func (u *PluginUpsertOne) SetRuntime(v plugin.Runtime) *PluginUpsertOne {
+	return u.Update(func(s *PluginUpsert) {
+		s.SetRuntime(v)
+	})
+}
+
+// UpdateRuntime sets the "runtime" field to the value that was provided on create.
+func (u *PluginUpsertOne) UpdateRuntime() *PluginUpsertOne {
+	return u.Update(func(s *PluginUpsert) {
+		s.UpdateRuntime()
 	})
 }
 
@@ -709,6 +838,48 @@ func (u *PluginUpsertOne) UpdatePackageSha256() *PluginUpsertOne {
 func (u *PluginUpsertOne) ClearPackageSha256() *PluginUpsertOne {
 	return u.Update(func(s *PluginUpsert) {
 		s.ClearPackageSha256()
+	})
+}
+
+// SetPlatformPackages sets the "platform_packages" field.
+func (u *PluginUpsertOne) SetPlatformPackages(v map[string]string) *PluginUpsertOne {
+	return u.Update(func(s *PluginUpsert) {
+		s.SetPlatformPackages(v)
+	})
+}
+
+// UpdatePlatformPackages sets the "platform_packages" field to the value that was provided on create.
+func (u *PluginUpsertOne) UpdatePlatformPackages() *PluginUpsertOne {
+	return u.Update(func(s *PluginUpsert) {
+		s.UpdatePlatformPackages()
+	})
+}
+
+// ClearPlatformPackages clears the value of the "platform_packages" field.
+func (u *PluginUpsertOne) ClearPlatformPackages() *PluginUpsertOne {
+	return u.Update(func(s *PluginUpsert) {
+		s.ClearPlatformPackages()
+	})
+}
+
+// SetRegistrySource sets the "registry_source" field.
+func (u *PluginUpsertOne) SetRegistrySource(v string) *PluginUpsertOne {
+	return u.Update(func(s *PluginUpsert) {
+		s.SetRegistrySource(v)
+	})
+}
+
+// UpdateRegistrySource sets the "registry_source" field to the value that was provided on create.
+func (u *PluginUpsertOne) UpdateRegistrySource() *PluginUpsertOne {
+	return u.Update(func(s *PluginUpsert) {
+		s.UpdateRegistrySource()
+	})
+}
+
+// ClearRegistrySource clears the value of the "registry_source" field.
+func (u *PluginUpsertOne) ClearRegistrySource() *PluginUpsertOne {
+	return u.Update(func(s *PluginUpsert) {
+		s.ClearRegistrySource()
 	})
 }
 
@@ -958,6 +1129,20 @@ func (u *PluginUpsertBulk) UpdateKind() *PluginUpsertBulk {
 	})
 }
 
+// SetRuntime sets the "runtime" field.
+func (u *PluginUpsertBulk) SetRuntime(v plugin.Runtime) *PluginUpsertBulk {
+	return u.Update(func(s *PluginUpsert) {
+		s.SetRuntime(v)
+	})
+}
+
+// UpdateRuntime sets the "runtime" field to the value that was provided on create.
+func (u *PluginUpsertBulk) UpdateRuntime() *PluginUpsertBulk {
+	return u.Update(func(s *PluginUpsert) {
+		s.UpdateRuntime()
+	})
+}
+
 // SetVersion sets the "version" field.
 func (u *PluginUpsertBulk) SetVersion(v string) *PluginUpsertBulk {
 	return u.Update(func(s *PluginUpsert) {
@@ -1081,6 +1266,48 @@ func (u *PluginUpsertBulk) UpdatePackageSha256() *PluginUpsertBulk {
 func (u *PluginUpsertBulk) ClearPackageSha256() *PluginUpsertBulk {
 	return u.Update(func(s *PluginUpsert) {
 		s.ClearPackageSha256()
+	})
+}
+
+// SetPlatformPackages sets the "platform_packages" field.
+func (u *PluginUpsertBulk) SetPlatformPackages(v map[string]string) *PluginUpsertBulk {
+	return u.Update(func(s *PluginUpsert) {
+		s.SetPlatformPackages(v)
+	})
+}
+
+// UpdatePlatformPackages sets the "platform_packages" field to the value that was provided on create.
+func (u *PluginUpsertBulk) UpdatePlatformPackages() *PluginUpsertBulk {
+	return u.Update(func(s *PluginUpsert) {
+		s.UpdatePlatformPackages()
+	})
+}
+
+// ClearPlatformPackages clears the value of the "platform_packages" field.
+func (u *PluginUpsertBulk) ClearPlatformPackages() *PluginUpsertBulk {
+	return u.Update(func(s *PluginUpsert) {
+		s.ClearPlatformPackages()
+	})
+}
+
+// SetRegistrySource sets the "registry_source" field.
+func (u *PluginUpsertBulk) SetRegistrySource(v string) *PluginUpsertBulk {
+	return u.Update(func(s *PluginUpsert) {
+		s.SetRegistrySource(v)
+	})
+}
+
+// UpdateRegistrySource sets the "registry_source" field to the value that was provided on create.
+func (u *PluginUpsertBulk) UpdateRegistrySource() *PluginUpsertBulk {
+	return u.Update(func(s *PluginUpsert) {
+		s.UpdateRegistrySource()
+	})
+}
+
+// ClearRegistrySource clears the value of the "registry_source" field.
+func (u *PluginUpsertBulk) ClearRegistrySource() *PluginUpsertBulk {
+	return u.Update(func(s *PluginUpsert) {
+		s.ClearRegistrySource()
 	})
 }
 

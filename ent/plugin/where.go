@@ -84,6 +84,11 @@ func PackageSha256(v string) predicate.Plugin {
 	return predicate.Plugin(sql.FieldEQ(FieldPackageSha256, v))
 }
 
+// RegistrySource applies equality check predicate on the "registry_source" field. It's identical to RegistrySourceEQ.
+func RegistrySource(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldEQ(FieldRegistrySource, v))
+}
+
 // InstalledAt applies equality check predicate on the "installed_at" field. It's identical to InstalledAtEQ.
 func InstalledAt(v time.Time) predicate.Plugin {
 	return predicate.Plugin(sql.FieldEQ(FieldInstalledAt, v))
@@ -112,6 +117,26 @@ func KindIn(vs ...Kind) predicate.Plugin {
 // KindNotIn applies the NotIn predicate on the "kind" field.
 func KindNotIn(vs ...Kind) predicate.Plugin {
 	return predicate.Plugin(sql.FieldNotIn(FieldKind, vs...))
+}
+
+// RuntimeEQ applies the EQ predicate on the "runtime" field.
+func RuntimeEQ(v Runtime) predicate.Plugin {
+	return predicate.Plugin(sql.FieldEQ(FieldRuntime, v))
+}
+
+// RuntimeNEQ applies the NEQ predicate on the "runtime" field.
+func RuntimeNEQ(v Runtime) predicate.Plugin {
+	return predicate.Plugin(sql.FieldNEQ(FieldRuntime, v))
+}
+
+// RuntimeIn applies the In predicate on the "runtime" field.
+func RuntimeIn(vs ...Runtime) predicate.Plugin {
+	return predicate.Plugin(sql.FieldIn(FieldRuntime, vs...))
+}
+
+// RuntimeNotIn applies the NotIn predicate on the "runtime" field.
+func RuntimeNotIn(vs ...Runtime) predicate.Plugin {
+	return predicate.Plugin(sql.FieldNotIn(FieldRuntime, vs...))
 }
 
 // VersionEQ applies the EQ predicate on the "version" field.
@@ -432,6 +457,91 @@ func PackageSha256EqualFold(v string) predicate.Plugin {
 // PackageSha256ContainsFold applies the ContainsFold predicate on the "package_sha256" field.
 func PackageSha256ContainsFold(v string) predicate.Plugin {
 	return predicate.Plugin(sql.FieldContainsFold(FieldPackageSha256, v))
+}
+
+// PlatformPackagesIsNil applies the IsNil predicate on the "platform_packages" field.
+func PlatformPackagesIsNil() predicate.Plugin {
+	return predicate.Plugin(sql.FieldIsNull(FieldPlatformPackages))
+}
+
+// PlatformPackagesNotNil applies the NotNil predicate on the "platform_packages" field.
+func PlatformPackagesNotNil() predicate.Plugin {
+	return predicate.Plugin(sql.FieldNotNull(FieldPlatformPackages))
+}
+
+// RegistrySourceEQ applies the EQ predicate on the "registry_source" field.
+func RegistrySourceEQ(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldEQ(FieldRegistrySource, v))
+}
+
+// RegistrySourceNEQ applies the NEQ predicate on the "registry_source" field.
+func RegistrySourceNEQ(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldNEQ(FieldRegistrySource, v))
+}
+
+// RegistrySourceIn applies the In predicate on the "registry_source" field.
+func RegistrySourceIn(vs ...string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldIn(FieldRegistrySource, vs...))
+}
+
+// RegistrySourceNotIn applies the NotIn predicate on the "registry_source" field.
+func RegistrySourceNotIn(vs ...string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldNotIn(FieldRegistrySource, vs...))
+}
+
+// RegistrySourceGT applies the GT predicate on the "registry_source" field.
+func RegistrySourceGT(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldGT(FieldRegistrySource, v))
+}
+
+// RegistrySourceGTE applies the GTE predicate on the "registry_source" field.
+func RegistrySourceGTE(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldGTE(FieldRegistrySource, v))
+}
+
+// RegistrySourceLT applies the LT predicate on the "registry_source" field.
+func RegistrySourceLT(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldLT(FieldRegistrySource, v))
+}
+
+// RegistrySourceLTE applies the LTE predicate on the "registry_source" field.
+func RegistrySourceLTE(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldLTE(FieldRegistrySource, v))
+}
+
+// RegistrySourceContains applies the Contains predicate on the "registry_source" field.
+func RegistrySourceContains(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldContains(FieldRegistrySource, v))
+}
+
+// RegistrySourceHasPrefix applies the HasPrefix predicate on the "registry_source" field.
+func RegistrySourceHasPrefix(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldHasPrefix(FieldRegistrySource, v))
+}
+
+// RegistrySourceHasSuffix applies the HasSuffix predicate on the "registry_source" field.
+func RegistrySourceHasSuffix(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldHasSuffix(FieldRegistrySource, v))
+}
+
+// RegistrySourceIsNil applies the IsNil predicate on the "registry_source" field.
+func RegistrySourceIsNil() predicate.Plugin {
+	return predicate.Plugin(sql.FieldIsNull(FieldRegistrySource))
+}
+
+// RegistrySourceNotNil applies the NotNil predicate on the "registry_source" field.
+func RegistrySourceNotNil() predicate.Plugin {
+	return predicate.Plugin(sql.FieldNotNull(FieldRegistrySource))
+}
+
+// RegistrySourceEqualFold applies the EqualFold predicate on the "registry_source" field.
+func RegistrySourceEqualFold(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldEqualFold(FieldRegistrySource, v))
+}
+
+// RegistrySourceContainsFold applies the ContainsFold predicate on the "registry_source" field.
+func RegistrySourceContainsFold(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldContainsFold(FieldRegistrySource, v))
 }
 
 // InstalledAtEQ applies the EQ predicate on the "installed_at" field.

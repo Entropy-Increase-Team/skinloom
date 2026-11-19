@@ -122,7 +122,7 @@ func (s *Service) Login(ctx context.Context, in LoginInput, p LoginPolicy, meta 
 		s.hasher.burn(ctx, password)
 		return nil, nil, ErrInvalidCredentials
 	}
-	ok, rehash, err := s.hasher.Verify(ctx, u.PasswordAlgo, u.PasswordHash, password)
+	ok, rehash, err := s.verifyUserPassword(ctx, u.PasswordAlgo, u.PasswordHash, password)
 	if err != nil {
 		if ctx.Err() != nil {
 			att.cancel()
@@ -231,7 +231,7 @@ func (s *Service) VerifyCredentials(ctx context.Context, email, password string,
 		s.hasher.burn(ctx, password)
 		return nil, ErrInvalidCredentials
 	}
-	ok, rehash, err := s.hasher.Verify(ctx, u.PasswordAlgo, u.PasswordHash, password)
+	ok, rehash, err := s.verifyUserPassword(ctx, u.PasswordAlgo, u.PasswordHash, password)
 	if err != nil {
 		if ctx.Err() != nil {
 			att.cancel()

@@ -28,7 +28,7 @@ import { FormError } from '@/components/auth/field'
 import { problemOf } from '@/lib/problem'
 
 import { Group } from './appearance'
-import { type EditBlock, editBlocks, localizedOf, localizedValue, moved, savedBlocks } from './appearance-form'
+import { createEditBlockUid, type EditBlock, editBlocks, localizedOf, localizedValue, moved, savedBlocks } from './appearance-form'
 import { equal, LOCALES } from './settings-form'
 
 const MAX_BUTTONS = 6
@@ -75,17 +75,24 @@ export function HomeEditor({
     }
   }
 
-  const name = (type: string) => (tb.has(`${type}.name`) ? tb(`${type}.name`) : type)
+  const name = (type: string) => {
+    if (tb.has(`${type}.name`)) return tb(`${type}.name`)
+    const bare = type.includes(':') ? type.split(':', 2)[1]! : type
+    return tb.has(`${bare}.name`) ? tb(`${bare}.name`) : type
+  }
   const update = (i: number, b: EditBlock) => setBlocks((list) => list.map((x, j) => (j === i ? b : x)))
   const add = (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+      <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="pointer-coarse:h-10" />}>
         <Plus />
         {t('add')}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         {types.map((x) => (
-          <DropdownMenuItem key={x.type} onClick={() => setBlocks((list) => [...list, { type: x.type, props: {} }])}>
+          <DropdownMenuItem
+            key={x.type}
+            onClick={() => setBlocks((list) => [...list, { _uid: createEditBlockUid(), type: x.type, props: {} }])}
+          >
             {name(x.type)}
           </DropdownMenuItem>
         ))}
@@ -98,7 +105,7 @@ export function HomeEditor({
       intro={`${t('intro')} ${stored ? t('custom') : t('usingTheme', { theme: theme.name[locale] ?? theme.name.en ?? theme.id })}`}
       action={
         stored && (
-          <Button variant="ghost" size="sm" disabled={pending} onClick={() => void save(null)}>
+          <Button variant="ghost" size="sm" className="pointer-coarse:h-10" disabled={pending} onClick={() => void save(null)}>
             {t('useTheme')}
           </Button>
         )
@@ -107,20 +114,23 @@ export function HomeEditor({
       <div className="flex flex-col">
         <ol className="flex flex-col divide-y rounded-xl border bg-card">
           {blocks.length === 0 && <li className="p-5 text-sm text-muted-foreground">{t('empty')}</li>}
-          {blocks.map((b, i) => (
-            <BlockCard
-              key={i}
-              index={i}
-              block={b}
-              type={types.find((x) => x.type === b.type)}
-              title={name(b.type)}
-              first={i === 0}
-              last={i === blocks.length - 1}
-              onChange={(next) => update(i, next)}
-              onMove={(delta) => setBlocks((list) => moved(list, i, delta))}
-              onRemove={() => setBlocks((list) => list.filter((_, j) => j !== i))}
-            />
-          ))}
+          {blocks.map((b, i) => {
+            const bareType = b.type.includes(':') ? b.type.split(':', 2)[1]! : b.type
+            return (
+              <BlockCard
+                key={b._uid ?? `${b.type}-${i}`}
+                index={i}
+                block={b}
+                type={types.find((x) => x.type === b.type || x.type === bareType)}
+                title={name(b.type)}
+                first={i === 0}
+                last={i === blocks.length - 1}
+                onChange={(next) => update(i, next)}
+                onMove={(delta) => setBlocks((list) => moved(list, i, delta))}
+                onRemove={() => setBlocks((list) => list.filter((_, j) => j !== i))}
+              />
+            )
+          })}
           <li className="flex justify-end p-3">{add}</li>
         </ol>
         {error && (
@@ -158,7 +168,7 @@ function BlockCard({
   const t = useTranslations('appearance.home')
   const tb = useTranslations('appearance.blockTypes')
   const set = (name: string, v: unknown) => onChange({ ...block, props: { ...block.props, [name]: v } })
-  const editable = (type?.props.length ?? 0) > 0
+  const editable = (type?.props?.length ?? 0) > 0
   return (
     <Collapsible render={<li />} className="group/block flex flex-col">
       <div className="flex items-center gap-2 py-2 pr-2 pl-3">
@@ -172,14 +182,14 @@ function BlockCard({
           <code className="truncate font-mono text-caption text-faint-foreground max-sm:hidden">{block.type}</code>
         </CollapsibleTrigger>
         {!type && <span className="text-caption text-destructive">{t('unknownType')}</span>}
-        <div className="flex shrink-0 gap-0.5">
-          <Button variant="ghost" size="icon-sm" aria-label={t('moveUp')} title={t('moveUp')} disabled={first} onClick={() => onMove(-1)}>
+        <div className="flex shrink-0 gap-0.5 pointer-coarse:gap-1.5">
+          <Button variant="ghost" size="icon-sm" className="pointer-coarse:size-10" aria-label={t('moveUp')} title={t('moveUp')} disabled={first} onClick={() => onMove(-1)}>
             <ArrowUp />
           </Button>
-          <Button variant="ghost" size="icon-sm" aria-label={t('moveDown')} title={t('moveDown')} disabled={last} onClick={() => onMove(1)}>
+          <Button variant="ghost" size="icon-sm" className="pointer-coarse:size-10" aria-label={t('moveDown')} title={t('moveDown')} disabled={last} onClick={() => onMove(1)}>
             <ArrowDown />
           </Button>
-          <Button variant="ghost" size="icon-sm" aria-label={t('remove')} title={t('remove')} onClick={onRemove}>
+          <Button variant="ghost" size="icon-sm" className="pointer-coarse:size-10" aria-label={t('remove')} title={t('remove')} onClick={onRemove}>
             <Trash2 />
           </Button>
         </div>
@@ -298,7 +308,7 @@ function ButtonsInput({ value, onChange }: { value: unknown; onChange: (v: unkno
         </div>
       ))}
       {items.length < MAX_BUTTONS && (
-        <Button variant="outline" size="sm" className="self-start" onClick={() => onChange([...items, { label: undefined, href: '' }])}>
+        <Button variant="outline" size="sm" className="self-start pointer-coarse:h-10" onClick={() => onChange([...items, { label: undefined, href: '' }])}>
           <Plus />
           {t('addButton')}
         </Button>

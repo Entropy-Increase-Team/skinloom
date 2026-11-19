@@ -17,6 +17,7 @@
     "@fontsource-variable/noto-sans-sc": "^5.3.1",
     "@formatjs/icu-messageformat-parser": "^3.5.22",
     "@skinloom/api-client": "*",
+    "@skinloom/plugin-sdk": "*",
     "@skinloom/ui": "*",
     "@tanstack/react-query": "^5.107.1",
     "lucide-react": "^1.70.0",

@@ -1,12 +1,13 @@
 'use client'
 
-import { getSystemStatus, rescanMissingBlobs, type RescanResult, type StatusCheck, type SystemStatus } from '@skinloom/api-client'
+import { type AdminPluginView, getSystemStatus, listPlugins, rescanMissingBlobs, type RescanResult, type StatusCheck, type SystemStatus } from '@skinloom/api-client'
 import { Button, PageHeader, Skeleton, type Status, StatusDot, toast } from '@skinloom/ui'
 import { RefreshCw } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import { type ReactNode, useCallback, useEffect, useState } from 'react'
 
 import { FormError } from '@/components/auth/field'
+import { Slot } from '@/components/slot'
 
 /** Bytes as KB, MB, GB… with one decimal. */
 export function formatBytes(n: number, locale: string): string {
@@ -25,6 +26,7 @@ export function SystemStatusView() {
   const t = useTranslations('adminStatus')
   const locale = useLocale()
   const [status, setStatus] = useState<SystemStatus | null>(null)
+  const [pluginCounts, setPluginCounts] = useState<{ enabled: number; total: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [rescanning, setRescanning] = useState(false)
@@ -34,7 +36,18 @@ export function SystemStatusView() {
     setLoading(true)
     setError(null)
     try {
-      setStatus((await getSystemStatus()).data as SystemStatus)
+      const [statusRes, pluginsRes] = await Promise.all([
+        getSystemStatus(),
+        listPlugins().catch(() => null),
+      ])
+      setStatus(statusRes.data as SystemStatus)
+      if (pluginsRes && Array.isArray(pluginsRes.data)) {
+        const list = pluginsRes.data as AdminPluginView[]
+        setPluginCounts({
+          enabled: list.filter((p) => p.status === 'enabled').length,
+          total: list.length,
+        })
+      }
     } catch {
       setError(t('errors.load'))
     } finally {
@@ -129,7 +142,7 @@ export function SystemStatusView() {
           ]}
           footer={
             <div className="flex flex-col gap-2 pt-2">
-              <Button variant="outline" size="sm" loading={rescanning} onClick={() => void rescan()}>
+              <Button variant="outline" size="sm" className="pointer-coarse:h-10" loading={rescanning} onClick={() => void rescan()}>
                 {t('storage.rescan')}
               </Button>
               {rescanResult && (
@@ -166,9 +179,13 @@ export function SystemStatusView() {
             [t('config.version'), String(s.config.version)],
             [t('config.theme'), s.config.theme],
             [t('config.changed'), number(s.config.changed)],
-            [t('config.plugins'), t('config.pluginsLater')],
+            [
+              t('config.plugins'),
+              pluginCounts ? t('config.pluginsCount', pluginCounts) : t('config.pluginsManaged'),
+            ],
           ]}
         />
+        <Slot name="admin.status.cards" />
       </div>
     </div>
   )

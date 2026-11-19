@@ -293,7 +293,7 @@ func TestLocalThemesExtendsAssetsAndSettings(t *testing.T) {
 	svgURL := AssetURL(my, "assets/badge.svg")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, svgURL, nil))
-	if rec.Code != http.StatusOK || rec.Header().Get("Content-Security-Policy") != "sandbox" {
+	if rec.Code != http.StatusOK || rec.Header().Get("Content-Security-Policy") != "default-src 'none'; frame-ancestors 'self'; sandbox" {
 		t.Fatalf("svg: %d csp=%q", rec.Code, rec.Header().Get("Content-Security-Policy"))
 	}
 	rec = httptest.NewRecorder()
@@ -444,6 +444,77 @@ func TestValidateDeclaredSettingsImageDefaultError(t *testing.T) {
 	}
 }
 
+func TestLevel5ThemeOverridesTrustGateAndPluginBlocks(t *testing.T) {
+	dir := t.TempDir()
+	thDir := filepath.Join(dir, "prism")
+	_ = os.MkdirAll(filepath.Join(thDir, "web"), 0o755)
+	writeFile(t, filepath.Join(thDir, "web", "index.js"), `export default { overrides: { "site.footer": () => null } };`)
+	writeFile(t, filepath.Join(thDir, "web", "index.css"), `.prism-footer { opacity: 0.9; }`)
+	writeFile(t, filepath.Join(thDir, "plugin.json"), `{
+		"id": "prism",
+		"kind": "theme",
+		"version": "1.0.0",
+		"name": {"en": "Prism"},
+		"apiVersion": 1,
+		"web": "web/index.js",
+		"theme": {
+			"overrides": ["site.header", "site.footer"],
+			"tokens": {"light": {"primary": "#111"}, "dark": {"primary": "#eee"}}
+		}
+	}`)
+
+	r := NewRegistry()
+	r.SetLocalDir(dir, nil)
+	loaded, ok := r.Get("prism")
+	if !ok {
+		t.Fatalf("expected prism theme loaded, got broken=%+v", r.List())
+	}
+	if len(loaded.Overrides) != 2 || loaded.WebEntry == "" {
+		t.Fatalf("expected overrides and webEntry, got overrides=%v web=%q", loaded.Overrides, loaded.WebEntry)
+	}
+
+	snap := snapshotWith(t, map[string]string{"theme.active": `"prism"`})
+	untrusted := r.ResolveTheme(snap, "", nil)
+	if untrusted.WebEntry != "" || len(untrusted.Overrides) != 0 {
+		t.Fatalf("expected untrusted theme web entry stripped, got %+v", untrusted)
+	}
+	trusted := r.ResolveTheme(snap, "", func(id string) bool { return id == "prism" })
+	if trusted.WebEntry != loaded.WebEntry || len(trusted.Overrides) != 2 {
+		t.Fatalf("expected trusted web entry & overrides, got %+v", trusted)
+	}
+
+	// Web script asset serving enforces trust callback (403 untrusted vs 200 trusted).
+	recBlocked := httptest.NewRecorder()
+	r.AssetHandlerWithTrust(nil).ServeHTTP(recBlocked, httptest.NewRequest(http.MethodGet, loaded.WebEntry, nil))
+	if recBlocked.Code != http.StatusForbidden {
+		t.Fatalf("untrusted theme JS = %d, want 403", recBlocked.Code)
+	}
+	recOK := httptest.NewRecorder()
+	r.AssetHandlerWithTrust(func(id string) bool { return id == "prism" }).ServeHTTP(recOK, httptest.NewRequest(http.MethodGet, loaded.WebEntry, nil))
+	if recOK.Code != http.StatusOK || !strings.Contains(recOK.Body.String(), "site.footer") {
+		t.Fatalf("trusted theme JS = %d %s", recOK.Code, recOK.Body.String())
+	}
+
+	// Invalid override target rejected cleanly.
+	bad := fstest.MapFS{
+		"plugin.json": {Data: []byte(`{"id":"bad-over","kind":"theme","version":"1.0.0","apiVersion":1,"theme":{"overrides":["unknown.spot"]}}`)},
+	}
+	if _, _, err := Check(bad, r); err == nil {
+		t.Fatal("expected unknown override target rejection")
+	}
+
+	// Plugin blocks register/validate/unregister cleanly.
+	RegisterPluginBlocks("spotlight-plug", []BlockType{{Type: "spotlight"}})
+	t.Cleanup(func() { UnregisterPluginBlocks("spotlight-plug") })
+	if err := ValidateHome([]any{map[string]any{"type": "spotlight", "props": map[string]any{"title": "Hi"}}}); err != nil {
+		t.Fatalf("ValidateHome plugin block failed: %v", err)
+	}
+	localized := LocalizeBlocks([]Block{{Type: "spotlight", Props: map[string]any{"title": "Hi"}}}, "en", nil)
+	if localized[0].Props["title"] != "Hi" {
+		t.Fatalf("expected plugin block props preserved: %+v", localized)
+	}
+}
+
 func writeFile(t *testing.T, p, content string) {
 	t.Helper()
 	if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
@@ -477,4 +548,57 @@ func snapshotWith(t *testing.T, values map[string]string) *settings.Snapshot {
 		raw[k] = json.RawMessage(v)
 	}
 	return settings.NewSnapshot(settings.NewRegistry(), 1, raw)
+}
+
+func TestAssetHandlerCustomWebAndPluginBlockNormalization(t *testing.T) {
+	r := builtin(t)
+	local := fstest.MapFS{
+		"plugin.json": {Data: []byte(`{
+			"id": "custom-web",
+			"kind": "theme",
+			"version": "1.0.0",
+			"name": {"en": "Custom Web"},
+			"apiVersion": 1,
+			"web": "dist/index.js"
+		}`)},
+		"dist/index.js": {Data: []byte(`export default {};`)},
+	}
+	th, _, err := Check(local, r)
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+	r.Put(th)
+
+	untrusted := r.AssetHandlerWithTrust(func(string) bool { return false })
+	recForbid := httptest.NewRecorder()
+	untrusted.ServeHTTP(recForbid, httptest.NewRequest("GET", th.WebEntry, nil))
+	if recForbid.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for untrusted custom web entry, got %d", recForbid.Code)
+	}
+
+	trusted := r.AssetHandlerWithTrust(func(id string) bool { return id == "custom-web" })
+	recOK := httptest.NewRecorder()
+	trusted.ServeHTTP(recOK, httptest.NewRequest("GET", th.WebEntry, nil))
+	if recOK.Code != http.StatusOK || !strings.Contains(recOK.Header().Get("Content-Type"), "javascript") {
+		t.Fatalf("expected 200 JS for trusted dist/index.js, got %d ctype=%q", recOK.Code, recOK.Header().Get("Content-Type"))
+	}
+
+	// RegisterPluginBlocks normalizes nil Props to []Prop{} (marshals as [] not null) and ignores built-in names.
+	RegisterPluginBlocks("block-test", []BlockType{
+		{Type: "hero"},
+		{Type: "custom-widget"},
+	})
+	t.Cleanup(func() { UnregisterPluginBlocks("block-test") })
+
+	all := AllBlockTypes()
+	raw, err := json.Marshal(all)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), `"type":"custom-widget","props":[]`) {
+		t.Fatalf("expected non-null empty props slice for plugin block: %s", string(raw))
+	}
+	if err := ValidateBlocks([]Block{{Type: "custom-widget", Props: map[string]any{"x": strings.Repeat("a", maxPluginBlockBytes+1)}}}); err == nil {
+		t.Fatal("expected error when schema-less plugin block exceeds size cap")
+	}
 }

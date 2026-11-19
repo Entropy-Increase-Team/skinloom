@@ -118,16 +118,34 @@ func backendRequest(p string) bool {
 var sessionEndpoints = map[string]bool{"/api/v1/auth/login": true, "/api/v1/auth/register": true, "/api/v1/setup": true,
 	"/api/v1/auth/password/forgot": true, "/api/v1/auth/password/reset": true, "/api/v1/auth/email/verify": true}
 
-// csrfGuard rejects state-changing /api requests that ride on a session cookie (or
-// create one) unless they carry CSRFHeader and, when the browser sends Origin, come
-// from this site. Requests authenticated only by a bearer token are not affected.
+func isWebSocketOrUpgradeRequest(r *http.Request) bool {
+	if strings.TrimSpace(r.Header.Get("Upgrade")) != "" {
+		return true
+	}
+	for _, v := range r.Header.Values("Connection") {
+		for _, tok := range strings.Split(v, ",") {
+			if strings.EqualFold(strings.TrimSpace(tok), "upgrade") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// csrfGuard rejects state-changing /api requests (and cookie-authenticated WebSocket
+// upgrades) that ride on a session cookie (or create one) unless they carry CSRFHeader
+// and, when the browser sends Origin, come from this site. Requests authenticated only
+// by a bearer token are not affected.
 func csrfGuard(d Deps) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			isUpgrade := isWebSocketOrUpgradeRequest(r)
 			switch r.Method {
 			case http.MethodGet, http.MethodHead, http.MethodOptions:
-				next.ServeHTTP(w, r)
-				return
+				if !isUpgrade {
+					next.ServeHTTP(w, r)
+					return
+				}
 			}
 			_, cookieErr := r.Cookie(SessionCookie)
 			_, setupErr := r.Cookie(SetupCookie)
@@ -141,6 +159,18 @@ func csrfGuard(d Deps) func(http.Handler) http.Handler {
 			isAPIv1 := strings.HasPrefix(r.URL.Path, "/api/v1/")
 			isPluginAPI := strings.HasPrefix(r.URL.Path, "/api/plugins/")
 			if (!isAPIv1 && !isPluginAPI) || (cookieErr != nil && setupErr != nil && !sessionEndpoints[r.URL.Path] && !flow && !setupRoute) {
+				next.ServeHTTP(w, r)
+				return
+			}
+			// Browser WebSocket upgrades cannot set custom headers like X-SkinLoom-CSRF,
+			// so CSWSH protection requires a valid same-site Origin header whenever a
+			// session/setup cookie is present.
+			if isUpgrade {
+				origin := strings.TrimSpace(r.Header.Get("Origin"))
+				if origin == "" || !sameSite(origin, requestInfo(r.Context()).client.Host, d) {
+					writeProblem(w, http.StatusForbidden, "cross-site websocket upgrade refused")
+					return
+				}
 				next.ServeHTTP(w, r)
 				return
 			}

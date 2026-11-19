@@ -42,6 +42,8 @@ type Def struct {
 	Doc        string
 	// Enum lists the allowed values; the admin panel offers them as a choice.
 	Enum []any
+	// DynamicEnum optionally appends runtime-registered options (e.g. plugin providers).
+	DynamicEnum func() []any
 	// Range bounds a TypeInt setting, both ends included.
 	Range *Range
 	// Validate runs after the type, Enum and Range checks; nil means none.
@@ -114,6 +116,35 @@ func (r *Registry) SetValidator(key string, fn func(v any) error) {
 	r.defs[key] = d
 }
 
+// SetDynamicEnum attaches a runtime option provider to a setting's allowed enum list.
+func (r *Registry) SetDynamicEnum(key string, fn func() []any) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if d, ok := r.defs[key]; ok {
+		d.DynamicEnum = fn
+		r.defs[key] = d
+	}
+}
+
+// AllowedEnum returns the union of built-in Enum values and any DynamicEnum entries.
+func (d Def) AllowedEnum() []any {
+	if d.DynamicEnum == nil {
+		return d.Enum
+	}
+	dyn := d.DynamicEnum()
+	if len(dyn) == 0 {
+		return d.Enum
+	}
+	out := make([]any, 0, len(d.Enum)+len(dyn))
+	out = append(out, d.Enum...)
+	for _, x := range dyn {
+		if !inEnum(out, x) {
+			out = append(out, x)
+		}
+	}
+	return out
+}
+
 // Def returns the definition of key.
 func (r *Registry) Def(key string) (Def, bool) {
 	r.mu.RLock()
@@ -182,8 +213,8 @@ func (d Def) check(v any) error {
 	if err := checkType(d.Type, v); err != nil {
 		return err
 	}
-	if len(d.Enum) > 0 && !inEnum(d.Enum, v) {
-		return fmt.Errorf("want one of %v", d.Enum)
+	if allowed := d.AllowedEnum(); len(allowed) > 0 && !inEnum(allowed, v) {
+		return fmt.Errorf("want one of %v", allowed)
 	}
 	if r := d.Range; r != nil {
 		if n, _ := asInt(v); n < r.Min || n > r.Max {

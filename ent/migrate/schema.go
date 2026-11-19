@@ -464,6 +464,7 @@ var (
 	PluginsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Size: 40},
 		{Name: "kind", Type: field.TypeEnum, Enums: []string{"plugin", "theme"}, Default: "plugin"},
+		{Name: "runtime", Type: field.TypeEnum, Enums: []string{"js", "native"}, Default: "js"},
 		{Name: "version", Type: field.TypeString, Size: 64},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"enabled", "disabled", "failed"}, Default: "disabled"},
 		{Name: "granted_permissions", Type: field.TypeJSON, Nullable: true},
@@ -471,6 +472,8 @@ var (
 		{Name: "error", Type: field.TypeString, Nullable: true, Size: 1024, Default: ""},
 		{Name: "source", Type: field.TypeString, Size: 32, Default: "package"},
 		{Name: "package_sha256", Type: field.TypeString, Nullable: true, Size: 64},
+		{Name: "platform_packages", Type: field.TypeJSON, Nullable: true},
+		{Name: "registry_source", Type: field.TypeString, Nullable: true, Size: 512, Default: ""},
 		{Name: "installed_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
 		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
 	}

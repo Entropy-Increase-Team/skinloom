@@ -24,6 +24,7 @@ func (Plugin) Fields() []ent.Field {
 		// Primary key id is the manifest kebab-case identifier (max 40 chars).
 		field.String("id").MaxLen(40).NotEmpty().Immutable(),
 		field.Enum("kind").Values("plugin", "theme").Default("plugin"),
+		field.Enum("runtime").Values("js", "native").Default("js"),
 		field.String("version").MaxLen(64).NotEmpty(),
 		field.Enum("status").Values("enabled", "disabled", "failed").Default("disabled"),
 		field.JSON("granted_permissions", []string{}).Optional(),
@@ -31,6 +32,8 @@ func (Plugin) Fields() []ent.Field {
 		field.String("error").MaxLen(1024).Optional().Default(""),
 		field.String("source").MaxLen(32).Default("package"), // "local" | "package" | "market"
 		field.String("package_sha256").MaxLen(64).Optional(),
+		field.JSON("platform_packages", map[string]string{}).Optional(),
+		field.String("registry_source").MaxLen(512).Optional().Default(""),
 		field.Time("installed_at").SchemaType(datetimeType).Default(time.Now).Immutable(),
 		field.Time("updated_at").SchemaType(datetimeType).Default(time.Now).UpdateDefault(time.Now),
 	}

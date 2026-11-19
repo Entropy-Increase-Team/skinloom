@@ -31,12 +31,19 @@ export function safeToken(v: string): boolean {
 
 /** A block as the editor holds it: stored values, text possibly per language. */
 export interface EditBlock {
+  _uid?: string
   type: string
   props: Record<string, unknown>
 }
 
+let nextEditBlockUid = 1
+
+export function createEditBlockUid(): string {
+  return `blk-${nextEditBlockUid++}`
+}
+
 export function editBlocks(blocks: Block[] | null | undefined): EditBlock[] {
-  return (blocks ?? []).map((b) => ({ type: b.type, props: { ...(b.props ?? {}) } }))
+  return (blocks ?? []).map((b) => ({ _uid: createEditBlockUid(), type: b.type, props: { ...(b.props ?? {}) } }))
 }
 
 /** One text per editing language; a plain string stands for every language. */
@@ -52,16 +59,32 @@ export function localizedValue(m: Record<string, string>): Record<string, string
   return Object.keys(out).length > 0 ? out : undefined
 }
 
+const BUILTIN_BLOCK_TYPES = new Set([
+  'hero',
+  'announcement',
+  'features',
+  'stats',
+  'latest-textures',
+  'popular-textures',
+  'markdown',
+  'image',
+  'buttons',
+  'launcher-guide',
+])
+
 /**
  * home.blocks as saved: properties without a value are left out (the block then uses
  * its default), and so is an empty props object. Buttons without a link are dropped.
- * A block of a type the catalog does not list (a plugin's that is not loaded) keeps its
- * props as they are: the editor cannot change them, and must not lose them.
+ * Unknown blocks and schema-less plugin blocks keep their props as-is so saving other
+ * changes never strips plugin block configuration.
  */
 export function savedBlocks(blocks: EditBlock[], types: BlockType[]): Block[] {
   return blocks.map((b) => {
-    const known = types.find((t) => t.type === b.type)
-    if (!known) return Object.keys(b.props).length > 0 ? { type: b.type, props: { ...b.props } } : { type: b.type }
+    const bareType = b.type.includes(':') ? b.type.split(':', 2)[1] : b.type
+    const known = types.find((t) => t.type === b.type || t.type === bareType)
+    if (!known || (!BUILTIN_BLOCK_TYPES.has(b.type) && (known.props?.length ?? 0) === 0)) {
+      return Object.keys(b.props).length > 0 ? { type: b.type, props: { ...b.props } } : { type: b.type }
+    }
     const props: Record<string, unknown> = {}
     for (const p of known.props ?? []) {
       let v = b.props[p.name]

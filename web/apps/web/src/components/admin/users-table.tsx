@@ -57,6 +57,7 @@ import { useTranslations } from 'next-intl'
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 
 import { FormError } from '@/components/auth/field'
+import { Slot } from '@/components/slot'
 import { UserBadges } from '@/components/user/user-badges'
 import { problemOf } from '@/lib/problem'
 
@@ -129,32 +130,48 @@ export function UsersTable({ viewerId, superadmin }: { viewerId: number; superad
   const manageable = (u: AdminUserView) => superadmin || u.role === 'user'
 
   const menu = (u: AdminUserView) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t('menu', { name: u.nickname })} title={t('menu', { name: u.nickname })} />}>
-        <MoreHorizontal />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
-        {manageable(u) && (
-          <DropdownMenuItem onClick={() => setEditing(u)}>
-            <Pencil />
-            {t('edit')}
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem render={<Link href={`/admin/players?user=${u.id}`} />}>
-          <Users />
-          {t('playersOf')}
-        </DropdownMenuItem>
-        {manageable(u) && u.id !== viewerId && u.role !== 'superadmin' && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => void remove(u)}>
-              <Trash2 />
-              {t('deleteUser')}
+    <div className="inline-flex items-center justify-end gap-1">
+      <Slot
+        name="admin.user.actions"
+        props={{ userId: u.id, email: u.email, nickname: u.nickname, role: u.role, status: u.status }}
+      />
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="pointer-coarse:size-10"
+              aria-label={t('menu', { name: u.nickname })}
+              title={t('menu', { name: u.nickname })}
+            />
+          }
+        >
+          <MoreHorizontal />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44">
+          {manageable(u) && (
+            <DropdownMenuItem onClick={() => setEditing(u)}>
+              <Pencil />
+              {t('edit')}
             </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+          )}
+          <DropdownMenuItem render={<Link href={`/admin/players?user=${u.id}`} />}>
+            <Users />
+            {t('playersOf')}
+          </DropdownMenuItem>
+          {manageable(u) && u.id !== viewerId && u.role !== 'superadmin' && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => void remove(u)}>
+                <Trash2 />
+                {t('deleteUser')}
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   )
 
   const who = (u: AdminUserView) => (
@@ -179,6 +196,7 @@ export function UsersTable({ viewerId, superadmin }: { viewerId: number; superad
 
   return (
     <div className="flex flex-col gap-4">
+      <Slot name="admin.user.tabs" />
       <div className="flex flex-wrap items-center gap-2">
         <form onSubmit={onSearch} role="search" className="w-full sm:w-72">
           <InputGroup>
@@ -342,7 +360,8 @@ function EditUser({
       const p = problemOf(err)
       const field = Object.keys(p.fields)[0]
       const message = (f: string) => (f === 'email' && p.fields[f] === 'already registered' ? tf('emailTaken') : tf.has(f) ? tf(f as 'email') : p.fields[f])
-      setError(field ? `${t(`fields.${field}` as 'fields.email')}: ${message(field)}` : (p.detail ?? t('errors.save')))
+      const fieldLabel = field ? (t.has(`fields.${field}`) ? t(`fields.${field}` as 'fields.email') : field) : ''
+      setError(field ? `${fieldLabel}: ${message(field)}` : (p.detail ?? t('errors.save')))
     } finally {
       setPending(false)
     }

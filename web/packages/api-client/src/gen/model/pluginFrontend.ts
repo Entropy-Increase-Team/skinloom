@@ -5,10 +5,21 @@
  * SkinLoom (云织) REST API. Game protocols (CSL/USM/Legacy/Yggdrasil) are documented separately.
  * OpenAPI spec version: 0.0.0-dev
  */
+import type { FrontendBlock } from './frontendBlock';
+import type { PluginFrontendMessages } from './pluginFrontendMessages';
+import type { PluginFrontendSettings } from './pluginFrontendSettings';
 
 export interface PluginFrontend {
-  entry: string;
+  blocks?: FrontendBlock[];
+  entry?: string;
   id: string;
+  kind?: string;
+  messages?: PluginFrontendMessages;
+  name?: string;
+  overrides?: string[];
+  rev?: string;
+  settings?: PluginFrontendSettings;
+  slots?: string[];
   style?: string;
   version: string;
 }

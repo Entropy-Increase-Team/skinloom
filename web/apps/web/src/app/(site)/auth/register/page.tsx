@@ -7,6 +7,7 @@ import { getTranslations } from 'next-intl/server'
 import { AuthShell } from '@/components/auth/auth-shell'
 import { RegisterForm } from '@/components/auth/register-form'
 import { SocialButtons } from '@/components/auth/social-buttons'
+import { Slot } from '@/components/slot'
 import { getBootstrap } from '@/lib/bootstrap'
 import { getViewer } from '@/lib/viewer'
 
@@ -32,6 +33,7 @@ export default async function RegisterPage() {
           <CardContent className="flex flex-col gap-4">
             <RegisterForm captcha={boot.auth.captcha} />
             <SocialButtons providers={boot.auth.social} next="/user" />
+            <Slot name="auth.register.providers" props={{ next: '/user' }} />
           </CardContent>
         )}
       </Card>

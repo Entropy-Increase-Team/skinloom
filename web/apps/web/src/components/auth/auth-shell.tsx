@@ -1,6 +1,7 @@
 import { listTextures, type TexturePage } from '@skinloom/api-client'
 import { TexturePreview } from '@skinloom/ui'
 
+import { ThemeOverride } from '@/components/theme-override'
 import { getBootstrap } from '@/lib/bootstrap'
 import { layoutOf } from '@/lib/theme'
 
@@ -12,19 +13,21 @@ import { layoutOf } from '@/lib/theme'
  */
 export async function AuthShell({ children }: { children: React.ReactNode }) {
   const boot = await getBootstrap()
-  if (layoutOf(boot.theme.layout, 'auth') === 'card') {
-    return (
+  const authLayout = layoutOf(boot.theme.layout, 'auth')
+  if (authLayout === 'card') {
+    const content = (
       <div data-sl-area="auth" className="mx-auto flex w-full max-w-[25rem] flex-col gap-6 px-4 py-12 sm:py-16">
         {children}
       </div>
     )
+    return <ThemeOverride name="auth.background" props={{ layout: authLayout, siteName: boot.site.name }} fallback={content} />
   }
   // The latest public skins, the same for every visitor (no session forwarded).
   const skins = await listTextures({ sort: 'time', category: 'skin' }).then(
     (r) => (r.data as TexturePage).textures.slice(0, 3),
     () => [],
   )
-  return (
+  const content = (
     <div data-sl-area="auth" className="mx-auto grid w-full max-w-5xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-2 md:py-16">
       <aside className="sl-auth-panel sl-pixel-backdrop relative isolate hidden flex-col justify-between gap-8 overflow-hidden rounded-2xl border p-8 md:flex">
         <div className="flex flex-col gap-2">
@@ -45,4 +48,5 @@ export async function AuthShell({ children }: { children: React.ReactNode }) {
       <div className="flex flex-col gap-6 md:py-6">{children}</div>
     </div>
   )
+  return <ThemeOverride name="auth.background" props={{ layout: authLayout, siteName: boot.site.name }} fallback={content} />
 }

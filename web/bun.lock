@@ -14,6 +14,7 @@
         "@fontsource-variable/noto-sans-sc": "^5.3.1",
         "@formatjs/icu-messageformat-parser": "^3.5.22",
         "@skinloom/api-client": "*",
+        "@skinloom/plugin-sdk": "*",
         "@skinloom/ui": "*",
         "@tanstack/react-query": "^5.107.1",
         "lucide-react": "^1.70.0",
@@ -51,6 +52,60 @@
         "react": "^19",
       },
       "optionalPeers": [
+        "@tanstack/react-query",
+        "react",
+      ],
+    },
+    "packages/cli": {
+      "name": "@skinloom/cli",
+      "version": "1.0.0",
+      "bin": {
+        "skinloom-plugin": "./bin/skinloom-plugin.mjs",
+      },
+      "dependencies": {
+        "@skinloom/plugin-sdk": "workspace:*",
+        "esbuild": "^0.28.0",
+      },
+      "devDependencies": {
+        "@types/node": "^24",
+        "@types/react": "^19.3.0",
+        "react": "19.3.1",
+        "typescript": "~5.9.3",
+        "vitest": "^5.0.5",
+      },
+    },
+    "packages/create-plugin": {
+      "name": "create-skinloom-plugin",
+      "version": "1.0.0",
+      "bin": {
+        "create-skinloom-plugin": "./bin/create-skinloom-plugin.mjs",
+      },
+      "devDependencies": {
+        "@skinloom/cli": "workspace:*",
+        "@types/node": "^24",
+        "esbuild": "^0.28.0",
+        "typescript": "~5.9.3",
+        "vitest": "^5.0.5",
+      },
+    },
+    "packages/plugin-sdk": {
+      "name": "@skinloom/plugin-sdk",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@tanstack/react-query": "^5.107.1",
+        "@types/node": "^24",
+        "@types/react": "^19.3.0",
+        "react": "19.3.1",
+        "typescript": "~5.9.3",
+        "vitest": "^5.0.5",
+      },
+      "peerDependencies": {
+        "@skinloom/ui": "workspace:*",
+        "@tanstack/react-query": "^5",
+        "react": "^19",
+      },
+      "optionalPeers": [
+        "@skinloom/ui",
         "@tanstack/react-query",
         "react",
       ],
@@ -410,6 +465,10 @@
 
     "@skinloom/api-client": ["@skinloom/api-client@workspace:packages/api-client"],
 
+    "@skinloom/cli": ["@skinloom/cli@workspace:packages/cli"],
+
+    "@skinloom/plugin-sdk": ["@skinloom/plugin-sdk@workspace:packages/plugin-sdk"],
+
     "@skinloom/ui": ["@skinloom/ui@workspace:packages/ui"],
 
     "@skinloom/web": ["@skinloom/web@workspace:apps/web"],
@@ -561,6 +620,8 @@
     "compare-versions": ["compare-versions@6.1.1", "", {}, "sha512-4hm4VPpIecmlg59CHXnRDnqGplJFrbLG4aFEl5vl6cK1u76ws3LLvX7ikFnTDl5vo39sjWD6AaDPYodJp/NNHg=="],
 
     "content-type": ["content-type@2.1.0", "", {}, "sha512-mj7UPXE0jaqaOsukNZRUEfEi2AcL7C/vwmwcHV0O97eO1E1pxBZuyjlZrx5seTaNBg1U6+o35wpa35Qfcc+7ag=="],
+
+    "create-skinloom-plugin": ["create-skinloom-plugin@workspace:packages/create-plugin"],
 
     "cross-spawn": ["cross-spawn@7.0.6", "", { "dependencies": { "path-key": "^3.1.0", "shebang-command": "^2.0.0", "which": "^2.0.1" } }, "sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA=="],
 

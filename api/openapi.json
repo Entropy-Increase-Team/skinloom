@@ -170,6 +170,156 @@
         ],
         "type": "object"
       },
+      "AdminPluginRoute": {
+        "additionalProperties": false,
+        "properties": {
+          "auth": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "pattern": {
+            "type": "string"
+          },
+          "streamProxy": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "method",
+          "pattern",
+          "auth"
+        ],
+        "type": "object"
+      },
+      "AdminPluginView": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/AdminPluginView.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "authors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "circuitTripped": {
+            "type": "boolean"
+          },
+          "consecutiveErrors": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "grantedPermissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "hasServer": {
+            "type": "boolean"
+          },
+          "hasSettings": {
+            "type": "boolean"
+          },
+          "hasWeb": {
+            "type": "boolean"
+          },
+          "homepage": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nativeStats": {
+            "$ref": "#/components/schemas/NativeStats"
+          },
+          "packageSha256": {
+            "type": "string"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/PermissionGroups"
+          },
+          "platforms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "recentLogs": {
+            "items": {
+              "$ref": "#/components/schemas/LogEntry"
+            },
+            "type": "array"
+          },
+          "registrySource": {
+            "type": "string"
+          },
+          "routes": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPluginRoute"
+            },
+            "type": "array"
+          },
+          "runtime": {
+            "type": "string"
+          },
+          "settings": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "source": {
+            "type": "string"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/PoolStats"
+          },
+          "status": {
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/PluginUsage"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "runtime",
+          "version",
+          "name",
+          "status",
+          "source",
+          "hasServer",
+          "hasWeb",
+          "hasSettings",
+          "permissions",
+          "grantedPermissions"
+        ],
+        "type": "object"
+      },
       "AdminReportPage": {
         "additionalProperties": false,
         "properties": {
@@ -1024,6 +1174,16 @@
           "auth": {
             "$ref": "#/components/schemas/AuthInfo"
           },
+          "forms": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/PluginFormField"
+              },
+              "type": "array"
+            },
+            "description": "Declarative form fields grouped by scope",
+            "type": "object"
+          },
           "locale": {
             "type": "string"
           },
@@ -1118,13 +1278,7 @@
         "additionalProperties": false,
         "properties": {
           "provider": {
-            "enum": [
-              "none",
-              "image",
-              "turnstile",
-              "recaptcha",
-              "hcaptcha"
-            ],
+            "description": "Active captcha provider (none, image, turnstile, recaptcha, hcaptcha, or a plugin-registered provider ID)",
             "type": "string"
           },
           "siteKey": {
@@ -1254,6 +1408,18 @@
           "items",
           "next"
         ],
+        "type": "object"
+      },
+      "CollectionSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "indexes": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          }
+        },
         "type": "object"
       },
       "CompleteWizardInput": {
@@ -1774,6 +1940,18 @@
         ],
         "type": "object"
       },
+      "EnginesSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "go": {
+            "type": "string"
+          },
+          "skinloom": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "EnvInfo": {
         "additionalProperties": false,
         "properties": {
@@ -2089,6 +2267,113 @@
         ],
         "type": "object"
       },
+      "FormDef": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "label": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "maxLength": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "placeholder": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "label"
+        ],
+        "type": "object"
+      },
+      "FrontendBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "defaultProps": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "HTTPManifest": {
+        "additionalProperties": false,
+        "properties": {
+          "allow": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "maxBodyBytes": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "HooksManifest": {
+        "additionalProperties": false,
+        "properties": {
+          "event": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "filter": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "guard": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "InspectRestoreInput": {
         "additionalProperties": false,
         "properties": {
@@ -2198,6 +2483,27 @@
         "required": [
           "code",
           "name"
+        ],
+        "type": "object"
+      },
+      "LogEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "level": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "time": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "time",
+          "level",
+          "message"
         ],
         "type": "object"
       },
@@ -2322,6 +2628,152 @@
         },
         "type": "object"
       },
+      "Manifest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "type": "string"
+          },
+          "apiVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "authors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "blocks": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "dependencies": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "description": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "engines": {
+            "$ref": "#/components/schemas/EnginesSpec"
+          },
+          "extends": {
+            "type": "string"
+          },
+          "forms": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/FormDef"
+              },
+              "type": "array"
+            },
+            "type": "object"
+          },
+          "homepage": {
+            "type": "string"
+          },
+          "hooks": {
+            "$ref": "#/components/schemas/HooksManifest"
+          },
+          "http": {
+            "$ref": "#/components/schemas/HTTPManifest"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "menus": {
+            "items": {
+              "$ref": "#/components/schemas/MenuDef"
+            },
+            "type": "array"
+          },
+          "name": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "native": {
+            "$ref": "#/components/schemas/NativeSpec"
+          },
+          "optionalDependencies": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "routes": {
+            "$ref": "#/components/schemas/RoutesManifest"
+          },
+          "runtime": {
+            "type": "string"
+          },
+          "screenshot": {
+            "type": "string"
+          },
+          "server": {
+            "type": "string"
+          },
+          "services": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "settings": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "slots": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageManifest"
+          },
+          "theme": {},
+          "version": {
+            "type": "string"
+          },
+          "web": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "version",
+          "name",
+          "apiVersion"
+        ],
+        "type": "object"
+      },
       "MarkedRead": {
         "additionalProperties": false,
         "properties": {
@@ -2342,6 +2794,39 @@
         },
         "required": [
           "count"
+        ],
+        "type": "object"
+      },
+      "MenuDef": {
+        "additionalProperties": false,
+        "properties": {
+          "area": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "order": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "path": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "title": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "area",
+          "path",
+          "title"
         ],
         "type": "object"
       },
@@ -2371,6 +2856,89 @@
           "title",
           "href",
           "order"
+        ],
+        "type": "object"
+      },
+      "NativeDatabaseSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "NativeSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "database": {
+            "$ref": "#/components/schemas/NativeDatabaseSpec"
+          },
+          "executable": {
+            "type": "string"
+          },
+          "httpProxy": {
+            "type": "boolean"
+          },
+          "platforms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "protocolVersion": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "protocolVersion",
+          "executable"
+        ],
+        "type": "object"
+      },
+      "NativeStats": {
+        "additionalProperties": false,
+        "properties": {
+          "dbDriver": {
+            "type": "string"
+          },
+          "dbPrefix": {
+            "type": "string"
+          },
+          "httpProxy": {
+            "type": "boolean"
+          },
+          "memoryRssBytes": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "pid": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "restarts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "running": {
+            "type": "boolean"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "uptimeSeconds": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pid",
+          "running",
+          "uptimeSeconds",
+          "restarts"
         ],
         "type": "object"
       },
@@ -2687,6 +3255,186 @@
         ],
         "type": "object"
       },
+      "PackageInspectResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/PackageInspectResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "allowUnsignedNative": {
+            "type": "boolean"
+          },
+          "archiveBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "archiveSha256": {
+            "type": "string"
+          },
+          "authors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "currentVersion": {
+            "type": "string"
+          },
+          "dependencies": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "description": {
+            "type": "string"
+          },
+          "hasServer": {
+            "type": "boolean"
+          },
+          "hasWeb": {
+            "type": "boolean"
+          },
+          "homepage": {
+            "type": "string"
+          },
+          "hooksCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "hostPlatform": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "isUpgrade": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nativeBlockReason": {
+            "type": "string"
+          },
+          "nativeInstallBlocked": {
+            "type": "boolean"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/PermissionGroups"
+          },
+          "platformCompatible": {
+            "type": "boolean"
+          },
+          "requiresHighRiskConfirm": {
+            "type": "boolean"
+          },
+          "routesCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "runtime": {
+            "type": "string"
+          },
+          "settingsCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "slots": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "supportedPlatforms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/PackageVerification"
+          },
+          "version": {
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "runtime",
+          "version",
+          "name",
+          "isUpgrade",
+          "hasServer",
+          "hasWeb",
+          "routesCount",
+          "hooksCount",
+          "settingsCount",
+          "hostPlatform",
+          "platformCompatible",
+          "archiveSha256",
+          "archiveBytes",
+          "verification",
+          "permissions",
+          "requiresHighRiskConfirm"
+        ],
+        "type": "object"
+      },
+      "PackageVerification": {
+        "additionalProperties": false,
+        "properties": {
+          "hasChecksums": {
+            "type": "boolean"
+          },
+          "keyId": {
+            "type": "string"
+          },
+          "official": {
+            "type": "boolean"
+          },
+          "signed": {
+            "type": "boolean"
+          },
+          "signer": {
+            "type": "string"
+          },
+          "trusted": {
+            "type": "boolean"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "hasChecksums",
+          "signed",
+          "verified",
+          "trusted"
+        ],
+        "type": "object"
+      },
       "ParseBSEnvInput": {
         "additionalProperties": false,
         "properties": {
@@ -2731,6 +3479,61 @@
         },
         "required": [
           "env"
+        ],
+        "type": "object"
+      },
+      "PermissionGroups": {
+        "additionalProperties": false,
+        "properties": {
+          "high_risk": {
+            "items": {
+              "$ref": "#/components/schemas/PermissionItem"
+            },
+            "type": "array"
+          },
+          "normal": {
+            "items": {
+              "$ref": "#/components/schemas/PermissionItem"
+            },
+            "type": "array"
+          },
+          "sensitive": {
+            "items": {
+              "$ref": "#/components/schemas/PermissionItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "normal",
+          "sensitive",
+          "high_risk"
+        ],
+        "type": "object"
+      },
+      "PermissionItem": {
+        "additionalProperties": false,
+        "properties": {
+          "added": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "granted": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "tier": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "tier",
+          "description"
         ],
         "type": "object"
       },
@@ -2973,14 +3776,128 @@
         ],
         "type": "object"
       },
+      "PluginDevReloadInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/PluginDevReloadInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "files": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Base64-encoded static files (web/*, assets/*, locales/*) and native executable binaries (bin/*)",
+            "type": "object"
+          },
+          "manifest": {
+            "additionalProperties": {},
+            "description": "Parsed plugin.json object",
+            "type": "object"
+          },
+          "serverJs": {
+            "description": "Bundled ES2023 server.js source (Tier 1 JS plugins)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "manifest"
+        ],
+        "type": "object"
+      },
+      "PluginFormField": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "maxLength": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "placeholder": {
+            "type": "string"
+          },
+          "pluginId": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pluginId",
+          "name",
+          "type",
+          "label"
+        ],
+        "type": "object"
+      },
       "PluginFrontend": {
         "additionalProperties": false,
         "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/FrontendBlock"
+            },
+            "type": "array"
+          },
           "entry": {
             "type": "string"
           },
           "id": {
             "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "messages": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          },
+          "overrides": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "rev": {
+            "type": "string"
+          },
+          "settings": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "slots": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "style": {
             "type": "string"
@@ -2991,8 +3908,267 @@
         },
         "required": [
           "id",
+          "version"
+        ],
+        "type": "object"
+      },
+      "PluginInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/PluginInfo.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "circuitTripped": {
+            "type": "boolean"
+          },
+          "consecutiveErrors": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "grantedPermissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/Manifest"
+          },
+          "nativeStats": {
+            "$ref": "#/components/schemas/NativeStats"
+          },
+          "packageSha256": {
+            "type": "string"
+          },
+          "platformPackages": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "recentLogs": {
+            "items": {
+              "$ref": "#/components/schemas/LogEntry"
+            },
+            "type": "array"
+          },
+          "registrySource": {
+            "type": "string"
+          },
+          "routes": {
+            "items": {
+              "$ref": "#/components/schemas/RouteBinding"
+            },
+            "type": "array"
+          },
+          "runtime": {
+            "type": "string"
+          },
+          "settings": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "source": {
+            "type": "string"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/PoolStats"
+          },
+          "status": {
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/PluginUsage"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
           "version",
-          "entry"
+          "status",
+          "source",
+          "grantedPermissions"
+        ],
+        "type": "object"
+      },
+      "PluginSettingFieldView": {
+        "additionalProperties": false,
+        "properties": {
+          "default": {},
+          "description": {
+            "type": "string"
+          },
+          "fields": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "isSet": {
+            "type": "boolean"
+          },
+          "item": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "max": {
+            "format": "double",
+            "type": "number"
+          },
+          "min": {
+            "format": "double",
+            "type": "number"
+          },
+          "options": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "order": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "secret": {
+            "type": "boolean"
+          },
+          "step": {
+            "format": "double",
+            "type": "number"
+          },
+          "type": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "key",
+          "type",
+          "value",
+          "isSet",
+          "secret"
+        ],
+        "type": "object"
+      },
+      "PluginSettingsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/PluginSettingsResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/PluginSettingFieldView"
+            },
+            "type": "array"
+          },
+          "pluginId": {
+            "type": "string"
+          },
+          "values": {
+            "additionalProperties": {},
+            "type": "object"
+          }
+        },
+        "required": [
+          "pluginId",
+          "fields",
+          "values"
+        ],
+        "type": "object"
+      },
+      "PluginUsage": {
+        "additionalProperties": false,
+        "properties": {
+          "docs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "filesBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kvKeys": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kvKeys",
+          "docs",
+          "filesBytes"
+        ],
+        "type": "object"
+      },
+      "PoolStats": {
+        "additionalProperties": false,
+        "properties": {
+          "idle": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inUse": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "ooms": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "recreated": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "timeouts": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "size",
+          "idle",
+          "inUse",
+          "recreated",
+          "timeouts",
+          "ooms"
         ],
         "type": "object"
       },
@@ -3083,6 +4259,24 @@
         "required": [
           "urls"
         ],
+        "type": "object"
+      },
+      "QuotaSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "docs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "filesBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kvKeys": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
         "type": "object"
       },
       "RegisterInputBody": {
@@ -3396,6 +4590,18 @@
             },
             "type": "object"
           },
+          "overrides": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "previewName": {
+            "type": "string"
+          },
+          "previewing": {
+            "type": "boolean"
+          },
           "settings": {
             "additionalProperties": {
               "type": "string"
@@ -3406,6 +4612,9 @@
             "$ref": "#/components/schemas/Tokens"
           },
           "version": {
+            "type": "string"
+          },
+          "webEntry": {
             "type": "string"
           }
         },
@@ -3446,6 +4655,41 @@
         "required": [
           "action"
         ],
+        "type": "object"
+      },
+      "RouteBinding": {
+        "additionalProperties": false,
+        "properties": {
+          "auth": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "pattern": {
+            "type": "string"
+          },
+          "streamProxy": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "method",
+          "pattern",
+          "auth"
+        ],
+        "type": "object"
+      },
+      "RoutesManifest": {
+        "additionalProperties": false,
+        "properties": {
+          "public": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
         "type": "object"
       },
       "Scope": {
@@ -4592,6 +5836,21 @@
         },
         "type": "object"
       },
+      "StorageManifest": {
+        "additionalProperties": false,
+        "properties": {
+          "collections": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CollectionSpec"
+            },
+            "type": "object"
+          },
+          "quota": {
+            "$ref": "#/components/schemas/QuotaSpec"
+          }
+        },
+        "type": "object"
+      },
       "StorageStatus": {
         "additionalProperties": false,
         "properties": {
@@ -5120,6 +6379,49 @@
         ],
         "type": "object"
       },
+      "ThemePreviewInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ThemePreviewInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "themeId": {
+            "description": "Theme ID to preview for this administrator session; empty clears preview",
+            "type": "string"
+          }
+        },
+        "required": [
+          "themeId"
+        ],
+        "type": "object"
+      },
+      "ThemePreviewOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ThemePreviewOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "previewThemeId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "previewThemeId"
+        ],
+        "type": "object"
+      },
       "ThemeView": {
         "additionalProperties": false,
         "properties": {
@@ -5140,6 +6442,9 @@
           },
           "extends": {
             "type": "string"
+          },
+          "hasWeb": {
+            "type": "boolean"
           },
           "home": {
             "description": "The theme's home page, used while home.blocks is null",
@@ -5163,6 +6468,12 @@
             },
             "type": "object"
           },
+          "overrides": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "screenshot": {
             "type": "string"
           },
@@ -5180,6 +6491,9 @@
           },
           "version": {
             "type": "string"
+          },
+          "webTrusted": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -5248,6 +6562,31 @@
         },
         "required": [
           "refunded"
+        ],
+        "type": "object"
+      },
+      "UninstallPluginResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/UninstallPluginResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "purged": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "purged"
         ],
         "type": "object"
       },
@@ -6384,6 +7723,733 @@
         ]
       }
     },
+    "/api/v1/admin/plugins": {
+      "get": {
+        "operationId": "listPlugins",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminPluginView"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "List installed plugins and themes",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/plugins/dev-reload": {
+      "post": {
+        "description": "Used by skinloom-plugin dev during local development. Replaces the active JS or native Go plugin runtime atomically without restarting the server.",
+        "operationId": "devReloadPlugin",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with a superadmin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with a superadmin session",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PluginDevReloadInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginInfo"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Hot-reload an unpacked development plugin bundle",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/plugins/inspect": {
+      "post": {
+        "description": "Verifies integrity checksums, Ed25519 signature status, upgrade delta, dual-tier platform compatibility, and permission risk tiers without installing.",
+        "operationId": "inspectPluginPackage",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "file": {
+                  "contentType": "application/octet-stream"
+                }
+              },
+              "schema": {
+                "properties": {
+                  "file": {
+                    "contentEncoding": "binary",
+                    "contentMediaType": "application/octet-stream",
+                    "description": ".slp plugin or theme archive",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageInspectResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Validate and inspect an uploaded .slp package",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/plugins/install": {
+      "post": {
+        "description": "Super administrators only. Verifies archive integrity, Ed25519 trust, and explicit permission confirmation before installing or upgrading.",
+        "operationId": "installPluginPackage",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "allowUnsigned": {
+                  "contentType": "text/plain"
+                },
+                "disabled": {
+                  "contentType": "text/plain"
+                },
+                "file": {
+                  "contentType": "application/octet-stream"
+                },
+                "grantAll": {
+                  "contentType": "text/plain"
+                },
+                "grantedPermissions": {
+                  "contentType": "text/plain"
+                }
+              },
+              "schema": {
+                "properties": {
+                  "allowUnsigned": {
+                    "description": "Allow installing an unsigned or untrusted .slp archive after risk confirmation",
+                    "type": "boolean"
+                  },
+                  "disabled": {
+                    "description": "Install without immediately enabling the plugin",
+                    "type": "boolean"
+                  },
+                  "file": {
+                    "contentEncoding": "binary",
+                    "contentMediaType": "application/octet-stream",
+                    "description": ".slp plugin or theme archive",
+                    "format": "binary",
+                    "type": "string"
+                  },
+                  "grantAll": {
+                    "description": "Grant all declared permissions in the manifest",
+                    "type": "boolean"
+                  },
+                  "grantedPermissions": {
+                    "description": "Optional JSON string array of granted permission names",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPluginView"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Install or upgrade a .slp plugin or theme package",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/plugins/{id}": {
+      "delete": {
+        "operationId": "uninstallPlugin",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          },
+          {
+            "description": "When true, also remove plugin KV, documents, and private files",
+            "explode": false,
+            "in": "query",
+            "name": "purge",
+            "schema": {
+              "description": "When true, also remove plugin KV, documents, and private files",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UninstallPluginResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Uninstall a plugin",
+        "tags": [
+          "admin"
+        ]
+      },
+      "get": {
+        "operationId": "getPlugin",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPluginView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Inspect one installed plugin",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/plugins/{id}/disable": {
+      "post": {
+        "operationId": "disablePlugin",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPluginView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Disable an active plugin",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/plugins/{id}/enable": {
+      "post": {
+        "operationId": "enablePlugin",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPluginView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Enable an installed plugin",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/plugins/{id}/reload": {
+      "post": {
+        "operationId": "reloadPlugin",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPluginView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Reload a plugin bundle cleanly",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/plugins/{id}/settings": {
+      "get": {
+        "operationId": "getPluginSettings",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginSettingsResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Get a plugin's settings schema and redacted values",
+        "tags": [
+          "admin"
+        ]
+      },
+      "patch": {
+        "operationId": "updatePluginSettings",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": {},
+                "description": "Setting keys to update. Send null to reset or omit/send ******** to keep existing secrets.",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginSettingsResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Update a plugin's settings",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/reports": {
       "get": {
         "operationId": "listReports",
@@ -6801,6 +8867,74 @@
           }
         ],
         "summary": "List installed themes",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/themes/preview": {
+      "post": {
+        "description": "Stores the previewed theme ID in an HttpOnly cookie affecting only this administrator session.",
+        "operationId": "setThemePreview",
+        "parameters": [
+          {
+            "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cadmin token\u003e; not needed with an admin session",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThemePreviewInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemePreviewOutputBody"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "summary": "Set or clear administrator session theme preview",
         "tags": [
           "admin"
         ]
@@ -10796,6 +12930,13 @@
             }
           },
           {
+            "in": "cookie",
+            "name": "skinloom_theme_preview",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "in": "header",
             "name": "Accept-Language",
             "schema": {
@@ -10946,7 +13087,7 @@
             "in": "query",
             "name": "cursor",
             "schema": {
-              "maxLength": 40,
+              "maxLength": 256,
               "type": "string"
             }
           },

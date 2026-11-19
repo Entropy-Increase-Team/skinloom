@@ -105,7 +105,7 @@ func (s *Service) checkPassword(ctx context.Context, u *ent.User, password strin
 	if wait, blocked := s.passwordChecks.Take(key); blocked { // counted before checking: see Limiter.Take
 		return &RateLimitError{RetryAfter: wait}
 	}
-	ok, _, err := s.hasher.Verify(ctx, u.PasswordAlgo, u.PasswordHash, password)
+	ok, _, err := s.verifyUserPassword(ctx, u.PasswordAlgo, u.PasswordHash, password)
 	if err != nil && ctx.Err() != nil {
 		s.passwordChecks.Release(key)
 		return ctx.Err()

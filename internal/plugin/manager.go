@@ -10,14 +10,16 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"mime"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
@@ -27,8 +29,19 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/jsrt"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/captcha"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/cdn"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/mail"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/notify"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/render"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/theme"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/yggdrasil"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 )
 
 const (
@@ -48,59 +61,116 @@ type Viewer struct {
 	Superadmin    bool
 }
 
+// PlatformPackageFetcher downloads a platform-specific .slp archive from a
+// registry source during multi-arch SyncCluster when the shared storage.Store
+// does not yet contain a package for this node's GOOS/GOARCH.
+type PlatformPackageFetcher func(ctx context.Context, registrySource, pluginID, version, platform string) ([]byte, error)
+
 // ManagerDeps injects host services required by the plugin runtime.
 type ManagerDeps struct {
-	DB       *ent.Client
-	Bus      *hook.Bus
-	Settings *settings.Service
-	Notify   *notify.Service
-	Engine   jsrt.Engine
-	DataDir  string
-	Log      *slog.Logger
+	DB                     *ent.Client
+	Bus                    *hook.Bus
+	Settings               *settings.Service
+	Accounts               *account.Service
+	Players                *player.Service
+	Textures               *texture.Service
+	Renders                *render.Service
+	Notify                 *notify.Service
+	Mailer                 *mail.Mailer
+	Captcha                *captcha.Service
+	CDN                    *cdn.Service
+	Yggdrasil              *yggdrasil.Service
+	Store                  storage.Store
+	StorageHook            *storage.SwappableStore
+	Themes                 *theme.Registry
+	Engine                 jsrt.Engine
+	DBAllocator            *DBAllocator
+	DataDir                string
+	HostPlatform           string // optional override (defaults to runtime.GOOS+"/"+runtime.GOARCH)
+	TrustedPublicKeys      []string
+	AllowUnsignedNative    bool
+	NativeDriverFactory    func(manifest *Manifest, dir string) Driver
+	PlatformPackageFetcher PlatformPackageFetcher
+	Log                    *slog.Logger
 }
 
 // PluginInfo summarizes an installed plugin's manifest and live runtime state.
 type PluginInfo struct {
-	ID                 string          `json:"id"`
-	Kind               string          `json:"kind"`
-	Version            string          `json:"version"`
-	Status             string          `json:"status"`
-	Error              string          `json:"error,omitempty"`
-	Source             string          `json:"source"`
-	GrantedPermissions []string        `json:"grantedPermissions"`
-	Settings           map[string]any  `json:"settings,omitempty"`
-	Manifest           *Manifest       `json:"manifest,omitempty"`
-	Routes             []routeBinding  `json:"routes,omitempty"`
-	Stats              *jsrt.PoolStats `json:"stats,omitempty"`
-	RecentLogs         []LogEntry      `json:"recentLogs,omitempty"`
-	CircuitTripped     bool            `json:"circuitTripped,omitempty"`
-	ConsecutiveErrors  int             `json:"consecutiveErrors,omitempty"`
+	ID                 string            `json:"id"`
+	Kind               string            `json:"kind"`
+	Runtime            string            `json:"runtime,omitempty"`
+	Version            string            `json:"version"`
+	Status             string            `json:"status"`
+	Error              string            `json:"error,omitempty"`
+	Source             string            `json:"source"`
+	RegistrySource     string            `json:"registrySource,omitempty"`
+	PackageSHA256      string            `json:"packageSha256,omitempty"`
+	PlatformPackages   map[string]string `json:"platformPackages,omitempty"`
+	GrantedPermissions []string          `json:"grantedPermissions"`
+	Settings           map[string]any    `json:"settings,omitempty"`
+	Manifest           *Manifest         `json:"manifest,omitempty"`
+	Routes             []routeBinding    `json:"routes,omitempty"`
+	Stats              *jsrt.PoolStats   `json:"stats,omitempty"`
+	NativeStats        *NativeStats      `json:"nativeStats,omitempty"`
+	Usage              *PluginUsage      `json:"usage,omitempty"`
+	RecentLogs         []LogEntry        `json:"recentLogs,omitempty"`
+	CircuitTripped     bool              `json:"circuitTripped,omitempty"`
+	ConsecutiveErrors  int               `json:"consecutiveErrors,omitempty"`
 }
 
 // Manager coordinates plugin installation, two-phase atomic activation,
 // hot enable/disable/uninstall, HTTP route dispatch, static assets, and circuit breaking.
 type Manager struct {
-	db         *ent.Client
-	bus        *hook.Bus
-	settings   *settings.Service
-	notify     *notify.Service
-	dataDir    string
-	log        *slog.Logger
-	engine     jsrt.Engine
-	ownsEngine bool
+	db                   *ent.Client
+	bus                  *hook.Bus
+	settings             *settings.Service
+	accounts             *account.Service
+	players              *player.Service
+	textures             *texture.Service
+	renders              *render.Service
+	notify               *notify.Service
+	mailer               *mail.Mailer
+	captcha              *captcha.Service
+	cdn                  *cdn.Service
+	yggdrasil            *yggdrasil.Service
+	store                storage.Store
+	storageHook          *storage.SwappableStore
+	themes               *theme.Registry
+	dbAllocator          *DBAllocator
+	dataDir              string
+	hostPlatformOverride string
+	trustedPublicKeys    []string
+	allowUnsignedNative  bool
+	nativeDriverFactory  func(manifest *Manifest, dir string) Driver
+	platformFetcher      PlatformPackageFetcher
+	log                  *slog.Logger
+	engine               jsrt.Engine
+	ownsEngine           bool
 
 	mu     sync.RWMutex
 	active map[string]*pluginRuntime
 	stored map[string]*storedBundle
+
+	revSeq atomic.Uint64
+
+	syncMu      sync.Mutex
+	lifecycleMu sync.Mutex
+	settingsMu  sync.Mutex
+	cronMu      sync.Mutex
+	cronStop    chan struct{}
+	cronWg      *sync.WaitGroup
 }
 
 type storedBundle struct {
-	manifest    *Manifest
-	dir         string
-	bundleCode  []byte
-	staticFiles map[string][]byte
-	sha256      string
-	source      string
+	manifest         *Manifest
+	dir              string
+	bundleCode       []byte
+	staticFiles      map[string][]byte
+	sha256           string
+	platformPackages map[string]string
+	registrySource   string
+	rev              string
+	source           string
 }
 
 // NewManager creates a plugin manager. If deps.Engine is nil, a dedicated jsrt engine is initialized.
@@ -120,78 +190,75 @@ func NewManager(deps ManagerDeps) (*Manager, error) {
 		log = slog.Default()
 	}
 	return &Manager{
-		db:         deps.DB,
-		bus:        deps.Bus,
-		settings:   deps.Settings,
-		notify:     deps.Notify,
-		dataDir:    deps.DataDir,
-		log:        log,
-		engine:     eng,
-		ownsEngine: owns,
-		active:     map[string]*pluginRuntime{},
-		stored:     map[string]*storedBundle{},
+		db:                   deps.DB,
+		bus:                  deps.Bus,
+		settings:             deps.Settings,
+		accounts:             deps.Accounts,
+		players:              deps.Players,
+		textures:             deps.Textures,
+		renders:              deps.Renders,
+		notify:               deps.Notify,
+		mailer:               deps.Mailer,
+		captcha:              deps.Captcha,
+		cdn:                  deps.CDN,
+		yggdrasil:            deps.Yggdrasil,
+		store:                deps.Store,
+		storageHook:          deps.StorageHook,
+		themes:               deps.Themes,
+		dbAllocator:          deps.DBAllocator,
+		dataDir:              deps.DataDir,
+		hostPlatformOverride: deps.HostPlatform,
+		trustedPublicKeys:    append([]string(nil), deps.TrustedPublicKeys...),
+		allowUnsignedNative:  deps.AllowUnsignedNative,
+		nativeDriverFactory:  deps.NativeDriverFactory,
+		platformFetcher:      deps.PlatformPackageFetcher,
+		log:                  log,
+		engine:               eng,
+		ownsEngine:           owns,
+		active:               map[string]*pluginRuntime{},
+		stored:               map[string]*storedBundle{},
 	}, nil
 }
 
-// Start scans the plugins directory and activates any DB-enabled plugins.
-func (m *Manager) Start(ctx context.Context) error {
-	if m.db == nil {
-		return nil
+// SetPlatformPackageFetcher installs or replaces the callback used by multi-arch
+// SyncCluster to fetch missing architecture packages from a plugin's registry_source.
+func (m *Manager) SetPlatformPackageFetcher(fn PlatformPackageFetcher) {
+	m.mu.Lock()
+	m.platformFetcher = fn
+	m.mu.Unlock()
+}
+
+// AllowUnsignedNative reports whether dev-mode unsigned native plugins are permitted.
+func (m *Manager) AllowUnsignedNative() bool {
+	if m == nil {
+		return false
 	}
-	rows, err := m.db.Plugin.Query().Order(ent.Asc(entplugin.FieldID)).All(ctx)
-	if err != nil {
+	return m.allowUnsignedNative
+}
+
+func (m *Manager) hostPlatform() string {
+	if m != nil && m.hostPlatformOverride != "" {
+		return m.hostPlatformOverride
+	}
+	return runtime.GOOS + "/" + runtime.GOARCH
+}
+
+// Start scans DB-registered plugins and themes, pulls missing packages from Store,
+// and activates enabled items in dependency order.
+func (m *Manager) Start(ctx context.Context) error {
+	if err := m.startWithSync(ctx); err != nil {
 		return err
 	}
-	pluginsRoot := filepath.Join(m.dataDir, "plugins")
-	for _, row := range rows {
-		if row.Kind != entplugin.KindPlugin {
-			continue
-		}
-		if row.Status != entplugin.StatusEnabled {
-			continue
-		}
-		dir := filepath.Join(pluginsRoot, row.ID, row.Version)
-		if _, statErr := os.Stat(filepath.Join(dir, "plugin.json")); statErr != nil {
-			dir = filepath.Join(pluginsRoot, row.ID)
-		}
-		manifestRaw, err := os.ReadFile(filepath.Join(dir, "plugin.json"))
-		if err != nil {
-			m.markFailed(ctx, row.ID, fmt.Errorf("missing manifest in %s: %w", dir, err))
-			continue
-		}
-		mf, err := ParseManifest(manifestRaw)
-		if err != nil {
-			m.markFailed(ctx, row.ID, err)
-			continue
-		}
-		var serverJS []byte
-		if mf.Server != "" {
-			serverJS, err = os.ReadFile(filepath.Join(dir, filepath.FromSlash(mf.Server)))
-			if err != nil {
-				m.markFailed(ctx, row.ID, fmt.Errorf("read server bundle %q: %w", mf.Server, err))
-				continue
-			}
-		}
-		sb := &storedBundle{
-			manifest:   mf,
-			dir:        dir,
-			bundleCode: serverJS,
-			sha256:     row.PackageSha256,
-			source:     row.Source,
-		}
-		m.mu.Lock()
-		m.stored[mf.ID] = sb
-		m.mu.Unlock()
-		if err := m.activateBundle(ctx, sb, row.GrantedPermissions, row.Settings, false, ""); err != nil {
-			m.markFailed(ctx, row.ID, err)
-		}
-	}
+	m.startCronLoop()
 	return nil
 }
 
 // LoadFromDir loads an unpacked plugin directory from disk, persists its metadata, and
 // optionally enables it atomically.
 func (m *Manager) LoadFromDir(ctx context.Context, dir string, enable bool) (*PluginInfo, error) {
+	m.lifecycleMu.Lock()
+	defer m.lifecycleMu.Unlock()
+
 	manifestRaw, err := os.ReadFile(filepath.Join(dir, "plugin.json"))
 	if err != nil {
 		return nil, fmt.Errorf("read plugin.json: %w", err)
@@ -199,6 +266,9 @@ func (m *Manager) LoadFromDir(ctx context.Context, dir string, enable bool) (*Pl
 	mf, err := ParseManifest(manifestRaw)
 	if err != nil {
 		return nil, err
+	}
+	if mf.EffectiveRuntime() == RuntimeNative && !m.allowUnsignedNative {
+		return nil, ErrUnsignedNativeForbidden
 	}
 	var serverJS []byte
 	if mf.Server != "" {
@@ -213,6 +283,7 @@ func (m *Manager) LoadFromDir(ctx context.Context, dir string, enable bool) (*Pl
 		dir:        dir,
 		bundleCode: serverJS,
 		sha256:     hex.EncodeToString(sum[:]),
+		rev:        fmt.Sprintf("%s.%d", mf.Version, m.revSeq.Add(1)),
 		source:     "local",
 	}
 	return m.installBundle(ctx, sb, nil, enable)
@@ -228,12 +299,31 @@ func (m *Manager) LoadFromBytes(
 	grantedPerms []string,
 	enable bool,
 ) (*PluginInfo, error) {
+	m.lifecycleMu.Lock()
+	defer m.lifecycleMu.Unlock()
+
 	mf, err := ParseManifest(manifestRaw)
 	if err != nil {
 		return nil, err
 	}
+	if mf.EffectiveRuntime() == RuntimeNative {
+		return nil, fmt.Errorf("%w: native plugins must be loaded via InstallPackage or LoadDevNative", ErrBadManifest)
+	}
 	if len(serverJS) > jsrt.MaxBundleBytes {
 		return nil, jsrt.ErrBundleTooLarge
+	}
+	if len(staticFiles) > MaxPackageEntries {
+		return nil, fmt.Errorf("%w: too many static files (%d > %d)", ErrBadPackage, len(staticFiles), MaxPackageEntries)
+	}
+	var totalStatic int64 = int64(len(manifestRaw) + len(serverJS))
+	for name, data := range staticFiles {
+		if int64(len(data)) > MaxPackageFileBytes {
+			return nil, fmt.Errorf("%w: static file %q exceeds %d byte limit", ErrBadPackage, name, MaxPackageFileBytes)
+		}
+		totalStatic += int64(len(data))
+		if totalStatic > MaxUnpackedPackageBytes {
+			return nil, fmt.Errorf("%w: unpacked payload exceeds %d byte cap", ErrBadPackage, MaxUnpackedPackageBytes)
+		}
 	}
 	if grantedPerms == nil {
 		grantedPerms = append([]string(nil), mf.Permissions...)
@@ -244,17 +334,230 @@ func (m *Manager) LoadFromBytes(
 		bundleCode:  append([]byte(nil), serverJS...),
 		staticFiles: staticFiles,
 		sha256:      hex.EncodeToString(sum[:]),
+		rev:         fmt.Sprintf("%s.%d", mf.Version, m.revSeq.Add(1)),
 		source:      "package",
 	}
 	return m.installBundle(ctx, sb, grantedPerms, enable)
 }
 
-func (m *Manager) installBundle(ctx context.Context, sb *storedBundle, grantedPerms []string, enable bool) (*PluginInfo, error) {
+// LoadDevJS loads an unpacked Tier 1 JS plugin or theme during local development
+// (skinloom-plugin dev), enforcing size bounds and theme validation and marking
+// the bundle source as "local".
+func (m *Manager) LoadDevJS(
+	ctx context.Context,
+	manifestRaw []byte,
+	serverJS []byte,
+	staticFiles map[string][]byte,
+	grantedPerms []string,
+	enable bool,
+) (*PluginInfo, error) {
+	m.lifecycleMu.Lock()
+	defer m.lifecycleMu.Unlock()
+
+	mf, err := ParseManifest(manifestRaw)
+	if err != nil {
+		return nil, err
+	}
+	if mf.EffectiveRuntime() == RuntimeNative {
+		return nil, fmt.Errorf("%w: LoadDevJS requires runtime \"js\"", ErrBadManifest)
+	}
+	if len(serverJS) > jsrt.MaxBundleBytes {
+		return nil, jsrt.ErrBundleTooLarge
+	}
+	if len(staticFiles) > MaxPackageEntries {
+		return nil, fmt.Errorf("%w: too many dev files (%d > %d)", ErrBadPackage, len(staticFiles), MaxPackageEntries)
+	}
+	var total int64 = int64(len(manifestRaw) + len(serverJS))
+	cleanFiles := make(map[string][]byte, len(staticFiles)+2)
+	cleanFiles["plugin.json"] = append([]byte(nil), manifestRaw...)
+	if mf.Server != "" && len(serverJS) > 0 {
+		cleanFiles[path.Clean(mf.Server)] = append([]byte(nil), serverJS...)
+	}
+	for name, data := range staticFiles {
+		clean := path.Clean(strings.ReplaceAll(name, "\\", "/"))
+		if err := validateZipRawPath(clean); err != nil {
+			return nil, err
+		}
+		if int64(len(data)) > MaxPackageFileBytes {
+			return nil, fmt.Errorf("%w: dev file %q exceeds %d byte limit", ErrBadPackage, clean, MaxPackageFileBytes)
+		}
+		total += int64(len(data))
+		if total > MaxUnpackedPackageBytes {
+			return nil, fmt.Errorf("%w: dev payload exceeds %d byte cap", ErrBadPackage, MaxUnpackedPackageBytes)
+		}
+		cleanFiles[clean] = append([]byte(nil), data...)
+	}
+	if mf.Kind == KindTheme {
+		tmpPkg := &ParsedPackage{Manifest: mf, Files: cleanFiles}
+		if _, err := tmpPkg.ValidateTheme(m.themes); err != nil {
+			return nil, err
+		}
+	}
 	if grantedPerms == nil {
-		grantedPerms = append([]string(nil), sb.manifest.Permissions...)
+		grantedPerms = append([]string(nil), mf.EffectivePermissions()...)
+	}
+	sum := sha256.Sum256(append(append([]byte{}, manifestRaw...), serverJS...))
+	sb := &storedBundle{
+		manifest:    mf,
+		bundleCode:  append([]byte(nil), serverJS...),
+		staticFiles: staticFiles,
+		sha256:      hex.EncodeToString(sum[:]),
+		rev:         fmt.Sprintf("%s.dev.%d", mf.Version, m.revSeq.Add(1)),
+		source:      "local",
+	}
+	return m.installBundle(ctx, sb, grantedPerms, enable)
+}
+
+// LoadDevNative writes an unsigned local-development native Go plugin build
+// (binary + web/assets/locales) into a versioned staging directory under
+// <dataDir>/plugins-dev/<id>/<rev>/ and atomically hot-reloads it.
+// Requires Manager.AllowUnsignedNative() (dev mode).
+func (m *Manager) LoadDevNative(
+	ctx context.Context,
+	manifestRaw []byte,
+	files map[string][]byte,
+	grantedPerms []string,
+	enable bool,
+) (*PluginInfo, error) {
+	m.lifecycleMu.Lock()
+	defer m.lifecycleMu.Unlock()
+
+	if !m.allowUnsignedNative {
+		return nil, ErrUnsignedNativeForbidden
+	}
+	mf, err := ParseManifest(manifestRaw)
+	if err != nil {
+		return nil, err
+	}
+	if mf.EffectiveRuntime() != RuntimeNative {
+		return nil, fmt.Errorf("%w: LoadDevNative requires runtime \"native\"", ErrBadManifest)
+	}
+	if m.dataDir == "" {
+		return nil, errors.New("dataDir is required for native dev reload")
 	}
 
-	var prevVer string
+	rev := fmt.Sprintf("%s.dev.%d", mf.Version, m.revSeq.Add(1))
+	devRoot := filepath.Join(m.dataDir, "plugins-dev", mf.ID)
+	stageDir := filepath.Join(devRoot, rev)
+	if err := os.MkdirAll(stageDir, 0o755); err != nil {
+		return nil, fmt.Errorf("create dev staging dir: %w", err)
+	}
+	cleanupStage := true
+	defer func() {
+		if cleanupStage {
+			_ = os.RemoveAll(stageDir)
+		}
+	}()
+
+	if err := os.WriteFile(filepath.Join(stageDir, "plugin.json"), manifestRaw, 0o644); err != nil {
+		return nil, err
+	}
+	h := sha256.New()
+	_, _ = h.Write(manifestRaw)
+
+	names := make([]string, 0, len(files))
+	for k := range files {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+
+	var total int64
+	for _, rawName := range names {
+		clean := path.Clean(strings.ReplaceAll(rawName, "\\", "/"))
+		if err := validateZipRawPath(clean); err != nil {
+			return nil, err
+		}
+		if clean == "plugin.json" {
+			continue
+		}
+		data := files[rawName]
+		limit := int64(MaxPackageFileBytes)
+		mode := os.FileMode(0o644)
+		if isNativeExecutablePath(mf, clean) {
+			limit = int64(MaxNativeBinaryBytes)
+			mode = 0o755
+		}
+		if int64(len(data)) > limit {
+			return nil, fmt.Errorf("%w: dev file %q exceeds %d byte limit", ErrBadPackage, clean, limit)
+		}
+		total += int64(len(data))
+		if total > MaxNativeUnpackedSingleBytes {
+			return nil, fmt.Errorf("%w: dev payload exceeds %d byte limit", ErrBadPackage, MaxNativeUnpackedSingleBytes)
+		}
+		target := filepath.Join(stageDir, filepath.FromSlash(clean))
+		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+			return nil, err
+		}
+		if err := os.WriteFile(target, data, mode); err != nil {
+			return nil, err
+		}
+		_, _ = h.Write([]byte(clean))
+		_, _ = h.Write(data)
+	}
+
+	if _, err := mf.ResolveNativeExecutable(stageDir, runtime.GOOS, runtime.GOARCH); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrBadPackage, err)
+	}
+
+	if grantedPerms == nil {
+		grantedPerms = append([]string(nil), mf.EffectivePermissions()...)
+	}
+	sb := &storedBundle{
+		manifest: mf,
+		dir:      stageDir,
+		sha256:   hex.EncodeToString(h.Sum(nil)),
+		rev:      rev,
+		source:   "local",
+	}
+	m.mu.RLock()
+	var prevDevDir string
+	if prev := m.stored[mf.ID]; prev != nil && strings.HasPrefix(prev.dir, devRoot+string(filepath.Separator)) {
+		prevDevDir = prev.dir
+	}
+	m.mu.RUnlock()
+
+	info, err := m.installBundle(ctx, sb, grantedPerms, enable)
+	if err != nil {
+		return nil, err
+	}
+	cleanupStage = false
+
+	// Best-effort prune ONLY the previously replaced dev staging revision (never
+	// blindly deleting sibling revisions that may belong to a newer concurrent reload).
+	if prevDevDir != "" && prevDevDir != stageDir {
+		go func(oldDir string) {
+			time.Sleep(2 * time.Second)
+			m.mu.RLock()
+			cur := m.active[mf.ID]
+			st := m.stored[mf.ID]
+			stillUsed := (cur != nil && cur.dir == oldDir) || (st != nil && st.dir == oldDir)
+			m.mu.RUnlock()
+			if !stillUsed {
+				_ = os.RemoveAll(oldDir)
+			}
+		}(prevDevDir)
+	}
+	return info, nil
+}
+
+func (m *Manager) isBuiltinThemeID(id string) bool {
+	return theme.IsBuiltinID(id) || (m.themes != nil && m.themes.IsBuiltin(id))
+}
+
+func (m *Manager) installBundle(ctx context.Context, sb *storedBundle, grantedPerms []string, enable bool) (*PluginInfo, error) {
+	if sb.manifest.Kind == KindTheme && m.isBuiltinThemeID(sb.manifest.ID) {
+		return nil, fmt.Errorf("%w: cannot override built-in theme %q", ErrBadPackage, sb.manifest.ID)
+	}
+	if grantedPerms == nil {
+		grantedPerms = append([]string(nil), sb.manifest.EffectivePermissions()...)
+	}
+
+	var prevVer, prevSource, prevRegistrySource, prevSHA, prevErrMsg string
+	var prevPerms []string
+	var prevPlatformPkgs map[string]string
+	var prevSettings map[string]any
+	var prevStatus entplugin.Status
+	var prevRuntime entplugin.Runtime
 	var existingSettings map[string]any
 	isNew := false
 
@@ -266,51 +569,127 @@ func (m *Manager) installBundle(ctx context.Context, sb *storedBundle, grantedPe
 		isNew = true
 	} else {
 		prevVer = existing.Version
+		prevPerms = append([]string(nil), existing.GrantedPermissions...)
+		prevSettings = cloneMap(existing.Settings)
+		prevSource = existing.Source
+		prevRegistrySource = existing.RegistrySource
+		prevSHA = existing.PackageSha256
+		if len(existing.PlatformPackages) > 0 {
+			prevPlatformPkgs = make(map[string]string, len(existing.PlatformPackages))
+			for k, v := range existing.PlatformPackages {
+				prevPlatformPkgs[k] = v
+			}
+		}
+		prevStatus = existing.Status
+		prevRuntime = existing.Runtime
+		prevErrMsg = existing.Error
 		existingSettings = existing.Settings
 	}
 
-	m.mu.Lock()
-	m.stored[sb.manifest.ID] = sb
-	m.mu.Unlock()
+	m.mu.RLock()
+	oldStored := m.stored[sb.manifest.ID]
+	m.mu.RUnlock()
 
 	now := time.Now().UTC()
+	rtEnum := entplugin.Runtime(sb.manifest.EffectiveRuntime())
 	if isNew {
-		_, err = m.db.Plugin.Create().
+		create := m.db.Plugin.Create().
 			SetID(sb.manifest.ID).
 			SetKind(entplugin.Kind(sb.manifest.Kind)).
+			SetRuntime(rtEnum).
 			SetVersion(sb.manifest.Version).
 			SetStatus(entplugin.StatusDisabled).
 			SetGrantedPermissions(grantedPerms).
 			SetSettings(mergeDefaultSettings(sb.manifest.Settings, nil)).
 			SetError("").
 			SetSource(sb.source).
+			SetRegistrySource(sb.registrySource).
 			SetPackageSha256(sb.sha256).
 			SetInstalledAt(now).
-			SetUpdatedAt(now).
-			Save(ctx)
+			SetUpdatedAt(now)
+		if len(sb.platformPackages) > 0 {
+			create = create.SetPlatformPackages(sb.platformPackages)
+		}
+		_, err = create.Save(ctx)
 		if err != nil {
 			return nil, err
 		}
 		existingSettings = mergeDefaultSettings(sb.manifest.Settings, nil)
 	} else {
 		merged := mergeDefaultSettings(sb.manifest.Settings, existingSettings)
-		_, err = m.db.Plugin.UpdateOneID(sb.manifest.ID).
+		upd := m.db.Plugin.UpdateOneID(sb.manifest.ID).
+			SetRuntime(rtEnum).
 			SetVersion(sb.manifest.Version).
 			SetGrantedPermissions(grantedPerms).
 			SetSettings(merged).
 			SetError("").
 			SetSource(sb.source).
+			SetRegistrySource(sb.registrySource).
 			SetPackageSha256(sb.sha256).
-			SetUpdatedAt(now).
-			Save(ctx)
+			SetUpdatedAt(now)
+		if len(sb.platformPackages) > 0 {
+			upd = upd.SetPlatformPackages(sb.platformPackages)
+		} else {
+			upd = upd.ClearPlatformPackages()
+		}
+		if !enable {
+			upd = upd.SetStatus(entplugin.StatusDisabled)
+		}
+		_, err = upd.Save(ctx)
 		if err != nil {
 			return nil, err
 		}
 		existingSettings = merged
 	}
 
+	m.mu.Lock()
+	m.stored[sb.manifest.ID] = sb
+	m.mu.Unlock()
+
+	if !enable && !isNew {
+		// Upgrading/installing with Enable=false must stop any previously active runtime.
+		if m.bus != nil {
+			m.bus.Remove("plugin:" + sb.manifest.ID)
+		}
+		m.unregisterHostExtensions(sb.manifest.ID)
+		m.mu.Lock()
+		prevRT := m.active[sb.manifest.ID]
+		delete(m.active, sb.manifest.ID)
+		m.mu.Unlock()
+		if prevRT != nil {
+			_ = prevRT.invokeLifecycle(ctx, "onDisable", nil)
+			go prevRT.close(defaultDrainTimeout)
+		}
+	}
+
 	if enable {
-		if err := m.activateBundle(ctx, sb, grantedPerms, existingSettings, isNew, prevVer); err != nil {
+		if err := m.activateBundle(ctx, sb, grantedPerms, existingSettings, isNew, prevVer, isNew); err != nil {
+			if !isNew {
+				m.mu.Lock()
+				if oldStored != nil {
+					m.stored[sb.manifest.ID] = oldStored
+				} else {
+					delete(m.stored, sb.manifest.ID)
+				}
+				m.mu.Unlock()
+				rb := m.db.Plugin.UpdateOneID(sb.manifest.ID).
+					SetRuntime(prevRuntime).
+					SetVersion(prevVer).
+					SetGrantedPermissions(prevPerms).
+					SetSettings(prevSettings).
+					SetSource(prevSource).
+					SetRegistrySource(prevRegistrySource).
+					SetPackageSha256(prevSHA).
+					SetStatus(prevStatus).
+					SetError(prevErrMsg).
+					SetUpdatedAt(time.Now().UTC())
+				if len(prevPlatformPkgs) > 0 {
+					rb = rb.SetPlatformPackages(prevPlatformPkgs)
+				} else {
+					rb = rb.ClearPlatformPackages()
+				}
+				_ = rb.Exec(ctx)
+			}
 			return nil, err
 		}
 	}
@@ -328,23 +707,46 @@ func (m *Manager) activateBundle(
 	settingsMap map[string]any,
 	isInstall bool,
 	upgradedFrom string,
+	markFailedOnErr bool,
 ) error {
 	candidate, err := newPluginRuntime(sb.manifest, sb.dir, sb.bundleCode, sb.staticFiles, grantedPerms, settingsMap, m)
 	if err != nil {
-		m.markFailed(ctx, sb.manifest.ID, err)
+		if markFailedOnErr {
+			m.markFailed(ctx, sb.manifest.ID, err)
+		}
 		return err
 	}
+	if sb.rev != "" {
+		candidate.rev = sb.rev
+	}
 
-	// Phase 1: compile, warm pool, run setup() across isolates.
-	if err := candidate.initPool(ctx, m.engine); err != nil {
+	// Phase 1: build runtime driver (JS WASM pool or Native Go subprocess) and run Init/setup.
+	drv, dbCfg, err := m.prepareDriver(ctx, candidate, sb)
+	if err != nil {
 		candidate.close(2 * time.Second)
-		m.markFailed(ctx, sb.manifest.ID, err)
+		if markFailedOnErr {
+			m.markFailed(ctx, sb.manifest.ID, err)
+		}
+		return err
+	}
+	var pluginDataDir, runtimeDir string
+	if m.dataDir != "" {
+		pluginDataDir = filepath.Join(m.dataDir, "plugins-data", sb.manifest.ID)
+		runtimeDir = filepath.Join(m.dataDir, "run")
+	}
+	if err := candidate.initDriver(ctx, drv, dbCfg, pluginDataDir, runtimeDir); err != nil {
+		candidate.close(2 * time.Second)
+		if markFailedOnErr {
+			m.markFailed(ctx, sb.manifest.ID, err)
+		}
 		return err
 	}
 	regs, err := candidate.buildHookRegistrations()
 	if err != nil {
 		candidate.close(2 * time.Second)
-		m.markFailed(ctx, sb.manifest.ID, err)
+		if markFailedOnErr {
+			m.markFailed(ctx, sb.manifest.ID, err)
+		}
 		return err
 	}
 
@@ -352,15 +754,25 @@ func (m *Manager) activateBundle(
 	if m.bus != nil {
 		if err := m.bus.Replace("plugin:"+sb.manifest.ID, regs...); err != nil {
 			candidate.close(2 * time.Second)
-			m.markFailed(ctx, sb.manifest.ID, err)
+			if markFailedOnErr {
+				m.markFailed(ctx, sb.manifest.ID, err)
+			}
 			return err
 		}
 	}
+
+	candidate.packageSHA256 = sb.sha256
 
 	m.mu.Lock()
 	old := m.active[sb.manifest.ID]
 	m.active[sb.manifest.ID] = candidate
 	m.mu.Unlock()
+
+	m.registerHostExtensions(candidate)
+	theme.RegisterPluginBlocks(candidate.id, candidate.blockTypes())
+	if len(candidate.crons) > 0 {
+		m.startCronLoop()
+	}
 
 	if old != nil && old != candidate {
 		go old.close(defaultDrainTimeout)
@@ -388,6 +800,9 @@ func (m *Manager) activateBundle(
 
 // Enable activates an installed plugin cleanly and resets any tripped circuit breaker.
 func (m *Manager) Enable(ctx context.Context, id string) error {
+	m.lifecycleMu.Lock()
+	defer m.lifecycleMu.Unlock()
+
 	row, err := m.db.Plugin.Get(ctx, id)
 	if err != nil {
 		return err
@@ -395,60 +810,89 @@ func (m *Manager) Enable(ctx context.Context, id string) error {
 	m.mu.RLock()
 	sb := m.stored[id]
 	m.mu.RUnlock()
-	if sb == nil {
-		return fmt.Errorf("plugin %q bundle not loaded", id)
+	if sb == nil || row.PackageSha256 != "" && sb.sha256 != row.PackageSha256 {
+		sb, err = m.loadBundleFromRow(ctx, row, false)
+		if err != nil {
+			return err
+		}
 	}
-	return m.activateBundle(ctx, sb, row.GrantedPermissions, row.Settings, false, "")
+	if err := m.checkDependenciesActive(ctx, sb.manifest); err != nil {
+		return err
+	}
+	if err := m.activateBundle(ctx, sb, row.GrantedPermissions, row.Settings, false, "", true); err != nil {
+		return err
+	}
+	if row.Kind == entplugin.KindTheme {
+		m.reloadThemes()
+	}
+	m.bumpConfigVersion(ctx)
+	return nil
 }
 
 // Disable atomically removes the plugin from the hook bus and route table, runs
 // onDisable, and drains in-flight JS executions.
 func (m *Manager) Disable(ctx context.Context, id string) error {
+	m.lifecycleMu.Lock()
+	defer m.lifecycleMu.Unlock()
+
 	if m.bus != nil {
 		m.bus.Remove("plugin:" + id)
 	}
+	m.unregisterHostExtensions(id)
 	m.mu.Lock()
 	rt := m.active[id]
 	delete(m.active, id)
 	m.mu.Unlock()
 
-	if rt != nil {
-		_ = rt.invokeLifecycle(ctx, "onDisable", nil)
-		rt.close(defaultDrainTimeout)
-	}
-	_, err := m.db.Plugin.UpdateOneID(id).
+	row, err := m.db.Plugin.UpdateOneID(id).
 		SetStatus(entplugin.StatusDisabled).
 		SetError("").
 		SetUpdatedAt(time.Now().UTC()).
 		Save(ctx)
+	if err != nil && !ent.IsNotFound(err) {
+		return err
+	}
+
+	if rt != nil {
+		_ = rt.invokeLifecycle(ctx, "onDisable", nil)
+		rt.close(defaultDrainTimeout)
+	}
 	if ent.IsNotFound(err) {
 		return nil
 	}
-	return err
+	if row.Kind == entplugin.KindTheme {
+		m.reloadThemes()
+	}
+	m.bumpConfigVersion(ctx)
+	return nil
 }
 
 // Uninstall disables the plugin, invokes onUninstall, removes bundle metadata,
 // and when purge is true wipes KV, documents, and private files.
 func (m *Manager) Uninstall(ctx context.Context, id string, purge bool) error {
-	m.mu.RLock()
-	rt := m.active[id]
-	m.mu.RUnlock()
+	if !pluginIDRe.MatchString(id) && !themeIDRe.MatchString(id) {
+		return fmt.Errorf("%w: invalid plugin id %q", ErrBadManifest, id)
+	}
+	m.lifecycleMu.Lock()
+	defer m.lifecycleMu.Unlock()
+
+	oldRow, getErr := m.db.Plugin.Get(ctx, id)
 
 	if m.bus != nil {
 		m.bus.Remove("plugin:" + id)
 	}
+	m.unregisterHostExtensions(id)
+	m.mu.Lock()
+	rt := m.active[id]
+	delete(m.active, id)
+	delete(m.stored, id)
+	m.mu.Unlock()
+
 	if rt != nil {
 		_ = rt.invokeLifecycle(ctx, "onDisable", nil)
 		_ = rt.invokeLifecycle(ctx, "onUninstall", map[string]any{"purge": purge})
-		m.mu.Lock()
-		delete(m.active, id)
-		m.mu.Unlock()
 		rt.close(defaultDrainTimeout)
 	}
-
-	m.mu.Lock()
-	delete(m.stored, id)
-	m.mu.Unlock()
 
 	if err := m.db.Plugin.DeleteOneID(id).Exec(ctx); err != nil && !ent.IsNotFound(err) {
 		return err
@@ -457,22 +901,76 @@ func (m *Manager) Uninstall(ctx context.Context, id string, purge bool) error {
 		if _, err := m.db.PluginKV.Delete().Where(pluginkv.Plugin(id)).Exec(ctx); err != nil {
 			return err
 		}
+		if _, err := m.db.PluginKV.Delete().Where(pluginkv.Plugin(cronKVPlugin), pluginkv.KeyHasPrefix(id+":")).Exec(ctx); err != nil {
+			return err
+		}
 		if _, err := m.db.PluginDoc.Delete().Where(plugindoc.Plugin(id)).Exec(ctx); err != nil {
 			return err
+		}
+		if m.dbAllocator != nil {
+			if err := m.dbAllocator.Purge(ctx, id); err != nil {
+				return err
+			}
 		}
 		if m.dataDir != "" {
 			_ = os.RemoveAll(filepath.Join(m.dataDir, "plugins-data", id))
 		}
 	}
+	m.removeLocalDirs(id, getErr == nil && oldRow.Kind == entplugin.KindTheme)
+	if m.dataDir != "" {
+		_ = os.RemoveAll(filepath.Join(m.dataDir, "plugins-dev", id))
+	}
+	if getErr == nil {
+		cleaned := map[string]bool{}
+		if oldRow.PackageSha256 != "" {
+			cleaned[oldRow.PackageSha256] = true
+			m.cleanupUnusedPackageBlob(ctx, oldRow.PackageSha256)
+		}
+		for _, sha := range oldRow.PlatformPackages {
+			if sha != "" && !cleaned[sha] {
+				cleaned[sha] = true
+				m.cleanupUnusedPackageBlob(ctx, sha)
+			}
+		}
+	}
+	if getErr == nil && oldRow.Kind == entplugin.KindTheme {
+		m.reloadThemes()
+	}
+	m.bumpConfigVersion(ctx)
 	return nil
 }
 
-// UpdateSettings updates a plugin's persisted settings and fires ctx.settings.onChange.
+// UpdateSettings updates a plugin's persisted settings (preserving omitted/redacted secrets),
+// notifies ctx.settings.onChange, and broadcasts a cluster config bump.
 func (m *Manager) UpdateSettings(ctx context.Context, id string, next map[string]any) error {
-	row, err := m.db.Plugin.UpdateOneID(id).
-		SetSettings(cloneMap(next)).
-		SetUpdatedAt(time.Now().UTC()).
-		Save(ctx)
+	m.settingsMu.Lock()
+	defer m.settingsMu.Unlock()
+
+	mf := m.manifestForRow(ctx, id)
+	if mf == nil {
+		return fmt.Errorf("%w: plugin manifest is unavailable; reload or reinstall %q before editing settings", ErrInvalidSettings, id)
+	}
+
+	var savedSettings map[string]any
+	err := db.WithTx(ctx, m.db, func(tx *ent.Client) error {
+		row, err := tx.Plugin.Get(ctx, id)
+		if err != nil {
+			return err
+		}
+		merged, err := validateAndMergeSettingsPatch(mf, row.Settings, next)
+		if err != nil {
+			return err
+		}
+		updated, err := tx.Plugin.UpdateOneID(id).
+			SetSettings(merged).
+			SetUpdatedAt(time.Now().UTC()).
+			Save(ctx)
+		if err != nil {
+			return err
+		}
+		savedSettings = cloneMap(updated.Settings)
+		return nil
+	})
 	if err != nil {
 		return err
 	}
@@ -480,27 +978,34 @@ func (m *Manager) UpdateSettings(ctx context.Context, id string, next map[string
 	rt := m.active[id]
 	m.mu.RUnlock()
 	if rt != nil {
-		rt.notifySettingsChanged(ctx, row.Settings)
+		rt.notifySettingsChanged(ctx, savedSettings)
 	}
+	m.bumpConfigVersion(ctx)
 	return nil
 }
 
-func (m *Manager) handleCircuitTrip(id string, tripErr error) {
+func (m *Manager) handleCircuitTrip(id string, trippedRT *pluginRuntime, tripErr error) {
+	m.lifecycleMu.Lock()
+	defer m.lifecycleMu.Unlock()
+
+	m.mu.Lock()
+	cur := m.active[id]
+	if cur == nil || (trippedRT != nil && cur != trippedRT) {
+		m.mu.Unlock()
+		return
+	}
+	delete(m.active, id)
+	m.mu.Unlock()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if m.bus != nil {
 		m.bus.Remove("plugin:" + id)
 	}
+	m.unregisterHostExtensions(id)
 
-	m.mu.Lock()
-	rt := m.active[id]
-	delete(m.active, id)
-	m.mu.Unlock()
-
-	if rt != nil {
-		go rt.close(5 * time.Second)
-	}
+	go cur.close(5 * time.Second)
 
 	errMsg := "circuit breaker tripped"
 	if tripErr != nil {
@@ -511,6 +1016,7 @@ func (m *Manager) handleCircuitTrip(id string, tripErr error) {
 	}
 	m.log.Error("plugin circuit breaker tripped; plugin disabled", "plugin", id, "err", errMsg)
 	m.markFailed(ctx, id, errors.New(errMsg))
+	m.bumpConfigVersion(ctx)
 
 	if m.db != nil && m.notify != nil {
 		admins, err := m.db.User.Query().
@@ -553,20 +1059,31 @@ func (m *Manager) Get(ctx context.Context, id string) (*PluginInfo, bool) {
 	if err != nil {
 		return nil, false
 	}
+	info := m.buildPluginInfo(ctx, row, true)
+	return &info, true
+}
+
+func (m *Manager) buildPluginInfo(ctx context.Context, row *ent.Plugin, includeUsage bool) PluginInfo {
 	m.mu.RLock()
-	rt := m.active[id]
-	sb := m.stored[id]
+	rt := m.active[row.ID]
+	sb := m.stored[row.ID]
 	m.mu.RUnlock()
 
 	info := PluginInfo{
 		ID:                 row.ID,
 		Kind:               string(row.Kind),
+		Runtime:            string(row.Runtime),
 		Version:            row.Version,
 		Status:             string(row.Status),
 		Error:              row.Error,
 		Source:             row.Source,
+		RegistrySource:     row.RegistrySource,
+		PackageSHA256:      row.PackageSha256,
+		PlatformPackages:   row.PlatformPackages,
 		GrantedPermissions: row.GrantedPermissions,
-		Settings:           row.Settings,
+	}
+	if includeUsage {
+		info.Usage = m.pluginUsage(ctx, row.ID)
 	}
 	if sb != nil {
 		info.Manifest = sb.manifest
@@ -575,18 +1092,20 @@ func (m *Manager) Get(ctx context.Context, id string) (*PluginInfo, bool) {
 		info.Manifest = rt.manifest
 		info.Routes = append([]routeBinding(nil), rt.routes...)
 		info.RecentLogs = rt.recentLogs()
-		if rt.pool != nil {
-			st := rt.pool.Stats()
-			info.Stats = &st
+		if rt.driver != nil {
+			ds := rt.driver.Stats()
+			info.Stats = ds.Pool
+			info.NativeStats = ds.Native
 		}
 		consec, tripped, _, _ := rt.circuit.State()
 		info.ConsecutiveErrors = consec
 		info.CircuitTripped = tripped
 	}
-	return &info, true
+	info.Settings = redactSettingsMap(info.Manifest, row.Settings)
+	return info
 }
 
-// List returns all installed plugins sorted by ID.
+// List returns all installed plugins sorted by ID without N+1 DB lookups.
 func (m *Manager) List(ctx context.Context) ([]PluginInfo, error) {
 	rows, err := m.db.Plugin.Query().Order(ent.Asc(entplugin.FieldID)).All(ctx)
 	if err != nil {
@@ -594,9 +1113,7 @@ func (m *Manager) List(ctx context.Context) ([]PluginInfo, error) {
 	}
 	out := make([]PluginInfo, 0, len(rows))
 	for _, row := range rows {
-		if info, ok := m.Get(ctx, row.ID); ok {
-			out = append(out, *info)
-		}
+		out = append(out, m.buildPluginInfo(ctx, row, false))
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out, nil
@@ -653,6 +1170,21 @@ func (m *Manager) ServePluginAPI(w http.ResponseWriter, r *http.Request, id, sub
 			writePluginProblem(w, http.StatusForbidden, "super administrators only")
 			return
 		}
+	}
+
+	// Stream HTTP/WebSocket reverse proxy data plane for Tier 2 native plugins.
+	if route.StreamProxy {
+		if err := rt.perms.Check(PermHTTPStream); err != nil {
+			writePluginProblem(w, http.StatusForbidden, "plugin lacks http.stream permission")
+			return
+		}
+		proxy := rt.driver.ProxyHandler()
+		if proxy == nil {
+			writePluginProblem(w, http.StatusBadGateway, "plugin stream proxy is not initialized")
+			return
+		}
+		servePluginStreamProxy(w, r, proxy, rt.id, subpath, viewer, locale)
+		return
 	}
 
 	maxBody := rt.manifest.HTTP.MaxBodyBytes
@@ -725,7 +1257,7 @@ func (m *Manager) ServePluginAPI(w http.ResponseWriter, r *http.Request, id, sub
 	}
 
 	ctx := WithRequestLocale(r.Context(), locale)
-	out, err := rt.invokeRoute(ctx, route.FnID, reqObj)
+	out, err := rt.invokeRoute(ctx, resolveHandlerID(route.HandlerID, route.FnID), reqObj)
 	if err != nil {
 		if errors.Is(err, jsrt.ErrTimeout) {
 			writePluginProblem(w, http.StatusGatewayTimeout, "plugin route timed out")
@@ -735,11 +1267,89 @@ func (m *Manager) ServePluginAPI(w http.ResponseWriter, r *http.Request, id, sub
 			writePluginProblem(w, http.StatusUnprocessableEntity, rej.Reason)
 			return
 		}
-		writePluginProblem(w, http.StatusInternalServerError, err.Error())
+		if errors.Is(err, ErrPermissionDenied) || strings.Contains(err.Error(), ErrPermissionDenied.Error()) {
+			writePluginProblem(w, http.StatusForbidden, "permission denied")
+			return
+		}
+		rt.appendLog("error", fmt.Sprintf("plugin route %s %s failed: %v", r.Method, subpath, err))
+		writePluginProblem(w, http.StatusInternalServerError, "plugin route error")
 		return
 	}
 
 	writePluginRouteResponse(w, out)
+}
+
+func sanitizeStreamConnectionHeader(h http.Header) {
+	conns := h.Values("Connection")
+	if len(conns) == 0 {
+		return
+	}
+	keepUpgrade := false
+	for _, v := range conns {
+		for _, tok := range strings.Split(v, ",") {
+			if strings.EqualFold(strings.TrimSpace(tok), "upgrade") {
+				keepUpgrade = true
+				break
+			}
+		}
+	}
+	h.Del("Connection")
+	if keepUpgrade && h.Get("Upgrade") != "" {
+		h.Set("Connection", "Upgrade")
+	}
+}
+
+func servePluginStreamProxy(
+	w http.ResponseWriter,
+	r *http.Request,
+	proxy http.Handler,
+	pluginID, subpath string,
+	viewer Viewer,
+	locale string,
+) {
+	reqID := r.Header.Get("X-Request-ID")
+	if reqID == "" {
+		reqID = randomHexString(12)
+	}
+	meta := streamProxyMeta{
+		PluginID:  pluginID,
+		Locale:    locale,
+		RequestID: reqID,
+		Viewer:    viewer,
+	}
+	outReq := r.Clone(context.WithValue(r.Context(), streamProxyMetaKey{}, meta))
+	outReq.URL.Path = subpath
+	outReq.URL.RawPath = ""
+	outReq.RequestURI = ""
+
+	// Prevent client Connection: header from stripping host-injected headers in ReverseProxy.
+	sanitizeStreamConnectionHeader(outReq.Header)
+
+	// Strip sensitive host credentials and any caller-supplied X-SkinLoom-* spoofed headers.
+	outReq.Header.Del("Cookie")
+	outReq.Header.Del("Authorization")
+	for k := range outReq.Header {
+		if strings.HasPrefix(strings.ToLower(k), "x-skinloom-") {
+			outReq.Header.Del(k)
+		}
+	}
+
+	outReq.Header.Set("X-SkinLoom-Plugin-ID", pluginID)
+	outReq.Header.Set("X-SkinLoom-Locale", locale)
+	outReq.Header.Set("X-Request-ID", reqID)
+	if viewer.Authenticated {
+		outReq.Header.Set("X-SkinLoom-Authenticated", "1")
+		outReq.Header.Set("X-SkinLoom-User-ID", strconv.FormatInt(viewer.UserID, 10))
+		outReq.Header.Set("X-SkinLoom-User-Role", viewer.Role)
+		if viewer.Email != "" {
+			outReq.Header.Set("X-SkinLoom-User-Email", viewer.Email)
+		}
+		if viewer.Nickname != "" {
+			outReq.Header.Set("X-SkinLoom-User-Nickname", viewer.Nickname)
+		}
+	}
+
+	proxy.ServeHTTP(w, outReq)
 }
 
 func matchRoute(routes []routeBinding, method, actual string) (*routeBinding, map[string]string, bool) {
@@ -752,7 +1362,7 @@ func matchRoute(routes []routeBinding, method, actual string) (*routeBinding, ma
 			continue
 		}
 		pathMatched = true
-		if strings.EqualFold(rb.Method, method) {
+		if rb.Method == "*" || strings.EqualFold(rb.Method, "ANY") || strings.EqualFold(rb.Method, method) {
 			return rb, params, true
 		}
 	}
@@ -770,6 +1380,18 @@ func splitPathSegments(p string) []string {
 func matchSegments(pat, actual []string) (map[string]string, bool) {
 	if len(pat) == 1 && pat[0] == "*" {
 		return map[string]string{"*": strings.Join(actual, "/")}, true
+	}
+	if len(pat) > 1 && pat[len(pat)-1] == "*" {
+		prefix := pat[:len(pat)-1]
+		if len(actual) < len(prefix) {
+			return nil, false
+		}
+		params, ok := matchSegments(prefix, actual[:len(prefix)])
+		if !ok {
+			return nil, false
+		}
+		params["*"] = strings.Join(actual[len(prefix):], "/")
+		return params, true
 	}
 	if len(pat) != len(actual) {
 		return nil, false
@@ -790,6 +1412,45 @@ func matchSegments(pat, actual []string) (map[string]string, bool) {
 	return params, true
 }
 
+func isPluginResponseEnvelope(m map[string]any) bool {
+	if _, hasBody := m["body"]; hasBody {
+		return true
+	}
+	for k := range m {
+		switch k {
+		case "status", "headers", "body":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+const pluginSandboxCSP = "default-src 'none'; frame-ancestors 'self'; sandbox"
+
+func isBlockedPluginResponseHeader(hk string) bool {
+	lower := strings.ToLower(strings.TrimSpace(hk))
+	if strings.HasPrefix(lower, "access-control-") {
+		return true
+	}
+	switch lower {
+	case "set-cookie", "set-cookie2", "content-security-policy", "content-security-policy-report-only",
+		"x-frame-options", "x-content-type-options", "strict-transport-security",
+		"clear-site-data", "referrer-policy", "refresh", "cross-origin-opener-policy",
+		"cross-origin-embedder-policy", "cross-origin-resource-policy":
+		return true
+	}
+	return false
+}
+
+func stripPluginUnsafeHeaders(h http.Header) {
+	for hk := range h {
+		if isBlockedPluginResponseHeader(hk) {
+			h.Del(hk)
+		}
+	}
+}
+
 func writePluginRouteResponse(w http.ResponseWriter, out any) {
 	status := http.StatusOK
 	body := out
@@ -800,40 +1461,52 @@ func writePluginRouteResponse(w http.ResponseWriter, out any) {
 			writePluginProblem(w, http.StatusUnprocessableEntity, reason)
 			return
 		}
-		if s, hasStatus := m["status"]; hasStatus {
-			if _, hasBody := m["body"]; hasBody || len(m) <= 3 {
-				if code := int(asFloat(s)); code >= 100 && code <= 599 {
-					status = code
-					if hdrs, ok := m["headers"].(map[string]any); ok {
-						for hk, hv := range hdrs {
-							if strings.EqualFold(hk, "Set-Cookie") || strings.EqualFold(hk, "Content-Security-Policy") {
-								continue
-							}
-							w.Header().Set(hk, fmt.Sprint(hv))
+		if s, hasStatus := m["status"]; hasStatus && isPluginResponseEnvelope(m) {
+			if code := int(asFloat(s)); code >= 100 && code <= 599 {
+				status = code
+				if hdrs, ok := m["headers"].(map[string]any); ok {
+					for hk, hv := range hdrs {
+						if isBlockedPluginResponseHeader(hk) {
+							continue
 						}
+						w.Header().Set(hk, fmt.Sprint(hv))
 					}
-					body = m["body"]
 				}
+				body = m["body"]
 			}
 		}
 	}
 
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	if status == http.StatusNoContent {
 		w.WriteHeader(status)
 		return
 	}
-	if w.Header().Get("Content-Type") == "" {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	ctype := w.Header().Get("Content-Type")
+	if ctype == "" {
+		ctype = "application/json; charset=utf-8"
+		w.Header().Set("Content-Type", ctype)
+	}
+	lowerType := strings.ToLower(strings.TrimSpace(strings.SplitN(ctype, ";", 2)[0]))
+	if lowerType != "application/json" && lowerType != "application/problem+json" && lowerType != "text/plain" {
+		w.Header().Set("Content-Security-Policy", pluginSandboxCSP)
 	}
 	w.WriteHeader(status)
-	if str, ok := body.(string); ok && !strings.HasPrefix(w.Header().Get("Content-Type"), "application/json") {
-		_, _ = io.WriteString(w, str)
+	switch b := body.(type) {
+	case []byte:
+		_, _ = w.Write(b)
 		return
+	case string:
+		if !strings.HasPrefix(lowerType, "application/json") {
+			_, _ = io.WriteString(w, b)
+			return
+		}
 	}
 	_ = json.NewEncoder(w).Encode(body)
 }
 
 func writePluginProblem(w http.ResponseWriter, status int, detail string) {
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(map[string]any{
@@ -864,109 +1537,165 @@ func (m *Manager) AssetHandler() http.Handler {
 			return
 		}
 
-		// Handle plugin-written private files: /plugins-assets/{id}/_files/{key...}
-		if strings.HasPrefix(rest, "_files/") {
-			if m.dataDir == "" {
+		m.mu.RLock()
+		rt := m.active[id]
+		m.mu.RUnlock()
+		if rt == nil || rt.closed.Load() {
+			http.NotFound(w, r)
+			return
+		}
+
+		// Handle plugin-written files: /plugins-assets/{id}/_files/{key...}
+		// Strictly isolated to <dataDir>/plugins-data/{id}/files/ (never exposing plugin.db
+		// or private DataDir state), active plugins with storage.files permission only,
+		// symlink-refused via os.OpenRoot, and streamed via http.ServeContent.
+		if key, isFile := strings.CutPrefix(rest, "_files/"); isFile {
+			if m.dataDir == "" || !rt.perms.Has(PermStorageFiles) {
 				http.NotFound(w, r)
 				return
 			}
-			key := strings.TrimPrefix(rest, "_files/")
 			rel, err := validateFileKey(key)
 			if err != nil {
 				http.NotFound(w, r)
 				return
 			}
-			full := filepath.Join(m.dataDir, "plugins-data", id, filepath.FromSlash(rel))
-			data, err := os.ReadFile(full)
+			filesRoot := filepath.Join(m.dataDir, "plugins-data", id, "files")
+			rootFS, err := os.OpenRoot(filesRoot)
 			if err != nil {
 				http.NotFound(w, r)
 				return
 			}
-			w.Header().Set("X-Content-Type-Options", "nosniff")
-			w.Header().Set("Content-Security-Policy", "sandbox")
-			ctype := safeAssetContentType(rel, data, false)
-			w.Header().Set("Content-Type", ctype)
-			w.Header().Set("Cache-Control", "public, max-age=300")
-			w.WriteHeader(http.StatusOK)
-			if r.Method == http.MethodGet {
-				_, _ = w.Write(data)
+			defer rootFS.Close()
+
+			nativeRel := filepath.FromSlash(rel)
+			info, err := rootFS.Lstat(nativeRel)
+			if err != nil || !info.Mode().IsRegular() {
+				http.NotFound(w, r)
+				return
 			}
+			f, err := rootFS.Open(nativeRel)
+			if err != nil {
+				http.NotFound(w, r)
+				return
+			}
+			defer f.Close()
+
+			var head [512]byte
+			n, _ := f.Read(head[:])
+			if _, err := f.Seek(0, io.SeekStart); err != nil {
+				http.NotFound(w, r)
+				return
+			}
+			ctype := safeAssetContentType(rel, head[:n], false)
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("Content-Security-Policy", pluginSandboxCSP)
+			w.Header().Set("Content-Type", ctype)
+			if ctype == "application/octet-stream" {
+				w.Header().Set("Content-Disposition", "attachment")
+			}
+			w.Header().Set("Cache-Control", "public, max-age=300")
+			http.ServeContent(w, r, path.Base(rel), info.ModTime(), f)
 			return
 		}
 
-		m.mu.RLock()
-		rt := m.active[id]
-		sb := m.stored[id]
-		m.mu.RUnlock()
-
-		var dir string
-		var overlay map[string][]byte
-		var version string
-		if rt != nil {
-			dir = rt.dir
-			overlay = rt.staticFiles
-			version = rt.manifest.Version
-		} else if sb != nil {
-			dir = sb.dir
-			overlay = sb.staticFiles
-			version = sb.manifest.Version
-		} else {
-			http.NotFound(w, r)
-			return
+		dir := rt.dir
+		overlay := rt.staticFiles
+		version := rt.manifest.Version
+		rev := rt.rev
+		cleanWeb := ""
+		if rt.manifest.Web != "" {
+			cleanWeb = strings.TrimPrefix(path.Clean(rt.manifest.Web), "/")
 		}
 
-		// Support both /plugins-assets/{id}/{version}/{path} and /plugins-assets/{id}/{path}.
+		// Support both /plugins-assets/{id}/{rev-or-version}/{path} and /plugins-assets/{id}/{path}.
 		assetRel := rest
 		versioned := false
-		if segs := strings.SplitN(rest, "/", 2); len(segs) == 2 && (segs[0] == version || strings.HasPrefix(segs[0], "v") || strings.Contains(segs[0], ".")) {
-			if _, ok := overlay[segs[1]]; ok {
-				assetRel = segs[1]
-				versioned = true
-			} else if dir != "" {
-				cleanCheck := path.Clean("/" + segs[1])
-				if _, err := os.Stat(filepath.Join(dir, filepath.FromSlash(strings.TrimPrefix(cleanCheck, "/")))); err == nil {
-					assetRel = segs[1]
+		if segs := strings.SplitN(rest, "/", 2); len(segs) == 2 && (segs[0] == rev || segs[0] == version) {
+			if segRel, kErr := validateFileKey(segs[1]); kErr == nil {
+				if _, ok := overlay[segRel]; ok {
+					assetRel = segRel
 					versioned = true
+				} else if dir != "" {
+					if rootFS, rErr := os.OpenRoot(dir); rErr == nil {
+						info, sErr := rootFS.Lstat(filepath.FromSlash(segRel))
+						_ = rootFS.Close()
+						if sErr == nil && info.Mode().IsRegular() {
+							assetRel = segRel
+							versioned = true
+						}
+					}
 				}
 			}
 		}
 
 		rel, err := validateFileKey(assetRel)
-		if err != nil || (!strings.HasPrefix(rel, "web/") && !strings.HasPrefix(rel, "assets/")) {
+		isScript := strings.HasPrefix(rel, "web/") || (cleanWeb != "" && rel == cleanWeb)
+		if err != nil || (!isScript && !strings.HasPrefix(rel, "assets/")) {
 			http.NotFound(w, r)
 			return
 		}
 
-		var data []byte
 		if b, ok := overlay[rel]; ok {
-			data = b
-		} else if dir != "" {
-			full := filepath.Join(dir, filepath.FromSlash(rel))
-			data, err = os.ReadFile(full)
-			if err != nil {
-				http.NotFound(w, r)
-				return
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("Content-Type", safeAssetContentType(rel, b, isScript))
+			if !isScript {
+				w.Header().Set("Content-Security-Policy", pluginSandboxCSP)
 			}
-		} else {
+			if versioned {
+				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			} else {
+				w.Header().Set("Cache-Control", "no-cache")
+			}
+			w.WriteHeader(http.StatusOK)
+			if r.Method == http.MethodGet {
+				_, _ = w.Write(b)
+			}
+			return
+		}
+		if dir == "" {
 			http.NotFound(w, r)
 			return
 		}
+		rootFS, err := os.OpenRoot(dir)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		defer rootFS.Close()
+		nativeRel := filepath.FromSlash(rel)
+		info, err := rootFS.Lstat(nativeRel)
+		if err != nil || !info.Mode().IsRegular() {
+			http.NotFound(w, r)
+			return
+		}
+		f, err := rootFS.Open(nativeRel)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		defer f.Close()
 
+		var head [512]byte
+		n, _ := f.Read(head[:])
+		if _, err := f.Seek(0, io.SeekStart); err != nil {
+			http.NotFound(w, r)
+			return
+		}
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("Content-Type", safeAssetContentType(rel, data, strings.HasPrefix(rel, "web/")))
+		w.Header().Set("Content-Type", safeAssetContentType(rel, head[:n], isScript))
+		if !isScript {
+			w.Header().Set("Content-Security-Policy", pluginSandboxCSP)
+		}
 		if versioned {
 			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		} else {
 			w.Header().Set("Cache-Control", "no-cache")
 		}
-		w.WriteHeader(http.StatusOK)
-		if r.Method == http.MethodGet {
-			_, _ = w.Write(data)
-		}
+		http.ServeContent(w, r, path.Base(rel), info.ModTime(), f)
 	})
 }
 
-func safeAssetContentType(rel string, data []byte, allowScript bool) string {
+func safeAssetContentType(rel string, sample []byte, allowScript bool) string {
 	ext := strings.ToLower(path.Ext(rel))
 	switch ext {
 	case ".js", ".mjs":
@@ -978,32 +1707,76 @@ func safeAssetContentType(rel string, data []byte, allowScript bool) string {
 		return "text/css; charset=utf-8"
 	case ".json":
 		return "application/json; charset=utf-8"
-	case ".html", ".htm", ".xhtml", ".svg", ".xml":
-		// Prevent active script execution inside plugin uploaded/static assets.
-		return "application/octet-stream"
+	case ".wasm":
+		return "application/wasm"
+	case ".png":
+		return "image/png"
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".gif":
+		return "image/gif"
+	case ".webp":
+		return "image/webp"
+	case ".avif":
+		return "image/avif"
+	case ".ico":
+		return "image/x-icon"
+	case ".woff":
+		return "font/woff"
+	case ".woff2":
+		return "font/woff2"
+	case ".ttf":
+		return "font/ttf"
+	case ".otf":
+		return "font/otf"
+	case ".mp4":
+		return "video/mp4"
+	case ".webm":
+		return "video/webm"
+	case ".mp3":
+		return "audio/mpeg"
+	case ".ogg":
+		return "audio/ogg"
+	case ".wav":
+		return "audio/wav"
+	case ".txt":
+		return "text/plain; charset=utf-8"
 	}
-	if c := mime.TypeByExtension(ext); c != "" {
-		return c
+	// Never allow unknown or active markup/script types (html/svg/xml/xht/xsl/etc.)
+	// to render inline under our origin; only accept sniffed raster image formats.
+	if len(sample) > 0 {
+		detected := http.DetectContentType(sample)
+		switch detected {
+		case "image/png", "image/jpeg", "image/gif", "image/webp":
+			return detected
+		}
 	}
-	ctype := http.DetectContentType(data)
-	if strings.Contains(ctype, "html") {
-		return "application/octet-stream"
-	}
-	return ctype
+	return "application/octet-stream"
 }
 
 // Shutdown drains all active plugin pools and closes the owned jsrt engine.
 func (m *Manager) Shutdown(ctx context.Context) error {
+	m.stopCronLoop()
+
+	m.lifecycleMu.Lock()
+	defer m.lifecycleMu.Unlock()
+
 	m.mu.Lock()
 	active := make([]*pluginRuntime, 0, len(m.active))
+	activeIDs := make([]string, 0, len(m.active))
 	for id, rt := range m.active {
-		if m.bus != nil {
-			m.bus.Remove("plugin:" + id)
-		}
+		activeIDs = append(activeIDs, id)
 		active = append(active, rt)
 		delete(m.active, id)
 	}
 	m.mu.Unlock()
+
+	for _, id := range activeIDs {
+		if m.bus != nil {
+			m.bus.Remove("plugin:" + id)
+		}
+		m.unregisterHostExtensions(id)
+	}
 
 	drain := defaultDrainTimeout
 	if deadline, ok := ctx.Deadline(); ok {
@@ -1022,4 +1795,280 @@ func (m *Manager) Shutdown(ctx context.Context) error {
 		return m.engine.Close()
 	}
 	return nil
+}
+
+// CallService invokes an exported service method on another active plugin (ctx.services.use).
+func (m *Manager) CallService(ctx context.Context, callerID, targetID, svcName string, args ...any) (any, error) {
+	if callerID != "" {
+		if callerID == targetID {
+			return nil, fmt.Errorf("plugin %q cannot call its own service %q", callerID, svcName)
+		}
+		m.mu.RLock()
+		callerRT := m.active[callerID]
+		m.mu.RUnlock()
+		if callerRT == nil || callerRT.closed.Load() {
+			return nil, fmt.Errorf("calling plugin %q is not active", callerID)
+		}
+		if !callerRT.manifest.HasDependency(targetID) {
+			return nil, fmt.Errorf("%w: dependency %q must be declared in dependencies or optionalDependencies", ErrPermissionDenied, targetID)
+		}
+	}
+	m.mu.RLock()
+	rt := m.active[targetID]
+	m.mu.RUnlock()
+	if rt == nil || rt.closed.Load() {
+		return nil, fmt.Errorf("plugin %q is not active", targetID)
+	}
+	rt.setupMu.Lock()
+	var foundSvc *serviceBinding
+	for idx := range rt.services {
+		if rt.services[idx].Name == svcName {
+			cp := rt.services[idx]
+			foundSvc = &cp
+			break
+		}
+	}
+	rt.setupMu.Unlock()
+	if foundSvc == nil {
+		return nil, fmt.Errorf("plugin %q does not expose service %q", targetID, svcName)
+	}
+	return rt.invokeService(ctx, resolveHandlerID(foundSvc.HandlerID, foundSvc.FnID), svcName, callerID, args...)
+}
+
+func (m *Manager) prepareDriver(ctx context.Context, rt *pluginRuntime, sb *storedBundle) (Driver, *PluginDBConfig, error) {
+	if sb.manifest.EffectiveRuntime() == RuntimeNative {
+		if err := rt.perms.Check(PermNativeExec); err != nil {
+			return nil, nil, err
+		}
+		var dbCfg *PluginDBConfig
+		needsDB := sb.manifest.Native != nil && sb.manifest.Native.Database != nil && sb.manifest.Native.Database.Required
+		if needsDB || rt.perms.Has(PermStorageSQL) {
+			if err := rt.perms.Check(PermStorageSQL); err != nil {
+				return nil, nil, err
+			}
+			if m.dbAllocator != nil {
+				var err error
+				dbCfg, err = m.dbAllocator.Allocate(ctx, sb.manifest.ID)
+				if err != nil {
+					return nil, nil, fmt.Errorf("allocate isolated plugin database: %w", err)
+				}
+			} else if needsDB {
+				return nil, nil, errors.New("plugin requires isolated SQL database but DBAllocator is not configured")
+			}
+		}
+		if m.nativeDriverFactory != nil {
+			return m.nativeDriverFactory(sb.manifest, sb.dir), dbCfg, nil
+		}
+		return NewNativeDriver(NativeDriverOptions{}), dbCfg, nil
+	}
+	return NewJSDriver(m.engine, sb.bundleCode), nil, nil
+}
+
+func (m *Manager) registerHostExtensions(rt *pluginRuntime) {
+	owner := "plugin:" + rt.id
+
+	rt.setupMu.Lock()
+	auths := append([]authProviderBinding(nil), rt.authProviders...)
+	verifiers := append([]passwordVerifierBinding(nil), rt.verifiers...)
+	captchas := append([]captchaBinding(nil), rt.captchas...)
+	cdns := append([]cdnBinding(nil), rt.cdns...)
+	yggs := append([]yggMetaBinding(nil), rt.yggMetas...)
+	storProv := rt.storageProvider
+	searchProv := rt.searchProvider
+	renderProv := rt.renderProvider
+	rt.setupMu.Unlock()
+
+	// Unregister non-infrastructure extensions cleanly before re-registering.
+	// Infrastructure providers (storage/search/render) are swapped atomically below
+	// so hot-upgrades have zero nil-provider gap.
+	theme.UnregisterPluginBlocks(rt.id)
+	if m.accounts != nil {
+		m.accounts.UnregisterAuthProviders(owner)
+		m.accounts.UnregisterPasswordVerifiers(owner)
+	}
+	if m.captcha != nil {
+		m.captcha.UnregisterProviders(owner)
+	}
+	if m.cdn != nil {
+		m.cdn.UnregisterPurgers(owner)
+	}
+	if m.yggdrasil != nil {
+		m.yggdrasil.UnregisterMetaContributors(owner)
+	}
+
+	if m.accounts != nil {
+		for _, ap := range auths {
+			def := ap.Def
+			hasVerify := ap.VerifyFn >= 0 || ap.HandlerID != ""
+			hid := resolveHandlerID(ap.HandlerID, ap.VerifyFn)
+			if hasVerify {
+				def.Verify = func(ctx context.Context, input map[string]any) (*account.ExternalUserInfo, error) {
+					out, err := rt.invokeExtension(ctx, "auth", def.ID, hid, input)
+					if err != nil {
+						return nil, err
+					}
+					resMap, ok := asMap(out)
+					if !ok || resMap == nil {
+						return nil, errors.New("external auth provider returned empty profile")
+					}
+					subj, _ := resMap["subject"].(string)
+					subj = strings.TrimSpace(subj)
+					if subj == "" {
+						return nil, errors.New("external auth provider profile missing subject")
+					}
+					email, _ := resMap["email"].(string)
+					verified, _ := resMap["emailVerified"].(bool)
+					nick, _ := resMap["nickname"].(string)
+					return &account.ExternalUserInfo{
+						Subject:       subj,
+						Email:         email,
+						EmailVerified: verified,
+						Nickname:      nick,
+					}, nil
+				}
+			}
+			if err := m.accounts.RegisterAuthProvider(owner, def); err != nil {
+				m.log.Warn("failed to register auth provider", "plugin", rt.id, "provider", def.ID, "err", err)
+			}
+		}
+		for _, pv := range verifiers {
+			algo := pv.Algo
+			hid := resolveHandlerID(pv.HandlerID, pv.FnID)
+			if err := m.accounts.RegisterPasswordVerifier(owner, algo, func(ctx context.Context, storedHash, pw string) (bool, error) {
+				out, err := rt.invokeExtension(ctx, "password_verifier", algo, hid, storedHash, pw)
+				if err != nil {
+					return false, err
+				}
+				matched, _ := out.(bool)
+				return matched, nil
+			}); err != nil {
+				m.log.Warn("failed to register password verifier", "plugin", rt.id, "algo", algo, "err", err)
+			}
+		}
+	}
+
+	if m.captcha != nil {
+		for _, cb := range captchas {
+			id := cb.ID
+			hid := resolveHandlerID(cb.HandlerID, cb.FnID)
+			if err := m.captcha.RegisterProvider(owner, id, func(ctx context.Context, a captcha.Answer, remoteIP string) error {
+				out, err := rt.invokeExtension(ctx, "captcha", id, hid, map[string]any{
+					"id":       a.ID,
+					"value":    a.Value,
+					"remoteIp": remoteIP,
+				})
+				if err != nil {
+					return fmt.Errorf("%w: %v", captcha.ErrUnavailable, err)
+				}
+				switch v := out.(type) {
+				case bool:
+					if v {
+						return nil
+					}
+				case map[string]any:
+					if ok, has := v["ok"].(bool); has && ok {
+						return nil
+					}
+				}
+				return captcha.ErrInvalid
+			}); err != nil {
+				m.log.Warn("failed to register captcha provider", "plugin", rt.id, "provider", id, "err", err)
+			}
+		}
+	}
+
+	if m.cdn != nil {
+		for _, c := range cdns {
+			hid := resolveHandlerID(c.HandlerID, c.FnID)
+			if err := m.cdn.RegisterPurger(owner, c.ID, pluginCDNPurger{rt: rt, id: c.ID, handlerID: hid}); err != nil {
+				m.log.Warn("failed to register CDN purger", "plugin", rt.id, "provider", c.ID, "err", err)
+			}
+		}
+	}
+
+	if m.yggdrasil != nil {
+		for _, ym := range yggs {
+			item := ym
+			if item.Static != nil {
+				staticCopy := *item.Static
+				m.yggdrasil.RegisterMetaContributor(owner, func(context.Context) (yggdrasil.MetaExtension, error) {
+					return staticCopy, nil
+				})
+				continue
+			}
+			hid := resolveHandlerID(item.HandlerID, item.FnID)
+			m.yggdrasil.RegisterMetaContributor(owner, func(ctx context.Context) (yggdrasil.MetaExtension, error) {
+				out, err := rt.invokeExtension(ctx, "yggdrasil_meta", rt.id, hid)
+				if err != nil {
+					return yggdrasil.MetaExtension{}, err
+				}
+				resMap, ok := asMap(out)
+				if !ok || resMap == nil {
+					return yggdrasil.MetaExtension{}, nil
+				}
+				ext := yggdrasil.MetaExtension{}
+				if doms, ok := resMap["skinDomains"].([]any); ok {
+					for _, d := range doms {
+						if s, ok := d.(string); ok && s != "" {
+							ext.SkinDomains = append(ext.SkinDomains, s)
+						}
+					}
+				}
+				if meta, ok := asMap(resMap["meta"]); ok {
+					ext.Meta = meta
+				}
+				return ext, nil
+			})
+		}
+	}
+
+	// Native-only infrastructure providers (permission-guarded, atomic hot-swap).
+	if m.storageHook != nil {
+		if storProv != nil && rt.perms.Has(PermProviderStorage) {
+			m.storageHook.SetProvider(owner, storProv)
+		} else {
+			m.storageHook.ClearProvider(owner)
+		}
+	}
+	if m.textures != nil {
+		if searchProv != nil && rt.perms.Has(PermProviderSearch) {
+			m.textures.SetSearchProvider(owner, searchProv)
+		} else {
+			m.textures.ClearSearchProvider(owner)
+		}
+	}
+	if m.renders != nil {
+		if renderProv != nil && rt.perms.Has(PermProviderRender) {
+			m.renders.SetProvider(owner, renderProv)
+		} else {
+			m.renders.ClearProvider(owner)
+		}
+	}
+}
+
+func (m *Manager) unregisterHostExtensions(id string) {
+	theme.UnregisterPluginBlocks(id)
+	owner := "plugin:" + id
+	if m.accounts != nil {
+		m.accounts.UnregisterAuthProviders(owner)
+		m.accounts.UnregisterPasswordVerifiers(owner)
+	}
+	if m.captcha != nil {
+		m.captcha.UnregisterProviders(owner)
+	}
+	if m.cdn != nil {
+		m.cdn.UnregisterPurgers(owner)
+	}
+	if m.yggdrasil != nil {
+		m.yggdrasil.UnregisterMetaContributors(owner)
+	}
+	if m.storageHook != nil {
+		m.storageHook.ClearProvider(owner)
+	}
+	if m.textures != nil {
+		m.textures.ClearSearchProvider(owner)
+	}
+	if m.renders != nil {
+		m.renders.ClearProvider(owner)
+	}
 }

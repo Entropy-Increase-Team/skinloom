@@ -5,10 +5,10 @@
  * SkinLoom (云织) REST API. Game protocols (CSL/USM/Legacy/Yggdrasil) are documented separately.
  * OpenAPI spec version: 0.0.0-dev
  */
-import type { CaptchaInfoProvider } from './captchaInfoProvider';
 
 export interface CaptchaInfo {
-  provider: CaptchaInfoProvider;
+  /** Active captcha provider (none, image, turnstile, recaptcha, hcaptcha, or a plugin-registered provider ID) */
+  provider: string;
   /** Widget site key (turnstile, recaptcha, hcaptcha) */
   siteKey?: string;
 }

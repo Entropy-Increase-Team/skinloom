@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"sort"
@@ -18,6 +20,12 @@ const (
 	KindPlugin = "plugin"
 	KindTheme  = "theme"
 
+	RuntimeJS     = "js"
+	RuntimeNative = "native"
+
+	CurrentAPIVersion            = 1
+	CurrentNativeProtocolVersion = 1
+
 	MaxPluginKVKeys     = 1000
 	MaxPluginKVValBytes = 64 * 1024
 	MaxPluginDocs       = 50000
@@ -26,9 +34,11 @@ const (
 
 var (
 	pluginIDRe     = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{2,39}$`)
-	themeIDRe      = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)
+	themeIDRe      = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,31}$`)
+	versionRe      = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$`)
 	collNameRe     = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]{0,63}$`)
 	indexFieldRe   = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]{0,63}$`)
+	platformRe     = regexp.MustCompile(`^[a-z0-9]+/[a-z0-9]+$`)
 	ErrBadManifest = errors.New("plugin: invalid manifest")
 )
 
@@ -82,7 +92,8 @@ func (l LocalizedText) Resolve(locale string) string {
 type Manifest struct {
 	Schema      string        `json:"$schema,omitempty"`
 	ID          string        `json:"id"`
-	Kind        string        `json:"kind"` // "plugin" | "theme"
+	Kind        string        `json:"kind"`              // "plugin" | "theme"
+	Runtime     string        `json:"runtime,omitempty"` // "js" (default) | "native"
 	Version     string        `json:"version"`
 	Name        LocalizedText `json:"name"`
 	Description LocalizedText `json:"description,omitempty"`
@@ -91,10 +102,13 @@ type Manifest struct {
 	Homepage    string        `json:"homepage,omitempty"`
 	Repository  string        `json:"repository,omitempty"`
 	Icon        string        `json:"icon,omitempty"`
+	Screenshot  string        `json:"screenshot,omitempty"`
+	Extends     string        `json:"extends,omitempty"`
 	Engines     EnginesSpec   `json:"engines,omitempty"`
 	APIVersion  int           `json:"apiVersion"`
 
 	Server               string               `json:"server,omitempty"`
+	Native               *NativeSpec          `json:"native,omitempty"`
 	Web                  string               `json:"web,omitempty"`
 	Permissions          []string             `json:"permissions,omitempty"`
 	HTTP                 HTTPManifest         `json:"http,omitempty"`
@@ -114,6 +128,21 @@ type Manifest struct {
 
 type EnginesSpec struct {
 	Skinloom string `json:"skinloom,omitempty"`
+	Go       string `json:"go,omitempty"`
+}
+
+// NativeSpec declares native Go subprocess execution details for runtime == "native".
+type NativeSpec struct {
+	ProtocolVersion int                 `json:"protocolVersion"`
+	Executable      string              `json:"executable"`
+	Platforms       []string            `json:"platforms,omitempty"`
+	HTTPProxy       bool                `json:"httpProxy,omitempty"`
+	Database        *NativeDatabaseSpec `json:"database,omitempty"`
+}
+
+// NativeDatabaseSpec declares whether a native plugin requests host-isolated SQL storage.
+type NativeDatabaseSpec struct {
+	Required bool `json:"required,omitempty"`
 }
 
 type HTTPManifest struct {
@@ -147,21 +176,23 @@ type QuotaSpec struct {
 }
 
 type MenuDef struct {
-	Area  string `json:"area"` // user | admin | explore
-	Path  string `json:"path"`
-	Title string `json:"title"`
-	Icon  string `json:"icon,omitempty"`
-	Order int    `json:"order,omitempty"`
-	Role  string `json:"role,omitempty"`
+	Area  string        `json:"area"` // user | admin | explore
+	Path  string        `json:"path"`
+	Title LocalizedText `json:"title"`
+	Icon  string        `json:"icon,omitempty"`
+	Order int           `json:"order,omitempty"`
+	Role  string        `json:"role,omitempty"`
 }
 
 type FormDef struct {
-	Name      string   `json:"name"`
-	Type      string   `json:"type"`
-	Label     string   `json:"label"`
-	Required  bool     `json:"required,omitempty"`
-	MaxLength int      `json:"maxLength,omitempty"`
-	Options   []string `json:"options,omitempty"`
+	Name        string        `json:"name"`
+	Type        string        `json:"type"`
+	Label       LocalizedText `json:"label"`
+	Description LocalizedText `json:"description,omitempty"`
+	Placeholder LocalizedText `json:"placeholder,omitempty"`
+	Required    bool          `json:"required,omitempty"`
+	MaxLength   int           `json:"maxLength,omitempty"`
+	Options     []string      `json:"options,omitempty"`
 }
 
 // ParseManifest parses and validates plugin.json bytes strictly.
@@ -185,20 +216,45 @@ func (m *Manifest) Validate() error {
 			return fmt.Errorf("%w: id %q must be 3-40 lowercase kebab-case characters", ErrBadManifest, m.ID)
 		}
 	case KindTheme:
-		if !themeIDRe.MatchString(m.ID) {
+		if !themeIDRe.MatchString(m.ID) || m.ID == "_custom" {
 			return fmt.Errorf("%w: theme id %q is invalid", ErrBadManifest, m.ID)
 		}
 	default:
 		return fmt.Errorf("%w: kind must be 'plugin' or 'theme', got %q", ErrBadManifest, m.Kind)
 	}
-	if strings.TrimSpace(m.Version) == "" || len(m.Version) > 64 {
-		return fmt.Errorf("%w: version must be 1-64 characters", ErrBadManifest)
+	if !versionRe.MatchString(m.Version) || strings.Contains(m.Version, "..") {
+		return fmt.Errorf("%w: version %q must be 1-64 safe version characters (letters, digits, '.', '_', '+', '-') without '..'", ErrBadManifest, m.Version)
 	}
-	if m.APIVersion != 1 {
-		return fmt.Errorf("%w: unsupported apiVersion %d (expected 1)", ErrBadManifest, m.APIVersion)
+	if m.Extends != "" && m.Extends == m.ID {
+		return fmt.Errorf("%w: theme %q cannot extend itself", ErrBadManifest, m.ID)
+	}
+	if err := validateSafeRelPath(m.Screenshot, "screenshot"); err != nil {
+		return err
+	}
+	if m.APIVersion != CurrentAPIVersion {
+		return fmt.Errorf("%w: unsupported apiVersion %d (expected %d)", ErrBadManifest, m.APIVersion, CurrentAPIVersion)
 	}
 	if len(m.Name) == 0 || m.Name.Resolve("en") == "" {
 		return fmt.Errorf("%w: name is required", ErrBadManifest)
+	}
+	rt := m.EffectiveRuntime()
+	switch m.Runtime {
+	case "", RuntimeJS, RuntimeNative:
+	default:
+		return fmt.Errorf("%w: runtime must be %q or %q, got %q", ErrBadManifest, RuntimeJS, RuntimeNative, m.Runtime)
+	}
+	if m.Kind == KindTheme && rt == RuntimeNative {
+		return fmt.Errorf("%w: themes cannot use native runtime", ErrBadManifest)
+	}
+	if m.Engines.Skinloom != "" {
+		if _, err := ParseSemverRange(m.Engines.Skinloom); err != nil {
+			return fmt.Errorf("%w: invalid engines.skinloom %q: %v", ErrBadManifest, m.Engines.Skinloom, err)
+		}
+	}
+	if m.Engines.Go != "" {
+		if _, err := ParseSemverRange(m.Engines.Go); err != nil {
+			return fmt.Errorf("%w: invalid engines.go %q: %v", ErrBadManifest, m.Engines.Go, err)
+		}
 	}
 	if err := validateSafeRelPath(m.Server, "server"); err != nil {
 		return err
@@ -206,9 +262,31 @@ func (m *Manifest) Validate() error {
 	if err := validateSafeRelPath(m.Web, "web"); err != nil {
 		return err
 	}
+	if rt == RuntimeNative {
+		if m.Server != "" {
+			return fmt.Errorf("%w: native plugins must not declare server JS entry %q", ErrBadManifest, m.Server)
+		}
+		if err := m.validateNativeSpec(); err != nil {
+			return err
+		}
+	} else if m.Native != nil {
+		return fmt.Errorf("%w: native configuration is only allowed when runtime is %q", ErrBadManifest, RuntimeNative)
+	}
 	for _, perm := range m.Permissions {
-		if _, ok := LookupPermission(perm); !ok {
+		def, ok := LookupPermission(perm)
+		if !ok {
 			return fmt.Errorf("%w: unknown permission %q", ErrBadManifest, perm)
+		}
+		if def.NativeOnly && rt != RuntimeNative {
+			return fmt.Errorf("%w: permission %q requires runtime %q", ErrBadManifest, perm, RuntimeNative)
+		}
+	}
+	if rt == RuntimeNative && m.Native != nil {
+		if m.Native.Database != nil && m.Native.Database.Required && !slices.Contains(m.Permissions, PermStorageSQL) {
+			return fmt.Errorf("%w: native.database.required requires %q permission", ErrBadManifest, PermStorageSQL)
+		}
+		if m.Native.HTTPProxy && !slices.Contains(m.Permissions, PermHTTPStream) {
+			return fmt.Errorf("%w: native.httpProxy requires %q permission", ErrBadManifest, PermHTTPStream)
 		}
 	}
 	for _, host := range m.HTTP.Allow {
@@ -221,6 +299,44 @@ func (m *Manifest) Validate() error {
 	}
 	if err := m.validateCollections(); err != nil {
 		return err
+	}
+	for _, s := range m.Slots {
+		if _, ok := LookupSlot(s); !ok {
+			return fmt.Errorf("%w: unknown frontend slot %q", ErrBadManifest, s)
+		}
+	}
+	for scope := range m.Forms {
+		if !slices.Contains(FormScopes, scope) {
+			return fmt.Errorf("%w: unknown form scope %q", ErrBadManifest, scope)
+		}
+	}
+	for _, menu := range m.Menus {
+		switch menu.Area {
+		case "explore", "user", "admin":
+		default:
+			return fmt.Errorf("%w: invalid menu area %q", ErrBadManifest, menu.Area)
+		}
+		if strings.TrimSpace(menu.Path) == "" {
+			return fmt.Errorf("%w: menu path is required", ErrBadManifest)
+		}
+		if menu.Role != "" && menu.Role != "admin" && menu.Role != "superadmin" {
+			return fmt.Errorf("%w: invalid menu role %q", ErrBadManifest, menu.Role)
+		}
+	}
+	for _, svc := range m.Services {
+		if strings.TrimSpace(svc) == "" || strings.ContainsAny(svc, " \t\r\n") {
+			return fmt.Errorf("%w: invalid service name %q", ErrBadManifest, svc)
+		}
+	}
+	for dep := range m.Dependencies {
+		if dep == m.ID || !pluginIDRe.MatchString(dep) {
+			return fmt.Errorf("%w: invalid dependency id %q", ErrBadManifest, dep)
+		}
+	}
+	for dep := range m.OptionalDependencies {
+		if dep == m.ID || !pluginIDRe.MatchString(dep) {
+			return fmt.Errorf("%w: invalid optionalDependency id %q", ErrBadManifest, dep)
+		}
 	}
 	return nil
 }
@@ -330,4 +446,126 @@ func (m *Manifest) HasHook(kind hook.Kind, name string) bool {
 	default:
 		return false
 	}
+}
+
+// HasDependency reports whether id is listed in dependencies or optionalDependencies.
+func (m *Manifest) HasDependency(id string) bool {
+	if _, ok := m.Dependencies[id]; ok {
+		return true
+	}
+	_, ok := m.OptionalDependencies[id]
+	return ok
+}
+
+// EffectiveRuntime returns "native" or "js" (default when omitted).
+func (m *Manifest) EffectiveRuntime() string {
+	if m != nil && m.Runtime == RuntimeNative {
+		return RuntimeNative
+	}
+	return RuntimeJS
+}
+
+// EffectivePermissions returns declared permissions, implicitly appending
+// PermNativeExec ("native.exec") for native runtime plugins so every UI/policy
+// check highlights native OS subprocess execution as high risk.
+func (m *Manifest) EffectivePermissions() []string {
+	if m == nil {
+		return nil
+	}
+	out := make([]string, 0, len(m.Permissions)+1)
+	seen := make(map[string]bool, len(m.Permissions)+1)
+	for _, p := range m.Permissions {
+		if !seen[p] {
+			seen[p] = true
+			out = append(out, p)
+		}
+	}
+	if m.EffectiveRuntime() == RuntimeNative && !seen[PermNativeExec] {
+		out = append(out, PermNativeExec)
+	}
+	return out
+}
+
+func (m *Manifest) validateNativeSpec() error {
+	if m.Native == nil {
+		return fmt.Errorf("%w: native configuration is required when runtime is %q", ErrBadManifest, RuntimeNative)
+	}
+	if m.Native.ProtocolVersion != CurrentNativeProtocolVersion {
+		return fmt.Errorf("%w: unsupported native.protocolVersion %d (expected %d)", ErrBadManifest, m.Native.ProtocolVersion, CurrentNativeProtocolVersion)
+	}
+	if strings.TrimSpace(m.Native.Executable) == "" {
+		return fmt.Errorf("%w: native.executable is required", ErrBadManifest)
+	}
+	if err := validateSafeRelPath(m.Native.Executable, "native.executable"); err != nil {
+		return err
+	}
+	seenPlat := make(map[string]bool, len(m.Native.Platforms))
+	for _, p := range m.Native.Platforms {
+		if !platformRe.MatchString(p) {
+			return fmt.Errorf("%w: invalid native.platforms entry %q (expected os/arch)", ErrBadManifest, p)
+		}
+		if seenPlat[p] {
+			return fmt.Errorf("%w: duplicate native.platforms entry %q", ErrBadManifest, p)
+		}
+		seenPlat[p] = true
+	}
+	return nil
+}
+
+// NativeExecutableCandidates returns ordered relative paths to search inside a
+// native plugin bundle for the given target GOOS/GOARCH.
+func (m *Manifest) NativeExecutableCandidates(goos, goarch string) []string {
+	if m == nil || m.Native == nil || m.Native.Executable == "" {
+		return nil
+	}
+	base := path.Clean(m.Native.Executable)
+	ext := ""
+	if goos == "windows" && !strings.HasSuffix(strings.ToLower(base), ".exe") {
+		ext = ".exe"
+	}
+	baseNoExt := strings.TrimSuffix(base, ".exe")
+	cands := []string{
+		fmt.Sprintf("%s_%s_%s%s", baseNoExt, goos, goarch, ext),
+		fmt.Sprintf("%s-%s-%s%s", baseNoExt, goos, goarch, ext),
+	}
+	if ext != "" {
+		cands = append(cands, baseNoExt+ext)
+	}
+	cands = append(cands, base)
+
+	out := make([]string, 0, len(cands))
+	seen := make(map[string]bool, len(cands))
+	for _, c := range cands {
+		clean := path.Clean(c)
+		if !seen[clean] {
+			seen[clean] = true
+			out = append(out, clean)
+		}
+	}
+	return out
+}
+
+// ResolveNativeExecutable locates the native plugin binary on disk under dir for
+// the given GOOS/GOARCH while enforcing directory containment.
+func (m *Manifest) ResolveNativeExecutable(dir, goos, goarch string) (string, error) {
+	if dir == "" {
+		return "", fmt.Errorf("native plugin %q requires an extracted directory on disk", m.ID)
+	}
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return "", err
+	}
+	cands := m.NativeExecutableCandidates(goos, goarch)
+	for _, rel := range cands {
+		full := filepath.Join(absDir, filepath.FromSlash(rel))
+		relCheck, rErr := filepath.Rel(absDir, full)
+		if rErr != nil || relCheck == ".." || strings.HasPrefix(relCheck, ".."+string(filepath.Separator)) {
+			continue
+		}
+		info, sErr := os.Stat(full)
+		if sErr == nil && info.Mode().IsRegular() {
+			return full, nil
+		}
+	}
+	return "", fmt.Errorf("native executable for %s/%s not found in %s (tried %v)", goos, goarch, dir, cands)
 }

@@ -94,3 +94,94 @@ func TestRescanMissingBlobs(t *testing.T) {
 		}
 	})
 }
+
+func TestSweepSparesPluginPackages(t *testing.T) {
+	dbtest.ForEach(t, func(t *testing.T, d *db.DB) {
+		ctx := context.Background()
+		f := newFixture(t, d)
+		pkg := []byte("fake-slp-archive-bytes")
+		sum := sha256.Sum256(pkg)
+		pkgHash := hex.EncodeToString(sum[:])
+		if err := f.store.Put(ctx, pkgHash, pkg); err != nil {
+			t.Fatal(err)
+		}
+		if err := d.Ent.Plugin.Create().
+			SetID("demo-plugin").
+			SetVersion("1.0.0").
+			SetPackageSha256(pkgHash).
+			Exec(ctx); err != nil {
+			t.Fatal(err)
+		}
+		future := time.Now().Add(SweepGrace + time.Minute)
+		if ok, err := f.s.SweepFile(ctx, pkgHash, future); err != nil || ok {
+			t.Fatalf("SweepFile deleted active plugin package: ok=%v err=%v", ok, err)
+		}
+		if n, err := f.s.SweepOrphans(ctx, future); err != nil || n != 0 {
+			t.Fatalf("SweepOrphans deleted active plugin package: n=%d err=%v", n, err)
+		}
+		file, err := f.store.Open(ctx, pkgHash)
+		if err != nil {
+			t.Fatalf("plugin package must survive sweep: %v", err)
+		}
+		file.Close()
+	})
+}
+
+func TestSweepSparesPlatformPackages(t *testing.T) {
+	dbtest.ForEach(t, func(t *testing.T, d *db.DB) {
+		ctx := context.Background()
+		f := newFixture(t, d)
+
+		amd64Bytes := []byte("native-slp-linux-amd64")
+		arm64Bytes := []byte("native-slp-linux-arm64")
+		orphanBytes := []byte("unreferenced-stray-blob")
+
+		hashOf := func(b []byte) string {
+			s := sha256.Sum256(b)
+			return hex.EncodeToString(s[:])
+		}
+		amd64Hash := hashOf(amd64Bytes)
+		arm64Hash := hashOf(arm64Bytes)
+		orphanHash := hashOf(orphanBytes)
+
+		for h, data := range map[string][]byte{
+			amd64Hash:  amd64Bytes,
+			arm64Hash:  arm64Bytes,
+			orphanHash: orphanBytes,
+		} {
+			if err := f.store.Put(ctx, h, data); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		if err := d.Ent.Plugin.Create().
+			SetID("native-multi").
+			SetVersion("1.0.0").
+			SetPackageSha256(amd64Hash).
+			SetPlatformPackages(map[string]string{
+				"linux/amd64": amd64Hash,
+				"linux/arm64": arm64Hash,
+			}).
+			Exec(ctx); err != nil {
+			t.Fatal(err)
+		}
+
+		future := time.Now().Add(SweepGrace + time.Minute)
+		if ok, err := f.s.SweepFile(ctx, arm64Hash, future); err != nil || ok {
+			t.Fatalf("SweepFile deleted platform_packages entry: ok=%v err=%v", ok, err)
+		}
+		if n, err := f.s.SweepOrphans(ctx, future); err != nil || n != 1 {
+			t.Fatalf("SweepOrphans expected to delete exactly 1 stray blob, got n=%d err=%v", n, err)
+		}
+		for _, protected := range []string{amd64Hash, arm64Hash} {
+			file, err := f.store.Open(ctx, protected)
+			if err != nil {
+				t.Fatalf("protected platform package %s disappeared: %v", protected, err)
+			}
+			file.Close()
+		}
+		if _, err := f.store.Open(ctx, orphanHash); err == nil {
+			t.Fatal("expected orphan blob to be deleted")
+		}
+	})
+}

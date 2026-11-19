@@ -23,31 +23,45 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
-	"github.com/Entropy-Increase-Team/skinloom/internal/jsrt"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/captcha"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/cdn"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/mail"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/notify"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/render"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/yggdrasil"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 )
 
 const (
 	defaultGuardTimeout = 2 * time.Second
 	defaultRouteTimeout = 30 * time.Second
 	defaultHookTimeout  = 10 * time.Second
+	defaultCronTimeout  = 5 * time.Minute
 	maxCacheEntries     = 1024
 	maxLogEntries       = 200
 )
 
 type hookBinding struct {
-	Kind  hook.Kind
-	Name  string
-	Order int
-	FnID  int
+	Kind      hook.Kind
+	Name      string
+	Order     int
+	FnID      int
+	HandlerID string
 }
 
 type routeBinding struct {
-	Method  string
-	Pattern string
-	Auth    string // public | user | admin | superadmin
-	FnID    int
+	Method      string `json:"method"`
+	Pattern     string `json:"pattern"`
+	Auth        string `json:"auth"` // public | user | admin | superadmin
+	StreamProxy bool   `json:"streamProxy,omitempty"`
+	FnID        int    `json:"-"`
+	HandlerID   string `json:"-"`
 }
 
 // LogEntry is one captured line emitted through ctx.log.
@@ -84,6 +98,7 @@ func requestLocaleFrom(ctx context.Context) string {
 // backends, routes, hook subscriptions, and circuit breaker.
 type pluginRuntime struct {
 	id          string
+	rev         string
 	manifest    *Manifest
 	dir         string
 	bundleCode  []byte
@@ -97,13 +112,26 @@ type pluginRuntime struct {
 	files *FileStore
 	fetch *Fetcher
 
+	db           *ent.Client
+	bus          *hook.Bus
 	siteSettings *settings.Service
+	accounts     *account.Service
+	players      *player.Service
+	textures     *texture.Service
+	notify       *notify.Service
+	mailer       *mail.Mailer
+	captcha      *captcha.Service
+	cdn          *cdn.Service
+	yggdrasil    *yggdrasil.Service
 
 	localesMu sync.RWMutex
 	locales   map[string]map[string]string
 
-	settingsMu sync.RWMutex
-	settings   map[string]any
+	settingsMu    sync.RWMutex
+	settings      map[string]any
+	rawSettings   map[string]any
+	packageSHA256 string
+	grantedPerms  []string
 
 	cacheMu sync.RWMutex
 	cache   map[string]cacheItem
@@ -115,13 +143,26 @@ type pluginRuntime struct {
 	collecting     bool
 	collectedHooks []hookBinding
 	collectedRoute []routeBinding
+	authProviders  []authProviderBinding
+	verifiers      []passwordVerifierBinding
+	captchas       []captchaBinding
+	cdns           []cdnBinding
+	yggMetas       []yggMetaBinding
+	crons          []cronBinding
+	services       []serviceBinding
 	hasOnChange    bool
 
+	storageProvider storage.Store
+	searchProvider  texture.SearchProvider
+	renderProvider  render.Provider
+	dbConfig        *PluginDBConfig
+
 	routes []routeBinding
-	pool   *jsrt.Pool
+	driver Driver
 
 	emitLocalEvent func(eventName string, payload any)
-	onTrip         func(id string, err error)
+	callService    func(ctx context.Context, targetID, svcName string, args ...any) (any, error)
+	onTrip         func(id string, rt *pluginRuntime, err error)
 	closed         atomic.Bool
 }
 
@@ -135,7 +176,7 @@ func newPluginRuntime(
 	mgr *Manager,
 ) (*pluginRuntime, error) {
 	quotas := manifest.EffectiveQuotas()
-	perms := NewPermissionSet(manifest.Permissions, grantedPerms)
+	perms := NewPermissionSet(manifest.EffectivePermissions(), grantedPerms)
 
 	docs, err := NewDocStore(manifest.ID, mgr.db, manifest.Storage, perms)
 	if err != nil {
@@ -149,6 +190,7 @@ func newPluginRuntime(
 
 	rt := &pluginRuntime{
 		id:           manifest.ID,
+		rev:          manifest.Version,
 		manifest:     manifest,
 		dir:          dir,
 		bundleCode:   bundleCode,
@@ -160,95 +202,77 @@ func newPluginRuntime(
 		docs:         docs,
 		files:        NewFileStore(manifest.ID, mgr.dataDir, quotas.FilesBytes, perms),
 		fetch:        NewFetcher(manifest.HTTP.Allow, perms),
+		db:           mgr.db,
+		bus:          mgr.bus,
 		siteSettings: mgr.settings,
+		accounts:     mgr.accounts,
+		players:      mgr.players,
+		textures:     mgr.textures,
+		notify:       mgr.notify,
+		mailer:       mgr.mailer,
+		captcha:      mgr.captcha,
+		cdn:          mgr.cdn,
+		yggdrasil:    mgr.yggdrasil,
 		locales:      loadPluginLocales(dir, staticFiles),
 		settings:     mergeDefaultSettings(manifest.Settings, initialSettings),
+		rawSettings:  cloneMap(initialSettings),
+		grantedPerms: append([]string(nil), grantedPerms...),
 		cache:        make(map[string]cacheItem),
 		emitLocalEvent: func(eventName string, payload any) {
 			if mgr.bus != nil {
 				hook.EmitDynamic(mgr.bus, eventName, payload)
 			}
 		},
+		callService: func(ctx context.Context, targetID, svcName string, args ...any) (any, error) {
+			return mgr.CallService(ctx, manifest.ID, targetID, svcName, args...)
+		},
 		onTrip: mgr.handleCircuitTrip,
 	}
 	return rt, nil
 }
 
-func (r *pluginRuntime) initPool(ctx context.Context, eng jsrt.Engine) error {
-	if len(r.bundleCode) == 0 {
+func (r *pluginRuntime) initDriver(ctx context.Context, drv Driver, dbCfg *PluginDBConfig, dataDir, runtimeDir string) error {
+	r.driver = drv
+	r.dbConfig = dbCfg
+	if drv == nil {
 		return nil
 	}
-	pool, err := jsrt.NewPool(eng, jsrt.PoolSpec{
-		ID:       r.id,
-		Filename: r.manifest.Server,
-		Code:     r.bundleCode,
-		Limits: jsrt.Limits{
-			PoolSize:     jsrt.DefaultPoolSize,
-			MemoryLimit:  jsrt.DefaultMemoryLimit,
-			MaxStackSize: jsrt.DefaultMaxStackSize,
-			Timeout:      defaultGuardTimeout,
-		},
-		Log:     r.log,
-		Prepare: r.prepareInstance,
-		OnSetup: func(setupCtx context.Context, inst jsrt.Instance) error {
-			return r.runSetupInInstance(setupCtx, inst, true)
-		},
-		OnWarm: func(warmCtx context.Context, inst jsrt.Instance) error {
-			return r.runSetupInInstance(warmCtx, inst, false)
-		},
+	regs, err := drv.Init(ctx, DriverInitConfig{
+		Runtime:    r,
+		Settings:   r.currentSettingsCopy(),
+		DBConfig:   dbCfg,
+		DataDir:    dataDir,
+		RuntimeDir: runtimeDir,
 	})
 	if err != nil {
 		return err
 	}
-	r.pool = pool
+	if regs == nil {
+		return nil
+	}
 	r.setupMu.Lock()
-	r.routes = append([]routeBinding(nil), r.collectedRoute...)
+	r.collectedHooks = append([]hookBinding(nil), regs.Hooks...)
+	r.collectedRoute = append([]routeBinding(nil), regs.Routes...)
+	r.routes = append([]routeBinding(nil), regs.Routes...)
+	r.authProviders = append([]authProviderBinding(nil), regs.AuthProviders...)
+	r.verifiers = append([]passwordVerifierBinding(nil), regs.PasswordVerifiers...)
+	r.captchas = append([]captchaBinding(nil), regs.CaptchaProviders...)
+	r.cdns = append([]cdnBinding(nil), regs.CDNProviders...)
+	r.yggMetas = append([]yggMetaBinding(nil), regs.YggdrasilMetas...)
+	r.crons = append([]cronBinding(nil), regs.Crons...)
+	r.services = append([]serviceBinding(nil), regs.Services...)
+	r.hasOnChange = regs.HasSettingsOnChange
+	r.storageProvider = regs.StorageProvider
+	r.searchProvider = regs.SearchProvider
+	r.renderProvider = regs.RenderProvider
 	r.setupMu.Unlock()
 	return nil
 }
 
-func (r *pluginRuntime) runSetupInInstance(ctx context.Context, inst jsrt.Instance, collect bool) error {
-	r.setupMu.Lock()
-	r.collecting = collect
-	if collect {
-		r.collectedHooks = nil
-		r.collectedRoute = nil
-		r.hasOnChange = false
-	}
-	r.setupMu.Unlock()
-
-	setupCtx, cancel := context.WithTimeout(ctx, defaultHookTimeout)
-	defer cancel()
-	_, _, err := inst.InvokeGlobal(setupCtx, "__sl_run_setup")
-	return err
-}
-
-func (r *pluginRuntime) prepareInstance(_ context.Context, inst jsrt.Instance) error {
-	bindings := map[string]jsrt.HostFunc{
-		"__sl_setup_hook":     r.hostRegisterHook,
-		"__sl_setup_route":    r.hostRegisterRoute,
-		"__sl_setup_onChange": r.hostRegisterOnChange,
-		"__sl_event_emit":     r.hostEmitEvent,
-		"__sl_kv":             r.hostKV,
-		"__sl_db":             r.hostDB,
-		"__sl_files":          r.hostFiles,
-		"__sl_fetch":          r.hostFetch,
-		"__sl_settings":       r.hostSettings,
-		"__sl_site":           r.hostSite,
-		"__sl_crypto":         r.hostCrypto,
-		"__sl_cache":          r.hostCache,
-		"__sl_i18n":           r.hostI18n,
-		"__sl_log":            r.hostLog,
-	}
-	for name, fn := range bindings {
-		if err := inst.RegisterHostFunc(name, fn); err != nil {
-			return err
-		}
-	}
-	if _, _, err := inst.Eval(context.Background(), "<plugin-ctx-prelude>", pluginPreludeJS()); err != nil {
-		return err
-	}
-	return nil
+func (r *pluginRuntime) currentSettingsCopy() map[string]any {
+	r.settingsMu.RLock()
+	defer r.settingsMu.RUnlock()
+	return cloneMap(r.settings)
 }
 
 func (r *pluginRuntime) buildHookRegistrations() ([]hook.Registration, error) {
@@ -259,10 +283,11 @@ func (r *pluginRuntime) buildHookRegistrations() ([]hook.Registration, error) {
 	regs := make([]hook.Registration, 0, len(specs))
 	for _, spec := range specs {
 		sp := spec
+		hid := resolveHandlerID(sp.HandlerID, sp.FnID)
 		switch sp.Kind {
 		case hook.KindGuard:
 			reg, err := hook.HandleGuardDynamic(sp.Name, sp.Order, func(ctx context.Context, payload any) error {
-				return r.invokeGuard(ctx, sp.FnID, payload)
+				return r.invokeGuard(ctx, hid, sp.Name, payload)
 			})
 			if err != nil {
 				return nil, err
@@ -270,7 +295,7 @@ func (r *pluginRuntime) buildHookRegistrations() ([]hook.Registration, error) {
 			regs = append(regs, reg)
 		case hook.KindFilter:
 			reg, err := hook.HandleFilterDynamic(sp.Name, sp.Order, func(ctx context.Context, value, payload any) (any, error) {
-				return r.invokeFilter(ctx, sp.FnID, value, payload)
+				return r.invokeFilter(ctx, hid, sp.Name, value, payload)
 			})
 			if err != nil {
 				return nil, err
@@ -281,7 +306,7 @@ func (r *pluginRuntime) buildHookRegistrations() ([]hook.Registration, error) {
 				hook.DeclarePluginEvent(sp.Name)
 			}
 			reg, err := hook.HandleEventDynamic(sp.Name, sp.Order, func(ctx context.Context, payload any) error {
-				return r.invokeEvent(ctx, sp.FnID, payload)
+				return r.invokeEvent(ctx, hid, sp.Name, payload)
 			})
 			if err != nil {
 				return nil, err
@@ -292,75 +317,60 @@ func (r *pluginRuntime) buildHookRegistrations() ([]hook.Registration, error) {
 	return regs, nil
 }
 
-func (r *pluginRuntime) invokeJS(ctx context.Context, timeout time.Duration, globalFn string, args ...any) (any, error) {
-	if r.closed.Load() || r.pool == nil {
+func (r *pluginRuntime) invokeGuard(ctx context.Context, handlerID, hookName string, payload any) error {
+	if r.closed.Load() || r.driver == nil {
+		return errors.New("plugin runtime not active")
+	}
+	return r.driver.InvokeGuard(ctx, handlerID, hookName, payload)
+}
+
+func (r *pluginRuntime) invokeFilter(ctx context.Context, handlerID, hookName string, value, payload any) (any, error) {
+	if r.closed.Load() || r.driver == nil {
 		return nil, errors.New("plugin runtime not active")
 	}
-	callCtx := ctx
-	if callCtx == nil {
-		callCtx = context.Background()
-	}
-	if _, hasDeadline := callCtx.Deadline(); !hasDeadline && timeout > 0 {
-		var cancel context.CancelFunc
-		callCtx, cancel = context.WithTimeout(callCtx, timeout)
-		defer cancel()
-	}
-
-	var out any
-	_, err := r.pool.Do(callCtx, func(inst jsrt.Instance) (jsrt.CallStats, error) {
-		val, stats, err := inst.InvokeGlobal(callCtx, globalFn, args...)
-		out = val
-		return stats, err
-	})
-	if err != nil {
-		r.recordRuntimeFailure(err)
-		return nil, err
-	}
-	r.circuit.RecordSuccess()
-	return out, nil
+	return r.driver.InvokeFilter(ctx, handlerID, hookName, value, payload)
 }
 
-func (r *pluginRuntime) invokeGuard(ctx context.Context, fnID int, payload any) error {
-	res, err := r.invokeJS(ctx, defaultGuardTimeout, "__sl_invoke_handler", fnID, payload)
-	if err != nil {
-		return err
+func (r *pluginRuntime) invokeEvent(ctx context.Context, handlerID, hookName string, payload any) error {
+	if r.closed.Load() || r.driver == nil {
+		return errors.New("plugin runtime not active")
 	}
-	if m, ok := res.(map[string]any); ok {
-		if rejected, _ := m["__skinloomReject"].(bool); rejected {
-			reason, _ := m["reason"].(string)
-			if reason == "" {
-				reason = "rejected by plugin " + r.id
-			}
-			return hook.Reject(reason)
-		}
+	return r.driver.InvokeEvent(ctx, handlerID, hookName, payload)
+}
+
+func (r *pluginRuntime) invokeRoute(ctx context.Context, handlerID string, req map[string]any) (any, error) {
+	if r.closed.Load() || r.driver == nil {
+		return nil, errors.New("plugin runtime not active")
 	}
-	return nil
+	return r.driver.InvokeHTTP(ctx, handlerID, req)
 }
 
-func (r *pluginRuntime) invokeFilter(ctx context.Context, fnID int, value, payload any) (any, error) {
-	return r.invokeJS(ctx, defaultGuardTimeout, "__sl_invoke_handler", fnID, value, payload)
+func (r *pluginRuntime) invokeCron(ctx context.Context, handlerID, jobName string) error {
+	if r.closed.Load() || r.driver == nil {
+		return errors.New("plugin runtime not active")
+	}
+	return r.driver.InvokeCron(ctx, handlerID, jobName)
 }
 
-func (r *pluginRuntime) invokeEvent(ctx context.Context, fnID int, payload any) error {
-	_, err := r.invokeJS(ctx, defaultHookTimeout, "__sl_invoke_handler", fnID, payload)
-	return err
+func (r *pluginRuntime) invokeService(ctx context.Context, handlerID, serviceName, callerID string, args ...any) (any, error) {
+	if r.closed.Load() || r.driver == nil {
+		return nil, errors.New("plugin runtime not active")
+	}
+	return r.driver.InvokeService(ctx, handlerID, serviceName, callerID, args...)
 }
 
-func (r *pluginRuntime) invokeRoute(ctx context.Context, fnID int, req map[string]any) (any, error) {
-	return r.invokeJS(ctx, defaultRouteTimeout, "__sl_invoke_handler", fnID, req)
+func (r *pluginRuntime) invokeExtension(ctx context.Context, kind, id, handlerID string, args ...any) (any, error) {
+	if r.closed.Load() || r.driver == nil {
+		return nil, errors.New("plugin runtime not active")
+	}
+	return r.driver.InvokeExtension(ctx, kind, id, handlerID, args...)
 }
 
 func (r *pluginRuntime) invokeLifecycle(ctx context.Context, method string, arg any) error {
-	if r.pool == nil || r.closed.Load() {
+	if r.driver == nil || r.closed.Load() {
 		return nil
 	}
-	callCtx, cancel := context.WithTimeout(ctx, defaultHookTimeout)
-	defer cancel()
-	_, err := r.pool.Do(callCtx, func(inst jsrt.Instance) (jsrt.CallStats, error) {
-		_, stats, err := inst.InvokeGlobal(callCtx, "__sl_run_lifecycle", method, arg)
-		return stats, err
-	})
-	return err
+	return r.driver.Lifecycle(ctx, method, arg)
 }
 
 func (r *pluginRuntime) recordRuntimeFailure(err error) {
@@ -368,31 +378,34 @@ func (r *pluginRuntime) recordRuntimeFailure(err error) {
 		return
 	}
 	if r.circuit.RecordFailure(err) && r.onTrip != nil {
-		go r.onTrip(r.id, err)
+		go r.onTrip(r.id, r, err)
 	}
 }
 
 func (r *pluginRuntime) notifySettingsChanged(ctx context.Context, newSettings map[string]any) {
 	merged := mergeDefaultSettings(r.manifest.Settings, newSettings)
 	r.settingsMu.Lock()
+	r.rawSettings = cloneMap(newSettings)
 	r.settings = merged
 	r.settingsMu.Unlock()
 
 	r.setupMu.Lock()
 	listening := r.hasOnChange
 	r.setupMu.Unlock()
-	if !listening || r.pool == nil || r.closed.Load() {
+	// Always push updated settings to Tier 2 native plugins so their in-process
+	// Settings cache stays fresh even when no OnChange callback is registered.
+	if (!listening && r.manifest.EffectiveRuntime() != RuntimeNative) || r.driver == nil || r.closed.Load() {
 		return
 	}
-	_, _ = r.invokeJS(ctx, defaultHookTimeout, "__sl_fire_settings_change", merged)
+	_ = r.driver.NotifySettings(ctx, cloneMap(merged))
 }
 
 func (r *pluginRuntime) close(drainTimeout time.Duration) {
 	if !r.closed.CompareAndSwap(false, true) {
 		return
 	}
-	if r.pool != nil {
-		_ = r.pool.DrainAndClose(drainTimeout)
+	if r.driver != nil {
+		_ = r.driver.DrainAndClose(drainTimeout)
 	}
 }
 
@@ -726,14 +739,26 @@ func (r *pluginRuntime) hostCrypto(_ context.Context, args []any) (any, error) {
 			n = 256
 		}
 		const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-		raw := make([]byte, n)
-		if _, err := rand.Read(raw); err != nil {
-			return nil, err
+		const maxUnbiased = 248 // 62 * 4: reject >= 248 to avoid modulo bias
+		out := make([]byte, n)
+		buf := make([]byte, n*2)
+		filled := 0
+		for filled < n {
+			if _, err := rand.Read(buf); err != nil {
+				return nil, err
+			}
+			for _, b := range buf {
+				if b >= maxUnbiased {
+					continue
+				}
+				out[filled] = alphabet[int(b)%len(alphabet)]
+				filled++
+				if filled == n {
+					break
+				}
+			}
 		}
-		for i := range raw {
-			raw[i] = alphabet[int(raw[i])%len(alphabet)]
-		}
-		return string(raw), nil
+		return string(out), nil
 	case "sha256":
 		sum := sha256.Sum256(argToBytes(argAt(args, 1)))
 		return hex.EncodeToString(sum[:]), nil
@@ -790,7 +815,9 @@ func (r *pluginRuntime) hostCache(_ context.Context, args []any) (any, error) {
 		if !ok || (!it.expiresAt.IsZero() && !it.expiresAt.After(now)) {
 			if ok {
 				r.cacheMu.Lock()
-				delete(r.cache, key)
+				if cur, exists := r.cache[key]; exists && !cur.expiresAt.IsZero() && !cur.expiresAt.After(now) {
+					delete(r.cache, key)
+				}
 				r.cacheMu.Unlock()
 			}
 			return nil, nil
@@ -888,12 +915,27 @@ func (r *pluginRuntime) translate(key string, params map[string]any, locale stri
 func (r *pluginRuntime) hostLog(_ context.Context, args []any) (any, error) {
 	level, _ := argAt(args, 0).(string)
 	msg, _ := argAt(args, 1).(string)
-	switch level {
-	case "debug":
+	r.appendLog(level, msg)
+	return nil, nil
+}
+
+func (r *pluginRuntime) appendLog(level, msg string) {
+	msg = strings.TrimRight(msg, "\r\n")
+	if msg == "" {
+		return
+	}
+	if len(msg) > 4096 {
+		msg = msg[:4096] + "..."
+	}
+	switch strings.ToLower(level) {
+	case "debug", "trace":
+		level = "debug"
 		r.log.Debug(msg)
-	case "warn":
+	case "warn", "warning":
+		level = "warn"
 		r.log.Warn(msg)
 	case "error":
+		level = "error"
 		r.log.Error(msg)
 	default:
 		level = "info"
@@ -905,7 +947,6 @@ func (r *pluginRuntime) hostLog(_ context.Context, args []any) (any, error) {
 		r.logs = r.logs[len(r.logs)-maxLogEntries:]
 	}
 	r.logsMu.Unlock()
-	return nil, nil
 }
 
 func (r *pluginRuntime) recentLogs() []LogEntry {
@@ -970,14 +1011,31 @@ func flattenStrings(prefix string, m map[string]any, dst map[string]string) {
 func mergeDefaultSettings(schemaMap map[string]any, saved map[string]any) map[string]any {
 	out := map[string]any{}
 	for k, rawDef := range schemaMap {
-		if m, ok := rawDef.(map[string]any); ok {
-			if def, has := m["default"]; has {
-				out[k] = def
+		m, ok := rawDef.(map[string]any)
+		if !ok {
+			continue
+		}
+		typ := strings.ToLower(strings.TrimSpace(strVal(m["type"])))
+		if typ == "group" {
+			subSchema, _ := m["fields"].(map[string]any)
+			subSaved, _ := saved[k].(map[string]any)
+			subMerged := mergeDefaultSettings(subSchema, subSaved)
+			if len(subMerged) > 0 {
+				out[k] = subMerged
 			}
+			continue
+		}
+		if def, has := m["default"]; has {
+			out[k] = cloneJSONValue(def)
 		}
 	}
 	for k, v := range saved {
-		out[k] = v
+		if rawDef, ok := schemaMap[k].(map[string]any); ok {
+			if strings.EqualFold(strVal(rawDef["type"]), "group") {
+				continue
+			}
+		}
+		out[k] = cloneJSONValue(v)
 	}
 	return out
 }
@@ -1021,226 +1079,4 @@ func argToBytes(v any) []byte {
 	default:
 		return nil
 	}
-}
-
-func pluginPreludeJS() string {
-	return `(() => {
-  const handlers = [];
-  const settingsListeners = [];
-  let nextFnId = 0;
-
-  function registerHandler(fn) {
-    const id = nextFnId++;
-    handlers[id] = fn;
-    return id;
-  }
-
-  function decodeBase64(b64) {
-    const table = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-    const clean = String(b64 || '').replace(/[^A-Za-z0-9+/=]/g, '');
-    const len = clean.length;
-    if (len === 0) return new Uint8Array(0);
-    let pad = 0;
-    if (clean[len - 1] === '=') pad++;
-    if (clean[len - 2] === '=') pad++;
-    const outLen = ((len * 3) >> 2) - pad;
-    const out = new Uint8Array(outLen);
-    let p = 0;
-    for (let i = 0; i < len; i += 4) {
-      const a = table.indexOf(clean[i]);
-      const b = table.indexOf(clean[i + 1]);
-      const c = clean[i + 2] === '=' ? 0 : table.indexOf(clean[i + 2]);
-      const d = clean[i + 3] === '=' ? 0 : table.indexOf(clean[i + 3]);
-      const n = (a << 18) | (b << 12) | (c << 6) | d;
-      if (p < outLen) out[p++] = (n >> 16) & 255;
-      if (p < outLen) out[p++] = (n >> 8) & 255;
-      if (p < outLen) out[p++] = n & 255;
-    }
-    return out;
-  }
-
-  globalThis.reject = (reason) => ({
-    __skinloomReject: true,
-    reason: String(reason ?? 'rejected'),
-  });
-
-  function wrapHttpMethod(method) {
-    return (path, optsOrFn, maybeFn) => {
-      let opts = {};
-      let fn = optsOrFn;
-      if (typeof optsOrFn !== 'function') {
-        opts = optsOrFn || {};
-        fn = maybeFn;
-      }
-      if (typeof fn !== 'function') {
-        throw new TypeError('HTTP route handler must be a function');
-      }
-      const id = registerHandler(fn);
-      return __sl_setup_route(method, String(path), String(opts.auth || 'public'), id);
-    };
-  }
-
-  const ctx = {
-    hooks: {
-      reject: globalThis.reject,
-      guard(name, fn, order = 0) {
-        if (typeof fn !== 'function') throw new TypeError('guard handler must be a function');
-        const id = registerHandler(fn);
-        return __sl_setup_hook('guard', String(name), Number(order) || 0, id);
-      },
-      filter(name, fn, order = 0) {
-        if (typeof fn !== 'function') throw new TypeError('filter handler must be a function');
-        const id = registerHandler(fn);
-        return __sl_setup_hook('filter', String(name), Number(order) || 0, id);
-      },
-    },
-    events: {
-      on(name, fn, order = 0) {
-        if (typeof fn !== 'function') throw new TypeError('event listener must be a function');
-        const id = registerHandler(fn);
-        return __sl_setup_hook('event', String(name), Number(order) || 0, id);
-      },
-      emit(localName, payload) {
-        return __sl_event_emit(String(localName), payload ?? null);
-      },
-    },
-    http: {
-      get: wrapHttpMethod('GET'),
-      post: wrapHttpMethod('POST'),
-      put: wrapHttpMethod('PUT'),
-      patch: wrapHttpMethod('PATCH'),
-      delete: wrapHttpMethod('DELETE'),
-      route(method, path, optsOrFn, maybeFn) {
-        return wrapHttpMethod(String(method).toUpperCase())(path, optsOrFn, maybeFn);
-      },
-    },
-    kv: {
-      get: (key) => __sl_kv('get', String(key)),
-      set: (key, value, ttlSeconds = 0) => __sl_kv('set', String(key), value ?? null, Number(ttlSeconds) || 0),
-      delete: (key) => __sl_kv('delete', String(key)),
-      list: (prefix = '', limit = 100) => __sl_kv('list', String(prefix), Number(limit) || 100),
-      incr: (key, delta = 1) => __sl_kv('incr', String(key), delta === undefined ? 1 : Number(delta)),
-    },
-    db: {
-      collection(name) {
-        const c = String(name);
-        return {
-          insertOne: (doc) => __sl_db('insertOne', c, doc || {}),
-          findOne: (filter = {}) => __sl_db('findOne', c, filter || {}),
-          find: (filter = {}, opts = {}) => __sl_db('find', c, filter || {}, opts || {}),
-          updateOne: (filter, patch) => __sl_db('updateOne', c, filter || {}, patch || {}),
-          updateMany: (filter, patch) => __sl_db('updateMany', c, filter || {}, patch || {}),
-          deleteOne: (filter) => __sl_db('deleteOne', c, filter || {}),
-          count: (filter = {}) => __sl_db('count', c, filter || {}),
-        };
-      },
-    },
-    files: {
-      put: (key, data) => __sl_files('put', String(key), data),
-      get: (key) => __sl_files('get', String(key)),
-      delete: (key) => __sl_files('delete', String(key)),
-      url: (key) => __sl_files('url', String(key)),
-    },
-    async fetch(url, init = {}) {
-      const resp = await __sl_fetch(String(url), {
-        method: init?.method || 'GET',
-        headers: init?.headers || {},
-        body: init?.body != null ? String(init.body) : '',
-        timeoutMs: Number(init?.timeoutMs) || 0,
-      });
-      return {
-        ok: Boolean(resp.ok),
-        status: resp.status,
-        statusText: resp.statusText,
-        headers: resp.headers || {},
-        url: resp.url,
-        async text() { return resp.bodyText ?? ''; },
-        async json() { return JSON.parse(resp.bodyText ?? 'null'); },
-        async arrayBuffer() { return decodeBase64(resp.bodyBase64).buffer; },
-      };
-    },
-    settings: {
-      get: (key) => __sl_settings('get', String(key)),
-      all: () => __sl_settings('all'),
-      onChange(fn) {
-        if (typeof fn !== 'function') throw new TypeError('onChange expects a function');
-        settingsListeners.push(fn);
-        return __sl_setup_onChange();
-      },
-    },
-    site: {
-      name: (locale = '') => __sl_site('name', String(locale || '')),
-      url: () => __sl_site('url'),
-      description: (locale = '') => __sl_site('description', String(locale || '')),
-      locales: () => __sl_site('locales'),
-      publicSettings: () => __sl_site('public'),
-    },
-    crypto: {
-      randomString: (len = 16) => __sl_crypto('randomString', Number(len) || 16),
-      randomBytes: (len) => __sl_crypto('randomBytes', Number(len) || 0),
-      sha256: (data) => __sl_crypto('sha256', data),
-      hmac: (algo, key, data) => __sl_crypto('hmac', String(algo || 'sha256'), key, data),
-      timingSafeEqual: (a, b) => __sl_crypto('timingSafeEqual', a, b),
-      uuid: () => __sl_crypto('uuid'),
-    },
-    t: (key, params, locale = '') => __sl_i18n('t', String(key), params || null, String(locale || '')),
-    i18n: {
-      t: (key, params, locale = '') => __sl_i18n('t', String(key), params || null, String(locale || '')),
-      locales: () => __sl_i18n('locales'),
-    },
-    log: {
-      debug: (...a) => __sl_log('debug', a.map(String).join(' ')),
-      info: (...a) => __sl_log('info', a.map(String).join(' ')),
-      warn: (...a) => __sl_log('warn', a.map(String).join(' ')),
-      error: (...a) => __sl_log('error', a.map(String).join(' ')),
-    },
-    cache: {
-      get: (key) => __sl_cache('get', String(key)),
-      set: (key, val, ttlSeconds = 0) => __sl_cache('set', String(key), val ?? null, Number(ttlSeconds) || 0),
-      delete: (key) => __sl_cache('delete', String(key)),
-    },
-  };
-
-  globalThis.fetch = ctx.fetch;
-  globalThis.definePlugin = (def) => def;
-
-  globalThis.__sl_run_setup = async () => {
-    const mod = globalThis.__jsrt_module_default;
-    if (!mod) {
-      return;
-    }
-    if (typeof mod === 'function') {
-      await mod(ctx);
-      return;
-    }
-    if (typeof mod.setup === 'function') {
-      await mod.setup(ctx);
-    }
-  };
-
-  globalThis.__sl_invoke_handler = async (id, ...args) => {
-    const fn = handlers[id];
-    if (typeof fn !== 'function') {
-      throw new Error('missing plugin handler #' + id);
-    }
-    return await fn(...args);
-  };
-
-  globalThis.__sl_run_lifecycle = async (method, arg) => {
-    const mod = globalThis.__jsrt_module_default;
-    if (!mod || typeof mod[method] !== 'function') {
-      return null;
-    }
-    if (arg !== undefined && arg !== null) {
-      return await mod[method](ctx, arg);
-    }
-    return await mod[method](ctx);
-  };
-
-  globalThis.__sl_fire_settings_change = async (nextSettings) => {
-    for (const fn of settingsListeners) {
-      await fn(nextSettings);
-    }
-  };
-})();`
 }

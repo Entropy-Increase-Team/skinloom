@@ -20,8 +20,10 @@ var (
 	ErrInvalidFileKey = errors.New("invalid plugin file key")
 )
 
-// FileStore isolates plugin-private files under <dataDir>/plugins-data/<id>/ with
-// path traversal guards and total byte quota enforcement.
+// FileStore isolates plugin-private files under <dataDir>/plugins-data/<id>/files/ with
+// path traversal guards, symlink refusal, and total byte quota enforcement.
+// Keeping public/private files inside a dedicated files/ subdirectory isolates them from
+// native plugin SQLite databases (plugin.db) and internal DataDir state.
 type FileStore struct {
 	pluginID string
 	root     string
@@ -30,12 +32,13 @@ type FileStore struct {
 	mu       sync.Mutex
 }
 
-// NewFileStore constructs a plugin-scoped private file store.
+// NewFileStore constructs a plugin-scoped file store isolated under
+// <dataDir>/plugins-data/<id>/files/.
 func NewFileStore(pluginID, dataDir string, maxBytes int64, perms *PermissionSet) *FileStore {
 	if maxBytes <= 0 {
 		maxBytes = MaxPluginFileBytes
 	}
-	root := filepath.Join(dataDir, "plugins-data", pluginID)
+	root := filepath.Join(dataDir, "plugins-data", pluginID, "files")
 	return &FileStore{
 		pluginID: pluginID,
 		root:     root,
@@ -44,9 +47,19 @@ func NewFileStore(pluginID, dataDir string, maxBytes int64, perms *PermissionSet
 	}
 }
 
+// ValidateFileKey verifies and normalizes a slash-separated relative asset/file key.
+func ValidateFileKey(key string) (string, error) {
+	return validateFileKey(key)
+}
+
 func validateFileKey(key string) (string, error) {
-	if key == "" || len(key) > 256 || strings.HasPrefix(key, "/") || strings.ContainsRune(key, '\\') || strings.ContainsRune(key, 0) {
+	if key == "" || len(key) > 256 || strings.HasPrefix(key, "/") || strings.ContainsRune(key, '\\') || strings.ContainsRune(key, ':') {
 		return "", ErrInvalidFileKey
+	}
+	for i := 0; i < len(key); i++ {
+		if key[i] < 0x20 || key[i] == 0x7f {
+			return "", ErrInvalidFileKey
+		}
 	}
 	for _, seg := range strings.Split(key, "/") {
 		if seg == "" || seg == "." || seg == ".." {
@@ -55,7 +68,7 @@ func validateFileKey(key string) (string, error) {
 	}
 	clean := path.Clean("/" + key)
 	rel := strings.TrimPrefix(clean, "/")
-	if rel == "" || rel == "." || strings.HasPrefix(rel, "..") {
+	if rel == "" || rel == "." || strings.HasPrefix(rel, "..") || !filepath.IsLocal(filepath.FromSlash(rel)) {
 		return "", ErrInvalidFileKey
 	}
 	return rel, nil
@@ -105,7 +118,7 @@ func (f *FileStore) Put(_ context.Context, key string, data []byte) (string, err
 	if err := f.perms.Check(PermStorageFiles); err != nil {
 		return "", err
 	}
-	rel, target, err := f.diskPath(key)
+	rel, _, err := f.diskPath(key)
 	if err != nil {
 		return "", err
 	}
@@ -116,17 +129,32 @@ func (f *FileStore) Put(_ context.Context, key string, data []byte) (string, err
 	if err != nil {
 		return "", err
 	}
+	if err := os.MkdirAll(f.root, 0o755); err != nil {
+		return "", err
+	}
+	rootFS, err := os.OpenRoot(f.root)
+	if err != nil {
+		return "", err
+	}
+	defer rootFS.Close()
+
+	nativeRel := filepath.FromSlash(rel)
 	var existingSize int64
-	if info, err := os.Stat(target); err == nil {
+	if info, err := rootFS.Lstat(nativeRel); err == nil {
+		if !info.Mode().IsRegular() {
+			return "", ErrInvalidFileKey
+		}
 		existingSize = info.Size()
 	}
 	if curUsage-existingSize+int64(len(data)) > f.maxBytes {
 		return "", fmt.Errorf("%w: file quota (%d bytes) exceeded", ErrQuotaExceeded, f.maxBytes)
 	}
-	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
-		return "", err
+	if dir := filepath.Dir(nativeRel); dir != "." && dir != "" {
+		if err := rootFS.MkdirAll(dir, 0o755); err != nil {
+			return "", err
+		}
 	}
-	if err := os.WriteFile(target, data, 0o644); err != nil {
+	if err := rootFS.WriteFile(nativeRel, data, 0o644); err != nil {
 		return "", err
 	}
 	return f.urlForCleanKey(rel), nil
@@ -137,11 +165,31 @@ func (f *FileStore) Get(_ context.Context, key string) ([]byte, error) {
 	if err := f.perms.Check(PermStorageFiles); err != nil {
 		return nil, err
 	}
-	_, target, err := f.diskPath(key)
+	rel, _, err := f.diskPath(key)
 	if err != nil {
 		return nil, err
 	}
-	b, err := os.ReadFile(target)
+	rootFS, err := os.OpenRoot(f.root)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, ErrFileNotFound
+		}
+		return nil, err
+	}
+	defer rootFS.Close()
+
+	nativeRel := filepath.FromSlash(rel)
+	info, err := rootFS.Lstat(nativeRel)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, ErrFileNotFound
+		}
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, ErrInvalidFileKey
+	}
+	b, err := rootFS.ReadFile(nativeRel)
 	if os.IsNotExist(err) {
 		return nil, ErrFileNotFound
 	}
@@ -153,13 +201,22 @@ func (f *FileStore) Delete(_ context.Context, key string) (bool, error) {
 	if err := f.perms.Check(PermStorageFiles); err != nil {
 		return false, err
 	}
-	_, target, err := f.diskPath(key)
+	rel, _, err := f.diskPath(key)
 	if err != nil {
 		return false, err
 	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	err = os.Remove(target)
+	rootFS, err := os.OpenRoot(f.root)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	defer rootFS.Close()
+
+	err = rootFS.Remove(filepath.FromSlash(rel))
 	if os.IsNotExist(err) {
 		return false, nil
 	}

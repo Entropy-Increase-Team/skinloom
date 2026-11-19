@@ -45,10 +45,11 @@ type Pool struct {
 	idle    chan Instance
 	closing chan struct{}
 
-	mu       sync.Mutex
-	closed   bool
-	inFlight sync.WaitGroup
-	bgRepl   sync.WaitGroup
+	mu          sync.Mutex
+	broadcastMu sync.Mutex
+	closed      bool
+	inFlight    sync.WaitGroup
+	bgRepl      sync.WaitGroup
 
 	inUse     atomic.Int64
 	recreated atomic.Uint64
@@ -273,6 +274,48 @@ func (p *Pool) Do(ctx context.Context, fn func(Instance) (CallStats, error)) (Ca
 		p.Return(inst)
 	}
 	return stats, callErr
+}
+
+// Broadcast borrows every warm isolate in the pool (up to PoolSize) and invokes fn
+// on each one, ensuring state notifications (such as settings updates) reach all
+// isolates rather than only a single checked-out instance.
+func (p *Pool) Broadcast(ctx context.Context, fn func(Instance) (CallStats, error)) error {
+	p.broadcastMu.Lock()
+	defer p.broadcastMu.Unlock()
+
+	size := p.limits.PoolSize
+	if size <= 0 {
+		size = 1
+	}
+	borrowed := make([]Instance, 0, size)
+	defer func() {
+		for _, inst := range borrowed {
+			if inst.Tainted() {
+				p.ReplaceOnBroken(inst)
+			} else {
+				p.Return(inst)
+			}
+		}
+	}()
+	for i := 0; i < size; i++ {
+		inst, err := p.Borrow(ctx)
+		if err != nil {
+			if len(borrowed) == 0 {
+				return err
+			}
+			break
+		}
+		borrowed = append(borrowed, inst)
+	}
+	var firstErr error
+	for _, inst := range borrowed {
+		stats, err := fn(inst)
+		p.RecordStats(stats)
+		if err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
 }
 
 // Stats returns a snapshot of current pool utilization and fault counters.

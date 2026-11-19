@@ -1,0 +1,42 @@
+{
+  "name": "@skinloom/plugin-sdk",
+  "version": "1.0.0",
+  "description": "TypeScript SDK, React web runtime hooks, and Vitest test harness for SkinLoom plugins and themes.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server/index.ts",
+    "./web": "./src/web/index.ts",
+    "./testing": "./src/testing/index.ts",
+    "./catalog": "./src/gen/catalog.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@skinloom/ui": "workspace:*",
+    "@tanstack/react-query": "^5",
+    "react": "^19"
+  },
+  "peerDependenciesMeta": {
+    "@skinloom/ui": {
+      "optional": true
+    },
+    "@tanstack/react-query": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@tanstack/react-query": "^5.107.1",
+    "@types/node": "^24",
+    "@types/react": "^19.3.0",
+    "react": "19.3.1",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.5"
+  }
+}

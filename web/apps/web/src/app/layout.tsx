@@ -8,6 +8,7 @@ import { Providers } from '@/components/providers'
 import { getBootstrap } from '@/lib/bootstrap'
 import { safeImageUrl } from '@/lib/safe-url'
 import { themeSettingAttrs, themeStyle } from '@/lib/theme'
+import { getViewer } from '@/lib/viewer'
 
 // Interface fonts, self-hosted from npm and served from /_next/static (ADR 0042): Inter for
 // Latin and figures, Noto Sans SC for Chinese (unicode-range slices: only the parts a page
@@ -37,9 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const boot = await getBootstrap()
-  const locale = await getLocale()
-  const messages = await getMessages()
+  const [boot, viewer, locale, messages] = await Promise.all([getBootstrap(), getViewer(), getLocale(), getMessages()])
   // Set by src/proxy.ts with the page's Content-Security-Policy (ADR 0039).
   const nonce = (await headers()).get('x-nonce') ?? undefined
   const forcedClass = boot.theme.colorScheme === 'dark' ? 'dark' : boot.theme.colorScheme === 'light' ? 'light' : undefined
@@ -59,7 +58,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <NextIntlClientProvider locale={locale} messages={messages}>
           {/* The home page renders its blocks itself; in the client bootstrap they would
               ride along with every page. */}
-          <Providers bootstrap={{ ...boot, theme: { ...boot.theme, home: [] } }} nonce={nonce}>
+          <Providers bootstrap={{ ...boot, theme: { ...boot.theme, home: [] } }} viewer={viewer} nonce={nonce}>
             {/* Each area brings its frame: (site) the public header and footer, (app) the
                 sidebar shell of the user center and the admin area (design.md §9.2). */}
             {children}

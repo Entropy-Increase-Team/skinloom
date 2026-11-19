@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 
 import { Slot } from '@/components/slot'
+import { ThemeOverride } from '@/components/theme-override'
 import { getBootstrap } from '@/lib/bootstrap'
 
 /**
@@ -12,7 +13,7 @@ import { getBootstrap } from '@/lib/bootstrap'
  */
 export async function SiteFooter() {
   const [boot, t] = await Promise.all([getBootstrap(), getTranslations('footer')])
-  return (
+  const footerElement = (
     <footer className="sl-footer border-t">
       <div className="mx-auto flex max-w-[75rem] flex-col gap-2 px-4 py-6 text-caption text-faint-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:px-6 lg:px-8">
         {boot.site.copyrightHtml ? (
@@ -38,4 +39,5 @@ export async function SiteFooter() {
       </div>
     </footer>
   )
+  return <ThemeOverride name="site.footer" props={{ siteName: boot.site.name }} fallback={footerElement} />
 }

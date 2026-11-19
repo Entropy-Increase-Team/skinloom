@@ -233,12 +233,13 @@ func Run(ctx context.Context, o RunOptions) error {
 	var setupToken string
 	if !enterSetup {
 		core, err := OpenCoreWithOptions(ctx, p, CoreOptions{
-			Broker:             broker,
-			Themes:             themesReg,
-			SettingsReg:        settingsReg,
-			LogCtl:             logCtl,
-			Log:                log,
-			SkipConfigTemplate: true,
+			Broker:              broker,
+			Themes:              themesReg,
+			SettingsReg:         settingsReg,
+			LogCtl:              logCtl,
+			Log:                 log,
+			SkipConfigTemplate:  true,
+			AllowUnsignedNative: cfg.Plugins.AllowUnsignedNative || cfg.Web.Mode == "dev",
 		})
 		if err != nil {
 			return err

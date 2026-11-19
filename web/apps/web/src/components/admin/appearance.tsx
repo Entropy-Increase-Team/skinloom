@@ -7,6 +7,7 @@ import {
   listSettings,
   listThemes,
   reloadThemes,
+  setThemePreview,
   type Setting,
   type SettingsList,
   type ThemeView,
@@ -92,6 +93,7 @@ export function Appearance({ superadmin }: { superadmin: boolean }) {
   const stored = (key: string) => list.settings.find((s) => s.key === key)?.value
   const overrides = (stored('theme.overrides') ?? {}) as Overrides
   const themeSettings = (stored('theme.settings') ?? {}) as ThemeSettingsMap
+  const trustedWeb = Array.isArray(stored('theme.trusted_web')) ? (stored('theme.trusted_web') as string[]) : []
   const home = (stored('home.blocks') ?? null) as Block[] | null
   const sections = groupSettings(list.settings, 'appearance')
   const branding = sections.filter((g) => g.id === 'branding')
@@ -99,7 +101,7 @@ export function Appearance({ superadmin }: { superadmin: boolean }) {
 
   return (
     <Tabs defaultValue="themes" className="flex flex-col gap-6">
-      <TabsList variant="line" className="no-scrollbar w-full justify-start overflow-x-auto overflow-y-hidden">
+      <TabsList variant="line" className="no-scrollbar h-auto w-full justify-start overflow-x-auto overflow-y-hidden pb-1.5">
         <TabsTrigger value="themes">{t('tabs.themes')}</TabsTrigger>
         <TabsTrigger value="settings">{t('tabs.settings')}</TabsTrigger>
         <TabsTrigger value="colors">{t('tabs.colors')}</TabsTrigger>
@@ -111,6 +113,8 @@ export function Appearance({ superadmin }: { superadmin: boolean }) {
       <TabsContent value="themes">
         <ThemePicker
           themes={themes}
+          superadmin={superadmin}
+          trustedWeb={trustedWeb}
           onReloaded={(next) => {
             setThemes(next)
             router.refresh()
@@ -160,7 +164,7 @@ export function Group({ title, intro, action, children }: { title: string; intro
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex min-w-0 flex-1 basis-64 flex-col gap-1">
           <h2 className="text-lg font-medium">{title}</h2>
           {intro && <p className="text-sm text-muted-foreground">{intro}</p>}
         </div>
@@ -179,15 +183,20 @@ function pick(m: Record<string, string> | undefined, locale: string): string {
 
 function ThemePicker({
   themes,
+  superadmin,
+  trustedWeb,
   onReloaded,
   onSaved,
 }: {
   themes: ThemeView[]
+  superadmin: boolean
+  trustedWeb: string[]
   onReloaded: (next: ThemeView[]) => void
   onSaved: (l: SettingsList) => void
 }) {
   const t = useTranslations('appearance.themes')
   const locale = useLocale()
+  const router = useRouter()
   const [pending, setPending] = useState<string | null>(null)
   const [reloading, setReloading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -196,8 +205,36 @@ function ThemePicker({
     setPending(id)
     setError(null)
     try {
+      await setThemePreview({ themeId: '' }).catch(() => undefined)
       onSaved((await updateSettings({ 'theme.active': id })).data as SettingsList)
       toast.success(t('activated'))
+    } catch {
+      setError(t('failed'))
+    } finally {
+      setPending(null)
+    }
+  }
+
+  async function preview(id: string) {
+    setPending(`preview:${id}`)
+    setError(null)
+    try {
+      await setThemePreview({ themeId: id })
+      router.refresh()
+    } catch {
+      setError(t('failed'))
+    } finally {
+      setPending(null)
+    }
+  }
+
+  async function trustWeb(id: string) {
+    setPending(`trust:${id}`)
+    setError(null)
+    try {
+      const next = trustedWeb.includes(id) ? trustedWeb : [...trustedWeb, id]
+      onSaved((await updateSettings({ 'theme.trusted_web': next })).data as SettingsList)
+      toast.success(t('trustedWeb'))
     } catch {
       setError(t('failed'))
     } finally {
@@ -224,7 +261,7 @@ function ThemePicker({
       title={t('title')}
       intro={t('intro')}
       action={
-        <Button variant="outline" size="sm" loading={reloading} disabled={pending !== null} onClick={() => void rescan()}>
+        <Button variant="outline" size="sm" className="pointer-coarse:h-10" loading={reloading} disabled={pending !== null} onClick={() => void rescan()}>
           <RefreshCw />
           {t('reload')}
         </Button>
@@ -259,6 +296,7 @@ function ThemePicker({
                       {t('active')}
                     </Badge>
                   )}
+                  {th.hasWeb && th.webTrusted && <Badge variant="outline">{t('trustedWeb')}</Badge>}
                 </div>
                 <p className="font-mono text-caption text-faint-foreground">
                   {th.id}
@@ -273,17 +311,45 @@ function ThemePicker({
                   </div>
                 )}
               </div>
-              {!th.active && !th.error && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="mt-auto self-start"
-                  loading={pending === th.id}
-                  disabled={pending !== null || reloading}
-                  onClick={() => void activate(th.id)}
-                >
-                  {t('activate')}
-                </Button>
+              {!th.error && (
+                <div className="mt-auto flex flex-wrap items-center gap-2">
+                  {!th.active && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="pointer-coarse:h-10"
+                      loading={pending === th.id}
+                      disabled={pending !== null || reloading}
+                      onClick={() => void activate(th.id)}
+                    >
+                      {t('activate')}
+                    </Button>
+                  )}
+                  {!th.active && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="pointer-coarse:h-10"
+                      loading={pending === `preview:${th.id}`}
+                      disabled={pending !== null || reloading}
+                      onClick={() => void preview(th.id)}
+                    >
+                      {t('preview')}
+                    </Button>
+                  )}
+                  {th.hasWeb && !th.webTrusted && superadmin && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="pointer-coarse:h-10"
+                      loading={pending === `trust:${th.id}`}
+                      disabled={pending !== null || reloading}
+                      onClick={() => void trustWeb(th.id)}
+                    >
+                      {t('trustWeb')}
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           )
@@ -322,6 +388,7 @@ function ThemeSettingsEditor({
   onSaved: (l: SettingsList) => void
 }) {
   const t = useTranslations('appearance.themeSettings')
+  const tc = useTranslations('appearance.colors')
   const th = useTranslations('appearance.home')
   const locale = useLocale()
   const [draft, setDraft] = useState<ThemeSettingsMap>(stored)
@@ -367,7 +434,7 @@ function ThemeSettingsEditor({
       intro={t('intro')}
       action={
         Object.keys(cur).length > 0 && (
-          <Button variant="ghost" size="sm" disabled={pending} onClick={resetTheme}>
+          <Button variant="ghost" size="sm" className="pointer-coarse:h-10" disabled={pending} onClick={resetTheme}>
             {t('reset')}
           </Button>
         )
@@ -387,6 +454,7 @@ function ThemeSettingsEditor({
           />
         ))}
       </div>
+      {invalid && <p className="text-caption text-destructive">{tc('unsafe')}</p>}
       <FormError message={error} />
       <SaveBar count={dirty && !invalid ? 1 : 0} saving={pending} onSave={() => void save()} onDiscard={() => setDraft(stored)} />
     </Group>
@@ -416,9 +484,9 @@ function ThemeSettingField({
 
   return (
     <div className="grid grid-cols-1 gap-2 px-5 py-3.5 sm:grid-cols-[12rem_1fr] sm:items-center sm:gap-4">
-      <div className="flex flex-col gap-0.5">
+      <div className="flex min-w-0 flex-col gap-0.5">
         <span className="text-sm font-medium">{label}</span>
-        <span className="font-mono text-caption text-faint-foreground">{def.token ? `--${def.token}` : `--sl-setting-${name}`}</span>
+        <span className="min-w-0 break-all font-mono text-caption text-faint-foreground">{def.token ? `--${def.token}` : `--sl-setting-${name}`}</span>
       </div>
       {def.type === 'color' && (
         <TokenInput
@@ -503,7 +571,7 @@ function ColorEditor({ theme, overrides, onSaved }: { theme: ThemeView; override
     a.href = url
     a.download = `${theme.id}-custom.zip`
     a.click()
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
   const field = (mode: Mode, name: string, color: boolean, showMobileLabel = color) => (
@@ -523,12 +591,12 @@ function ColorEditor({ theme, overrides, onSaved }: { theme: ThemeView; override
       intro={t('intro')}
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" disabled={invalid} onClick={downloadThemeZip}>
+          <Button variant="outline" size="sm" className="pointer-coarse:h-10" disabled={invalid} onClick={downloadThemeZip}>
             <Download />
             {t('exportTheme')}
           </Button>
           {Object.keys(draft).length > 0 && (
-            <Button variant="ghost" size="sm" disabled={pending} onClick={() => setDraft({})}>
+            <Button variant="ghost" size="sm" className="pointer-coarse:h-10" disabled={pending} onClick={() => setDraft({})}>
               {t('clearAll')}
             </Button>
           )}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"net/http"
+	"slices"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -69,8 +70,25 @@ type ThemeView struct {
 	Tokens      theme.Tokens             `json:"tokens"`
 	Layout      map[string]string        `json:"layout"`
 	Home        []theme.Block            `json:"home" doc:"The theme's home page, used while home.blocks is null"`
+	Overrides   []string                 `json:"overrides,omitempty"`
+	HasWeb      bool                     `json:"hasWeb,omitempty"`
+	WebTrusted  bool                     `json:"webTrusted,omitempty"`
 	Settings    map[string]theme.Setting `json:"settings,omitempty"`
 	Error       string                   `json:"error,omitempty"`
+}
+
+type themePreviewInput struct {
+	Authorization string `header:"Authorization" doc:"Bearer <admin token>; not needed with an admin session"`
+	Body          struct {
+		ThemeID string `json:"themeId" doc:"Theme ID to preview for this administrator session; empty clears preview"`
+	}
+}
+
+type themePreviewOutput struct {
+	SetCookie string `header:"Set-Cookie"`
+	Body      struct {
+		PreviewThemeID string `json:"previewThemeId"`
+	}
 }
 
 type blockTypesOutput struct {
@@ -183,7 +201,59 @@ func registerAdmin(api huma.API, d Deps) {
 		if _, err := checkAdmin(ctx, d, in.Authorization); err != nil {
 			return nil, err
 		}
-		return &blockTypesOutput{Body: theme.BlockTypes}, nil
+		return &blockTypesOutput{Body: theme.AllBlockTypes()}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "setThemePreview",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/admin/themes/preview",
+		Summary:     "Set or clear administrator session theme preview",
+		Description: "Stores the previewed theme ID in an HttpOnly cookie affecting only this administrator session.",
+		Tags:        []string{"admin"},
+		Security:    adminSecurity,
+	}, func(ctx context.Context, in *themePreviewInput) (*themePreviewOutput, error) {
+		if _, err := checkAdmin(ctx, d, in.Authorization); err != nil {
+			return nil, err
+		}
+		id := in.Body.ThemeID
+		secure := requestInfo(ctx).client.Proto == "https"
+		var cookie http.Cookie
+		if id == "" {
+			cookie = http.Cookie{
+				Name:     themePreviewCookie,
+				Value:    "",
+				Path:     "/",
+				HttpOnly: true,
+				Secure:   secure,
+				SameSite: http.SameSiteLaxMode,
+				MaxAge:   -1,
+			}
+		} else {
+			if d.Themes == nil {
+				return nil, huma.Error404NotFound("theme registry unavailable")
+			}
+			th, ok := d.Themes.Get(id)
+			if !ok {
+				return nil, huma.Error404NotFound("unknown theme " + id)
+			}
+			if th.Error != "" {
+				return nil, huma.Error422UnprocessableEntity("theme has errors: " + th.Error)
+			}
+			cookie = http.Cookie{
+				Name:     themePreviewCookie,
+				Value:    id,
+				Path:     "/",
+				HttpOnly: true,
+				Secure:   secure,
+				SameSite: http.SameSiteLaxMode,
+				MaxAge:   86400,
+			}
+		}
+		var out themePreviewOutput
+		out.SetCookie = cookie.String()
+		out.Body.PreviewThemeID = id
+		return &out, nil
 	})
 }
 
@@ -192,6 +262,7 @@ func themeViews(d Deps) []ThemeView {
 	if _, ok := d.Themes.Get(active); !ok {
 		active = theme.DefaultID
 	}
+	trustFn := trustThemeWebFn(d)
 	var out []ThemeView
 	for _, t := range d.Themes.List() {
 		home := t.Theme.Home
@@ -202,6 +273,8 @@ func themeViews(d Deps) []ThemeView {
 		if cs == "" {
 			cs = "both"
 		}
+		hasWeb := t.WebEntry != ""
+		trusted := hasWeb && (t.Source == "builtin" || trustFn(t.ID))
 		out = append(out, ThemeView{
 			ID:          t.ID,
 			Version:     t.Version,
@@ -215,6 +288,9 @@ func themeViews(d Deps) []ThemeView {
 			Tokens:      t.Theme.Tokens,
 			Layout:      t.Theme.Layout,
 			Home:        home,
+			Overrides:   slices.Clone(t.Overrides),
+			HasWeb:      hasWeb,
+			WebTrusted:  trusted,
 			Settings:    t.Theme.Settings,
 			Error:       t.Error,
 		})
@@ -250,7 +326,7 @@ func settingsList(s *settings.Service) SettingsList {
 		_ = json.Unmarshal(snap.Raw(def.Key), &value)
 		v := SettingView{
 			Key: def.Key, Type: string(def.Type), Value: def.Shown(value), Default: def.Shown(def.Default),
-			IsSet: snap.IsSet(def.Key), Public: def.Public, Secret: def.Secret, Superadmin: def.Superadmin, Enum: def.Enum, Doc: def.Doc,
+			IsSet: snap.IsSet(def.Key), Public: def.Public, Secret: def.Secret, Superadmin: def.Superadmin, Enum: def.AllowedEnum(), Doc: def.Doc,
 		}
 		if r := def.Range; r != nil {
 			lo, hi := r.Min, r.Max

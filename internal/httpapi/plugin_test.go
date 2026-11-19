@@ -3,9 +3,11 @@ package httpapi
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -219,5 +221,246 @@ func TestPluginEndToEndHTTPAPI(t *testing.T) {
 	if recAsset.Code != http.StatusOK || recAsset.Header().Get("X-Content-Type-Options") != "nosniff" {
 		t.Fatalf("GET /plugins-assets/... failed: code=%d nosniff=%q body=%s",
 			recAsset.Code, recAsset.Header().Get("X-Content-Type-Options"), recAsset.Body.String())
+	}
+}
+
+func TestPluginDevReload(t *testing.T) {
+	d, dir := newTestDepsDir(t)
+	d.Bus = hook.NewBus(d.Log, 2)
+	t.Cleanup(func() { d.Bus.Close(context.Background()) })
+	setSettings(t, d, `{"captcha.provider": "none"}`)
+
+	mgr, err := plugin.NewManager(plugin.ManagerDeps{
+		DB:       d.DB.Ent,
+		Bus:      d.Bus,
+		Settings: d.Settings,
+		Notify:   d.Notify,
+		DataDir:  dir,
+		Log:      d.Log,
+	})
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	t.Cleanup(func() { _ = mgr.Shutdown(context.Background()) })
+	d.Plugins = mgr
+
+	h, _ := New(d)
+	superadmin := &browser{t: t, h: h}
+	setupSite(t, d, superadmin)
+
+	// Normal member must get 403 Forbidden.
+	member := &browser{t: t, h: h}
+	recReg := member.do(http.MethodPost, "/api/v1/auth/register", `{"email":"devuser@example.com","nickname":"DevUser","password":"dev-pass-123"}`)
+	if recReg.Code != http.StatusOK {
+		t.Fatalf("register member: %d %s", recReg.Code, recReg.Body.String())
+	}
+
+	payloadV1, _ := json.Marshal(map[string]any{
+		"manifest": map[string]any{
+			"id":          "dev-hot",
+			"kind":        "plugin",
+			"version":     "0.1.0",
+			"name":        "Dev Hot",
+			"apiVersion":  1,
+			"server":      "server.js",
+			"web":         "web/index.js",
+			"permissions": []string{"routes.public"},
+		},
+		"serverJs": `export default { setup(ctx) { ctx.http.get("/ping", { auth: "public" }, () => ({ version: "v1" })); } };`,
+		"files": map[string]string{
+			"web/index.js": base64.StdEncoding.EncodeToString([]byte(`export const v = 1;`)),
+		},
+	})
+
+	// Anonymous request must fail with 401.
+	if rec := do(t, h, http.MethodPost, "/api/v1/admin/plugins/dev-reload", "", string(payloadV1)); rec.Code != http.StatusUnauthorized {
+		t.Fatalf("anonymous dev-reload = %d, want 401", rec.Code)
+	}
+
+	// Regular user session must fail with 403.
+	if rec := member.do(http.MethodPost, "/api/v1/admin/plugins/dev-reload", string(payloadV1)); rec.Code != http.StatusForbidden {
+		t.Fatalf("member dev-reload = %d, want 403: %s", rec.Code, rec.Body.String())
+	}
+
+	// Admin bearer token loads v1 cleanly.
+	recV1 := do(t, h, http.MethodPost, "/api/v1/admin/plugins/dev-reload", "Bearer "+testToken, string(payloadV1))
+	if recV1.Code != http.StatusOK {
+		t.Fatalf("v1 dev-reload = %d: %s", recV1.Code, recV1.Body.String())
+	}
+
+	recPing1 := (&browser{t: t, h: h}).do(http.MethodGet, "/api/plugins/dev-hot/ping", "")
+	if recPing1.Code != http.StatusOK || !strings.Contains(recPing1.Body.String(), `"v1"`) {
+		t.Fatalf("GET /api/plugins/dev-hot/ping v1 = %d %s", recPing1.Code, recPing1.Body.String())
+	}
+
+	// Superadmin session swaps runtime to v2 atomically without server restart.
+	payloadV2, _ := json.Marshal(map[string]any{
+		"manifest": map[string]any{
+			"id":          "dev-hot",
+			"kind":        "plugin",
+			"version":     "0.2.0",
+			"name":        "Dev Hot",
+			"apiVersion":  1,
+			"server":      "server.js",
+			"web":         "web/index.js",
+			"permissions": []string{"routes.public"},
+		},
+		"serverJs": `export default { setup(ctx) { ctx.http.get("/ping", { auth: "public" }, () => ({ version: "v2" })); } };`,
+		"files": map[string]string{
+			"web/index.js": base64.StdEncoding.EncodeToString([]byte(`export const v = 2;`)),
+		},
+	})
+	recV2 := superadmin.do(http.MethodPost, "/api/v1/admin/plugins/dev-reload", string(payloadV2))
+	if recV2.Code != http.StatusOK {
+		t.Fatalf("v2 dev-reload = %d: %s", recV2.Code, recV2.Body.String())
+	}
+
+	recPing2 := (&browser{t: t, h: h}).do(http.MethodGet, "/api/plugins/dev-hot/ping", "")
+	if recPing2.Code != http.StatusOK || !strings.Contains(recPing2.Body.String(), `"v2"`) {
+		t.Fatalf("GET /api/plugins/dev-hot/ping v2 = %d %s", recPing2.Code, recPing2.Body.String())
+	}
+	recAsset2 := (&browser{t: t, h: h}).do(http.MethodGet, "/plugins-assets/dev-hot/web/index.js", "")
+	if recAsset2.Code != http.StatusOK || !strings.Contains(recAsset2.Body.String(), `v = 2`) {
+		t.Fatalf("GET /plugins-assets/dev-hot/web/index.js = %d %s", recAsset2.Code, recAsset2.Body.String())
+	}
+}
+
+func TestBootstrapPluginsMenusFormsAndThemePreview(t *testing.T) {
+	ctx := context.Background()
+	d, dir := newTestDepsDir(t)
+	d.Bus = hook.NewBus(d.Log, 2)
+	t.Cleanup(func() { d.Bus.Close(context.Background()) })
+	setSettings(t, d, `{"captcha.provider": "none"}`)
+
+	mgr, err := plugin.NewManager(plugin.ManagerDeps{
+		DB:       d.DB.Ent,
+		Bus:      d.Bus,
+		Settings: d.Settings,
+		DataDir:  dir,
+		Log:      d.Log,
+	})
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	t.Cleanup(func() { _ = mgr.Shutdown(context.Background()) })
+	d.Plugins = mgr
+
+	manifest := []byte(`{
+		"id": "ui-ext",
+		"kind": "plugin",
+		"version": "1.0.0",
+		"name": {"en": "UI Ext", "zh-CN": "UI 扩展"},
+		"apiVersion": 1,
+		"web": "web/index.js",
+		"slots": ["site.header.actions"],
+		"menus": [
+			{"area": "explore", "path": "/board", "title": {"en": "Board"}, "order": 20},
+			{"area": "user", "path": "/invites", "title": {"en": "Invites"}, "order": 10},
+			{"area": "admin", "path": "/codes", "title": {"en": "Codes"}, "role": "superadmin"}
+		],
+		"forms": {
+			"auth.register": [{"name": "inviteCode", "type": "text", "label": {"en": "Invite Code"}, "required": true}]
+		},
+		"settings": {
+			"publicHint": {"type": "string", "default": "hello"},
+			"apiSecret": {"type": "secret", "default": "top-secret-never-leak"}
+		}
+	}`)
+	staticFiles := map[string][]byte{
+		"web/index.js":    []byte(`export default {};`),
+		"web/index.css":   []byte(`.ui-ext { color: red; }`),
+		"locales/en.json": []byte(`{"hello":"world"}`),
+	}
+	if _, err := mgr.LoadFromBytes(ctx, manifest, nil, staticFiles, nil, true); err != nil {
+		t.Fatalf("LoadFromBytes: %v", err)
+	}
+
+	h, _ := New(d)
+	superadmin := &browser{t: t, h: h}
+	setupSite(t, d, superadmin)
+
+	// Guest bootstrap sees plugin metadata, filtered explore/user menus, non-secret settings, forms, and not active preview.
+	guest := &browser{t: t, h: h}
+	recGuest := guest.do(http.MethodGet, "/api/v1/site/bootstrap", "")
+	if recGuest.Code != http.StatusOK {
+		t.Fatalf("guest bootstrap = %d %s", recGuest.Code, recGuest.Body.String())
+	}
+	if strings.Contains(recGuest.Body.String(), "top-secret-never-leak") {
+		t.Fatalf("secret plugin setting leaked into bootstrap: %s", recGuest.Body.String())
+	}
+	var gBoot Bootstrap
+	if err := json.Unmarshal(recGuest.Body.Bytes(), &gBoot); err != nil {
+		t.Fatal(err)
+	}
+	if len(gBoot.Plugins) != 1 || gBoot.Plugins[0].Entry == "" || gBoot.Plugins[0].Style == "" || gBoot.Plugins[0].Messages["hello"] != "world" {
+		t.Fatalf("unexpected Bootstrap.Plugins: %+v", gBoot.Plugins)
+	}
+	if len(gBoot.Forms["auth.register"]) != 1 || gBoot.Forms["auth.register"][0].Name != "inviteCode" {
+		t.Fatalf("unexpected Bootstrap.Forms: %+v", gBoot.Forms)
+	}
+	if len(gBoot.Menus["admin"]) != 0 {
+		t.Fatalf("guest should not receive admin plugin menus: %+v", gBoot.Menus["admin"])
+	}
+
+	// Superadmin receives admin menus and can toggle session-scoped theme preview cookie.
+	recPreview := superadmin.do(http.MethodPost, "/api/v1/admin/themes/preview", `{"themeId":"brocade"}`)
+	if recPreview.Code != http.StatusOK {
+		t.Fatalf("POST /api/v1/admin/themes/preview = %d %s", recPreview.Code, recPreview.Body.String())
+	}
+	var previewCookie *http.Cookie
+	for _, c := range recPreview.Result().Cookies() {
+		if c.Name == "skinloom_theme_preview" {
+			previewCookie = c
+		}
+	}
+	if previewCookie == nil || previewCookie.Value != "brocade" || !previewCookie.HttpOnly {
+		t.Fatalf("expected HttpOnly skinloom_theme_preview=brocade cookie, got %+v", previewCookie)
+	}
+	reqAdminBoot := httptest.NewRequest(http.MethodGet, "/api/v1/site/bootstrap", nil)
+	reqAdminBoot.AddCookie(&http.Cookie{Name: SessionCookie, Value: superadmin.cookie})
+	reqAdminBoot.AddCookie(&http.Cookie{Name: previewCookie.Name, Value: previewCookie.Value})
+	recAdminBoot := httptest.NewRecorder()
+	h.ServeHTTP(recAdminBoot, reqAdminBoot)
+	var aBoot Bootstrap
+	if err := json.Unmarshal(recAdminBoot.Body.Bytes(), &aBoot); err != nil {
+		t.Fatal(err)
+	}
+	if !aBoot.Theme.Previewing || aBoot.Theme.ID != "brocade" {
+		t.Fatalf("expected previewing brocade for admin session, got %+v", aBoot.Theme)
+	}
+	if len(aBoot.Menus["admin"]) != 1 || aBoot.Menus["admin"][0].Href != "/admin/p/ui-ext/codes" {
+		t.Fatalf("expected superadmin plugin menu /admin/p/ui-ext/codes, got %+v", aBoot.Menus["admin"])
+	}
+
+	// Guest bootstrap remains on default theme even if client forges preview cookie!
+	reqGuestForged := httptest.NewRequest(http.MethodGet, "/api/v1/site/bootstrap", nil)
+	reqGuestForged.AddCookie(&http.Cookie{Name: "skinloom_theme_preview", Value: "brocade"})
+	recGuest2 := httptest.NewRecorder()
+	h.ServeHTTP(recGuest2, reqGuestForged)
+	var gBoot2 Bootstrap
+	_ = json.Unmarshal(recGuest2.Body.Bytes(), &gBoot2)
+	if gBoot2.Theme.Previewing || gBoot2.Theme.ID == "brocade" {
+		t.Fatalf("guest must not honor preview cookie: %+v", gBoot2.Theme)
+	}
+
+	// Clearing preview cookie restores active theme for admin.
+	recClear := superadmin.do(http.MethodPost, "/api/v1/admin/themes/preview", `{"themeId":""}`)
+	if recClear.Code != http.StatusOK {
+		t.Fatalf("clear preview = %d %s", recClear.Code, recClear.Body.String())
+	}
+	var clearedCookie *http.Cookie
+	for _, c := range recClear.Result().Cookies() {
+		if c.Name == "skinloom_theme_preview" {
+			clearedCookie = c
+		}
+	}
+	if clearedCookie == nil || clearedCookie.MaxAge >= 0 {
+		t.Fatalf("expected expired clear cookie, got %+v", clearedCookie)
+	}
+	recAdminCleared := superadmin.do(http.MethodGet, "/api/v1/site/bootstrap", "")
+	var aCleared Bootstrap
+	_ = json.Unmarshal(recAdminCleared.Body.Bytes(), &aCleared)
+	if aCleared.Theme.Previewing || aCleared.Theme.ID != "default" {
+		t.Fatalf("expected default theme after clear preview, got %+v", aCleared.Theme)
 	}
 }
