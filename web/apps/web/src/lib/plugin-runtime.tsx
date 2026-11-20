@@ -339,10 +339,15 @@ export function PluginRuntimeProvider({
 
     const themeKey = bootstrap.theme.webEntry ? `${bootstrap.theme.id}@${bootstrap.theme.version}:${bootstrap.theme.webEntry}` : ''
     const themeOverrideModule = loadedTheme && loadedTheme.key === themeKey ? loadedTheme.def : null
+    const themePluginMeta = (bootstrap.plugins ?? []).find((p) => p.id === bootstrap.theme.id)
+    const themeMergedSettings: Record<string, unknown> = {
+      ...((themePluginMeta?.settings ?? {}) as Record<string, unknown>),
+      ...((bootstrap.theme.settings ?? {}) as Record<string, unknown>),
+    }
     const themeRuntimeContext = buildRuntimeContext(
       bootstrap.theme.id,
-      (bootstrap.theme.settings ?? {}) as Record<string, unknown>,
-      {},
+      themeMergedSettings,
+      (themePluginMeta?.messages ?? {}) as Record<string, string>,
       bootstrap,
       sdkViewer,
       dark,

@@ -12,8 +12,6 @@
 
 云织以 [Blessing Skin](https://github.com/bs-community/blessing-skin-server) 为蓝本重新实现，对外协议保持兼容：老站可以一键迁移，玩家和服务器不用改配置。
 
-> 1.0 正在收尾，目前是 0.x 预览版。
-
 ## 功能
 
 - **玩家**：皮肤库、上传与收藏、衣柜、多角色、3D 预览、签到积分、举报、站内通知，GitHub / Microsoft / OpenID Connect 登录

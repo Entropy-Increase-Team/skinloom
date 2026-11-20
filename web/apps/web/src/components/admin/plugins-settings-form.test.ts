@@ -10,6 +10,8 @@ import {
   collectInitialGrantedPermissions,
   formatDuration,
   isPluginSettingsDirty,
+  permissionMessageKey,
+  resolveLocalizedFieldText,
 } from './plugins-settings-form'
 import { summarizePlatformFamilies } from './plugins-market'
 
@@ -194,5 +196,20 @@ describe('plugins-settings-form', () => {
     expect(
       summarizePlatformFamilies(['linux/amd64', 'linux/arm64', 'windows/amd64', 'darwin/arm64']),
     ).toEqual(['linux', 'windows', 'macos'])
+
+    // Localized text resolution prioritizes site UI language and family matches
+    const labels = { 'zh-CN': '中文标题', en: 'English Title' }
+    expect(resolveLocalizedFieldText(labels, 'zh-CN', 'fallback')).toBe('中文标题')
+    expect(resolveLocalizedFieldText(labels, 'zh', 'fallback')).toBe('中文标题')
+    expect(resolveLocalizedFieldText(labels, 'zh_Hans', 'fallback')).toBe('中文标题')
+    expect(resolveLocalizedFieldText(labels, 'en', 'fallback')).toBe('English Title')
+    expect(resolveLocalizedFieldText(labels, 'en-US', 'fallback')).toBe('English Title')
+    // Canonical zh-CN wins over other zh-* variants for generic zh / zh-Hans, while exact zh-TW still wins
+    const zhVariants = { 'zh-AU': '澳中文', 'zh-TW': '繁體標題', 'zh-CN': '简体标题' }
+    expect(resolveLocalizedFieldText(zhVariants, 'zh', 'fallback')).toBe('简体标题')
+    expect(resolveLocalizedFieldText(zhVariants, 'zh-Hans', 'fallback')).toBe('简体标题')
+    expect(resolveLocalizedFieldText(zhVariants, 'zh-TW', 'fallback')).toBe('繁體標題')
+    expect(permissionMessageKey('storage.docs')).toBe('storage_docs')
+    expect(permissionMessageKey('native.exec')).toBe('native_exec')
   })
 })

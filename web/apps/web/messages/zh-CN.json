@@ -2132,6 +2132,37 @@
     "nativeRunningPid": "PID {pid}",
     "circuitAlert": "连续运行异常达 {count} 次后已自动熔断停用",
     "noPermissions": "无需特殊权限",
+    "permissionDescriptions": {
+      "storage_kv": "读写插件专属的键值（KV）存储数据。",
+      "storage_docs": "读写插件专属的结构化文档集合数据。",
+      "storage_files": "在插件隔离私有文件目录中读写文件。",
+      "cron": "注册并执行周期性后台定时任务。",
+      "admin_ui": "在管理后台注册自定义管理页面与导航入口。",
+      "users_read": "查询站点用户的基本账号信息。",
+      "players_read": "查询游戏角色资料及当前穿戴的皮肤/披风。",
+      "textures_read": "读取皮肤与披风的元数据或图像内容。",
+      "notify_send": "向用户发送站内通知或系统提醒。",
+      "http_fetch": "向清单 http.allow 声明的白名单域名发起出站 HTTP 请求。",
+      "mail_send": "通过站点邮件队列向用户发送电子邮件。",
+      "players_write": "创建、重命名、换装或删除用户的游戏角色。",
+      "textures_write": "上传、编辑或删除皮肤与披风材质。",
+      "closet_write": "添加、重命名或移除用户衣柜中的材质。",
+      "score_write": "通过积分账本增加或扣除用户的积分余额。",
+      "users_write": "修改受限的用户资料字段或语言偏好。",
+      "routes_public": "在站点根路径下挂载公开访问的 HTTP 路由。",
+      "yggdrasil_extend": "扩展外置登录（Yggdrasil）角色属性与服务端元数据。",
+      "cdn_provider": "注册自定义 CDN 缓存刷新提供方。",
+      "captcha_provider": "注册自定义人机验证码校验提供方。",
+      "storage_sql": "访问宿主分配的插件专属隔离 SQL 数据库空间（plg_*_ 前缀）。",
+      "http_stream": "暴露本地 HTTP/SSE/WebSocket 流式反向代理接口。",
+      "provider_search": "注册自定义全文材质检索引擎提供方。",
+      "provider_render": "注册自定义 2D/3D 头像与材质预览渲染提供方。",
+      "users_ban": "封禁或解封站点用户账号。",
+      "auth_provider": "注册第三方登录或身份认证提供方。",
+      "auth_password": "注册外部历史密码校验算法。",
+      "provider_storage": "注册自定义材质对象存储后端驱动。",
+      "native_exec": "以独立操作系统原生子进程在 WASM 沙箱之外执行。"
+    },
     "actions": {
       "refresh": "刷新",
       "configure": "配置",
@@ -2148,6 +2179,7 @@
       "packageTooLarge": "安装包体积超过 150 MiB 上限",
       "upgradeBadge": "从 v{version} 升级",
       "officialVerified": "官方源码编译认证",
+      "officialSigner": "SkinLoom 官方签名",
       "sigTrusted": "签名验证通过（{signer}）",
       "sigUntrusted": "签名公钥不在信任列表中",
       "sigUnsigned": "未签名安装包",
@@ -2243,7 +2275,19 @@
       "usageDocs": "文档记录数",
       "usageFiles": "私有文件用量",
       "noLogs": "暂无最近运行时日志",
-      "noRoutes": "该插件未注册自定义 HTTP 路由"
+      "noRoutes": "该插件未注册自定义 HTTP 路由",
+      "authLevels": {
+        "public": "公开访问",
+        "user": "已登录用户",
+        "admin": "管理员",
+        "superadmin": "超级管理员"
+      },
+      "logLevels": {
+        "debug": "调试",
+        "info": "信息",
+        "warn": "警告",
+        "error": "错误"
+      }
     },
     "uninstallDialog": {
       "title": "确认卸载 {name}？",
@@ -2271,8 +2315,10 @@
         "theme": "主题",
         "security": "登录安全",
         "score": "运营积分",
+        "utility": "实用工具",
         "migration": "迁移工具"
       },
+      "officialRegistryName": "SkinLoom 官方插件市场",
       "officialBadge": "官方认证",
       "installedBadge": "已安装 v{version}",
       "upgradeBadge": "可升级至 v{version}",

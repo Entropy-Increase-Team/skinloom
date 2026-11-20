@@ -31,4 +31,4 @@ tags: [devlog, P2, plugins, market]
 
 - 推送 `skinloom-plugins` 独立仓库并在 `skinloom-registry` 配置正式离线 Ed25519 签名密钥与 `production-signing` 环境；
 - 通过 PR 将首批 5 个官方扩展上架至官方市场，完成云端 Runner 5 平台编译与线上实测闭环；
-- 准备 SkinLoom 1.0 正式发布。
+- 准备 SkinLoom v1.1.0 正式发布。

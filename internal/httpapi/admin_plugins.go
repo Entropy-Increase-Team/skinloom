@@ -685,7 +685,7 @@ func toAdminPluginView(info *plugin.PluginInfo, locale string) AdminPluginView {
 		slices.Sort(plats)
 		view.Platforms = plats
 	}
-	groups, _ := plugin.ClassifyPermissions(declared, nil, granted, false)
+	groups, _ := plugin.ClassifyPermissionsForLocale(declared, nil, granted, false, locale)
 	view.Permissions = groups
 	if len(info.Routes) > 0 {
 		view.Routes = make([]AdminPluginRoute, 0, len(info.Routes))

@@ -12,8 +12,6 @@ Players upload and share skins and capes on SkinLoom and dress their game charac
 
 SkinLoom is a reimplementation of [Blessing Skin](https://github.com/bs-community/blessing-skin-server) that keeps its external protocols: existing sites migrate with one command, and players and servers keep their configuration.
 
-> 1.0 is being finished; current releases are 0.x previews.
-
 ## Features
 
 - **Players**: skin library, uploads and favorites, closet, several characters, 3D preview, daily check-in score, reports, notifications, sign-in with GitHub / Microsoft / OpenID Connect

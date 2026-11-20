@@ -19,6 +19,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/captcha"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/realip"
+	"github.com/Entropy-Increase-Team/skinloom/internal/plugin"
 )
 
 // SessionCookie holds the browser session token.
@@ -101,7 +102,9 @@ func withRequestInfo(d Deps) func(http.Handler) http.Handler {
 				}
 				return v
 			})
-			next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, reqInfoKey, ri)))
+			ctx = context.WithValue(ctx, reqInfoKey, ri)
+			ctx = plugin.WithRequestLocale(ctx, ri.locale)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

@@ -1,6 +1,6 @@
 # 10 · 双轨插件架构（JS 沙箱 + Go 原生系统级）与官方插件市场实施方案
 
-> 状态：架构评审定稿（2026-11-19），待执行。  
+> 状态：全部落地完成（2026-11-19，随 SkinLoom `v1.1.0` 及官方市场首批 5 个扩展上架闭环）。  
 > 前置基线：P2-1 ~ P2-4（轻量级 TS/JS 沙箱运行时、前端共享模块与 20 插槽、主题 Level ⑤ 覆盖、`.slp` Ed25519 签名与热加载）已完成，见 [ADR 0046](../adr/0046-plugin-host-extensions-and-sdk-toolchain.md)、[ADR 0047](../adr/0047-frontend-plugin-runtime-and-theme-overrides.md)、[ADR 0048](../adr/0048-plugin-package-signing-and-cluster-hot-reload.md)。  
 > **执行铁律：严格先完成第一部分「全部基建工作（Phase A → B → C → D）」并通过基建总验收门禁后，再开工第二部分「第一批官方插件与文档冻结（Phase E → F → G）」。**
 
@@ -394,10 +394,10 @@ flowchart TB
   - 使用 `sdk/go/plugindb` 隔离 SQL 库（三方言迁移 `migrations/{sqlite,mysql,postgres}/001_init.sql`）持久化任务历史与报告，通过 `ctx.HTTP.StreamFunc` 提供实时 SSE 进度流，经由跨插件 `ctx.Services.Call` 幂等写入三大目标插件。
   - 前端 UI（`admin:/bs-importer`）展示方案 A 卸载指引、数据源切换测试、Dry-Run 预览、分表勾选、SSE 实时日志与历史任务表；通过 `plugintest` 双模式（SQLite 直连 + HTTP Bridge + SSE）单测，并实测 `skinloom-plugin pack --native --split-platforms` 交叉编译生成 `linux/amd64`、`windows/amd64`、`darwin/arm64` 分包（约 8.2–8.7 MiB）与 `artifacts.json`。
   - 已同步更新主仓库 [internal/importer/bs/plugins.go](file:///e:/Dnyo/Documents/work/bs-community/skinloom/internal/importer/bs/plugins.go) 与 [internal/importer/bs/tables.go](file:///e:/Dnyo/Documents/work/bs-community/skinloom/internal/importer/bs/tables.go) 迁移报告提示文案并通过全部 `internal/importer/bs` 回归测试。
-- [ ] **F2. 官方市场 GitOps 实战上架与云端 Runner 闭环验证（待远端建仓与配置签名私钥）**
-  - 将本地 `../skinloom-plugins` 推送至 GitHub `Entropy-Increase-Team/skinloom-plugins` 并打首发 Tag；
-  - 在 `Entropy-Increase-Team/skinloom-registry` 配置 `production-signing` Environment 与正式 `SKINLOOM_REGISTRY_PRIVATE_KEY` Secret；
-  - 提交 5 个官方包的 PR 触发 `pr-check.yml` → 合并触发 `publish.yml` 实测云端 5 平台编译签名与本地 SkinLoom 市场一键安装。
+- [x] **F2. 官方市场 GitOps 实战上架与云端 Runner 闭环验证（已完成）**
+  - 已推送至 GitHub `Entropy-Increase-Team/skinloom-plugins`（`ec43098`），并在主仓库切换正式生产 Ed25519 公钥（`v1.1.0-rc.5` / `v1.1.0`）；
+  - 已在 `Entropy-Increase-Team/skinloom-registry` 配置 `production-signing` Environment 与正式 `SKINLOOM_REGISTRY_PRIVATE_KEY` Secret；
+  - 已通过 PR #1（`bacb091`）完成 5 个官方扩展 `1.0.0` 上架，云端 `publish.yml` 已完成 5 平台交叉编译并签发 `origin/dist` 分支的 `index.v1.json` 与 `.sig`。
 
 #### 阶段 G（P2-6C）：文档站定稿与插件 API v1 冻结
 

@@ -14,7 +14,7 @@ type listMarketPackagesInput struct {
 	Q              string `query:"q" doc:"Search query across package ID, localized name, description, category, and authors"`
 	Kind           string `query:"kind" doc:"Filter by kind: all | plugin | theme"`
 	Runtime        string `query:"runtime" doc:"Filter by runtime: all | js | native"`
-	Category       string `query:"category" doc:"Filter by category: all | recommended | official | security | score | migration | theme"`
+	Category       string `query:"category" doc:"Filter by category: all | recommended | official | security | score | utility | migration | theme"`
 	CompatibleOnly bool   `query:"compatibleOnly" doc:"When true, only return packages compatible with the current host environment"`
 }
 

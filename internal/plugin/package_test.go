@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -374,5 +375,103 @@ func TestParsePackage_NativeLimitsAndPlatforms(t *testing.T) {
 		if !fatParsed.HostCompatible || len(fatParsed.ContainedPlatforms) != 3 {
 			t.Fatalf("fat parse %s: compat=%v contained=%v", plat, fatParsed.HostCompatible, fatParsed.ContainedPlatforms)
 		}
+	}
+}
+
+func TestLocalization_PriorityPermissionsAndCompat(t *testing.T) {
+	lt := LocalizedText{"zh-CN": "邀请码注册", "en": "Invitation Codes"}
+	for _, loc := range []string{"zh-CN", "zh", "zh-Hans", "zh_CN", ""} {
+		if got := lt.Resolve(loc); got != "邀请码注册" {
+			t.Fatalf("Resolve(%q) = %q, want 邀请码注册", loc, got)
+		}
+	}
+	for _, loc := range []string{"en", "en-US", "en_GB"} {
+		if got := lt.Resolve(loc); got != "Invitation Codes" {
+			t.Fatalf("Resolve(%q) = %q, want Invitation Codes", loc, got)
+		}
+	}
+
+	// All 29 catalog permissions must carry localized zh-CN & en descriptions.
+	allPerms := make([]string, 0, len(permissionCatalog))
+	for name := range permissionCatalog {
+		allPerms = append(allPerms, name)
+	}
+	zhGroups, _ := ClassifyPermissionsForLocale(allPerms, nil, nil, false, "zh-CN")
+	enGroups, _ := ClassifyPermissionsForLocale(allPerms, nil, nil, false, "en")
+	zhAll := append(append(zhGroups.Normal, zhGroups.Sensitive...), zhGroups.HighRisk...)
+	enAll := append(append(enGroups.Normal, enGroups.Sensitive...), enGroups.HighRisk...)
+	if len(zhAll) != len(permissionCatalog) || len(enAll) != len(permissionCatalog) {
+		t.Fatalf("unexpected classified counts: zh=%d en=%d catalog=%d", len(zhAll), len(enAll), len(permissionCatalog))
+	}
+	for i := range zhAll {
+		if zhAll[i].Description == "" || enAll[i].Description == "" {
+			t.Fatalf("empty description for %s", zhAll[i].Name)
+		}
+		if zhAll[i].Description == enAll[i].Description {
+			t.Fatalf("permission %s missing distinct zh-CN translation: %q", zhAll[i].Name, zhAll[i].Description)
+		}
+	}
+
+	// mergedLocaleMessages must layer fallback first, skip empty values, and preserve canonical zh-CN over zh-TW for "zh".
+	rt := &pluginRuntime{
+		locales: map[string]map[string]string{
+			"zh-CN": {"greeting": "你好", "onlyZh": "仅中文", "emptyInZh": ""},
+			"zh-TW": {"greeting": "你好（繁體）"},
+			"en":    {"greeting": "Hello", "onlyEn": "Only English", "emptyInZh": "Fallback EN"},
+		},
+	}
+	for _, loc := range []string{"zh-CN", "zh", ""} {
+		msgs := rt.mergedLocaleMessages(loc)
+		if msgs["greeting"] != "你好" || msgs["onlyEn"] != "Only English" || msgs["emptyInZh"] != "Fallback EN" {
+			t.Fatalf("mergedLocaleMessages(%q) = %+v", loc, msgs)
+		}
+	}
+	if msgs := rt.mergedLocaleMessages("zh-TW"); msgs["greeting"] != "你好（繁體）" || msgs["onlyZh"] != "仅中文" {
+		t.Fatalf("mergedLocaleMessages(zh-TW) = %+v", msgs)
+	}
+	if msgs := rt.mergedLocaleMessages("en-US"); msgs["greeting"] != "Hello" || msgs["onlyZh"] != "仅中文" {
+		t.Fatalf("mergedLocaleMessages(en-US) = %+v", msgs)
+	}
+
+	// translate must also skip empty strings and prefer canonical zh-CN over zh-TW for generic "zh".
+	if got := rt.translate("emptyInZh", nil, "zh-CN"); got != "Fallback EN" {
+		t.Fatalf("translate(emptyInZh, zh-CN) = %q, want Fallback EN", got)
+	}
+	if got := rt.translate("greeting", nil, "zh"); got != "你好" {
+		t.Fatalf("translate(greeting, zh) = %q, want 你好", got)
+	}
+
+	// LocalizedText.Resolve skips empty values in final fallback.
+	ltEmptyFirst := LocalizedText{"aa": "", "fr": "Bonjour"}
+	if got := ltEmptyFirst.Resolve("de"); got != "Bonjour" {
+		t.Fatalf("Resolve skipping empty fallback = %q, want Bonjour", got)
+	}
+
+	// LocalizeCompatIssues translates host compatibility issues to Chinese.
+	issues := []CompatIssue{{Code: CompatIncompatibleSkinloom, Message: "requires SkinLoom >=2.0.0, running 1.1.0"}}
+	zhIssues := LocalizeCompatIssues(issues, "zh-CN")
+	if len(zhIssues) != 1 || !strings.Contains(zhIssues[0].Message, "需要 SkinLoom") {
+		t.Fatalf("LocalizeCompatIssues zh-CN = %+v", zhIssues)
+	}
+
+	// RegistryVersion supports both plain string changelog and additive changelogI18n (backward-compatible with older hosts).
+	var vPlain, vBilingual, vAdditive RegistryVersion
+	if err := json.Unmarshal([]byte(`{"version":"1.0.0","changelog":"Initial release"}`), &vPlain); err != nil {
+		t.Fatalf("unmarshal plain changelog: %v", err)
+	}
+	if got := vPlain.ResolveChangelog("zh-CN"); got != "Initial release" {
+		t.Fatalf("plain changelog resolve = %q", got)
+	}
+	if err := json.Unmarshal([]byte(`{"version":"1.0.1","changelog":{"zh-CN":"补全中文支持","en":"Complete i18n"}}`), &vBilingual); err != nil {
+		t.Fatalf("unmarshal bilingual changelog: %v", err)
+	}
+	if vBilingual.ResolveChangelog("zh-CN") != "补全中文支持" || vBilingual.ResolveChangelog("en") != "Complete i18n" {
+		t.Fatalf("bilingual changelog resolve failed: %+v", vBilingual.Changelog)
+	}
+	if err := json.Unmarshal([]byte(`{"version":"1.0.1","changelog":"补全中文支持","changelogI18n":{"zh-CN":"补全中文支持","en":"Complete i18n"}}`), &vAdditive); err != nil {
+		t.Fatalf("unmarshal additive changelogI18n: %v", err)
+	}
+	if vAdditive.ResolveChangelog("zh-CN") != "补全中文支持" || vAdditive.ResolveChangelog("en") != "Complete i18n" {
+		t.Fatalf("additive changelogI18n resolve failed: zh=%q en=%q", vAdditive.ResolveChangelog("zh-CN"), vAdditive.ResolveChangelog("en"))
 	}
 }

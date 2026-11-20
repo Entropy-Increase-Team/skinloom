@@ -33,4 +33,4 @@ sidebar_position: 1
 
 ## 状态
 
-1.0 正在收尾，目前发布的是 0.x 预览版，接口和设置在 1.0 之前仍可能调整。更新内容见[更新日志](https://github.com/Entropy-Increase-Team/skinloom/blob/main/CHANGELOG.md)，开发过程见[开发日志](/devlog)。
+云织 SkinLoom 已进入 1.x 稳定发布周期，核心协议与插件 API v1.0（`apiVersion: 1` / `native.protocolVersion: 1`）均已正式冻结。更新内容见[更新日志](https://github.com/Entropy-Increase-Team/skinloom/blob/main/CHANGELOG.md)，开发过程见[开发日志](/devlog)。

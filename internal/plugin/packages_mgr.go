@@ -98,16 +98,25 @@ func (m *Manager) inspectPackageWithKeys(ctx context.Context, pkgBytes []byte, l
 	}
 
 	isNative := pkg.Manifest.EffectiveRuntime() == RuntimeNative
+	isZh := IsChineseLocale(locale)
 	nativeBlocked := false
 	nativeBlockReason := ""
 	if isNative {
 		if !pkg.Verification.Trusted && !m.allowUnsignedNative {
 			nativeBlocked = true
-			nativeBlockReason = "Production mode forbids installing unsigned or untrusted Tier 2 native plugins. Only officially signed or administrator-trusted Ed25519 packages are permitted (set plugins.allow_unsigned_native = true only in local development)."
+			if isZh {
+				nativeBlockReason = "生产模式禁止安装未签名或不受信任的 Tier 2 原生插件。仅允许安装通过官方签名或超级管理员受信任 Ed25519 公钥验签的原生扩展包（仅限本地开发开启 plugins.allow_unsigned_native = true）。"
+			} else {
+				nativeBlockReason = "Production mode forbids installing unsigned or untrusted Tier 2 native plugins. Only officially signed or administrator-trusted Ed25519 packages are permitted (set plugins.allow_unsigned_native = true only in local development)."
+			}
 			warnings = append(warnings, nativeBlockReason)
 		}
 		if !pkg.HostCompatible {
-			warnings = append(warnings, fmt.Sprintf("This native plugin package does not include an executable for host platform %s.", hostPlat))
+			if isZh {
+				warnings = append(warnings, fmt.Sprintf("该原生插件包不包含适用于当前宿主机平台 %s 的可执行程序。", hostPlat))
+			} else {
+				warnings = append(warnings, fmt.Sprintf("This native plugin package does not include an executable for host platform %s.", hostPlat))
+			}
 		}
 	}
 
@@ -125,11 +134,15 @@ func (m *Manager) inspectPackageWithKeys(ctx context.Context, pkgBytes []byte, l
 		}
 	}
 
-	permGroups, needsHighRiskConfirm := ClassifyPermissions(pkg.Manifest.EffectivePermissions(), prevDeclared, prevGranted, isUpgrade)
+	permGroups, needsHighRiskConfirm := ClassifyPermissionsForLocale(pkg.Manifest.EffectivePermissions(), prevDeclared, prevGranted, isUpgrade, locale)
 	if len(pkg.Manifest.Dependencies) > 0 {
-		for depID := range pkg.Manifest.Dependencies {
+		for _, depID := range sortedMapKeys(pkg.Manifest.Dependencies) {
 			if !m.isPluginEnabled(depID) {
-				warnings = append(warnings, fmt.Sprintf("Requires dependency plugin %q to be installed and enabled.", depID))
+				if isZh {
+					warnings = append(warnings, fmt.Sprintf("需要先安装并启用依赖插件 %q。", depID))
+				} else {
+					warnings = append(warnings, fmt.Sprintf("Requires dependency plugin %q to be installed and enabled.", depID))
+				}
 			}
 		}
 	}

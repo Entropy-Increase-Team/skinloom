@@ -17,16 +17,48 @@ function isEqualValue(a: unknown, b: unknown): boolean {
   return ka.every((k) => k in (b as Record<string, unknown>) && isEqualValue((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]))
 }
 
+function normalizeLocaleTag(locale: string): string {
+  return locale.trim().replaceAll('_', '-').toLowerCase()
+}
+
+export function permissionMessageKey(name: string): string {
+  return name.replaceAll('.', '_')
+}
+
 export function resolveLocalizedFieldText(raw: unknown, locale: string, fallback: string): string {
   if (typeof raw === 'string' && raw.trim() !== '') return raw
   if (typeof raw === 'object' && raw !== null) {
     const rec = raw as Record<string, unknown>
-    const exact = rec[locale]
-    if (typeof exact === 'string' && exact.trim() !== '') return exact
-    if (typeof rec.en === 'string' && rec.en.trim() !== '') return rec.en
-    for (const v of Object.values(rec)) {
-      if (typeof v === 'string' && v.trim() !== '') return v
+    const entries = Object.entries(rec).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim() !== '',
+    )
+    if (entries.length === 0) return fallback
+    const norm = normalizeLocaleTag(locale)
+    if (norm) {
+      const exact = entries.find(([k]) => normalizeLocaleTag(k) === norm)
+      if (exact) return exact[1]
+      const base = norm.split('-')[0]
+      if (base) {
+        const baseExact = entries.find(([k]) => normalizeLocaleTag(k) === base)
+        if (baseExact) return baseExact[1]
+        // Prefer canonical regional variant for Chinese (e.g. zh / zh-Hans -> zh-CN).
+        if (base === 'zh') {
+          const zhCn = entries.find(([k]) => normalizeLocaleTag(k) === 'zh-cn')
+          if (zhCn) return zhCn[1]
+        }
+        const family = entries
+          .filter(([k]) => normalizeLocaleTag(k).split('-')[0] === base)
+          .toSorted(([a], [b]) => a.localeCompare(b))
+        if (family.length > 0) return family[0][1]
+      }
     }
+    const preferredOrder = norm.startsWith('en') ? ['en', 'zh-cn'] : ['zh-cn', 'en']
+    for (const pref of preferredOrder) {
+      const hit = entries.find(([k]) => normalizeLocaleTag(k) === pref)
+      if (hit) return hit[1]
+    }
+    const sorted = entries.toSorted(([a], [b]) => a.localeCompare(b))
+    return sorted[0][1]
   }
   return fallback
 }

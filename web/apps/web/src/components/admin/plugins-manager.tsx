@@ -48,8 +48,8 @@ import {
 } from '@skinloom/ui'
 import { Box, Cpu, FileText, Puzzle, RefreshCw, Settings, ShieldAlert, Store, Trash2, Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
-import { useCallback, useEffect, useState } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { FormError } from '@/components/auth/field'
 import { problemOf } from '@/lib/problem'
@@ -58,7 +58,7 @@ import { PluginDetailsDrawer } from './plugins-details-drawer'
 import { PluginInstallDialog } from './plugins-install-dialog'
 import { type MarketCategory, PluginsMarket } from './plugins-market'
 import { PluginSettingsDrawer } from './plugins-settings-drawer'
-import { apiProblemMessage } from './plugins-settings-form'
+import { apiProblemMessage, permissionMessageKey } from './plugins-settings-form'
 
 export function PluginsManager({
   superadmin,
@@ -70,7 +70,10 @@ export function PluginsManager({
   initialMarketCategory?: MarketCategory
 }) {
   const t = useTranslations('adminPlugins')
+  const locale = useLocale()
   const router = useRouter()
+  const loadErrRef = useRef(t('errors.load'))
+  loadErrRef.current = t('errors.load')
   const [activeTab, setActiveTab] = useState<'installed' | 'market'>(initialTab)
   useEffect(() => {
     setActiveTab(initialTab)
@@ -107,15 +110,16 @@ export function PluginsManager({
       const res = await listPlugins()
       setPlugins((res.data as AdminPluginView[]) ?? [])
     } catch (err) {
-      setError(apiProblemMessage(problemOf(err).detail, err, t('errors.load')))
+      setError(apiProblemMessage(problemOf(err).detail, err, loadErrRef.current))
     } finally {
       setRefreshing(false)
     }
-  }, [t])
+  }, [])
 
   useEffect(() => {
+    void locale
     void refresh()
-  }, [refresh])
+  }, [refresh, locale])
 
   function replacePlugin(updated: AdminPluginView) {
     setPlugins((prev) => {
@@ -176,6 +180,16 @@ export function PluginsManager({
 
   const uninstalling = Boolean(uninstallTarget && busyIds.has(uninstallTarget.id))
   const hasPlugins = (plugins?.length ?? 0) > 0
+
+  const activeSettingsTarget = settingsTarget
+    ? (plugins?.find((p) => p.id === settingsTarget.id) ?? settingsTarget)
+    : null
+  const activeDetailsTarget = detailsTarget
+    ? (plugins?.find((p) => p.id === detailsTarget.id) ?? detailsTarget)
+    : null
+  const activeUninstallTarget = uninstallTarget
+    ? (plugins?.find((p) => p.id === uninstallTarget.id) ?? uninstallTarget)
+    : null
 
   return (
     <div className="flex flex-col gap-6">
@@ -322,11 +336,20 @@ export function PluginsManager({
                       <span className="text-xs text-muted-foreground">{t('noPermissions')}</span>
                     ) : (
                       <div className="flex min-w-0 flex-wrap gap-1">
-                        {plugin.grantedPermissions.slice(0, 4).map((p) => (
-                          <Badge key={p} variant="outline" className="h-auto min-w-0 max-w-full whitespace-normal break-all font-mono text-xs">
-                            {p}
-                          </Badge>
-                        ))}
+                        {plugin.grantedPermissions.slice(0, 4).map((p) => {
+                          const permKey = `permissionDescriptions.${permissionMessageKey(p)}`
+                          const permDesc = t.has(permKey) ? t(permKey) : undefined
+                          return (
+                            <Badge
+                              key={p}
+                              variant="outline"
+                              title={permDesc}
+                              className="h-auto min-w-0 max-w-full whitespace-normal break-all font-mono text-xs"
+                            >
+                              {p}
+                            </Badge>
+                          )
+                        })}
                         {plugin.grantedPermissions.length > 4 ? (
                           <Badge variant="outline">+{plugin.grantedPermissions.length - 4}</Badge>
                         ) : null}
@@ -414,9 +437,9 @@ export function PluginsManager({
       />
 
       <PluginSettingsDrawer
-        pluginId={settingsTarget?.id ?? null}
-        pluginName={settingsTarget?.name ?? ''}
-        open={settingsTarget !== null}
+        pluginId={activeSettingsTarget?.id ?? null}
+        pluginName={activeSettingsTarget?.name ?? ''}
+        open={activeSettingsTarget !== null}
         onOpenChange={(next) => {
           if (!next) setSettingsTarget(null)
         }}
@@ -427,22 +450,22 @@ export function PluginsManager({
       />
 
       <PluginDetailsDrawer
-        plugin={detailsTarget}
-        open={detailsTarget !== null}
+        plugin={activeDetailsTarget}
+        open={activeDetailsTarget !== null}
         onOpenChange={(next) => {
           if (!next) setDetailsTarget(null)
         }}
       />
 
       <AlertDialog
-        open={uninstallTarget !== null}
+        open={activeUninstallTarget !== null}
         onOpenChange={(next) => {
           if (!next && !uninstalling) setUninstallTarget(null)
         }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('uninstallDialog.title', { name: uninstallTarget?.name ?? '' })}</AlertDialogTitle>
+            <AlertDialogTitle>{t('uninstallDialog.title', { name: activeUninstallTarget?.name ?? '' })}</AlertDialogTitle>
             <AlertDialogDescription>{t('uninstallDialog.description')}</AlertDialogDescription>
           </AlertDialogHeader>
           <label className="flex min-h-8 cursor-pointer items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-foreground pointer-coarse:min-h-10">

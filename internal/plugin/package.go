@@ -612,6 +612,11 @@ func (p *ParsedPackage) ValidateTheme(base *theme.Registry) ([]string, error) {
 
 // ClassifyPermissions groups requested manifest permissions by risk tier and upgrade state.
 func ClassifyPermissions(declared []string, prevDeclared []string, prevGranted []string, isUpgrade bool) (PermissionGroups, bool) {
+	return ClassifyPermissionsForLocale(declared, prevDeclared, prevGranted, isUpgrade, "en")
+}
+
+// ClassifyPermissionsForLocale groups requested manifest permissions with localized descriptions.
+func ClassifyPermissionsForLocale(declared []string, prevDeclared []string, prevGranted []string, isUpgrade bool, locale string) (PermissionGroups, bool) {
 	prevDeclSet := make(map[string]bool, len(prevDeclared))
 	for _, p := range prevDeclared {
 		prevDeclSet[p] = true
@@ -632,7 +637,15 @@ func ClassifyPermissions(declared []string, prevDeclared []string, prevGranted [
 	for _, perm := range sorted {
 		def, ok := LookupPermission(perm)
 		if !ok {
-			def = PermissionDef{Name: perm, Tier: RiskHighRisk, Description: "Unknown capability permission."}
+			def = PermissionDef{
+				Name:        perm,
+				Tier:        RiskHighRisk,
+				Description: "Unknown capability permission.",
+				Descriptions: LocalizedText{
+					"zh-CN": "未在宿主目录登记的未知权限。",
+					"en":    "Unknown capability permission.",
+				},
+			}
 		}
 		granted := prevGrantSet[perm]
 		if prevGranted == nil && !isUpgrade {
@@ -641,7 +654,7 @@ func ClassifyPermissions(declared []string, prevDeclared []string, prevGranted [
 		item := PermissionItem{
 			Name:        def.Name,
 			Tier:        def.Tier,
-			Description: def.Description,
+			Description: def.DescriptionForLocale(locale),
 			Granted:     granted,
 			Added:       isUpgrade && !prevDeclSet[perm],
 		}

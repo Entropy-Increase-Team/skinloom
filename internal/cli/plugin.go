@@ -324,7 +324,7 @@ func pluginCmd(paths *app.Paths) *cobra.Command {
 	}
 	searchCmd.Flags().StringVar(&searchKind, "kind", "", "Filter by kind (plugin | theme)")
 	searchCmd.Flags().StringVar(&searchRuntime, "runtime", "", "Filter by runtime (js | native)")
-	searchCmd.Flags().StringVar(&searchCategory, "category", "", "Filter by category (recommended | security | score | migration | theme)")
+	searchCmd.Flags().StringVar(&searchCategory, "category", "", "Filter by category (recommended | security | score | utility | migration | theme)")
 	searchCmd.Flags().BoolVar(&searchAll, "all", false, "Include packages incompatible with the current host environment")
 	searchCmd.Flags().BoolVar(&searchRefresh, "refresh", false, "Force refresh market index cache")
 	searchCmd.Flags().BoolVar(&searchJSON, "json", false, "Output JSON")

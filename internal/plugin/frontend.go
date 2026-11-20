@@ -223,16 +223,47 @@ func (r *pluginRuntime) mergedLocaleMessages(locale string) map[string]string {
 		return nil
 	}
 	merged := map[string]string{}
-	order := []string{"zh-CN", "en"}
-	if locale != "" {
-		if base, _, ok := strings.Cut(locale, "-"); ok {
-			order = append(order, base)
-		}
-		order = append(order, locale)
-	}
-	for _, loc := range order {
+	apply := func(loc string) {
 		for k, v := range r.locales[loc] {
-			merged[k] = v
+			if v != "" {
+				merged[k] = v
+			}
+		}
+	}
+	keys := make([]string, 0, len(r.locales))
+	for k := range r.locales {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	// Apply fallback layers first, then visitor's active language last so SkinLoom's UI
+	// locale always takes precedence when supported by the plugin.
+	norm := normalizeLocaleTag(locale)
+	if strings.EqualFold(norm, "en") || strings.HasPrefix(strings.ToLower(norm), "en-") {
+		apply("zh-CN")
+		apply("en")
+	} else {
+		apply("en")
+		apply("zh-CN")
+	}
+	if norm != "" {
+		base, _, _ := strings.Cut(strings.ToLower(norm), "-")
+		// Apply same-family locales in reverse lexicographic order so earlier canonical tags
+		// win over later variants, then re-apply canonical zh-CN for generic "zh", and exact match last.
+		for i := len(keys) - 1; i >= 0; i-- {
+			k := keys[i]
+			kb, _, _ := strings.Cut(strings.ToLower(normalizeLocaleTag(k)), "-")
+			if base != "" && kb == base {
+				apply(k)
+			}
+		}
+		if strings.EqualFold(norm, "zh") {
+			apply("zh-CN")
+		}
+		for _, k := range keys {
+			if strings.EqualFold(normalizeLocaleTag(k), norm) {
+				apply(k)
+			}
 		}
 	}
 	if len(merged) == 0 {

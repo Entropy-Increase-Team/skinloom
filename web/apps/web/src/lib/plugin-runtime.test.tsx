@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { FORM_SCOPES, PLUGIN_SLOTS, THEME_OVERRIDE_TARGETS } from '@skinloom/plugin-sdk/catalog'
+import { PluginWebProvider, useT } from '@skinloom/plugin-sdk/web'
 import { NextIntlClientProvider } from 'next-intl'
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -12,7 +13,7 @@ import { BootstrapProvider, resolveSafeNavigateTarget } from '@/components/provi
 import { Slot } from '@/components/slot'
 import { ThemeOverride } from '@/components/theme-override'
 import type { SiteBootstrap } from '@/lib/bootstrap'
-import { initSharedGlobals, PluginErrorBoundary, PluginRuntimeProvider } from '@/lib/plugin-runtime'
+import { initSharedGlobals, PluginErrorBoundary, PluginRuntimeProvider, usePluginRuntime } from '@/lib/plugin-runtime'
 import enMessages from '../../messages/en.json'
 
 function collectTsxFiles(dir: string): string[] {
@@ -283,5 +284,84 @@ describe('P2-3 frontend plugin runtime & mount coverage', () => {
     boundary.state = { hasError: true }
     const html = renderToStaticMarkup(boundary.render() as ReactElement)
     expect(html).toContain('Safe Fallback')
+  })
+
+  it('provides localized theme messages to Level-5 themeRuntimeContext and renders textarea PluginForms', () => {
+    const boot = makeBootstrap({
+      locale: 'zh-CN',
+      theme: {
+        id: 'theme-atelier',
+        version: '1.0.0',
+        colorScheme: 'both',
+        tokens: { light: {}, dark: {} },
+        css: [],
+        js: [],
+        layout: {},
+        home: [],
+        overrides: ['site.footer'],
+        settings: { cardStyle: 'editorial' },
+      },
+      plugins: [
+        {
+          id: 'theme-atelier',
+          kind: 'theme',
+          version: '1.0.0',
+          name: '工坊 · Atelier',
+          messages: {
+            poweredBy: '由 SkinLoom 工坊主题呈现',
+            likes: '{count} 次收藏',
+          },
+        },
+      ],
+      forms: {
+        'texture.upload': [
+          {
+            pluginId: 'texture-description',
+            name: 'description',
+            type: 'textarea',
+            label: '材质说明',
+            placeholder: '支持 Markdown 格式',
+            maxLength: 2000,
+          },
+        ],
+      },
+    })
+
+    function ThemeChild() {
+      const t = useT()
+      return (
+        <div>
+          <span>{t('poweredBy')}</span>
+          <span>{t('likes', { count: 42 })}</span>
+        </div>
+      )
+    }
+
+    function ProbeThemeI18n() {
+      const rt = usePluginRuntime()
+      if (!rt.themeRuntimeContext) return <span>missing</span>
+      return (
+        <PluginWebProvider value={rt.themeRuntimeContext}>
+          <ThemeChild />
+        </PluginWebProvider>
+      )
+    }
+
+    const html = renderToStaticMarkup(
+      <NextIntlClientProvider locale="en" timeZone="Asia/Shanghai" messages={enMessages}>
+        <BootstrapProvider value={boot}>
+          <PluginRuntimeProvider bootstrap={boot}>
+            <ProbeThemeI18n />
+            <PluginForms scope="texture.upload" values={{ description: 'Hello world' }} onChange={() => {}} />
+          </PluginRuntimeProvider>
+        </BootstrapProvider>
+      </NextIntlClientProvider>,
+    )
+
+    expect(html).toContain('由 SkinLoom 工坊主题呈现')
+    expect(html).toContain('42 次收藏')
+    expect(html).toContain('<textarea')
+    expect(html).toContain('maxLength="2000"')
+    expect(html).toContain('Hello world')
   })
 })

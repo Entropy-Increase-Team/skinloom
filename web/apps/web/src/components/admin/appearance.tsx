@@ -53,6 +53,7 @@ import {
   withToken,
 } from './appearance-form'
 import { HomeEditor } from './home-editor'
+import { resolveLocalizedFieldText } from './plugins-settings-form'
 import { SettingsSection } from './settings-center'
 import { equal, groupSettings } from './settings-form'
 
@@ -177,8 +178,7 @@ export function Group({ title, intro, action, children }: { title: string; intro
 
 /** The text of a theme's name or description for the page's language. */
 function pick(m: Record<string, string> | undefined, locale: string): string {
-  if (!m) return ''
-  return m[locale] || m.en || m['zh-CN'] || Object.values(m)[0] || ''
+  return resolveLocalizedFieldText(m, locale, '')
 }
 
 function ThemePicker({

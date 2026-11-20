@@ -8322,12 +8322,12 @@
             }
           },
           {
-            "description": "Filter by category: all | recommended | official | security | score | migration | theme",
+            "description": "Filter by category: all | recommended | official | security | score | utility | migration | theme",
             "explode": false,
             "in": "query",
             "name": "category",
             "schema": {
-              "description": "Filter by category: all | recommended | official | security | score | migration | theme",
+              "description": "Filter by category: all | recommended | official | security | score | utility | migration | theme",
               "type": "string"
             }
           },

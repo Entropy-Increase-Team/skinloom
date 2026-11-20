@@ -18,6 +18,7 @@ const VALID_CATEGORIES = new Set<MarketCategory>([
   'theme',
   'security',
   'score',
+  'utility',
   'migration',
 ])
 

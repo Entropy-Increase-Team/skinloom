@@ -44,6 +44,7 @@ import {
   canSubmitPackageInstall,
   collectInitialGrantedPermissions,
   formatBytes,
+  permissionMessageKey,
 } from './plugins-settings-form'
 
 const MAX_PACKAGE_BYTES = 150 * 1024 * 1024
@@ -270,7 +271,15 @@ export function PluginInstallDialog({
           {inspect.verification.trusted ? (
             <Alert className="border-success/30 bg-success/10 text-success">
               <ShieldCheck />
-              <AlertTitle>{t('sigTrusted', { signer: inspect.verification.signer || inspect.verification.keyId || 'Ed25519' })}</AlertTitle>
+              <AlertTitle>
+                {t('sigTrusted', {
+                  signer:
+                    inspect.verification.official &&
+                    (!inspect.verification.signer || inspect.verification.signer === 'SkinLoom Official')
+                      ? t('officialSigner')
+                      : inspect.verification.signer || inspect.verification.keyId || 'Ed25519',
+                })}
+              </AlertTitle>
             </Alert>
           ) : nativeBlocked ? (
             <Alert variant="destructive">
@@ -454,6 +463,7 @@ function PermissionTierSection({
   requiredBadge: string
   onToggle: (name: string, enabled: boolean) => void
 }) {
+  const te = useTranslations('adminPlugins')
   if (items.length === 0) return null
   const borderTone =
     tone === 'high_risk' ? 'border-destructive/40 bg-destructive/5' : tone === 'sensitive' ? 'border-warning/40 bg-warning/5' : 'border-border'
@@ -464,6 +474,8 @@ function PermissionTierSection({
       <div className="space-y-2">
         {items.map((item) => {
           const locked = lockedNames.includes(item.name)
+          const permKey = `permissionDescriptions.${permissionMessageKey(item.name)}`
+          const desc = te.has(permKey) ? te(permKey) : item.description
           return (
             <label
               key={item.name}
@@ -480,7 +492,7 @@ function PermissionTierSection({
                   {locked ? <Badge variant="destructive">{requiredBadge}</Badge> : null}
                   {item.added ? <Badge variant="secondary">{newBadge}</Badge> : null}
                 </div>
-                <p className="text-xs text-muted-foreground">{item.description}</p>
+                <p className="text-xs text-muted-foreground">{desc}</p>
               </div>
             </label>
           )

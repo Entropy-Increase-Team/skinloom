@@ -20,7 +20,7 @@ kind?: string;
  */
 runtime?: string;
 /**
- * Filter by category: all | recommended | official | security | score | migration | theme
+ * Filter by category: all | recommended | official | security | score | utility | migration | theme
  */
 category?: string;
 /**

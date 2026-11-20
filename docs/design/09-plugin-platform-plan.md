@@ -1,6 +1,6 @@
 # 09 · 插件平台与主题系统（v2.0）完整开发顺序与详细执行方案
 
-> 状态：评审定稿（2026-11-18），待执行。  
+> 状态：已完成（2026-11-19，已按 ADR 0045–0050 与设计文档 [10](10-dual-tier-plugin-and-market-plan.md) 双轨架构升级落地）。  
 > 相关文档：[04 重构方案](04-rewrite-plan.md)、[05 插件与主题开发体系](05-plugin-theme-standard.md)、[06 文档与日志体系](06-docs-and-logs.md)、[07 前端重构方案](07-frontend-redesign.md)、[08 安装与迁移引导方案](08-setup-wizard-plan.md)、[ADR 0005](../adr/0005-typescript-plugin-standard.md)、[ADR 0006](../adr/0006-hot-reload-model.md)、[ADR 0007](../adr/0007-no-sql-for-plugins.md)、[ADR 0043](../adr/0043-local-themes-and-manifest-extensions.md)。  
 > 本文档面向后续接手执行的开发 Agent，给出已拍板的架构决策、6 个阶段的严格开发顺序、以及每个阶段精确到文件/接口/数据表/测试用例的落地方案。
 

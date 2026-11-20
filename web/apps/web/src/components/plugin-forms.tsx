@@ -15,6 +15,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Textarea,
 } from '@skinloom/ui'
 
 import { useBootstrap } from '@/components/providers'
@@ -142,6 +143,27 @@ export function PluginForms({
                   ))}
                 </SelectContent>
               </Select>
+              {f.description && <FieldDescription>{f.description}</FieldDescription>}
+              {fieldError && <FieldError>{fieldError}</FieldError>}
+            </Field>
+          )
+        }
+
+        if (f.type === 'textarea') {
+          return (
+            <Field key={`${f.pluginId}:${f.name}`} data-invalid={fieldError ? true : undefined}>
+              <FieldLabel htmlFor={inputId}>{f.label}</FieldLabel>
+              <Textarea
+                id={inputId}
+                name={`form.${f.name}`}
+                rows={4}
+                required={Boolean(f.required)}
+                placeholder={f.placeholder || undefined}
+                maxLength={f.maxLength && f.maxLength > 0 ? f.maxLength : undefined}
+                value={rawValue === undefined || rawValue === null ? '' : String(rawValue)}
+                onChange={(e) => setField(f, e.target.value)}
+                aria-invalid={fieldError ? true : undefined}
+              />
               {f.description && <FieldDescription>{f.description}</FieldDescription>}
               {fieldError && <FieldError>{fieldError}</FieldError>}
             </Field>

@@ -77,7 +77,7 @@ import {
   ShieldQuestion,
   Store,
 } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { FormError } from '@/components/auth/field'
@@ -88,6 +88,7 @@ import {
   canSubmitPackageInstall,
   collectInitialGrantedPermissions,
   formatBytes,
+  permissionMessageKey,
 } from './plugins-settings-form'
 
 const CATEGORIES = [
@@ -98,6 +99,7 @@ const CATEGORIES = [
   'theme',
   'security',
   'score',
+  'utility',
   'migration',
 ] as const
 
@@ -139,6 +141,9 @@ export function PluginsMarket({
 }) {
   const t = useTranslations('adminPlugins')
   const tm = useTranslations('adminPlugins.market')
+  const locale = useLocale()
+  const loadErrRef = useRef(t('errors.load'))
+  loadErrRef.current = t('errors.load')
 
   const [market, setMarket] = useState<MarketListResult | null>(null)
   const [loading, setLoading] = useState(true)
@@ -166,15 +171,16 @@ export function PluginsMarket({
       const res = await listMarketPackages({ compatibleOnly: false })
       setMarket(res.data as MarketListResult)
     } catch (err) {
-      setError(apiProblemMessage(problemOf(err).detail, err, t('errors.load')))
+      setError(apiProblemMessage(problemOf(err).detail, err, loadErrRef.current))
     } finally {
       setLoading(false)
     }
-  }, [t])
+  }, [])
 
   useEffect(() => {
+    void locale
     void loadMarket()
-  }, [loadMarket])
+  }, [loadMarket, locale])
 
   async function handleForceRefresh() {
     setRefreshing(true)
@@ -211,6 +217,15 @@ export function PluginsMarket({
         if (category === 'theme' && pkg.kind !== 'theme') return false
         if (category === 'security' && pkg.category !== 'security' && pkg.category !== 'auth') return false
         if (category === 'score' && pkg.category !== 'score' && pkg.category !== 'economy' && pkg.category !== 'operations') return false
+        if (
+          category === 'utility' &&
+          pkg.category !== 'utility' &&
+          pkg.category !== 'storage' &&
+          pkg.category !== 'render' &&
+          pkg.category !== 'search'
+        ) {
+          return false
+        }
         if (category === 'migration' && pkg.category !== 'migration') return false
       }
       if (q) {
@@ -315,7 +330,13 @@ export function PluginsMarket({
       {failedRegistries.map((reg) => (
         <Alert key={reg.id} variant="destructive">
           <ShieldAlert />
-          <AlertTitle>{tm('registryErrorTitle', { name: reg.name || reg.id })}</AlertTitle>
+          <AlertTitle>
+            {tm('registryErrorTitle', {
+              name: reg.official && (!reg.name || reg.name === 'SkinLoom Official Registry')
+                ? tm('officialRegistryName')
+                : reg.name || reg.id,
+            })}
+          </AlertTitle>
           <AlertDescription className="font-mono text-xs break-all">{reg.error}</AlertDescription>
         </Alert>
       ))}
@@ -457,11 +478,20 @@ export function PluginsMarket({
 
                   {allPerms.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
-                      {allPerms.slice(0, 4).map((p) => (
-                        <Badge key={p.name} variant="outline" className="font-mono text-xs">
-                          {p.name}
-                        </Badge>
-                      ))}
+                      {allPerms.slice(0, 4).map((p) => {
+                        const permKey = `permissionDescriptions.${permissionMessageKey(p.name)}`
+                        const permDesc = t.has(permKey) ? t(permKey) : p.description
+                        return (
+                          <Badge
+                            key={p.name}
+                            variant="outline"
+                            title={permDesc}
+                            className="h-auto min-w-0 max-w-full whitespace-normal break-all font-mono text-xs"
+                          >
+                            {p.name}
+                          </Badge>
+                        )
+                      })}
                       {allPerms.length > 4 ? (
                         <Badge variant="outline" className="text-xs">
                           +{allPerms.length - 4}
@@ -520,7 +550,12 @@ export function PluginsMarket({
       />
 
       <MarketChangelogDrawer
-        pkg={changelogPkg}
+        pkg={
+          changelogPkg
+            ? (market?.packages.find((p) => p.registryId === changelogPkg.registryId && p.id === changelogPkg.id) ??
+                changelogPkg)
+            : null
+        }
         superadmin={superadmin}
         onOpenChange={(open) => {
           if (!open) setChangelogPkg(null)
@@ -639,6 +674,9 @@ function MarketInstallDialog({
   const t = useTranslations('adminPlugins.inspect')
   const te = useTranslations('adminPlugins')
   const tm = useTranslations('adminPlugins.market')
+  const locale = useLocale()
+  const inspectErrRef = useRef(te('errors.inspect'))
+  inspectErrRef.current = te('errors.inspect')
   const isPhone = useIsPhoneViewport()
 
   const [inspecting, setInspecting] = useState(false)
@@ -668,6 +706,7 @@ function MarketInstallDialog({
     setAllowUnsigned(false)
     setConfirmId('')
 
+    void locale
     inspectMarketPackage({
       registryId: target.pkg.registryId,
       id: target.pkg.id,
@@ -685,12 +724,12 @@ function MarketInstallDialog({
       })
       .catch((err) => {
         if (seq !== seqRef.current) return
-        setError(apiProblemMessage(problemOf(err).detail, err, te('errors.inspect')))
+        setError(apiProblemMessage(problemOf(err).detail, err, inspectErrRef.current))
       })
       .finally(() => {
         if (seq === seqRef.current) setInspecting(false)
       })
-  }, [target, te])
+  }, [target, locale])
 
   async function handleConfirmInstall() {
     if (!target || !inspect) return
@@ -810,8 +849,12 @@ function MarketInstallDialog({
               <p className="text-xs text-muted-foreground">{tm('cascadeHint')}</p>
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {inspect.dependenciesToInstall.map((dep) => (
-                  <Badge key={dep.id} variant="secondary" className="gap-1 font-mono text-xs">
-                    {dep.runtime === 'native' ? <Cpu className="size-3 text-primary" /> : <Box className="size-3" />}
+                  <Badge
+                    key={dep.id}
+                    variant="secondary"
+                    className="h-auto min-w-0 max-w-full gap-1 whitespace-normal break-all font-mono text-xs"
+                  >
+                    {dep.runtime === 'native' ? <Cpu className="size-3 shrink-0 text-primary" /> : <Box className="size-3 shrink-0" />}
                     <span>
                       {dep.name} ({dep.id} v{dep.version})
                     </span>
@@ -825,7 +868,13 @@ function MarketInstallDialog({
             <Alert className="border-success/30 bg-success/10 text-success">
               <ShieldCheck />
               <AlertTitle>
-                {t('sigTrusted', { signer: inspect.verification.signer || inspect.verification.keyId || 'Ed25519' })}
+                {t('sigTrusted', {
+                  signer:
+                    inspect.verification.official &&
+                    (!inspect.verification.signer || inspect.verification.signer === 'SkinLoom Official')
+                      ? t('officialSigner')
+                      : inspect.verification.signer || inspect.verification.keyId || 'Ed25519',
+                })}
               </AlertTitle>
             </Alert>
           ) : nativeBlocked ? (
@@ -997,6 +1046,7 @@ function MarketPermissionTierSection({
   requiredBadge: string
   onToggle: (name: string, enabled: boolean) => void
 }) {
+  const te = useTranslations('adminPlugins')
   if (items.length === 0) return null
   const borderTone =
     tone === 'high_risk'
@@ -1011,6 +1061,8 @@ function MarketPermissionTierSection({
       <div className="space-y-2">
         {items.map((item) => {
           const locked = lockedNames.includes(item.name)
+          const permKey = `permissionDescriptions.${permissionMessageKey(item.name)}`
+          const desc = te.has(permKey) ? te(permKey) : item.description
           return (
             <label
               key={item.name}
@@ -1027,7 +1079,7 @@ function MarketPermissionTierSection({
                   {locked ? <Badge variant="destructive">{requiredBadge}</Badge> : null}
                   {item.added ? <Badge variant="secondary">{newBadge}</Badge> : null}
                 </div>
-                <p className="text-xs text-muted-foreground">{item.description}</p>
+                <p className="text-xs text-muted-foreground">{desc}</p>
               </div>
             </label>
           )

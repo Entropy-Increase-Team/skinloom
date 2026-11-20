@@ -959,7 +959,7 @@ func (c *RegistryClient) buildMarketPackageView(
 			Version:               v.Version,
 			PublishedAt:           v.PublishedAt,
 			Yanked:                v.Yanked,
-			Changelog:             v.Changelog,
+			Changelog:             v.ResolveChangelog(locale),
 			APIVersion:            v.APIVersion,
 			NativeProtocolVersion: v.NativeProtocolVersion,
 			Engines:               v.Engines,
@@ -969,7 +969,7 @@ func (c *RegistryClient) buildMarketPackageView(
 			Platforms:             plats,
 			Compatible:            vCompat.Compatible,
 			Status:                vCompat.Status,
-			Issues:                vCompat.Issues,
+			Issues:                LocalizeCompatIssues(vCompat.Issues, locale),
 		})
 	}
 	if len(targetPermissions) == 0 && len(sortedVers) > 0 {
@@ -988,7 +988,11 @@ func (c *RegistryClient) buildMarketPackageView(
 			}
 		}
 	}
-	permGroups, needsHighRisk := ClassifyPermissions(targetPermissions, prevDeclared, prevGranted, isInstalled)
+	permGroups, needsHighRisk := ClassifyPermissionsForLocale(targetPermissions, prevDeclared, prevGranted, isInstalled, locale)
+	compat.Issues = LocalizeCompatIssues(compat.Issues, locale)
+	if compat.Recommended != nil {
+		compat.Recommended.Issues = LocalizeCompatIssues(compat.Recommended.Issues, locale)
+	}
 
 	latest := pkg.Latest
 	if latest == "" && len(sortedVers) > 0 {
@@ -1071,6 +1075,11 @@ func matchesMarketFilter(v MarketPackageView, f MarketFilter) bool {
 		case "score", "economy", "operations":
 			c := strings.ToLower(v.Category)
 			if c != "score" && c != "economy" && c != "operations" {
+				return false
+			}
+		case "utility", "storage", "render", "search":
+			c := strings.ToLower(v.Category)
+			if c != "utility" && c != "storage" && c != "render" && c != "search" {
 				return false
 			}
 		case "migration":
@@ -1569,6 +1578,7 @@ func (c *RegistryClient) InspectFromMarket(ctx context.Context, req MarketInspec
 	if err != nil {
 		return nil, err
 	}
+	verCompat.Issues = LocalizeCompatIssues(verCompat.Issues, locale)
 	if !verCompat.Compatible {
 		for _, iss := range verCompat.Issues {
 			inspectRes.Warnings = append(inspectRes.Warnings, fmt.Sprintf("[%s] %s", iss.Code, iss.Message))
@@ -1596,7 +1606,7 @@ func (c *RegistryClient) InspectFromMarket(ctx context.Context, req MarketInspec
 			if depPkg.EffectiveRuntime() == RuntimeNative && !slices.Contains(depPerms, PermNativeExec) {
 				depPerms = append(depPerms, PermNativeExec)
 			}
-			pg, highRisk := ClassifyPermissions(depPerms, nil, nil, false)
+			pg, highRisk := ClassifyPermissionsForLocale(depPerms, nil, nil, false, locale)
 			if depPkg.EffectiveRuntime() == RuntimeNative {
 				highRisk = true
 			}

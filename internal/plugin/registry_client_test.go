@@ -133,7 +133,7 @@ func TestRegistryClient_FailoverSignatureCacheAndInstall(t *testing.T) {
 						APIVersion:   1,
 						Permissions:  []string{"users.read"},
 						Dependencies: map[string]string{"base-dep": "^1.0.0"},
-						Changelog:    "Initial release",
+						Changelog:    LocalizedText{"zh-CN": "首个正式版本", "en": "Initial release"},
 						Artifacts: map[string]RegistryArtifact{
 							"any": {
 								URLs:      []string{"/packages/hello-market-1.2.0.slp"},
@@ -964,6 +964,31 @@ func TestRegistryClient_ResolveArtifactURLSafety(t *testing.T) {
 		got := resolveArtifactURL(base, tc.raw)
 		if got != tc.want {
 			t.Errorf("resolveArtifactURL(%q, %q) = %q, want %q", base, tc.raw, got, tc.want)
+		}
+	}
+}
+
+func TestMatchesMarketFilter_UtilityGroup(t *testing.T) {
+	cases := []struct {
+		pkgCat string
+		want   bool
+	}{
+		{pkgCat: "utility", want: true},
+		{pkgCat: "storage", want: true},
+		{pkgCat: "render", want: true},
+		{pkgCat: "search", want: true},
+		{pkgCat: "security", want: false},
+		{pkgCat: "migration", want: false},
+	}
+	for _, tc := range cases {
+		v := MarketPackageView{
+			ID:       "pkg-" + tc.pkgCat,
+			Kind:     KindPlugin,
+			Runtime:  RuntimeJS,
+			Category: tc.pkgCat,
+		}
+		if got := matchesMarketFilter(v, MarketFilter{Category: "utility"}); got != tc.want {
+			t.Errorf("matchesMarketFilter(category=%q, filter=utility) = %v, want %v", tc.pkgCat, got, tc.want)
 		}
 	}
 }

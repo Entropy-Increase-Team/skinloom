@@ -464,3 +464,74 @@ func TestBootstrapPluginsMenusFormsAndThemePreview(t *testing.T) {
 		t.Fatalf("expected default theme after clear preview, got %+v", aCleared.Theme)
 	}
 }
+
+func TestPluginGuardPropagatesRequestLocale(t *testing.T) {
+	d, dir := newTestDepsDir(t)
+	d.Bus = hook.NewBus(d.Log, 2)
+	t.Cleanup(func() { d.Bus.Close(context.Background()) })
+	d.Accounts.SetHooks(d.Bus)
+	setSettings(t, d, `{"captcha.provider": "none", "auth.registration": "open"}`)
+
+	mgr, err := plugin.NewManager(plugin.ManagerDeps{
+		DB:       d.DB.Ent,
+		Bus:      d.Bus,
+		Settings: d.Settings,
+		Notify:   d.Notify,
+		DataDir:  dir,
+		Log:      d.Log,
+	})
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	t.Cleanup(func() { _ = mgr.Shutdown(context.Background()) })
+	d.Plugins = mgr
+
+	h, _ := New(d)
+	setupSite(t, d, &browser{t: t, h: h})
+
+	payload, _ := json.Marshal(map[string]any{
+		"manifest": map[string]any{
+			"id":         "i18n-guard",
+			"kind":       "plugin",
+			"version":    "1.0.0",
+			"name":       map[string]string{"zh-CN": "多语言拦截器", "en": "i18n Guard"},
+			"apiVersion": 1,
+			"server":     "server.js",
+			"hooks":      map[string]any{"guard": []string{"auth.register"}},
+		},
+		"serverJs": `export default {
+			setup(ctx) {
+				ctx.hooks.guard("auth.register", async () => reject(await ctx.t("denied")));
+			}
+		};`,
+		"files": map[string]string{
+			"locales/zh-CN.json": base64.StdEncoding.EncodeToString([]byte(`{"denied":"需要有效邀请码"}`)),
+			"locales/en.json":    base64.StdEncoding.EncodeToString([]byte(`{"denied":"Valid invitation code required"}`)),
+		},
+	})
+	if rec := do(t, h, http.MethodPost, "/api/v1/admin/plugins/dev-reload", "Bearer "+testToken, string(payload)); rec.Code != http.StatusOK {
+		t.Fatalf("dev-reload failed: %d %s", rec.Code, rec.Body.String())
+	}
+
+	// Request with locale=zh-CN cookie receives Chinese guard rejection
+	reqZh := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(`{"email":"zh@example.com","nickname":"ZhUser","password":"password123"}`))
+	reqZh.Header.Set("Content-Type", "application/json")
+	reqZh.Header.Set(CSRFHeader, "1")
+	reqZh.AddCookie(&http.Cookie{Name: "locale", Value: "zh-CN"})
+	recZh := httptest.NewRecorder()
+	h.ServeHTTP(recZh, reqZh)
+	if recZh.Code != http.StatusUnprocessableEntity || !strings.Contains(recZh.Body.String(), "需要有效邀请码") {
+		t.Fatalf("expected Chinese guard rejection, got %d: %s", recZh.Code, recZh.Body.String())
+	}
+
+	// Request with locale=en cookie receives English guard rejection
+	reqEn := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(`{"email":"en@example.com","nickname":"EnUser","password":"password123"}`))
+	reqEn.Header.Set("Content-Type", "application/json")
+	reqEn.Header.Set(CSRFHeader, "1")
+	reqEn.AddCookie(&http.Cookie{Name: "locale", Value: "en"})
+	recEn := httptest.NewRecorder()
+	h.ServeHTTP(recEn, reqEn)
+	if recEn.Code != http.StatusUnprocessableEntity || !strings.Contains(recEn.Body.String(), "Valid invitation code required") {
+		t.Fatalf("expected English guard rejection, got %d: %s", recEn.Code, recEn.Body.String())
+	}
+}

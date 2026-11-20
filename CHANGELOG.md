@@ -4,7 +4,15 @@
 
 ## [Unreleased]
 
-### 新增（双层插件平台、主题组件覆盖与官方签名市场 P2-1 ~ P2-5C，ADR 0045–0050）
+### 新增与优化（插件平台与市场国际化、交互加固）
+- **插件与市场全链路中英国际化**：HTTP 请求上下文统一注入访客语言（`plugin.WithRequestLocale`），使 Guard/Filter/路由/原生 gRPC 调用的 `ctx.t` 自动跟随站点当前界面语言；后端 29 项权限描述、五维兼容性错误（`LocalizeCompatIssues`）与预检警告全面提供中英双语；语言解析（`LocalizedText.Resolve`、`mergedLocaleMessages`、`translate` 与前端 `resolveLocalizedFieldText`）统一跳过空字符串、默认回退优先 `zh-CN` 并保证泛型 `zh` 优先命中 `zh-CN`。
+- **双语市场更新日志（`changelogI18n`）与工具分类筛选**：市场索引支持向后兼容的双语更新日志 `changelogI18n`（同时兼容纯字符串与映射型 `changelog`）；前后端及 CLI（`skinloom plugin search --category utility`）统一补齐 `utility`（匹配 `utility`/`storage`/`render`/`search`）分类筛选。
+- **前端插件运行时与管理后台修复**：`PluginForms` 新增 `textarea` 控件渲染；Level ⑤ 主题覆盖上下文（`themeRuntimeContext`）透传主题 `locales` 词条与合并设置；修复插件管理页、详情抽屉、设置抽屉与市场安装弹窗在切换语言或重渲染时的重复请求与陈旧状态引用问题，优化窄屏权限/依赖徽章换行。
+- **部署与文档同步**：更新 `deploy/helm/skinloom/Chart.yaml` 版本至 `1.1.1`（修复默认镜像标签指向不存在的 `0.1.0` 的问题），同步 README、文档站首页与设计文档状态，并按已发布版本切分本更新日志历史章节。
+
+## [1.1.0] - 2026-11-19
+
+### 新增（双层插件平台、主题组件覆盖与官方签名市场 P2-1 ~ P2-6，ADR 0045–0050）
 - **双层插件运行时（Tier 1 JS/WASM 沙箱 + Tier 2 Native Go 独立子进程）**：
   - **Tier 1（`"runtime": "js"`，默认）**：基于 QuickJS/WASM 确定性沙箱实例池（`internal/jsrt`），强制指令燃料上限、内存配额、SSRF 私网阻断与 3 级权限（Standard / Elevated / High-Risk）门控。
   - **Tier 2（`"runtime": "native"`）**：通过 `api/proto/plugin/v1/plugin.proto` 双向 gRPC 流与宿主通信；由守护管理器（`NativeSupervisor`）负责多架构二进制匹配、SHA-256 校验、平台沙箱（Linux PDEATHSIG / Windows JobObject）、5s 心跳探活、指数退避重启与连续崩溃自动熔断；支持 `CallStream` 全双工流式 HTTP/SSE 与大文件分块上传下载代理。
@@ -80,6 +88,8 @@
 - `@skinloom/ui` 提供 token 样式表 `@skinloom/ui/globals.css` 与菜单图标表 `MenuIcon`；`@skinloom/api-client/query` 提供每个接口的 TanStack Query 钩子。
 - 主题的 CSS 不在任何 cascade layer 里，总是优先于站点自己的样式，不需要 `!important`（ADR 0043）。
 
+## [1.0.0] - 2026-11-09
+
 ### 修复（1.0 收尾，ADR 0040）
 - 服务端代码在事务中途出错崩溃（panic）时，事务现在会回滚。以前事务会一直占着数据库连接和锁，使用 SQLite 时站点此后的所有写入都会失败，直到重启。
 
@@ -148,6 +158,8 @@
 - 材质、角色、用户的 ID 保持不变，皮肤链接与 `/skinlib/show/{tid}` 照旧可用。重名角色加后缀并通知主人，同一用户重复上传的材质合并，悬空引用置空。
 - 文档：从 Blessing Skin 迁移。
 - 审查后修正：启用 password-algorithm-transition 插件的站点，旧方法的加盐密码能正确导入；材质目录与 BS 共用时，内容被改过的文件也会复制；角色先全部按名字精确匹配 UUID，再做不区分大小写的匹配；文字里的 NUL 和无效 UTF-8 会被清理；`.env` 按 Laravel 的规则读；读可选表时，权限等错误不再被当成"表不存在"；PostgreSQL 序列在事务内前移；两个导入不能同时写入；失败时报告照样写出；连接串和盐可以放在环境变量 `SKINLOOM_BS_DSN`、`SKINLOOM_BS_SALT` 里。
+
+## [0.2.0] - 2026-10-31
 
 ### 安全（M4 全量审查，ADR 0034）
 - 恢复备份时，所有"目标已有站点"的检查都在写入之前完成；以前被拒绝的恢复已经覆盖了配置和管理员令牌。名为 `secrets/..` 的条目会写到数据目录之外，现在拒绝。
@@ -446,6 +458,8 @@
 - 注册先校验字段、再校验验证码、最后才计算密码哈希；验证码服务不可用或密钥错误时拒绝请求并告警，不会放行。
 - 启用验证码后，针对单个账号的分布式撞库只会让所有人需要验证码，不会锁定账号；按地址的硬上限不变。
 - 注册数按精确地址（数据库，重启后仍有效）与 IPv6 /64（内存）双重计数。
+
+## [0.1.0-alpha.1] - 2026-10-23
 
 ### 新增（M1 账号 · 第一部分）
 - **首次安装向导**：首次启动时控制台打印一次性安装链接（`/setup?token=…`，24 小时有效，`--open` 直接打开）。在向导里设置站点名称、站点地址并创建超级管理员，完成后自动登录、链接作废。`skinloom setup-link` 可随时生成新链接（容器内同样可用）。

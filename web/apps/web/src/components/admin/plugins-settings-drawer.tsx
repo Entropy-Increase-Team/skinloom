@@ -79,6 +79,8 @@ export function PluginSettingsDrawer({
   const t = useTranslations('adminPlugins.settingsDrawer')
   const te = useTranslations('adminPlugins')
   const locale = useLocale()
+  const loadErrRef = useRef(te('errors.load'))
+  loadErrRef.current = te('errors.load')
   const [schema, setSchema] = useState<PluginSettingsResponse | null>(null)
   const [initialDraft, setInitialDraft] = useState<PluginSettingsDraft>({})
   const [draft, setDraft] = useState<PluginSettingsDraft>({})
@@ -90,6 +92,7 @@ export function PluginSettingsDrawer({
   const activeSessionRef = useRef(0)
 
   useEffect(() => {
+    void locale
     activeSessionRef.current += 1
     if (!open || !pluginId) return
     let active = true
@@ -112,7 +115,7 @@ export function PluginSettingsDrawer({
       .catch((err) => {
         if (!active) return
         setSchema(null)
-        setLoadError(apiProblemMessage(problemOf(err).detail, err, te('errors.load')))
+        setLoadError(apiProblemMessage(problemOf(err).detail, err, loadErrRef.current))
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -120,7 +123,7 @@ export function PluginSettingsDrawer({
     return () => {
       active = false
     }
-  }, [open, pluginId, te])
+  }, [open, pluginId, locale])
 
   const dirty = Boolean(schema && isPluginSettingsDirty(schema.fields, draft, clearedSecrets, initialDraft))
 

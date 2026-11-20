@@ -17,13 +17,13 @@ import {
   TabsTrigger,
 } from '@skinloom/ui'
 import { Box, Cpu } from 'lucide-react'
-import { useTranslations } from 'next-intl'
-import { useEffect, useState } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
+import { useEffect, useRef, useState } from 'react'
 
 import { FormError } from '@/components/auth/field'
 import { problemOf } from '@/lib/problem'
 
-import { apiProblemMessage, formatBytes, formatDuration } from './plugins-settings-form'
+import { apiProblemMessage, formatBytes, formatDuration, permissionMessageKey } from './plugins-settings-form'
 
 export function PluginDetailsDrawer({
   plugin: initialPlugin,
@@ -36,25 +36,31 @@ export function PluginDetailsDrawer({
 }) {
   const t = useTranslations('adminPlugins.detailsDrawer')
   const te = useTranslations('adminPlugins')
+  const ti = useTranslations('adminPlugins.inspect')
+  const locale = useLocale()
+  const loadErrRef = useRef(te('errors.load'))
+  loadErrRef.current = te('errors.load')
   const [detail, setDetail] = useState<AdminPluginView | null>(initialPlugin)
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const pluginId = initialPlugin?.id ?? null
 
   useEffect(() => {
+    void locale
     setDetail(initialPlugin)
     setLoadError(null)
-    if (!open || !initialPlugin) {
+    if (!open || !pluginId) {
       setLoading(false)
       return
     }
     let active = true
     setLoading(true)
-    getPlugin(initialPlugin.id)
+    getPlugin(pluginId)
       .then((res) => {
         if (active && res.status === 200) setDetail(res.data as AdminPluginView)
       })
       .catch((err) => {
-        if (active) setLoadError(apiProblemMessage(problemOf(err).detail, err, te('errors.load')))
+        if (active) setLoadError(apiProblemMessage(problemOf(err).detail, err, loadErrRef.current))
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -62,11 +68,18 @@ export function PluginDetailsDrawer({
     return () => {
       active = false
     }
-  }, [open, initialPlugin, te])
+  }, [open, pluginId, locale])
 
   const logs = detail?.recentLogs ?? []
   const routes = detail?.routes ?? []
   const permissions = detail?.grantedPermissions ?? []
+  const permissionMeta = new Map(
+    [
+      ...(detail?.permissions?.normal ?? []),
+      ...(detail?.permissions?.sensitive ?? []),
+      ...(detail?.permissions?.high_risk ?? []),
+    ].map((item) => [item.name, item]),
+  )
   const isNative = detail?.runtime === 'native'
 
   return (
@@ -195,7 +208,9 @@ export function PluginDetailsDrawer({
                   logs.map((entry, idx) => (
                     <div key={idx} className="space-y-1 rounded-md border border-border p-2.5 text-xs">
                       <div className="flex items-center justify-between gap-2 text-muted-foreground">
-                        <Badge variant={entry.level === 'error' ? 'destructive' : 'outline'}>{entry.level}</Badge>
+                        <Badge variant={entry.level === 'error' ? 'destructive' : 'outline'}>
+                          {t.has(`logLevels.${entry.level}`) ? t(`logLevels.${entry.level}`) : entry.level}
+                        </Badge>
                         <RelativeTime date={entry.time} />
                       </div>
                       <p className="min-w-0 break-all whitespace-pre-wrap font-mono text-foreground">{entry.message}</p>
@@ -220,7 +235,9 @@ export function PluginDetailsDrawer({
                             {t('streamProxyBadge')}
                           </Badge>
                         ) : null}
-                        <Badge variant="secondary">{rt.auth}</Badge>
+                        <Badge variant="secondary">
+                          {t.has(`authLevels.${rt.auth}`) ? t(`authLevels.${rt.auth}`) : rt.auth}
+                        </Badge>
                       </div>
                     </div>
                   ))
@@ -231,11 +248,38 @@ export function PluginDetailsDrawer({
                 {permissions.length === 0 ? (
                   <p className="text-sm text-muted-foreground">{te('noPermissions')}</p>
                 ) : (
-                  permissions.map((perm) => (
-                    <div key={perm} className="min-w-0 break-all rounded-md border border-border px-3 py-2 text-xs font-mono text-foreground">
-                      {perm}
-                    </div>
-                  ))
+                  permissions.map((perm) => {
+                    const meta = permissionMeta.get(perm)
+                    const permKey = `permissionDescriptions.${permissionMessageKey(perm)}`
+                    const desc = te.has(permKey) ? te(permKey) : meta?.description
+                    const tierLabel =
+                      meta?.tier === 'high_risk'
+                        ? ti('tierHighRisk')
+                        : meta?.tier === 'sensitive'
+                          ? ti('tierSensitive')
+                          : meta?.tier === 'normal'
+                            ? ti('tierNormal')
+                            : null
+                    const tierTone =
+                      meta?.tier === 'high_risk'
+                        ? 'border-destructive/40 bg-destructive/10 text-destructive'
+                        : meta?.tier === 'sensitive'
+                          ? 'border-warning/40 bg-warning/10 text-foreground'
+                          : 'border-border text-muted-foreground'
+                    return (
+                      <div key={perm} className="space-y-1 rounded-md border border-border px-3 py-2 text-xs">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <code className="min-w-0 break-all font-mono font-medium text-foreground">{perm}</code>
+                          {tierLabel ? (
+                            <Badge variant="outline" className={tierTone}>
+                              {tierLabel}
+                            </Badge>
+                          ) : null}
+                        </div>
+                        {desc ? <p className="text-muted-foreground">{desc}</p> : null}
+                      </div>
+                    )
+                  })
                 )}
               </TabsContent>
             </Tabs>

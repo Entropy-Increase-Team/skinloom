@@ -86,12 +86,12 @@ func WithRequestLocale(ctx context.Context, locale string) context.Context {
 
 func requestLocaleFrom(ctx context.Context) string {
 	if ctx == nil {
-		return "en"
+		return "zh-CN"
 	}
 	if l, ok := ctx.Value(localeContextKey{}).(string); ok && l != "" {
 		return l
 	}
-	return "en"
+	return "zh-CN"
 }
 
 // pluginRuntime owns one enabled plugin's isolate pool, permissions, storage
@@ -884,18 +884,52 @@ func (r *pluginRuntime) translate(key string, params map[string]any, locale stri
 	defer r.localesMu.RUnlock()
 
 	tryLocales := []string{}
-	if locale != "" {
-		tryLocales = append(tryLocales, locale)
-		if base, _, ok := strings.Cut(locale, "-"); ok {
-			tryLocales = append(tryLocales, base)
+	addUnique := func(cand string) {
+		if cand == "" {
+			return
+		}
+		for _, existing := range tryLocales {
+			if existing == cand {
+				return
+			}
+		}
+		tryLocales = append(tryLocales, cand)
+	}
+	keys := make([]string, 0, len(r.locales))
+	for k := range r.locales {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	norm := normalizeLocaleTag(locale)
+	if norm != "" {
+		addUnique(norm)
+		for _, k := range keys {
+			if strings.EqualFold(normalizeLocaleTag(k), norm) {
+				addUnique(k)
+			}
+		}
+		base, _, _ := strings.Cut(strings.ToLower(norm), "-")
+		if base != "" {
+			addUnique(base)
+			if base == "zh" {
+				addUnique("zh-CN")
+			}
+			for _, k := range keys {
+				kb, _, _ := strings.Cut(strings.ToLower(normalizeLocaleTag(k)), "-")
+				if kb == base {
+					addUnique(k)
+				}
+			}
 		}
 	}
-	tryLocales = append(tryLocales, "en", "zh-CN")
+	addUnique("zh-CN")
+	addUnique("en")
 
 	var tmpl string
 	for _, loc := range tryLocales {
 		if m, ok := r.locales[loc]; ok {
-			if s, ok := m[key]; ok {
+			if s, ok := m[key]; ok && s != "" {
 				tmpl = s
 				break
 			}

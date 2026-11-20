@@ -60,32 +60,71 @@ func (l *LocalizedText) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Resolve selects the best localized value with en -> zh-CN -> any fallback.
+func normalizeLocaleTag(locale string) string {
+	return strings.ReplaceAll(strings.TrimSpace(locale), "_", "-")
+}
+
+// IsChineseLocale reports whether locale targets Chinese (e.g. "zh", "zh-CN", "zh-Hans").
+func IsChineseLocale(locale string) bool {
+	norm := strings.ToLower(normalizeLocaleTag(locale))
+	return norm == "zh" || strings.HasPrefix(norm, "zh-")
+}
+
+// Resolve selects the best localized value for locale (exact -> case-insensitive ->
+// same language family -> zh-CN -> en -> deterministic first non-empty key).
 func (l LocalizedText) Resolve(locale string) string {
 	if len(l) == 0 {
 		return ""
 	}
-	if locale != "" {
-		if v, ok := l[locale]; ok && v != "" {
-			return v
-		}
-		if base, _, ok := strings.Cut(locale, "-"); ok {
-			if v, ok := l[base]; ok && v != "" {
-				return v
-			}
-		}
-	}
-	for _, k := range []string{"en", "zh-CN"} {
-		if v, ok := l[k]; ok && v != "" {
-			return v
-		}
-	}
+	norm := normalizeLocaleTag(locale)
 	keys := make([]string, 0, len(l))
 	for k := range l {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	return l[keys[0]]
+
+	if norm != "" {
+		if v, ok := l[norm]; ok && v != "" {
+			return v
+		}
+		for _, k := range keys {
+			if l[k] != "" && strings.EqualFold(normalizeLocaleTag(k), norm) {
+				return l[k]
+			}
+		}
+		base, _, _ := strings.Cut(strings.ToLower(norm), "-")
+		if base != "" {
+			if v, ok := l[base]; ok && v != "" {
+				return v
+			}
+			// Prefer canonical regional variant for base language (e.g. zh -> zh-CN).
+			if base == "zh" {
+				if v, ok := l["zh-CN"]; ok && v != "" {
+					return v
+				}
+			}
+			for _, k := range keys {
+				if l[k] == "" {
+					continue
+				}
+				kb, _, _ := strings.Cut(strings.ToLower(normalizeLocaleTag(k)), "-")
+				if kb == base {
+					return l[k]
+				}
+			}
+		}
+	}
+	for _, k := range []string{"zh-CN", "en"} {
+		if v, ok := l[k]; ok && v != "" {
+			return v
+		}
+	}
+	for _, k := range keys {
+		if l[k] != "" {
+			return l[k]
+		}
+	}
+	return ""
 }
 
 // Manifest models plugin.json for both plugins and themes (docs/design/05 §3).

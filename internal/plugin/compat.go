@@ -545,8 +545,18 @@ type RegistryVersion struct {
 	OptionalDependencies  map[string]string           `json:"optionalDependencies,omitempty"`
 	PublishedAt           string                      `json:"publishedAt,omitempty"`
 	Yanked                bool                        `json:"yanked,omitempty"`
-	Changelog             string                      `json:"changelog,omitempty"`
+	Changelog             LocalizedText               `json:"changelog,omitempty"`
+	ChangelogI18n         LocalizedText               `json:"changelogI18n,omitempty"`
 	Artifacts             map[string]RegistryArtifact `json:"artifacts"`
+}
+
+// ResolveChangelog resolves the best localized release notes for locale, preferring
+// additive changelogI18n maps while staying backward-compatible with plain string changelogs.
+func (v RegistryVersion) ResolveChangelog(locale string) string {
+	if s := v.ChangelogI18n.Resolve(locale); s != "" {
+		return s
+	}
+	return v.Changelog.Resolve(locale)
 }
 
 // RegistryPackage describes one plugin or theme entry in index.v1.json.
@@ -1234,6 +1244,72 @@ func buildCompatReport(issues []CompatIssue) CompatReport {
 		Compatible: false,
 		Status:     issues[0].Code,
 		Issues:     issues,
+	}
+}
+
+// LocalizeCompatIssues returns a localized copy of compatibility issues for the visitor's UI language.
+func LocalizeCompatIssues(issues []CompatIssue, locale string) []CompatIssue {
+	if len(issues) == 0 {
+		return nil
+	}
+	out := make([]CompatIssue, len(issues))
+	copy(out, issues)
+	if !IsChineseLocale(locale) {
+		return out
+	}
+	for i := range out {
+		out[i].Message = localizeCompatMessageZh(out[i].Code, out[i].Message)
+	}
+	return out
+}
+
+func localizeCompatMessageZh(code, msg string) string {
+	switch code {
+	case CompatBlocked:
+		if rest, ok := strings.CutPrefix(msg, "blocked by registry: "); ok {
+			return "已被官方市场安全策略阻断：" + rest
+		}
+		return "已被市场安全策略阻断（" + msg + "）"
+	case CompatYanked:
+		if rest, ok := strings.CutPrefix(msg, "version "); ok {
+			ver := strings.TrimSuffix(rest, " has been yanked")
+			return fmt.Sprintf("版本 %s 已被作者撤回", ver)
+		}
+		return "该版本已被撤回"
+	case CompatIncompatiblePlatform:
+		if rest, ok := strings.CutPrefix(msg, "no artifact available for "); ok {
+			return fmt.Sprintf("暂无适用于当前服务器架构（%s）的安装包", rest)
+		}
+		if msg == "package has no published versions" {
+			return "该扩展包暂无已发布的可用版本"
+		}
+		return "不支持当前宿主机架构（" + msg + "）"
+	case CompatIncompatibleSkinloom:
+		if rest, ok := strings.CutPrefix(msg, "requires SkinLoom "); ok {
+			if req, run, ok2 := strings.Cut(rest, ", running "); ok2 {
+				return fmt.Sprintf("需要 SkinLoom 版本 %s（当前运行版本 %s）", req, run)
+			}
+		}
+		return "与当前 SkinLoom 版本不兼容（" + msg + "）"
+	case CompatIncompatibleGo:
+		if rest, ok := strings.CutPrefix(msg, "requires Go "); ok {
+			if req, run, ok2 := strings.Cut(rest, ", host built with "); ok2 {
+				return fmt.Sprintf("需要 Go 版本 %s（当前宿主编译版本 %s）", req, run)
+			}
+		}
+		return "与当前 Go 工具链版本不兼容（" + msg + "）"
+	case CompatIncompatibleAPI:
+		return "与当前宿主插件 API 版本不兼容（" + msg + "）"
+	case CompatIncompatibleProtocol:
+		return "与当前宿主原生 gRPC 协议版本不兼容（" + msg + "）"
+	case CompatMissingDependency:
+		return "缺少必需的前置依赖插件（" + msg + "）"
+	case CompatConflictDependency:
+		return "依赖插件版本冲突（" + msg + "）"
+	case CompatCyclicDependency:
+		return "检测到循环依赖（" + msg + "）"
+	default:
+		return msg
 	}
 }
 
