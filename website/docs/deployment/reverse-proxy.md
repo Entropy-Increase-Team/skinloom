@@ -14,10 +14,12 @@ sidebar_position: 6
 ```toml
 # data/config.toml，修改即时生效
 [server]
-trusted_proxies = ["127.0.0.1", "::1"]   # 代理在本机；在别的机器上就写它的 IP 或网段
+# 代理与 SkinLoom 同机原生部署时填本机回环；
+# 若 SkinLoom 运行在 Docker 容器中、代理运行在宿主机，容器内看到的是 Docker 网桥网关，需一并加入 172.16.0.0/12
+trusted_proxies = ["127.0.0.1", "::1", "172.16.0.0/12"]
 ```
 
-或环境变量 `SKINLOOM_SERVER__TRUSTED_PROXIES=127.0.0.1,::1`。然后设置站点地址：
+或通过环境变量配置：`SKINLOOM_SERVER__TRUSTED_PROXIES=127.0.0.1,::1,172.16.0.0/12`。若使用 Docker Compose 且代理在本机，建议同时在 `.env` 设置 `SKINLOOM_BIND=127.0.0.1`，避免公网绕过 HTTPS 直连 `17546` 端口。随后设置站点地址：
 
 ```bash
 skinloom settings set site.url '"https://skins.example.com"'
@@ -34,6 +36,11 @@ skins.example.com {
 ## Nginx（宝塔、1Panel 的"反向代理"同理）
 
 ```nginx
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
 server {
     listen 443 ssl;
     http2 on;
@@ -47,9 +54,11 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host $host;
         proxy_http_version 1.1;
-        proxy_buffering off;        # /events 是长连接推送：设置修改后已打开的页面自动刷新
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;  # 支持插件 WebSocket 流代理
+        proxy_buffering off;                              # 支持 /events 及迁移进度等 SSE 长连接推送
         proxy_read_timeout 1h;
-        client_max_body_size 10m;
+        client_max_body_size 160m;                        # 兼容原生 .slp 插件离线包上传（最大 150 MiB）；仅需上传材质时可收紧为 16m
     }
 }
 ```

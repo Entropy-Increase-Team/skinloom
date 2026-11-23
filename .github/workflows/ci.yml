@@ -216,4 +216,9 @@ jobs:
       - name: Compose files are valid
         env:
           DB_PASSWORD: ci
-        run: for f in deploy/compose/*/compose.yaml; do docker compose -f "$f" config --quiet && echo "ok $f"; done
+        run: |
+          for f in deploy/compose/*/compose.yaml; do
+            docker compose -f "$f" config --quiet
+            docker compose -f "$f" -f "${f%.yaml}.build.yaml" config --quiet
+            echo "ok $f"
+          done

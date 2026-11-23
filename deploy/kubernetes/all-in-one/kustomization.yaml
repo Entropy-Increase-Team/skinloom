@@ -18,4 +18,4 @@ resources:
   - ingress.yaml
 images:
   - name: ghcr.io/entropy-increase-team/skinloom
-    newTag: latest # pin a release, e.g. 0.1.0
+    newTag: latest # pin a release, e.g. 1.1.3

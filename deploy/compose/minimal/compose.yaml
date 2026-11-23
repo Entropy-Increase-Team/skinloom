@@ -5,17 +5,15 @@
 #   docker compose logs skinloom | grep setup   # one-time setup link (first start)
 #   → http://localhost:17546
 #
-# Pin a release with SKINLOOM_VERSION=0.1.0 (default: latest release; "edge" = main).
+# Pin a release with SKINLOOM_VERSION=1.1.3 (default: latest release; "edge" = main).
+# Behind a host reverse proxy (Nginx/Caddy/1Panel), set SKINLOOM_BIND=127.0.0.1.
 name: skinloom
 
 services:
   skinloom:
     image: ghcr.io/entropy-increase-team/skinloom:${SKINLOOM_VERSION:-latest}
-    build: # used only when the image cannot be pulled (e.g. before the first release)
-      context: ../../..
-      dockerfile: deploy/docker/all-in-one.Dockerfile
     ports:
-      - "${SKINLOOM_PORT:-17546}:17546"
+      - "${SKINLOOM_BIND:-0.0.0.0}:${SKINLOOM_PORT:-17546}:17546"
     volumes:
       - data:/data
     environment:

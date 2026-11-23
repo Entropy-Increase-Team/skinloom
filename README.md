@@ -44,7 +44,7 @@
 
 ```bash
 mkdir skinloom && cd skinloom
-curl -fsSLO https://raw.githubusercontent.com/Entropy-Increase-Team/skinloom/main/deploy/compose/minimal/compose.yaml
+curl -4 -fsSLO https://raw.githubusercontent.com/Entropy-Increase-Team/skinloom/main/deploy/compose/minimal/compose.yaml
 docker compose up -d
 docker compose logs skinloom | grep setup     # 一次性安装链接
 ```

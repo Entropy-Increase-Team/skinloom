@@ -35,16 +35,18 @@ jobs:
       - name: Build and start
         run: |
           f=deploy/compose/${{ matrix.variant }}/compose.yaml
-          docker compose -f $f build # the :ci images exist only here; the databases are pulled
-          docker compose -f $f up -d
+          b=deploy/compose/${{ matrix.variant }}/compose.build.yaml
+          docker compose -f $f -f $b build # the :ci images exist only here; the databases are pulled
+          docker compose -f $f -f $b up -d
       - name: Smoke test
         run: |
           f=deploy/compose/${{ matrix.variant }}/compose.yaml
-          bash deploy/smoke/smoke.sh http://127.0.0.1:17546 "docker compose -f $f logs"
+          b=deploy/compose/${{ matrix.variant }}/compose.build.yaml
+          bash deploy/smoke/smoke.sh http://127.0.0.1:17546 "docker compose -f $f -f $b logs"
       - name: Logs
         if: failure()
-        run: docker compose -f deploy/compose/${{ matrix.variant }}/compose.yaml logs --tail 200
-      - run: docker compose -f deploy/compose/${{ matrix.variant }}/compose.yaml down -v
+        run: docker compose -f deploy/compose/${{ matrix.variant }}/compose.yaml -f deploy/compose/${{ matrix.variant }}/compose.build.yaml logs --tail 200
+      - run: docker compose -f deploy/compose/${{ matrix.variant }}/compose.yaml -f deploy/compose/${{ matrix.variant }}/compose.build.yaml down -v
         if: always()
 
   helm:

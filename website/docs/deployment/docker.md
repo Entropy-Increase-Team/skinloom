@@ -22,7 +22,7 @@ docker run -d --name skinloom --restart unless-stopped \
   -p 17546:17546 -v skinloom-data:/data \
   ghcr.io/entropy-increase-team/skinloom:latest
 docker logs skinloom 2>&1 | grep setup              # 一次性安装链接
-docker exec skinloom /app/skinloom setup-link       # 或重新生成一个
+docker exec skinloom skinloom setup-link            # 或重新生成一个
 ```
 
 ## 使用外部数据库

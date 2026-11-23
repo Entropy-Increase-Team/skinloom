@@ -34,7 +34,7 @@ helm install skinloom deploy/helm/skinloom -n skinloom --create-namespace   --se
 kubectl -n skinloom logs deploy/skinloom | grep setup   # 一次性安装链接
 ```
 
-默认是单 Pod（`mode=allInOne`）加 SQLite 和 5 Gi 数据卷。还没有发布版本时加 `--set image.tag=edge` 使用主分支的镜像。常用参数（完整列表见 `values.yaml`）：
+默认是单 Pod（`mode=allInOne`）加 SQLite 和 5 Gi 数据卷（如需体验 `main` 分支开发版可加 `--set image.tag=edge`）。常用参数（完整列表见 `values.yaml`）：
 
 | 参数 | 说明 |
 |---|---|

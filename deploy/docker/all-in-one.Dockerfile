@@ -38,7 +38,7 @@ WORKDIR /app
 COPY --from=server /out/skinloom /app/skinloom
 COPY --from=web /src/web/apps/web/.next/standalone /app/web
 COPY --from=web /src/web/apps/web/.next/static /app/web/apps/web/.next/static
-RUN mkdir -p /data && chown node:node /data
+RUN ln -s /app/skinloom /usr/local/bin/skinloom && mkdir -p /data && chown node:node /data
 ENV SKINLOOM_DATA=/data SKINLOOM_WEB__DIR=/app/web NEXT_TELEMETRY_DISABLED=1
 VOLUME ["/data"]
 EXPOSE 17546

@@ -1,0 +1,11 @@
+# Local source build override (used inside a git checkout or deploy-smoke CI):
+#   docker compose -f deploy/compose/standard/compose.yaml -f deploy/compose/standard/compose.build.yaml up -d --build
+services:
+  server:
+    build:
+      context: ../../..
+      dockerfile: deploy/docker/server.Dockerfile
+  web:
+    build:
+      context: ../../..
+      dockerfile: deploy/docker/web.Dockerfile

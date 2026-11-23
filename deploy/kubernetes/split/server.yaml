@@ -1,6 +1,6 @@
 # Backend: API, game protocols and the single public entry point (it proxies page
-# requests to the frontend Service). One replica for now: config, secrets and
-# uploads live on a ReadWriteOnce volume (shared storage arrives with M2/M4).
+# requests to the frontend Service). One replica by default while data lives on a
+# ReadWriteOnce volume; for multi-replica backend use S3 storage or ReadWriteMany.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -77,8 +77,8 @@ spec:
             httpGet: { path: /healthz, port: http }
             periodSeconds: 20
           resources:
-            requests: { cpu: 100m, memory: 128Mi }
-            limits: { memory: 512Mi }
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 1Gi }
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
