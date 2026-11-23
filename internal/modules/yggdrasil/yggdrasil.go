@@ -246,12 +246,12 @@ func (s *Service) SetHooks(b *hook.Bus) { s.hooks = b }
 // keys are the site's Yggdrasil secrets, kept in site_secrets (shared by every
 // instance, backed up with the database).
 type keys struct {
-	gen       uint64
-	signing   *rsa.PrivateKey
+	gen        uint64
+	signing    *rsa.PrivateKey
 	signingPEM string
-	publicPEM string // for the metadata (signaturePublickey)
-	publicDER []byte // for /minecraftservices/publickeys
-	token     []byte // HMAC key of access tokens
+	publicPEM  string // for the metadata (signaturePublickey)
+	publicDER  []byte // for /minecraftservices/publickeys
+	token      []byte // HMAC key of access tokens
 }
 
 const (

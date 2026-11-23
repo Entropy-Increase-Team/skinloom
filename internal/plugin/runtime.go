@@ -168,7 +168,7 @@ type pluginRuntime struct {
 	discoverServices func(svcName string) ([]string, error)
 	patchSettings    func(ctx context.Context, patch map[string]any) (map[string]any, error)
 	onTrip           func(id string, rt *pluginRuntime, err error)
-	closed         atomic.Bool
+	closed           atomic.Bool
 }
 
 func newPluginRuntime(

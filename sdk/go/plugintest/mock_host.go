@@ -73,12 +73,12 @@ type MockHost struct {
 	enforcePerms bool
 	perms        map[string]bool
 
-	SiteName        string
-	SiteURL         string
-	SiteDescription string
-	SiteLocales     []string
-	SitePublic      map[string]any
-	Settings        map[string]any
+	SiteName         string
+	SiteURL          string
+	SiteDescription  string
+	SiteLocales      []string
+	SitePublic       map[string]any
+	Settings         map[string]any
 	Locales          map[string]map[string]string
 	YggdrasilPubKey  string
 	YggdrasilPrivKey string
