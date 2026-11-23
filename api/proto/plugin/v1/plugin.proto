@@ -70,11 +70,14 @@ message HookRegistration {
 }
 
 message RouteRegistration {
-  string method = 1;     // "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "ANY"
-  string pattern = 2;    // e.g. "/status", "/items/:id", "/*"
-  string auth = 3;       // "public" | "user" | "admin" | "superadmin"
+  string method = 1;                   // "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "ANY"
+  string pattern = 2;                  // e.g. "/status", "/items/:id", "/*"
+  string auth = 3;                     // "public" | "user" | "admin" | "superadmin"
   string handler_id = 4;
-  bool stream_proxy = 5; // true to forward via local HTTP/WS ReverseProxy
+  bool stream_proxy = 5;               // true to forward via local HTTP/WS ReverseProxy
+  repeated string forward_headers = 6; // whitelisted request header names to pass to handler
+  bool open_cors = 7;                  // allow cross-origin * (without credentials) + OPTIONS preflight
+  bool webhook_no_csrf = 8;            // public-only: exempt from cookie CSRF guard and strip Viewer
 }
 
 message CronRegistration {
@@ -277,6 +280,7 @@ service HostService {
   rpc Audit(AuditRecordRequest) returns (Empty);
   rpc EmitEvent(EmitEventRequest) returns (Empty);
   rpc CallPluginService(CallPluginServiceRequest) returns (HostOpResponse);
+  rpc DiscoverPluginServices(DiscoverPluginServicesRequest) returns (DiscoverPluginServicesResponse);
   rpc Log(LogRequest) returns (Empty);
   rpc Cache(HostOpRequest) returns (HostOpResponse);
   rpc I18n(HostOpRequest) returns (HostOpResponse);
@@ -358,6 +362,14 @@ message CallPluginServiceRequest {
   string target_plugin_id = 1;
   string service_name = 2;
   bytes args_json = 3;
+}
+
+message DiscoverPluginServicesRequest {
+  string service_name = 1;
+}
+
+message DiscoverPluginServicesResponse {
+  repeated string plugin_ids = 1;
 }
 
 message LogRequest {

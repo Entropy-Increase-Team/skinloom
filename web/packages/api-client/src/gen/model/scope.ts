@@ -10,4 +10,6 @@ export interface Scope {
   /** Only administrators can grant it; others' grants leave it out */
   admin: boolean;
   name: string;
+  /** OpenID Connect / Yggdrasil Connect scope (not for personal access tokens) */
+  oidc?: boolean;
 }

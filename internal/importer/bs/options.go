@@ -332,6 +332,16 @@ func planSettings(d *sourceData, o planOptions, r *Report) map[string]json.RawMe
 	if _, ok := d.Options["ygg_enable_ali"]; ok {
 		m.set("ygg_enable_ali", "yggdrasil.enable_ali", m.bool("ygg_enable_ali"))
 	}
+	if _, ok := d.Options["ygg_disable_authserver"]; ok {
+		m.set("ygg_disable_authserver", "yggdrasil.disable_authserver", m.bool("ygg_disable_authserver"))
+	}
+	if s := m.str("ygg_connect_server_url"); s != "" {
+		r.add(Fixed, "options", 0, "ygg_connect_server_url = %s: SkinLoom serves OIDC / Yggdrasil Connect natively at /.well-known/openid-configuration; the legacy external Janus server is no longer required", short(s))
+	}
+	if pluginEnabled(d.Options["plugins_enabled"], "yggdrasil-connect") {
+		m.set("yggdrasil-connect", "player.keep_uuid_on_rename", true)
+		r.add(Fixed, "options", 0, "player.keep_uuid_on_rename enabled automatically to preserve existing player UUIDs across renames as yggdrasil-connect did")
+	}
 	if s := m.str("ygg_skin_domain"); s != "" {
 		var domains []string
 		for p := range strings.SplitSeq(s, ",") {

@@ -14,11 +14,15 @@ import (
 	"time"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthdevicecode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	entplayer "github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/ent/yggtoken"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/oauth"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 )
@@ -239,17 +243,27 @@ func (s *Service) Authenticate(ctx context.Context, in AuthRequest, p Policy, me
 
 // found is a stored token with its user and bound player.
 type found struct {
-	row    *ent.YggToken
-	user   *ent.User
-	player *ent.Player // nil when unbound
+	row     *ent.YggToken
+	user    *ent.User
+	player  *ent.Player // nil when unbound
+	isOAuth bool
+	scopes  []string
 }
 
 // find looks a token up. refreshable accepts an expired token that can still be
 // refreshed; otherwise it must be valid. Tokens of accounts that are no longer active
-// are never found.
+// are never found. OIDC / Yggdrasil Connect access tokens ("slo_...") with the
+// Yggdrasil.Server.Join scope are natively accepted for non-refreshable operations
+// (sessionserver/join, authserver/validate, texture upload/reset).
 func (s *Service) find(ctx context.Context, token, clientToken string, refreshable bool) (*found, error) {
 	if token == "" {
 		return nil, errInvalidToken
+	}
+	if strings.HasPrefix(token, "slo_") {
+		if refreshable {
+			return nil, errInvalidToken
+		}
+		return s.findOAuthToken(ctx, token)
 	}
 	row, err := s.db.YggToken.Query().Where(yggtoken.TokenHash(hashToken(token))).WithUser().WithPlayer().Only(ctx)
 	if ent.IsNotFound(err) {
@@ -277,6 +291,54 @@ func (s *Service) find(ctx context.Context, token, clientToken string, refreshab
 		f.player = nil // an admin gave the player to someone else: no longer this token's
 	}
 	return f, nil
+}
+
+func (s *Service) findOAuthToken(ctx context.Context, token string) (*found, error) {
+	row, err := s.db.OAuthToken.Query().
+		Where(oauthtoken.TokenHash(hashToken(token)), oauthtoken.KindEQ(oauthtoken.KindOauth)).
+		WithUser().
+		WithClient(func(q *ent.OAuthClientQuery) {
+			q.Select(oauthclient.FieldID, oauthclient.FieldUserID, oauthclient.FieldDynamic).
+				WithOwner(func(q *ent.UserQuery) { q.Select(user.FieldID, user.FieldStatus) })
+		}).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, errInvalidToken
+	}
+	if err != nil {
+		return nil, err
+	}
+	now := s.now()
+	if row.ExpiresAt != nil && !now.Before(*row.ExpiresAt) {
+		return nil, errInvalidToken
+	}
+	if c := row.Edges.Client; row.ClientID != nil && (c == nil || (!c.Dynamic && (c.Edges.Owner == nil || c.Edges.Owner.Status != user.StatusActive))) {
+		return nil, errInvalidToken
+	}
+	switch row.Edges.User.Status {
+	case user.StatusBanned:
+		return nil, errBanned
+	case user.StatusDeleted:
+		return nil, errInvalidToken
+	}
+	if !oauth.HasScope(row.Scopes, oauth.ScopeYggServerJoin) {
+		return nil, errInvalidToken
+	}
+	if row.PlayerID == nil {
+		return nil, errInvalidToken
+	}
+	pl, err := s.db.Player.Query().Where(entplayer.ID(*row.PlayerID), entplayer.UserID(row.UserID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, errInvalidToken
+	}
+	if err != nil {
+		return nil, err
+	}
+	// Yggdrasil Connect #231: invalidate bound access token if the player was renamed
+	// since issuance until the launcher refreshes it via /oauth/token.
+	if row.PlayerNameAtIssue != "" && pl.Name != row.PlayerNameAtIssue {
+		return nil, errInvalidToken
+	}
+	return &found{user: row.Edges.User, player: pl, isOAuth: true, scopes: row.Scopes}, nil
 }
 
 // RefreshRequest is POST /authserver/refresh.
@@ -359,27 +421,80 @@ func (s *Service) Validate(ctx context.Context, token, clientToken string) error
 
 // Invalidate revokes a token; an unknown one is not an error.
 func (s *Service) Invalidate(ctx context.Context, token string) error {
+	if strings.HasPrefix(token, "slo_") {
+		_, err := s.db.OAuthToken.Delete().Where(oauthtoken.TokenHash(hashToken(token))).Exec(ctx)
+		return err
+	}
 	_, err := s.db.YggToken.Delete().Where(yggtoken.TokenHash(hashToken(token))).Exec(ctx)
 	return err
 }
 
-// Signout revokes every token of the account, given its credentials. Blessing Skin
-// revoked nothing when the username was a player name or an email in another case.
+// Signout revokes every launcher token (legacy Yggdrasil and Yggdrasil Connect) of
+// the account, given its credentials. Blessing Skin revoked nothing when the username
+// was a player name or an email in another case.
 func (s *Service) Signout(ctx context.Context, username, password string, meta account.RequestMeta) error {
 	u, _, err := s.checkCredentials(ctx, username, password, meta)
 	if err != nil {
 		return err
 	}
-	_, err = s.db.YggToken.Delete().Where(yggtoken.UserID(u.ID)).Exec(ctx)
+	_, err = s.RevokeAll(ctx, u.ID)
 	return err
 }
 
-// Tokens is how many launcher tokens a user holds (for their profile page).
+// Tokens is how many launcher tokens a user holds (legacy Yggdrasil + Yggdrasil Connect).
 func (s *Service) Tokens(ctx context.Context, userID int64) (int, error) {
-	return s.db.YggToken.Query().Where(yggtoken.UserID(userID), yggtoken.RefreshUntilGT(s.now())).Count(ctx)
+	now := s.now()
+	n, err := s.db.YggToken.Query().Where(yggtoken.UserID(userID), yggtoken.RefreshUntilGT(now)).Count(ctx)
+	if err != nil {
+		return 0, err
+	}
+	oauthRows, err := s.db.OAuthToken.Query().
+		Where(oauthtoken.UserID(userID), oauthtoken.KindEQ(oauthtoken.KindOauth), oauthtoken.RefreshUntilGT(now)).
+		Select(oauthtoken.FieldID, oauthtoken.FieldScopes).All(ctx)
+	if err != nil {
+		return 0, err
+	}
+	for _, row := range oauthRows {
+		if oauth.HasScope(row.Scopes, oauth.ScopeYggServerJoin) {
+			n++
+		}
+	}
+	return n, nil
 }
 
-// RevokeAll signs every launcher of a user out.
+// RevokeAll signs every launcher of a user out (legacy Yggdrasil tokens, Yggdrasil
+// Connect OAuth tokens, and pending device authorizations).
 func (s *Service) RevokeAll(ctx context.Context, userID int64) (int, error) {
-	return s.db.YggToken.Delete().Where(yggtoken.UserID(userID)).Exec(ctx)
+	var total int
+	err := db.WithTx(ctx, s.db, func(tx *ent.Client) error {
+		n, err := tx.YggToken.Delete().Where(yggtoken.UserID(userID)).Exec(ctx)
+		if err != nil {
+			return err
+		}
+		total = n
+		rows, err := tx.OAuthToken.Query().
+			Where(oauthtoken.UserID(userID), oauthtoken.KindEQ(oauthtoken.KindOauth)).
+			Select(oauthtoken.FieldID, oauthtoken.FieldScopes).All(ctx)
+		if err != nil {
+			return err
+		}
+		var ids []int64
+		for _, row := range rows {
+			if oauth.HasScope(row.Scopes, oauth.ScopeYggServerJoin) {
+				ids = append(ids, row.ID)
+			}
+		}
+		if len(ids) > 0 {
+			m, err := tx.OAuthToken.Delete().Where(oauthtoken.IDIn(ids...)).Exec(ctx)
+			if err != nil {
+				return err
+			}
+			total += m
+		}
+		if _, err := tx.OAuthDeviceCode.Delete().Where(oauthdevicecode.UserID(userID)).Exec(ctx); err != nil {
+			return err
+		}
+		return nil
+	})
+	return total, err
 }

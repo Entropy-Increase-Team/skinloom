@@ -10,6 +10,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/authtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthdevicecode"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/session"
@@ -261,6 +262,9 @@ func revokeTokens(ctx context.Context, c *ent.Client, userID int64) error {
 		return err
 	}
 	if _, err := c.OAuthCode.Delete().Where(oauthcode.UserID(userID)).Exec(ctx); err != nil {
+		return err
+	}
+	if _, err := c.OAuthDeviceCode.Delete().Where(oauthdevicecode.UserID(userID)).Exec(ctx); err != nil {
 		return err
 	}
 	_, err := c.OAuthToken.Delete().Where(oauthtoken.UserID(userID)).Exec(ctx)

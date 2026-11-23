@@ -28,6 +28,10 @@ scope?: string;
  */
 state?: string;
 /**
+ * @maxLength 256
+ */
+nonce?: string;
+/**
  * @maxLength 128
  */
 code_challenge?: string;

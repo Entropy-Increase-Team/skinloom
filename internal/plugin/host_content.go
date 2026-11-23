@@ -11,6 +11,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	entplayer "github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
@@ -136,6 +137,62 @@ func (r *pluginRuntime) hostPlayers(ctx context.Context, args []any) (any, error
 		if ent.IsNotFound(err) {
 			return nil, nil
 		}
+		if err != nil {
+			return nil, err
+		}
+		return serializePlayerDTO(p), nil
+
+	case "findByUUID":
+		if err := r.perms.Check(PermPlayersRead); err != nil {
+			return nil, err
+		}
+		rawUUID, _ := argAt(args, 1).(string)
+		p, err := r.players.FindByUUID(ctx, rawUUID)
+		if errors.Is(err, player.ErrNotFound) {
+			return nil, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		return serializePlayerDTO(p), nil
+
+	case "listAll":
+		if err := r.perms.Check(PermPlayersRead); err != nil {
+			return nil, err
+		}
+		afterID := int64(asFloat(argAt(args, 1)))
+		limit := int(asFloat(argAt(args, 2)))
+		if limit <= 0 {
+			limit = 200
+		}
+		if limit > 500 {
+			limit = 500
+		}
+		rows, err := r.players.ListAll(ctx, afterID, limit)
+		if err != nil {
+			return nil, err
+		}
+		items := make([]map[string]any, 0, len(rows))
+		for _, p := range rows {
+			items = append(items, serializePlayerDTO(p))
+		}
+		var nextAfterID int64
+		if len(rows) == limit {
+			nextAfterID = rows[len(rows)-1].ID
+		}
+		return map[string]any{"items": items, "nextAfterId": nextAfterID}, nil
+
+	case "remapUUID":
+		if err := r.perms.Check(PermPlayersUUIDWrite); err != nil {
+			return nil, err
+		}
+		oldUUID, _ := argAt(args, 1).(string)
+		newUUID, _ := argAt(args, 2).(string)
+		rec := (&audit.Entry{
+			Action: "plugin.player.remapUuid",
+			Meta:   map[string]any{"plugin": r.id},
+		}).Target("player", oldUUID)
+		p, err := r.players.RemapUUID(ctx, oldUUID, newUUID, rec)
 		if err != nil {
 			return nil, err
 		}

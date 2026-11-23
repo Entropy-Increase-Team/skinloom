@@ -1010,7 +1010,11 @@
     "pageTitle": "Authorize an application",
     "title": "{app} wants to access your account",
     "by": "by {owner}",
+    "dynamicClient": "Dynamically registered native client (PKCE)",
     "wants": "It will be able to:",
+    "selectPlayer": "Choose a Minecraft character",
+    "noPlayersHint": "You do not have any characters yet. Create a character first, then come back to authorize.",
+    "goCreatePlayer": "Create a character",
     "redirectTo": "You will be sent back to {host}. Only allow applications you trust.",
     "allow": "Allow",
     "deny": "Deny",
@@ -1080,7 +1084,26 @@
       "deleted": "Deleted the token {name}",
       "deleteTitle": "Delete the token {name}?"
     },
+    "device": {
+      "pageTitle": "Authorize a device",
+      "enterCodeHint": "Enter the 8-character code shown on your Minecraft launcher or device to continue.",
+      "codeLabel": "Device code",
+      "continue": "Continue",
+      "useAnotherCode": "Enter another code",
+      "phishingWarning": "Confirm that your device shows code {code}. Only approve if you started this sign-in yourself.",
+      "approvedTitle": "Device authorized",
+      "approvedHint": "You can now return to your launcher or device and safely close this tab.",
+      "deniedTitle": "Authorization denied",
+      "deniedHint": "The device was not granted access to your account. You can close this tab."
+    },
     "scopes": {
+      "openid": "Sign in with your account identity (OpenID Connect)",
+      "profile": "Read your nickname and avatar URL",
+      "email": "Read your email address and verification status",
+      "offline_access": "Stay signed in (issue a refresh token)",
+      "Yggdrasil_PlayerProfiles_Read": "List all of your Minecraft characters",
+      "Yggdrasil_PlayerProfiles_Select": "Pick one Minecraft character for this sign-in",
+      "Yggdrasil_Server_Join": "Join multiplayer Minecraft servers as the selected character (Yggdrasil)",
       "User_Read": "Read your account (nickname, email, score…)",
       "Notification_Read": "Read your notifications and mark them read",
       "Player_Read": "See your players",
@@ -1458,6 +1481,10 @@
       },
       "name_length_max": {
         "label": "Longest player name"
+      },
+      "keep_uuid_on_rename": {
+        "label": "Keep UUID on player rename",
+        "help": "Preserve a player's UUID when renamed even under v3 UUIDs. Recommended for MUA Union and servers keying player data by UUID."
       }
     },
     "delivery": {
@@ -1497,6 +1524,10 @@
       },
       "enable_ali": {
         "label": "Send the API location header"
+      },
+      "disable_authserver": {
+        "label": "Disable legacy Yggdrasil AuthServer",
+        "help": "Disable /api/yggdrasil/authserver/* password sign-in so launchers authenticate via OIDC / Yggdrasil Connect instead."
       }
     },
     "oauth": {
@@ -1505,6 +1536,14 @@
       },
       "refresh_token_ttl_seconds": {
         "label": "Refresh token lifetime (seconds)"
+      },
+      "enable_oidc": {
+        "label": "Enable built-in OIDC / Yggdrasil Connect",
+        "help": "Serve OpenID Connect, Yggdrasil Connect character selection, and Device Authorization Grant natively (zero Janus) and advertise it in /api/yggdrasil metadata."
+      },
+      "enable_dcr": {
+        "label": "Allow launcher dynamic client registration (DCR)",
+        "help": "Allow native launchers to dynamically register public PKCE clients via RFC 7591 (POST /oauth/register, restricted to loopback HTTP or custom app schemes)."
       }
     },
     "seo": {
@@ -2087,7 +2126,9 @@
       "auth_provider": "Register a login / sign-in identity provider.",
       "auth_password": "Register an external password verification algorithm.",
       "provider_storage": "Register a custom texture object storage driver provider.",
-      "native_exec": "Execute as a native OS subprocess outside the WASM sandbox."
+      "native_exec": "Execute as a native OS subprocess outside the WASM sandbox.",
+      "yggdrasil_key_write": "Replace the site's 4096-bit Yggdrasil RSA signing key and invalidate cached signatures.",
+      "players_uuid_write": "Remap a player's UUID and invalidate bound game sessions and tokens."
     },
     "actions": {
       "refresh": "Refresh",

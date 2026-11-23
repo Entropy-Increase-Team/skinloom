@@ -80,6 +80,16 @@ func Name(v string) predicate.OAuthToken {
 	return predicate.OAuthToken(sql.FieldEQ(FieldName, v))
 }
 
+// PlayerID applies equality check predicate on the "player_id" field. It's identical to PlayerIDEQ.
+func PlayerID(v int64) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldEQ(FieldPlayerID, v))
+}
+
+// PlayerNameAtIssue applies equality check predicate on the "player_name_at_issue" field. It's identical to PlayerNameAtIssueEQ.
+func PlayerNameAtIssue(v string) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldEQ(FieldPlayerNameAtIssue, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.OAuthToken {
 	return predicate.OAuthToken(sql.FieldEQ(FieldCreatedAt, v))
@@ -373,6 +383,121 @@ func NameEqualFold(v string) predicate.OAuthToken {
 // NameContainsFold applies the ContainsFold predicate on the "name" field.
 func NameContainsFold(v string) predicate.OAuthToken {
 	return predicate.OAuthToken(sql.FieldContainsFold(FieldName, v))
+}
+
+// PlayerIDEQ applies the EQ predicate on the "player_id" field.
+func PlayerIDEQ(v int64) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldEQ(FieldPlayerID, v))
+}
+
+// PlayerIDNEQ applies the NEQ predicate on the "player_id" field.
+func PlayerIDNEQ(v int64) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldNEQ(FieldPlayerID, v))
+}
+
+// PlayerIDIn applies the In predicate on the "player_id" field.
+func PlayerIDIn(vs ...int64) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldIn(FieldPlayerID, vs...))
+}
+
+// PlayerIDNotIn applies the NotIn predicate on the "player_id" field.
+func PlayerIDNotIn(vs ...int64) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldNotIn(FieldPlayerID, vs...))
+}
+
+// PlayerIDGT applies the GT predicate on the "player_id" field.
+func PlayerIDGT(v int64) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldGT(FieldPlayerID, v))
+}
+
+// PlayerIDGTE applies the GTE predicate on the "player_id" field.
+func PlayerIDGTE(v int64) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldGTE(FieldPlayerID, v))
+}
+
+// PlayerIDLT applies the LT predicate on the "player_id" field.
+func PlayerIDLT(v int64) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldLT(FieldPlayerID, v))
+}
+
+// PlayerIDLTE applies the LTE predicate on the "player_id" field.
+func PlayerIDLTE(v int64) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldLTE(FieldPlayerID, v))
+}
+
+// PlayerIDIsNil applies the IsNil predicate on the "player_id" field.
+func PlayerIDIsNil() predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldIsNull(FieldPlayerID))
+}
+
+// PlayerIDNotNil applies the NotNil predicate on the "player_id" field.
+func PlayerIDNotNil() predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldNotNull(FieldPlayerID))
+}
+
+// PlayerNameAtIssueEQ applies the EQ predicate on the "player_name_at_issue" field.
+func PlayerNameAtIssueEQ(v string) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldEQ(FieldPlayerNameAtIssue, v))
+}
+
+// PlayerNameAtIssueNEQ applies the NEQ predicate on the "player_name_at_issue" field.
+func PlayerNameAtIssueNEQ(v string) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldNEQ(FieldPlayerNameAtIssue, v))
+}
+
+// PlayerNameAtIssueIn applies the In predicate on the "player_name_at_issue" field.
+func PlayerNameAtIssueIn(vs ...string) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldIn(FieldPlayerNameAtIssue, vs...))
+}
+
+// PlayerNameAtIssueNotIn applies the NotIn predicate on the "player_name_at_issue" field.
+func PlayerNameAtIssueNotIn(vs ...string) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldNotIn(FieldPlayerNameAtIssue, vs...))
+}
+
+// PlayerNameAtIssueGT applies the GT predicate on the "player_name_at_issue" field.
+func PlayerNameAtIssueGT(v string) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldGT(FieldPlayerNameAtIssue, v))
+}
+
+// PlayerNameAtIssueGTE applies the GTE predicate on the "player_name_at_issue" field.
+func PlayerNameAtIssueGTE(v string) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldGTE(FieldPlayerNameAtIssue, v))
+}
+
+// PlayerNameAtIssueLT applies the LT predicate on the "player_name_at_issue" field.
+func PlayerNameAtIssueLT(v string) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldLT(FieldPlayerNameAtIssue, v))
+}
+
+// PlayerNameAtIssueLTE applies the LTE predicate on the "player_name_at_issue" field.
+func PlayerNameAtIssueLTE(v string) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldLTE(FieldPlayerNameAtIssue, v))
+}
+
+// PlayerNameAtIssueContains applies the Contains predicate on the "player_name_at_issue" field.
+func PlayerNameAtIssueContains(v string) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldContains(FieldPlayerNameAtIssue, v))
+}
+
+// PlayerNameAtIssueHasPrefix applies the HasPrefix predicate on the "player_name_at_issue" field.
+func PlayerNameAtIssueHasPrefix(v string) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldHasPrefix(FieldPlayerNameAtIssue, v))
+}
+
+// PlayerNameAtIssueHasSuffix applies the HasSuffix predicate on the "player_name_at_issue" field.
+func PlayerNameAtIssueHasSuffix(v string) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldHasSuffix(FieldPlayerNameAtIssue, v))
+}
+
+// PlayerNameAtIssueEqualFold applies the EqualFold predicate on the "player_name_at_issue" field.
+func PlayerNameAtIssueEqualFold(v string) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldEqualFold(FieldPlayerNameAtIssue, v))
+}
+
+// PlayerNameAtIssueContainsFold applies the ContainsFold predicate on the "player_name_at_issue" field.
+func PlayerNameAtIssueContainsFold(v string) predicate.OAuthToken {
+	return predicate.OAuthToken(sql.FieldContainsFold(FieldPlayerNameAtIssue, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

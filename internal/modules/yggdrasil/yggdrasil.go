@@ -56,12 +56,13 @@ var (
 
 // Policy is what the Yggdrasil API needs from the settings.
 type Policy struct {
-	TokenValid    time.Duration // a new token is valid this long
-	TokenRefresh  time.Duration // and can be refreshed for this long (also how long it is kept)
-	TokensPerUser int           // older tokens are revoked beyond this
-	SearchMax     int           // names per bulk profile lookup
-	SkinDomains   []string      // extra domains textures may come from
-	EnableALI     bool          // send X-Authlib-Injector-API-Location
+	TokenValid        time.Duration // a new token is valid this long
+	TokenRefresh      time.Duration // and can be refreshed for this long (also how long it is kept)
+	TokensPerUser     int           // older tokens are revoked beyond this
+	SearchMax         int           // names per bulk profile lookup
+	SkinDomains       []string      // extra domains textures may come from
+	EnableALI         bool          // send X-Authlib-Injector-API-Location
+	DisableAuthServer bool          // disable legacy /authserver/* endpoints
 	// RequireVerified: only accounts with a verified email sign in (account.VerificationRequired).
 	RequireVerified bool
 }
@@ -81,17 +82,20 @@ func SettingDefs() []settings.Def {
 			Doc: "Extra domains textures are served from, comma-separated (the site and storage.public_url are always listed). (BS ygg_skin_domain)"},
 		{Key: "yggdrasil.enable_ali", Type: settings.TypeBool, Default: true,
 			Doc: "Send X-Authlib-Injector-API-Location on every page, so launchers find the API from the site address alone. (BS ygg_enable_ali)"},
+		{Key: "yggdrasil.disable_authserver", Type: settings.TypeBool, Public: true, Default: false,
+			Doc: "Disable legacy /authserver/* endpoints so launchers authenticate via OIDC / Yggdrasil Connect instead."},
 	}
 }
 
 // PolicyFrom reads the policy from a settings snapshot.
 func PolicyFrom(s *settings.Snapshot) Policy {
 	p := Policy{
-		TokenValid:    time.Duration(settings.Decode[int64](s, "yggdrasil.token_valid_seconds")) * time.Second,
-		TokenRefresh:  time.Duration(settings.Decode[int64](s, "yggdrasil.token_refresh_seconds")) * time.Second,
-		TokensPerUser: settings.Decode[int](s, "yggdrasil.tokens_per_user"),
-		SearchMax:     settings.Decode[int](s, "yggdrasil.search_profile_max"),
-		EnableALI:     settings.Decode[bool](s, "yggdrasil.enable_ali"),
+		TokenValid:        time.Duration(settings.Decode[int64](s, "yggdrasil.token_valid_seconds")) * time.Second,
+		TokenRefresh:      time.Duration(settings.Decode[int64](s, "yggdrasil.token_refresh_seconds")) * time.Second,
+		TokensPerUser:     settings.Decode[int](s, "yggdrasil.tokens_per_user"),
+		SearchMax:         settings.Decode[int](s, "yggdrasil.search_profile_max"),
+		EnableALI:         settings.Decode[bool](s, "yggdrasil.enable_ali"),
+		DisableAuthServer: settings.Decode[bool](s, "yggdrasil.disable_authserver"),
 
 		RequireVerified: account.VerificationRequired(s),
 	}
@@ -121,8 +125,9 @@ type Service struct {
 	keyMu sync.Mutex
 	key   *keys
 
-	sigMu sync.Mutex
-	sigs  map[string]string // signed property value → signature
+	sigMu  sync.Mutex
+	keyGen uint64
+	sigs   map[string]string // signed property value → signature
 
 	metaMu sync.RWMutex
 	metas  []metaContributorEntry
@@ -241,7 +246,9 @@ func (s *Service) SetHooks(b *hook.Bus) { s.hooks = b }
 // keys are the site's Yggdrasil secrets, kept in site_secrets (shared by every
 // instance, backed up with the database).
 type keys struct {
+	gen       uint64
 	signing   *rsa.PrivateKey
+	signingPEM string
 	publicPEM string // for the metadata (signaturePublickey)
 	publicDER []byte // for /minecraftservices/publickeys
 	token     []byte // HMAC key of access tokens
@@ -282,17 +289,9 @@ func (s *Service) keys(ctx context.Context) (*keys, error) {
 	if err != nil {
 		return nil, err
 	}
-	block, _ := pem.Decode([]byte(signingPEM))
-	if block == nil {
-		return nil, errors.New("yggdrasil signing key: not PEM")
-	}
-	parsed, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	signing, err := parseRSAPrivateKeyPEM(signingPEM)
 	if err != nil {
 		return nil, fmt.Errorf("yggdrasil signing key: %w", err)
-	}
-	signing, ok := parsed.(*rsa.PrivateKey)
-	if !ok {
-		return nil, errors.New("yggdrasil signing key: not RSA")
 	}
 	pub, err := x509.MarshalPKIXPublicKey(&signing.PublicKey)
 	if err != nil {
@@ -302,9 +301,105 @@ func (s *Service) keys(ctx context.Context) (*keys, error) {
 	if err != nil {
 		return nil, fmt.Errorf("yggdrasil token secret: %w", err)
 	}
-	s.key = &keys{signing: signing, publicDER: pub, token: token,
+	s.sigMu.Lock()
+	gen := s.keyGen
+	s.sigMu.Unlock()
+	s.key = &keys{gen: gen, signing: signing, signingPEM: signingPEM, publicDER: pub, token: token,
 		publicPEM: string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pub}))}
 	return s.key, nil
+}
+
+func parseRSAPrivateKeyPEM(pemText string) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode([]byte(strings.TrimSpace(pemText)))
+	if block == nil {
+		return nil, errors.New("not PEM")
+	}
+	if parsed, err := x509.ParsePKCS8PrivateKey(block.Bytes); err == nil {
+		rk, ok := parsed.(*rsa.PrivateKey)
+		if !ok {
+			return nil, errors.New("not RSA")
+		}
+		return rk, nil
+	}
+	if rk, err := x509.ParsePKCS1PrivateKey(block.Bytes); err == nil {
+		return rk, nil
+	}
+	return nil, errors.New("unsupported RSA private key format (expected PKCS#8 or PKCS#1)")
+}
+
+// InvalidateKeys clears the cached signing key and property signature cache so the
+// next request reloads the active key from site_secrets (used on key rotation and
+// cluster config_version reload).
+func (s *Service) InvalidateKeys() {
+	s.keyMu.Lock()
+	s.sigMu.Lock()
+	s.keyGen++
+	s.key = nil
+	clear(s.sigs)
+	s.sigMu.Unlock()
+	s.keyMu.Unlock()
+}
+
+// RefreshSigningKeyIfChanged checks site_secrets and only invalidates the cached
+// signing key and 4096-bit signature cache when the stored PEM actually changed.
+func (s *Service) RefreshSigningKeyIfChanged(ctx context.Context) {
+	s.keyMu.Lock()
+	cur := s.key
+	s.keyMu.Unlock()
+	if cur == nil {
+		return
+	}
+	row, err := s.db.SiteSecret.Get(ctx, signingKeyName)
+	if err != nil {
+		return
+	}
+	if row.Value != cur.signingPEM {
+		s.InvalidateKeys()
+	}
+}
+
+// SetSigningKey replaces the site's Yggdrasil RSA signing key in site_secrets and
+// clears cached keys and signatures. The supplied key must be a valid PKCS#1 or PKCS#8
+// RSA private key of 4096..8192 bits.
+func (s *Service) SetSigningKey(ctx context.Context, pemText string) error {
+	if len(pemText) > 64*1024 {
+		return errors.New("yggdrasil signing key: PEM payload too large")
+	}
+	rk, err := parseRSAPrivateKeyPEM(pemText)
+	if err != nil {
+		return fmt.Errorf("yggdrasil signing key: %w", err)
+	}
+	if rk.N.BitLen() < 4096 {
+		return fmt.Errorf("yggdrasil signing key: key size %d bits is below minimum 4096 bits", rk.N.BitLen())
+	}
+	if rk.N.BitLen() > 8192 {
+		return fmt.Errorf("yggdrasil signing key: key size %d bits exceeds maximum 8192 bits", rk.N.BitLen())
+	}
+	if err := rk.Validate(); err != nil {
+		return fmt.Errorf("yggdrasil signing key: invalid RSA key: %w", err)
+	}
+	der, err := x509.MarshalPKCS8PrivateKey(rk)
+	if err != nil {
+		return fmt.Errorf("yggdrasil signing key: marshal PKCS#8: %w", err)
+	}
+	canonicalPEM := string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der}))
+	s.keyMu.Lock()
+	defer s.keyMu.Unlock()
+	err = s.db.SiteSecret.Create().
+		SetID(signingKeyName).
+		SetValue(canonicalPEM).
+		OnConflictColumns(sitesecret.FieldID).
+		UpdateValue().
+		Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("yggdrasil signing key: store secret: %w", err)
+	}
+	s.sigMu.Lock()
+	s.keyGen++
+	s.key = nil
+	clear(s.sigs)
+	s.sigMu.Unlock()
+	return nil
 }
 
 func (s *Service) secret(ctx context.Context, name string, generate func() (string, error)) (string, error) {

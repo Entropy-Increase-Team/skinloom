@@ -44,6 +44,9 @@ import type {
   DBConfigInput,
   Dashboard,
   DeleteMeInputBody,
+  DeviceApproveInputBody,
+  DeviceApproveResult,
+  DeviceCodeInfo,
   ErrorModel,
   ExecuteRestoreInput,
   ExternalAuthVerifyInputBody,
@@ -66,6 +69,7 @@ import type {
   ListTexturesParams,
   ListUsersParams,
   LoginInputBody,
+  LookupDeviceCodeParams,
   MailTestInputBody,
   MarkedRead,
   MarketInspectRequest,
@@ -4957,6 +4961,113 @@ return apiFetch<authorizeResponse>(getAuthorizeUrl(),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(approveInputBody)
+  }
+);}
+
+
+
+export type lookupDeviceCodeResponse200 = {
+  data: DeviceCodeInfo
+  status: 200
+}
+
+export type lookupDeviceCodeResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type lookupDeviceCodeResponseSuccess = (lookupDeviceCodeResponse200) & {
+  headers: Headers;
+};
+export type lookupDeviceCodeResponseError = (lookupDeviceCodeResponseDefault) & {
+  headers: Headers;
+};
+
+export type lookupDeviceCodeResponse = (lookupDeviceCodeResponseSuccess | lookupDeviceCodeResponseError)
+
+export const getLookupDeviceCodeUrl = (params?: LookupDeviceCodeParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/oauth/device?${stringifiedParams}` : `/api/v1/oauth/device`
+}
+
+/**
+ * @summary Look up an RFC 8628 device authorization user_code
+ */
+export const lookupDeviceCode = async (params?: LookupDeviceCodeParams, options?: Parameters<typeof apiFetch>[1]): Promise<lookupDeviceCodeResponse> => {
+
+  return apiFetch<lookupDeviceCodeResponse>(getLookupDeviceCodeUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type approveDeviceCodeResponse200 = {
+  data: DeviceApproveResult
+  status: 200
+}
+
+export type approveDeviceCodeResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type approveDeviceCodeResponseSuccess = (approveDeviceCodeResponse200) & {
+  headers: Headers;
+};
+export type approveDeviceCodeResponseError = (approveDeviceCodeResponseDefault) & {
+  headers: Headers;
+};
+
+export type approveDeviceCodeResponse = (approveDeviceCodeResponseSuccess | approveDeviceCodeResponseError)
+
+export const getApproveDeviceCodeUrl = () => {
+
+
+
+
+  return `/api/v1/oauth/device`
+}
+
+/**
+ * @summary Approve or deny an RFC 8628 device authorization
+ */
+export const approveDeviceCode = async (deviceApproveInputBody: NonReadonly<DeviceApproveInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<approveDeviceCodeResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<approveDeviceCodeResponse>(getApproveDeviceCodeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(deviceApproveInputBody)
   }
 );}
 

@@ -243,6 +243,15 @@ func OpenCoreWithOptions(ctx context.Context, p Paths, opts CoreOptions) (*Core,
 	c.Settings = settings.NewService(opts.SettingsReg, client, c.Broker, c.Bus, log.With("component", "settings"))
 	c.Settings.SetOnReload(func() {
 		c.Themes.Reload()
+		if c.Yggdrasil != nil && c.bgCtx.Err() == nil {
+			c.bgWg.Add(1)
+			go func() {
+				defer c.bgWg.Done()
+				checkCtx, cancel := context.WithTimeout(c.bgCtx, 5*time.Second)
+				defer cancel()
+				c.Yggdrasil.RefreshSigningKeyIfChanged(checkCtx)
+			}()
+		}
 		if c.Plugins != nil && c.bgCtx.Err() == nil {
 			c.bgWg.Add(1)
 			go func() {

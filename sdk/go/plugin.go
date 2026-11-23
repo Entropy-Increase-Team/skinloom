@@ -407,20 +407,23 @@ func (s *Server) addEvent(name string, order int, fn EventFunc) {
 	})
 }
 
-func (s *Server) addHTTPRoute(method, pattern, auth string, fn HTTPHandler) {
+func (s *Server) addHTTPRoute(method, pattern string, cfg routeConfig, fn HTTPHandler) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	id := s.nextID("http")
 	s.httpHandlers[id] = fn
 	s.routeRegs = append(s.routeRegs, &pluginv1.RouteRegistration{
-		Method:    strings.ToUpper(strings.TrimSpace(method)),
-		Pattern:   normalizePattern(pattern),
-		Auth:      auth,
-		HandlerId: id,
+		Method:         strings.ToUpper(strings.TrimSpace(method)),
+		Pattern:        normalizePattern(pattern),
+		Auth:           cfg.auth,
+		HandlerId:      id,
+		ForwardHeaders: append([]string(nil), cfg.forwardHeaders...),
+		OpenCors:       cfg.openCORS,
+		WebhookNoCsrf:  cfg.webhookNoCSRF,
 	})
 }
 
-func (s *Server) addStreamRoute(method, pattern, auth string, handler http.Handler) {
+func (s *Server) addStreamRoute(method, pattern string, cfg routeConfig, handler http.Handler) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	normMethod := strings.ToUpper(strings.TrimSpace(method))
@@ -429,10 +432,13 @@ func (s *Server) addStreamRoute(method, pattern, auth string, handler http.Handl
 	}
 	normPattern := normalizePattern(pattern)
 	s.routeRegs = append(s.routeRegs, &pluginv1.RouteRegistration{
-		Method:      normMethod,
-		Pattern:     normPattern,
-		Auth:        auth,
-		StreamProxy: true,
+		Method:         normMethod,
+		Pattern:        normPattern,
+		Auth:           cfg.auth,
+		StreamProxy:    true,
+		ForwardHeaders: append([]string(nil), cfg.forwardHeaders...),
+		OpenCors:       cfg.openCORS,
+		WebhookNoCsrf:  cfg.webhookNoCSRF,
 	})
 	if handler != nil {
 		s.streamRoutes = append(s.streamRoutes, streamRouteEntry{

@@ -85,6 +85,21 @@ func CodeChallengeMethod(v string) predicate.OAuthCode {
 	return predicate.OAuthCode(sql.FieldEQ(FieldCodeChallengeMethod, v))
 }
 
+// Nonce applies equality check predicate on the "nonce" field. It's identical to NonceEQ.
+func Nonce(v string) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldEQ(FieldNonce, v))
+}
+
+// PlayerID applies equality check predicate on the "player_id" field. It's identical to PlayerIDEQ.
+func PlayerID(v int64) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldEQ(FieldPlayerID, v))
+}
+
+// AuthTime applies equality check predicate on the "auth_time" field. It's identical to AuthTimeEQ.
+func AuthTime(v time.Time) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldEQ(FieldAuthTime, v))
+}
+
 // ExpiresAt applies equality check predicate on the "expires_at" field. It's identical to ExpiresAtEQ.
 func ExpiresAt(v time.Time) predicate.OAuthCode {
 	return predicate.OAuthCode(sql.FieldEQ(FieldExpiresAt, v))
@@ -388,6 +403,171 @@ func CodeChallengeMethodEqualFold(v string) predicate.OAuthCode {
 // CodeChallengeMethodContainsFold applies the ContainsFold predicate on the "code_challenge_method" field.
 func CodeChallengeMethodContainsFold(v string) predicate.OAuthCode {
 	return predicate.OAuthCode(sql.FieldContainsFold(FieldCodeChallengeMethod, v))
+}
+
+// NonceEQ applies the EQ predicate on the "nonce" field.
+func NonceEQ(v string) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldEQ(FieldNonce, v))
+}
+
+// NonceNEQ applies the NEQ predicate on the "nonce" field.
+func NonceNEQ(v string) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldNEQ(FieldNonce, v))
+}
+
+// NonceIn applies the In predicate on the "nonce" field.
+func NonceIn(vs ...string) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldIn(FieldNonce, vs...))
+}
+
+// NonceNotIn applies the NotIn predicate on the "nonce" field.
+func NonceNotIn(vs ...string) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldNotIn(FieldNonce, vs...))
+}
+
+// NonceGT applies the GT predicate on the "nonce" field.
+func NonceGT(v string) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldGT(FieldNonce, v))
+}
+
+// NonceGTE applies the GTE predicate on the "nonce" field.
+func NonceGTE(v string) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldGTE(FieldNonce, v))
+}
+
+// NonceLT applies the LT predicate on the "nonce" field.
+func NonceLT(v string) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldLT(FieldNonce, v))
+}
+
+// NonceLTE applies the LTE predicate on the "nonce" field.
+func NonceLTE(v string) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldLTE(FieldNonce, v))
+}
+
+// NonceContains applies the Contains predicate on the "nonce" field.
+func NonceContains(v string) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldContains(FieldNonce, v))
+}
+
+// NonceHasPrefix applies the HasPrefix predicate on the "nonce" field.
+func NonceHasPrefix(v string) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldHasPrefix(FieldNonce, v))
+}
+
+// NonceHasSuffix applies the HasSuffix predicate on the "nonce" field.
+func NonceHasSuffix(v string) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldHasSuffix(FieldNonce, v))
+}
+
+// NonceEqualFold applies the EqualFold predicate on the "nonce" field.
+func NonceEqualFold(v string) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldEqualFold(FieldNonce, v))
+}
+
+// NonceContainsFold applies the ContainsFold predicate on the "nonce" field.
+func NonceContainsFold(v string) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldContainsFold(FieldNonce, v))
+}
+
+// PlayerIDEQ applies the EQ predicate on the "player_id" field.
+func PlayerIDEQ(v int64) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldEQ(FieldPlayerID, v))
+}
+
+// PlayerIDNEQ applies the NEQ predicate on the "player_id" field.
+func PlayerIDNEQ(v int64) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldNEQ(FieldPlayerID, v))
+}
+
+// PlayerIDIn applies the In predicate on the "player_id" field.
+func PlayerIDIn(vs ...int64) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldIn(FieldPlayerID, vs...))
+}
+
+// PlayerIDNotIn applies the NotIn predicate on the "player_id" field.
+func PlayerIDNotIn(vs ...int64) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldNotIn(FieldPlayerID, vs...))
+}
+
+// PlayerIDGT applies the GT predicate on the "player_id" field.
+func PlayerIDGT(v int64) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldGT(FieldPlayerID, v))
+}
+
+// PlayerIDGTE applies the GTE predicate on the "player_id" field.
+func PlayerIDGTE(v int64) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldGTE(FieldPlayerID, v))
+}
+
+// PlayerIDLT applies the LT predicate on the "player_id" field.
+func PlayerIDLT(v int64) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldLT(FieldPlayerID, v))
+}
+
+// PlayerIDLTE applies the LTE predicate on the "player_id" field.
+func PlayerIDLTE(v int64) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldLTE(FieldPlayerID, v))
+}
+
+// PlayerIDIsNil applies the IsNil predicate on the "player_id" field.
+func PlayerIDIsNil() predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldIsNull(FieldPlayerID))
+}
+
+// PlayerIDNotNil applies the NotNil predicate on the "player_id" field.
+func PlayerIDNotNil() predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldNotNull(FieldPlayerID))
+}
+
+// AuthTimeEQ applies the EQ predicate on the "auth_time" field.
+func AuthTimeEQ(v time.Time) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldEQ(FieldAuthTime, v))
+}
+
+// AuthTimeNEQ applies the NEQ predicate on the "auth_time" field.
+func AuthTimeNEQ(v time.Time) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldNEQ(FieldAuthTime, v))
+}
+
+// AuthTimeIn applies the In predicate on the "auth_time" field.
+func AuthTimeIn(vs ...time.Time) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldIn(FieldAuthTime, vs...))
+}
+
+// AuthTimeNotIn applies the NotIn predicate on the "auth_time" field.
+func AuthTimeNotIn(vs ...time.Time) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldNotIn(FieldAuthTime, vs...))
+}
+
+// AuthTimeGT applies the GT predicate on the "auth_time" field.
+func AuthTimeGT(v time.Time) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldGT(FieldAuthTime, v))
+}
+
+// AuthTimeGTE applies the GTE predicate on the "auth_time" field.
+func AuthTimeGTE(v time.Time) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldGTE(FieldAuthTime, v))
+}
+
+// AuthTimeLT applies the LT predicate on the "auth_time" field.
+func AuthTimeLT(v time.Time) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldLT(FieldAuthTime, v))
+}
+
+// AuthTimeLTE applies the LTE predicate on the "auth_time" field.
+func AuthTimeLTE(v time.Time) predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldLTE(FieldAuthTime, v))
+}
+
+// AuthTimeIsNil applies the IsNil predicate on the "auth_time" field.
+func AuthTimeIsNil() predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldIsNull(FieldAuthTime))
+}
+
+// AuthTimeNotNil applies the NotNil predicate on the "auth_time" field.
+func AuthTimeNotNil() predicate.OAuthCode {
+	return predicate.OAuthCode(sql.FieldNotNull(FieldAuthTime))
 }
 
 // ExpiresAtEQ applies the EQ predicate on the "expires_at" field.

@@ -32,6 +32,8 @@ type Tx struct {
 	OAuthClient *OAuthClientClient
 	// OAuthCode is the client for interacting with the OAuthCode builders.
 	OAuthCode *OAuthCodeClient
+	// OAuthDeviceCode is the client for interacting with the OAuthDeviceCode builders.
+	OAuthDeviceCode *OAuthDeviceCodeClient
 	// OAuthGrant is the client for interacting with the OAuthGrant builders.
 	OAuthGrant *OAuthGrantClient
 	// OAuthToken is the client for interacting with the OAuthToken builders.
@@ -208,6 +210,7 @@ func (tx *Tx) init() {
 	tx.Notification = NewNotificationClient(tx.config)
 	tx.OAuthClient = NewOAuthClientClient(tx.config)
 	tx.OAuthCode = NewOAuthCodeClient(tx.config)
+	tx.OAuthDeviceCode = NewOAuthDeviceCodeClient(tx.config)
 	tx.OAuthGrant = NewOAuthGrantClient(tx.config)
 	tx.OAuthToken = NewOAuthTokenClient(tx.config)
 	tx.Player = NewPlayerClient(tx.config)

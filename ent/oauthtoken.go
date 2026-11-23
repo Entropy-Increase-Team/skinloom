@@ -34,6 +34,10 @@ type OAuthToken struct {
 	Name string `json:"name,omitempty"`
 	// Scopes holds the value of the "scopes" field.
 	Scopes []string `json:"scopes,omitempty"`
+	// PlayerID holds the value of the "player_id" field.
+	PlayerID *int64 `json:"player_id,omitempty"`
+	// PlayerNameAtIssue holds the value of the "player_name_at_issue" field.
+	PlayerNameAtIssue string `json:"player_name_at_issue,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// ExpiresAt holds the value of the "expires_at" field.
@@ -88,9 +92,9 @@ func (*OAuthToken) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case oauthtoken.FieldScopes:
 			values[i] = new([]byte)
-		case oauthtoken.FieldID, oauthtoken.FieldUserID, oauthtoken.FieldClientID:
+		case oauthtoken.FieldID, oauthtoken.FieldUserID, oauthtoken.FieldClientID, oauthtoken.FieldPlayerID:
 			values[i] = new(sql.NullInt64)
-		case oauthtoken.FieldKind, oauthtoken.FieldTokenHash, oauthtoken.FieldRefreshHash, oauthtoken.FieldName:
+		case oauthtoken.FieldKind, oauthtoken.FieldTokenHash, oauthtoken.FieldRefreshHash, oauthtoken.FieldName, oauthtoken.FieldPlayerNameAtIssue:
 			values[i] = new(sql.NullString)
 		case oauthtoken.FieldCreatedAt, oauthtoken.FieldExpiresAt, oauthtoken.FieldRefreshUntil, oauthtoken.FieldLastUsedAt:
 			values[i] = new(sql.NullTime)
@@ -160,6 +164,19 @@ func (_m *OAuthToken) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &_m.Scopes); err != nil {
 					return fmt.Errorf("unmarshal field scopes: %w", err)
 				}
+			}
+		case oauthtoken.FieldPlayerID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field player_id", values[i])
+			} else if value.Valid {
+				_m.PlayerID = new(int64)
+				*_m.PlayerID = value.Int64
+			}
+		case oauthtoken.FieldPlayerNameAtIssue:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field player_name_at_issue", values[i])
+			} else if value.Valid {
+				_m.PlayerNameAtIssue = value.String
 			}
 		case oauthtoken.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -254,6 +271,14 @@ func (_m *OAuthToken) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("scopes=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Scopes))
+	builder.WriteString(", ")
+	if v := _m.PlayerID; v != nil {
+		builder.WriteString("player_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("player_name_at_issue=")
+	builder.WriteString(_m.PlayerNameAtIssue)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

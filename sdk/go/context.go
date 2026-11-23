@@ -180,6 +180,17 @@ func NoContent() *HTTPResponse {
 	return &HTTPResponse{Status: http.StatusNoContent}
 }
 
+// Redirect creates a 3xx redirect HTTPResponse.
+func Redirect(status int, location string) *HTTPResponse {
+	if status < 300 || status >= 400 {
+		status = http.StatusFound
+	}
+	return &HTTPResponse{
+		Status:  status,
+		Headers: map[string]string{"Location": location},
+	}
+}
+
 // ExternalUserInfo is returned by an external auth provider callback.
 type ExternalUserInfo struct {
 	Subject       string `json:"subject"`
@@ -227,12 +238,38 @@ func WithOrder(order int) HookOption {
 type RouteOption func(*routeConfig)
 
 type routeConfig struct {
-	auth string
+	auth           string
+	forwardHeaders []string
+	openCORS       bool
+	webhookNoCSRF  bool
 }
 
 // WithAuth restricts a plugin HTTP route to "public", "user", "admin", or "superadmin".
 func WithAuth(level string) RouteOption {
 	return func(c *routeConfig) { c.auth = level }
+}
+
+// WithForwardHeaders whitelists specific incoming HTTP request header names that
+// SkinLoom should pass through into HTTPRequest.Headers (lowercase keys).
+// Sensitive host headers (Cookie, X-SkinLoom-*, and host AdminToken Authorization)
+// are always stripped by the host.
+func WithForwardHeaders(names ...string) RouteOption {
+	return func(c *routeConfig) {
+		c.forwardHeaders = append(c.forwardHeaders, names...)
+	}
+}
+
+// WithOpenCORS asks the host to emit Access-Control-Allow-Origin: * (without
+// credentials) and answer OPTIONS preflight requests for this route.
+func WithOpenCORS() RouteOption {
+	return func(c *routeConfig) { c.openCORS = true }
+}
+
+// WithWebhookNoCSRF marks a public route as an external machine webhook: the host
+// exempts it from the browser cookie CSRF header check and strips Viewer before
+// invoking the handler. Only valid when Auth is AuthPublic.
+func WithWebhookNoCSRF() RouteOption {
+	return func(c *routeConfig) { c.webhookNoCSRF = true }
 }
 
 // Context is handed to Plugin.Setup and exposes both registration APIs and
@@ -422,7 +459,7 @@ func (a *HTTPAPI) Route(method, pattern string, fn HTTPHandler, opts ...RouteOpt
 	for _, opt := range opts {
 		opt(&cfg)
 	}
-	a.ctx.srv.addHTTPRoute(method, pattern, cfg.auth, fn)
+	a.ctx.srv.addHTTPRoute(method, pattern, cfg, fn)
 }
 
 func (a *HTTPAPI) Get(pattern string, fn HTTPHandler, opts ...RouteOption) {
@@ -452,7 +489,7 @@ func (a *HTTPAPI) Stream(method, pattern string, handler http.Handler, opts ...R
 	for _, opt := range opts {
 		opt(&cfg)
 	}
-	a.ctx.srv.addStreamRoute(method, pattern, cfg.auth, handler)
+	a.ctx.srv.addStreamRoute(method, pattern, cfg, handler)
 }
 
 // StreamFunc is a convenience wrapper around Stream taking an http.HandlerFunc.
@@ -498,6 +535,21 @@ func (a *ServicesAPI) Call(ctx context.Context, targetPluginID, serviceName stri
 		return nil, err
 	}
 	return json.RawMessage(resp.GetResultJson()), nil
+}
+
+// Discover lists active plugin IDs exposing serviceName that share a declared
+// dependency relationship with this plugin (either direction).
+func (a *ServicesAPI) Discover(ctx context.Context, serviceName string) ([]string, error) {
+	if a.ctx.host == nil {
+		return nil, errors.New("host service unavailable")
+	}
+	resp, err := a.ctx.host.DiscoverPluginServices(ctx, &pluginv1.DiscoverPluginServicesRequest{
+		ServiceName: serviceName,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return append([]string(nil), resp.GetPluginIds()...), nil
 }
 
 // AuthAPI registers external authentication providers and custom password hash verifiers.
@@ -569,6 +621,15 @@ func (a *YggdrasilAPI) LookupProfile(ctx context.Context, uuid, baseURL string) 
 	return out, nil
 }
 
+// SetSigningKey replaces the site's Yggdrasil RSA signing key (>= 4096 bits,
+// PKCS#1 or PKCS#8 PEM). Requires the high-risk "yggdrasil.key.write" permission.
+func (a *YggdrasilAPI) SetSigningKey(ctx context.Context, pemText string) error {
+	if a.ctx == nil || a.ctx.host == nil {
+		return errors.New("host service unavailable")
+	}
+	return callHostOp(ctx, a.ctx.host.Yggdrasil, "setSigningKey", []any{pemText}, nil)
+}
+
 // SettingsAPI accesses current plugin settings and subscribes to hot updates.
 type SettingsAPI struct{ ctx *Context }
 
@@ -631,6 +692,37 @@ func (a *SettingsAPI) OnChange(fn func(ctx context.Context, settings map[string]
 	a.ctx.settingsMu.Lock()
 	a.ctx.settingsOnChange = append(a.ctx.settingsOnChange, fn)
 	a.ctx.settingsMu.Unlock()
+}
+
+// Patch validates and persists a partial update to this plugin's own declared
+// manifest settings in the host database (preserving omitted secret fields) and
+// refreshes the local in-memory settings snapshot synchronously.
+func (a *SettingsAPI) Patch(ctx context.Context, patch map[string]any) (map[string]any, error) {
+	if a.ctx == nil || a.ctx.host == nil {
+		return nil, errors.New("host service unavailable")
+	}
+	var updated map[string]any
+	if err := callHostOp(ctx, a.ctx.host.Settings, "patch", []any{patch}, &updated); err != nil {
+		return nil, err
+	}
+	if updated == nil {
+		updated = map[string]any{}
+	}
+	a.ctx.settingsMu.Lock()
+	a.ctx.settings = updated
+	a.ctx.settingsMu.Unlock()
+
+	if raw, err := json.Marshal(updated); err == nil {
+		var cp map[string]any
+		if json.Unmarshal(raw, &cp) == nil && cp != nil {
+			return cp, nil
+		}
+	}
+	cp := make(map[string]any, len(updated))
+	for k, v := range updated {
+		cp[k] = v
+	}
+	return cp, nil
 }
 
 func (c *Context) updateSettings(ctx context.Context, raw []byte) error {

@@ -446,7 +446,7 @@ function GrantsSection() {
               title={g.client.name}
               meta={
                 <>
-                  <span>{t('by', { owner: g.client.owner })}</span>
+                  <span>{g.client.owner ? t('by', { owner: g.client.owner }) : t('dynamicClient')}</span>
                   <span aria-hidden>·</span>
                   <span>{t.rich('grants.since', { t: () => <RelativeTime date={g.updatedAt} /> })}</span>
                 </>
@@ -487,7 +487,7 @@ function TokensSection({ admin, origin }: { admin: boolean; origin: string }) {
   useEffect(() => {
     void load()
     listOAuthScopes().then(
-      (r) => setScopes((r.data as OAuthScopes).scopes.filter((s) => admin || !s.admin)),
+      (r) => setScopes((r.data as OAuthScopes).scopes.filter((s) => !s.oidc && (admin || !s.admin))),
       () => setScopes([]),
     )
   }, [load, admin])

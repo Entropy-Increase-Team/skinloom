@@ -643,6 +643,13 @@ export function createTestHost(options: CreateTestHostOptions = {}) {
       async all<T extends Record<string, unknown>>() {
         return structuredClone(settingsState) as T
       },
+      async patch<T extends Record<string, unknown>>(patch: Record<string, unknown>) {
+        if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
+          throw new Error('settings.patch expects a JSON object')
+        }
+        Object.assign(settingsState, structuredClone(patch))
+        return structuredClone(settingsState) as T
+      },
       onChange(fn) {
         settingsListeners.push(fn)
       },
@@ -970,6 +977,21 @@ export function createTestHost(options: CreateTestHostOptions = {}) {
           if (!fn) throw new Error(`remote service ${pluginId}.${svcName} not registered in test host`)
           return (await fn(...args)) as never
         }
+      },
+      async discover(serviceName) {
+        const trimmed = String(serviceName ?? '').trim()
+        if (!trimmed) {
+          throw new Error('services.discover requires serviceName')
+        }
+        const suffix = `.${trimmed}`
+        const ids: string[] = []
+        for (const key of remoteServices.keys()) {
+          if (key.endsWith(suffix)) {
+            const pid = key.slice(0, -suffix.length)
+            if (pid && !ids.includes(pid)) ids.push(pid)
+          }
+        }
+        return ids.sort()
       },
     },
     audit: {

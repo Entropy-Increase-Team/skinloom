@@ -658,6 +658,14 @@
             "maxLength": 8,
             "type": "string"
           },
+          "nonce": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "playerId": {
+            "format": "int64",
+            "type": "integer"
+          },
           "redirect_uri": {
             "maxLength": 2048,
             "type": "string"
@@ -817,6 +825,17 @@
           "granted": {
             "description": "You already allowed all of it: approve without asking",
             "type": "boolean"
+          },
+          "needsPlayerSelect": {
+            "description": "The application asks you to pick a Minecraft character",
+            "type": "boolean"
+          },
+          "players": {
+            "description": "Your characters when needsPlayerSelect is true",
+            "items": {
+              "$ref": "#/components/schemas/PlayerOption"
+            },
+            "type": "array"
           },
           "redirect": {
             "description": "Send the browser here (an error the application handles)",
@@ -2045,6 +2064,97 @@
           "peerIp",
           "suggestedCidr"
         ],
+        "type": "object"
+      },
+      "DeviceApproveInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/DeviceApproveInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "allow": {
+            "type": "boolean"
+          },
+          "playerId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "user_code": {
+            "maxLength": 32,
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_code",
+          "allow"
+        ],
+        "type": "object"
+      },
+      "DeviceApproveResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/DeviceApproveResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "approved": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "approved"
+        ],
+        "type": "object"
+      },
+      "DeviceCodeInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/DeviceCodeInfo.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "client": {
+            "$ref": "#/components/schemas/OAuthClientRef"
+          },
+          "error": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "needsPlayerSelect": {
+            "type": "boolean"
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerOption"
+            },
+            "type": "array"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
         "type": "object"
       },
       "EnginesSpec": {
@@ -4548,6 +4658,27 @@
         ],
         "type": "object"
       },
+      "PlayerOption": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "uuid"
+        ],
+        "type": "object"
+      },
       "PlayerRules": {
         "additionalProperties": false,
         "properties": {
@@ -5556,13 +5687,25 @@
           "auth": {
             "type": "string"
           },
+          "forwardHeaders": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "method": {
             "type": "string"
+          },
+          "openCors": {
+            "type": "boolean"
           },
           "pattern": {
             "type": "string"
           },
           "streamProxy": {
+            "type": "boolean"
+          },
+          "webhookNoCsrf": {
             "type": "boolean"
           }
         },
@@ -5594,6 +5737,10 @@
           },
           "name": {
             "type": "string"
+          },
+          "oidc": {
+            "description": "OpenID Connect / Yggdrasil Connect scope (not for personal access tokens)",
+            "type": "boolean"
           }
         },
         "required": [
@@ -13175,6 +13322,15 @@
           {
             "explode": false,
             "in": "query",
+            "name": "nonce",
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
             "name": "code_challenge",
             "schema": {
               "maxLength": 128,
@@ -13263,6 +13419,97 @@
           }
         ],
         "summary": "Allow or refuse an application",
+        "tags": [
+          "oauth"
+        ]
+      }
+    },
+    "/api/v1/oauth/device": {
+      "get": {
+        "operationId": "lookupDeviceCode",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "user_code",
+            "schema": {
+              "maxLength": 32,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceCodeInfo"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Look up an RFC 8628 device authorization user_code",
+        "tags": [
+          "oauth"
+        ]
+      },
+      "post": {
+        "operationId": "approveDeviceCode",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceApproveInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceApproveResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Approve or deny an RFC 8628 device authorization",
         "tags": [
           "oauth"
         ]

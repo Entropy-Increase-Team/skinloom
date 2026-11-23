@@ -27,6 +27,10 @@ type OAuthClient struct {
 	SecretHash *string `json:"-"`
 	// RedirectUris holds the value of the "redirect_uris" field.
 	RedirectUris []string `json:"redirect_uris,omitempty"`
+	// Dynamic holds the value of the "dynamic" field.
+	Dynamic bool `json:"dynamic,omitempty"`
+	// LastUsedAt holds the value of the "last_used_at" field.
+	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -47,9 +51,11 @@ type OAuthClientEdges struct {
 	Codes []*OAuthCode `json:"codes,omitempty"`
 	// Tokens holds the value of the tokens edge.
 	Tokens []*OAuthToken `json:"tokens,omitempty"`
+	// DeviceCodes holds the value of the device_codes edge.
+	DeviceCodes []*OAuthDeviceCode `json:"device_codes,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // OwnerOrErr returns the Owner value or an error if the edge
@@ -90,6 +96,15 @@ func (e OAuthClientEdges) TokensOrErr() ([]*OAuthToken, error) {
 	return nil, &NotLoadedError{edge: "tokens"}
 }
 
+// DeviceCodesOrErr returns the DeviceCodes value or an error if the edge
+// was not loaded in eager-loading.
+func (e OAuthClientEdges) DeviceCodesOrErr() ([]*OAuthDeviceCode, error) {
+	if e.loadedTypes[4] {
+		return e.DeviceCodes, nil
+	}
+	return nil, &NotLoadedError{edge: "device_codes"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*OAuthClient) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -97,11 +112,13 @@ func (*OAuthClient) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case oauthclient.FieldRedirectUris:
 			values[i] = new([]byte)
+		case oauthclient.FieldDynamic:
+			values[i] = new(sql.NullBool)
 		case oauthclient.FieldID, oauthclient.FieldUserID:
 			values[i] = new(sql.NullInt64)
 		case oauthclient.FieldName, oauthclient.FieldSecretHash:
 			values[i] = new(sql.NullString)
-		case oauthclient.FieldCreatedAt, oauthclient.FieldUpdatedAt:
+		case oauthclient.FieldLastUsedAt, oauthclient.FieldCreatedAt, oauthclient.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -151,6 +168,19 @@ func (_m *OAuthClient) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field redirect_uris: %w", err)
 				}
 			}
+		case oauthclient.FieldDynamic:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field dynamic", values[i])
+			} else if value.Valid {
+				_m.Dynamic = value.Bool
+			}
+		case oauthclient.FieldLastUsedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field last_used_at", values[i])
+			} else if value.Valid {
+				_m.LastUsedAt = new(time.Time)
+				*_m.LastUsedAt = value.Time
+			}
 		case oauthclient.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -196,6 +226,11 @@ func (_m *OAuthClient) QueryTokens() *OAuthTokenQuery {
 	return NewOAuthClientClient(_m.config).QueryTokens(_m)
 }
 
+// QueryDeviceCodes queries the "device_codes" edge of the OAuthClient entity.
+func (_m *OAuthClient) QueryDeviceCodes() *OAuthDeviceCodeQuery {
+	return NewOAuthClientClient(_m.config).QueryDeviceCodes(_m)
+}
+
 // Update returns a builder for updating this OAuthClient.
 // Note that you need to call OAuthClient.Unwrap() before calling this method if this OAuthClient
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -229,6 +264,14 @@ func (_m *OAuthClient) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("redirect_uris=")
 	builder.WriteString(fmt.Sprintf("%v", _m.RedirectUris))
+	builder.WriteString(", ")
+	builder.WriteString("dynamic=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Dynamic))
+	builder.WriteString(", ")
+	if v := _m.LastUsedAt; v != nil {
+		builder.WriteString("last_used_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

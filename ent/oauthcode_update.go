@@ -82,6 +82,12 @@ func (_u *OAuthCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
+	if _u.mutation.PlayerIDCleared() {
+		_spec.ClearField(oauthcode.FieldPlayerID, field.TypeInt64)
+	}
+	if _u.mutation.AuthTimeCleared() {
+		_spec.ClearField(oauthcode.FieldAuthTime, field.TypeTime)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{oauthcode.Label}
@@ -186,6 +192,12 @@ func (_u *OAuthCodeUpdateOne) sqlSave(ctx context.Context) (_node *OAuthCode, er
 				ps[i](selector)
 			}
 		}
+	}
+	if _u.mutation.PlayerIDCleared() {
+		_spec.ClearField(oauthcode.FieldPlayerID, field.TypeInt64)
+	}
+	if _u.mutation.AuthTimeCleared() {
+		_spec.ClearField(oauthcode.FieldAuthTime, field.TypeTime)
 	}
 	_node = &OAuthCode{config: _u.config}
 	_spec.Assign = _node.assignValues

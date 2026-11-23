@@ -14,6 +14,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
 
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/oauth"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/yggdrasil"
@@ -29,33 +30,33 @@ const YggdrasilPrefix = "/api/yggdrasil"
 func mountYggdrasil(r chi.Router, d Deps) {
 	r.Route(YggdrasilPrefix, func(r chi.Router) {
 		r.Get("/", yggMeta(d))
-		r.Post("/authserver/authenticate", yggJSON(d, func(ctx context.Context, w http.ResponseWriter, r *http.Request, body []byte) (any, error) {
+		r.Post("/authserver/authenticate", yggAuthServer(d, func(ctx context.Context, w http.ResponseWriter, r *http.Request, body []byte) (any, error) {
 			var in yggdrasil.AuthRequest
 			if err := json.Unmarshal(body, &in); err != nil {
 				return nil, yggBadBody
 			}
 			return d.Yggdrasil.Authenticate(ctx, in, yggPolicy(d), requestInfo(ctx).meta(r.UserAgent()))
 		}))
-		r.Post("/authserver/refresh", yggJSON(d, func(ctx context.Context, _ http.ResponseWriter, _ *http.Request, body []byte) (any, error) {
+		r.Post("/authserver/refresh", yggAuthServer(d, func(ctx context.Context, _ http.ResponseWriter, _ *http.Request, body []byte) (any, error) {
 			var in yggdrasil.RefreshRequest
 			if err := json.Unmarshal(body, &in); err != nil {
 				return nil, yggBadBody
 			}
 			return d.Yggdrasil.Refresh(ctx, in, yggPolicy(d))
 		}))
-		r.Post("/authserver/validate", yggJSON(d, func(ctx context.Context, _ http.ResponseWriter, _ *http.Request, body []byte) (any, error) {
+		r.Post("/authserver/validate", yggAuthServer(d, func(ctx context.Context, _ http.ResponseWriter, _ *http.Request, body []byte) (any, error) {
 			var in struct{ AccessToken, ClientToken string }
 			if err := json.Unmarshal(body, &in); err != nil {
 				return nil, yggBadBody
 			}
 			return nil, d.Yggdrasil.Validate(ctx, in.AccessToken, in.ClientToken)
 		}))
-		r.Post("/authserver/invalidate", yggJSON(d, func(ctx context.Context, _ http.ResponseWriter, _ *http.Request, body []byte) (any, error) {
+		r.Post("/authserver/invalidate", yggAuthServer(d, func(ctx context.Context, _ http.ResponseWriter, _ *http.Request, body []byte) (any, error) {
 			var in struct{ AccessToken string }
 			_ = json.Unmarshal(body, &in) // always 204
 			return nil, d.Yggdrasil.Invalidate(ctx, in.AccessToken)
 		}))
-		r.Post("/authserver/signout", yggJSON(d, func(ctx context.Context, _ http.ResponseWriter, r *http.Request, body []byte) (any, error) {
+		r.Post("/authserver/signout", yggAuthServer(d, func(ctx context.Context, _ http.ResponseWriter, r *http.Request, body []byte) (any, error) {
 			var in struct{ Username, Password string }
 			if err := json.Unmarshal(body, &in); err != nil {
 				return nil, yggBadBody
@@ -80,18 +81,22 @@ func mountYggdrasil(r chi.Router, d Deps) {
 			p, err := d.Yggdrasil.ProfileByUUID(r.Context(), chi.URLParam(r, "uuid"), siteBase(r, d), signed)
 			yggAnswer(w, d, p, err)
 		})
-		r.Post("/api/profiles/minecraft", yggJSON(d, func(ctx context.Context, _ http.ResponseWriter, _ *http.Request, body []byte) (any, error) {
+		lookupBulk := yggJSON(d, func(ctx context.Context, _ http.ResponseWriter, _ *http.Request, body []byte) (any, error) {
 			var names []string
 			if err := json.Unmarshal(body, &names); err != nil {
 				return nil, yggBadBody
 			}
 			return d.Yggdrasil.LookupNames(ctx, names, yggPolicy(d))
-		}))
-		r.Get("/api/users/profiles/minecraft/{name}", func(w http.ResponseWriter, r *http.Request) {
+		})
+		lookupOne := func(w http.ResponseWriter, r *http.Request) {
 			name, _ := url.PathUnescape(chi.URLParam(r, "name"))
 			p, err := d.Yggdrasil.LookupName(r.Context(), name)
 			yggAnswer(w, d, p, err)
-		})
+		}
+		r.Post("/api/profiles/minecraft", lookupBulk)
+		r.Post("/minecraftservices/minecraft/profile/lookup/bulk/byname", lookupBulk)
+		r.Get("/api/users/profiles/minecraft/{name}", lookupOne)
+		r.Get("/minecraftservices/minecraft/profile/lookup/name/{name}", lookupOne)
 		r.Put("/api/user/profile/{uuid}/{kind}", yggTextureUpload(d))
 		r.Delete("/api/user/profile/{uuid}/{kind}", func(w http.ResponseWriter, r *http.Request) {
 			kind := chi.URLParam(r, "kind")
@@ -113,7 +118,23 @@ func mountYggdrasil(r chi.Router, d Deps) {
 	})
 }
 
-var yggBadBody = &yggdrasil.Error{Status: http.StatusBadRequest, Kind: "IllegalArgumentException", Message: "Invalid request body."}
+var (
+	yggBadBody            = &yggdrasil.Error{Status: http.StatusBadRequest, Kind: "IllegalArgumentException", Message: "Invalid request body."}
+	yggAuthServerDisabled = &yggdrasil.Error{Status: http.StatusForbidden, Kind: "ForbiddenOperationException", Message: "Legacy Yggdrasil authentication is disabled. Please sign in with OIDC / Yggdrasil Connect."}
+)
+
+// yggAuthServer wraps an /authserver/* handler so it fails with 403 when
+// yggdrasil.disable_authserver is enabled.
+func yggAuthServer(d Deps, fn func(ctx context.Context, w http.ResponseWriter, r *http.Request, body []byte) (any, error)) http.HandlerFunc {
+	inner := yggJSON(d, fn)
+	return func(w http.ResponseWriter, r *http.Request) {
+		if yggPolicy(d).DisableAuthServer {
+			yggAnswer(w, d, nil, yggAuthServerDisabled)
+			return
+		}
+		inner(w, r)
+	}
+}
 
 // yggMaxBody bounds JSON bodies (credentials, tokens, a few names).
 const yggMaxBody = 64 << 10
@@ -121,8 +142,11 @@ const yggMaxBody = 64 << 10
 func yggPolicy(d Deps) yggdrasil.Policy { return yggdrasil.PolicyFrom(d.Settings.Current()) }
 
 func bearer(r *http.Request) string {
-	token, _ := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-	return strings.TrimSpace(token)
+	hdr := strings.TrimSpace(r.Header.Get("Authorization"))
+	if len(hdr) < 7 || !strings.EqualFold(hdr[:7], "Bearer ") {
+		return ""
+	}
+	return strings.TrimSpace(hdr[7:])
 }
 
 // siteBase is the URL textures are served under: site.url, or the address the
@@ -227,16 +251,22 @@ func yggMeta(d Deps) http.HandlerFunc {
 				add(u.Hostname()) // files redirect to the storage's public URL
 			}
 		}
-		for _, x := range yggPolicy(d).SkinDomains {
+		pol := yggPolicy(d)
+		for _, x := range pol.SkinDomains {
 			add(x)
 		}
 		locale := Locales[0].Code
 		meta := map[string]any{
-			"serverName":              snap.Localized("site.name", locale),
-			"implementationName":      "SkinLoom",
-			"implementationVersion":   buildinfo.Version,
-			"links":                   links,
-			"feature.non_email_login": true,
+			"serverName":            snap.Localized("site.name", locale),
+			"implementationName":    "SkinLoom",
+			"implementationVersion": buildinfo.Version,
+			"links":                 links,
+		}
+		if !pol.DisableAuthServer {
+			meta["feature.non_email_login"] = true
+		}
+		if oauth.PolicyFrom(snap).EnableOIDC {
+			meta["feature.openid_configuration_url"] = base + "/.well-known/openid-configuration"
 		}
 		extraDomains, extraMeta := d.Yggdrasil.MetaExtensions(r.Context())
 		for _, dom := range extraDomains {

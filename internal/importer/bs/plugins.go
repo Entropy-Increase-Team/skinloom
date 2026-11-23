@@ -29,8 +29,8 @@ var pluginFates = map[string]pluginFate{
 	"hitokoto":                      {Dropped, "a page decoration: nothing to import"},
 	"batch-import":                  {Dropped, "an administrator's tool: nothing to import"},
 	"oauth":                         {Warning, "sign-in with GitHub, Microsoft and others is SkinLoom's social login: set the providers up in the site settings; users whose email is not verified link them again from their profile"},
-	"yggdrasil-connect": {Warning, "its Yggdrasil API is served by SkinLoom (UUIDs and the signing key came along), but not its Yggdrasil Connect sign-in (OAuth through a Janus server): " +
-		"launchers that sign in that way stop working after the switch, and a Janus server reading BS's database no longer sees new accounts"},
+	"yggdrasil-connect": {Warning, "Yggdrasil API and built-in OIDC / Yggdrasil Connect (zero Janus) are natively served by SkinLoom (player UUIDs, signing key, and player.keep_uuid_on_rename came along); " +
+		"if your previous site used plugin-specific extensions on top of yggdrasil-connect, install the corresponding SkinLoom plugin together with 'bs-importer' from Admin -> Plugins -> Market to migrate its legacy options"},
 	"texture-description": {Warning, "texture descriptions are not imported during core setup: install the official 'texture-description' and 'bs-importer' plugins from Admin -> Plugins -> Market to migrate them (you can uninstall bs-importer afterward)"},
 	"mojang-verification": {Warning, "verified Minecraft accounts are not imported during core setup: install the official 'mojang-verification' and 'bs-importer' plugins from Admin -> Plugins -> Market to migrate them (you can uninstall bs-importer afterward)"},
 	"invitation-codes":    {Warning, "invitation codes are not imported during core setup (close registration until ready): install the official 'invitation-codes' and 'bs-importer' plugins from Admin -> Plugins -> Market to migrate existing codes"},

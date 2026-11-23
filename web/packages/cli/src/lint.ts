@@ -263,9 +263,12 @@ function lintManifest(manifest: ManifestJson, issues: LintIssue[]): void {
       pushIssue(issues, 'error', 'manifest.routes.public', 'routes.public requires declaring "routes.public" permission', 'plugin.json')
     }
     const reservedHeads = new Set([
-      'api', 'oauth', '.well-known', 'csl', 'usm', 'skin', 'cape', 'textures', 'raw',
+      'oauth', '.well-known', 'csl', 'usm', 'skin', 'cape', 'textures', 'raw',
       'avatar', 'preview', 'plugins-assets', 'themes-assets', 'events', 'healthz', 'readyz',
       '_next', 'auth', 'user', 'admin', 'setup', 'skinlib', 'p', 'favicon.ico', 'robots.txt',
+    ])
+    const reservedAPISubroutes = new Set([
+      'v1', 'yggdrasil', 'plugins', 'user', 'players', 'closet', 'admin', 'docs', 'openapi', 'schemas',
     ])
     const seenRoutes = new Set<string>()
     for (const raw of publicRoutes) {
@@ -284,7 +287,22 @@ function lintManifest(manifest: ManifestJson, issues: LintIssue[]): void {
         pushIssue(issues, 'error', 'manifest.routes.public', `routes.public pattern "${raw}" must begin with a literal path segment`, 'plugin.json')
         continue
       }
-      if (reservedHeads.has(head.toLowerCase()) || (segs.length === 1 && head.toLowerCase().endsWith('.json'))) {
+      const lowerHead = head.toLowerCase()
+      if (lowerHead === 'api') {
+        if (segs.length < 2) {
+          pushIssue(issues, 'error', 'manifest.routes.public', `routes.public pattern "${raw}" conflicts with a reserved SkinLoom route`, 'plugin.json')
+          continue
+        }
+        const sub = segs[1]!
+        if (sub === '*' || sub.startsWith(':') || sub.includes('{') || sub.includes('}')) {
+          pushIssue(issues, 'error', 'manifest.routes.public', `routes.public pattern "${raw}" must begin with a literal sub-path under "/api/"`, 'plugin.json')
+          continue
+        }
+        if (reservedAPISubroutes.has(sub.toLowerCase())) {
+          pushIssue(issues, 'error', 'manifest.routes.public', `routes.public pattern "${raw}" conflicts with a reserved SkinLoom route`, 'plugin.json')
+          continue
+        }
+      } else if (reservedHeads.has(lowerHead) || (segs.length === 1 && lowerHead.endsWith('.json'))) {
         pushIssue(issues, 'error', 'manifest.routes.public', `routes.public pattern "${raw}" conflicts with a reserved SkinLoom route`, 'plugin.json')
         continue
       }

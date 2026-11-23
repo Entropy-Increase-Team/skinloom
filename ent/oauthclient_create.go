@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthdevicecode"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
@@ -55,6 +56,34 @@ func (_c *OAuthClientCreate) SetNillableSecretHash(v *string) *OAuthClientCreate
 // SetRedirectUris sets the "redirect_uris" field.
 func (_c *OAuthClientCreate) SetRedirectUris(v []string) *OAuthClientCreate {
 	_c.mutation.SetRedirectUris(v)
+	return _c
+}
+
+// SetDynamic sets the "dynamic" field.
+func (_c *OAuthClientCreate) SetDynamic(v bool) *OAuthClientCreate {
+	_c.mutation.SetDynamic(v)
+	return _c
+}
+
+// SetNillableDynamic sets the "dynamic" field if the given value is not nil.
+func (_c *OAuthClientCreate) SetNillableDynamic(v *bool) *OAuthClientCreate {
+	if v != nil {
+		_c.SetDynamic(*v)
+	}
+	return _c
+}
+
+// SetLastUsedAt sets the "last_used_at" field.
+func (_c *OAuthClientCreate) SetLastUsedAt(v time.Time) *OAuthClientCreate {
+	_c.mutation.SetLastUsedAt(v)
+	return _c
+}
+
+// SetNillableLastUsedAt sets the "last_used_at" field if the given value is not nil.
+func (_c *OAuthClientCreate) SetNillableLastUsedAt(v *time.Time) *OAuthClientCreate {
+	if v != nil {
+		_c.SetLastUsedAt(*v)
+	}
 	return _c
 }
 
@@ -148,6 +177,21 @@ func (_c *OAuthClientCreate) AddTokens(v ...*OAuthToken) *OAuthClientCreate {
 	return _c.AddTokenIDs(ids...)
 }
 
+// AddDeviceCodeIDs adds the "device_codes" edge to the OAuthDeviceCode entity by IDs.
+func (_c *OAuthClientCreate) AddDeviceCodeIDs(ids ...int64) *OAuthClientCreate {
+	_c.mutation.AddDeviceCodeIDs(ids...)
+	return _c
+}
+
+// AddDeviceCodes adds the "device_codes" edges to the OAuthDeviceCode entity.
+func (_c *OAuthClientCreate) AddDeviceCodes(v ...*OAuthDeviceCode) *OAuthClientCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddDeviceCodeIDs(ids...)
+}
+
 // Mutation returns the OAuthClientMutation object of the builder.
 func (_c *OAuthClientCreate) Mutation() *OAuthClientMutation {
 	return _c.mutation
@@ -183,6 +227,10 @@ func (_c *OAuthClientCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *OAuthClientCreate) defaults() {
+	if _, ok := _c.mutation.Dynamic(); !ok {
+		v := oauthclient.DefaultDynamic
+		_c.mutation.SetDynamic(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := oauthclient.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -213,6 +261,9 @@ func (_c *OAuthClientCreate) check() error {
 	}
 	if _, ok := _c.mutation.RedirectUris(); !ok {
 		return &ValidationError{Name: "redirect_uris", err: errors.New(`ent: missing required field "OAuthClient.redirect_uris"`)}
+	}
+	if _, ok := _c.mutation.Dynamic(); !ok {
+		return &ValidationError{Name: "dynamic", err: errors.New(`ent: missing required field "OAuthClient.dynamic"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "OAuthClient.created_at"`)}
@@ -267,6 +318,14 @@ func (_c *OAuthClientCreate) createSpec() (*OAuthClient, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.RedirectUris(); ok {
 		_spec.SetField(oauthclient.FieldRedirectUris, field.TypeJSON, value)
 		_node.RedirectUris = value
+	}
+	if value, ok := _c.mutation.Dynamic(); ok {
+		_spec.SetField(oauthclient.FieldDynamic, field.TypeBool, value)
+		_node.Dynamic = value
+	}
+	if value, ok := _c.mutation.LastUsedAt(); ok {
+		_spec.SetField(oauthclient.FieldLastUsedAt, field.TypeTime, value)
+		_node.LastUsedAt = &value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(oauthclient.FieldCreatedAt, field.TypeTime, value)
@@ -334,6 +393,22 @@ func (_c *OAuthClientCreate) createSpec() (*OAuthClient, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.DeviceCodesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   oauthclient.DeviceCodesTable,
+			Columns: []string{oauthclient.DeviceCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthdevicecode.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {
@@ -435,6 +510,24 @@ func (u *OAuthClientUpsert) UpdateRedirectUris() *OAuthClientUpsert {
 	return u
 }
 
+// SetLastUsedAt sets the "last_used_at" field.
+func (u *OAuthClientUpsert) SetLastUsedAt(v time.Time) *OAuthClientUpsert {
+	u.Set(oauthclient.FieldLastUsedAt, v)
+	return u
+}
+
+// UpdateLastUsedAt sets the "last_used_at" field to the value that was provided on create.
+func (u *OAuthClientUpsert) UpdateLastUsedAt() *OAuthClientUpsert {
+	u.SetExcluded(oauthclient.FieldLastUsedAt)
+	return u
+}
+
+// ClearLastUsedAt clears the value of the "last_used_at" field.
+func (u *OAuthClientUpsert) ClearLastUsedAt() *OAuthClientUpsert {
+	u.SetNull(oauthclient.FieldLastUsedAt)
+	return u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (u *OAuthClientUpsert) SetUpdatedAt(v time.Time) *OAuthClientUpsert {
 	u.Set(oauthclient.FieldUpdatedAt, v)
@@ -466,6 +559,9 @@ func (u *OAuthClientUpsertOne) UpdateNewValues() *OAuthClientUpsertOne {
 		}
 		if _, exists := u.create.mutation.UserID(); exists {
 			s.SetIgnore(oauthclient.FieldUserID)
+		}
+		if _, exists := u.create.mutation.Dynamic(); exists {
+			s.SetIgnore(oauthclient.FieldDynamic)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(oauthclient.FieldCreatedAt)
@@ -547,6 +643,27 @@ func (u *OAuthClientUpsertOne) SetRedirectUris(v []string) *OAuthClientUpsertOne
 func (u *OAuthClientUpsertOne) UpdateRedirectUris() *OAuthClientUpsertOne {
 	return u.Update(func(s *OAuthClientUpsert) {
 		s.UpdateRedirectUris()
+	})
+}
+
+// SetLastUsedAt sets the "last_used_at" field.
+func (u *OAuthClientUpsertOne) SetLastUsedAt(v time.Time) *OAuthClientUpsertOne {
+	return u.Update(func(s *OAuthClientUpsert) {
+		s.SetLastUsedAt(v)
+	})
+}
+
+// UpdateLastUsedAt sets the "last_used_at" field to the value that was provided on create.
+func (u *OAuthClientUpsertOne) UpdateLastUsedAt() *OAuthClientUpsertOne {
+	return u.Update(func(s *OAuthClientUpsert) {
+		s.UpdateLastUsedAt()
+	})
+}
+
+// ClearLastUsedAt clears the value of the "last_used_at" field.
+func (u *OAuthClientUpsertOne) ClearLastUsedAt() *OAuthClientUpsertOne {
+	return u.Update(func(s *OAuthClientUpsert) {
+		s.ClearLastUsedAt()
 	})
 }
 
@@ -749,6 +866,9 @@ func (u *OAuthClientUpsertBulk) UpdateNewValues() *OAuthClientUpsertBulk {
 			if _, exists := b.mutation.UserID(); exists {
 				s.SetIgnore(oauthclient.FieldUserID)
 			}
+			if _, exists := b.mutation.Dynamic(); exists {
+				s.SetIgnore(oauthclient.FieldDynamic)
+			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(oauthclient.FieldCreatedAt)
 			}
@@ -830,6 +950,27 @@ func (u *OAuthClientUpsertBulk) SetRedirectUris(v []string) *OAuthClientUpsertBu
 func (u *OAuthClientUpsertBulk) UpdateRedirectUris() *OAuthClientUpsertBulk {
 	return u.Update(func(s *OAuthClientUpsert) {
 		s.UpdateRedirectUris()
+	})
+}
+
+// SetLastUsedAt sets the "last_used_at" field.
+func (u *OAuthClientUpsertBulk) SetLastUsedAt(v time.Time) *OAuthClientUpsertBulk {
+	return u.Update(func(s *OAuthClientUpsert) {
+		s.SetLastUsedAt(v)
+	})
+}
+
+// UpdateLastUsedAt sets the "last_used_at" field to the value that was provided on create.
+func (u *OAuthClientUpsertBulk) UpdateLastUsedAt() *OAuthClientUpsertBulk {
+	return u.Update(func(s *OAuthClientUpsert) {
+		s.UpdateLastUsedAt()
+	})
+}
+
+// ClearLastUsedAt clears the value of the "last_used_at" field.
+func (u *OAuthClientUpsertBulk) ClearLastUsedAt() *OAuthClientUpsertBulk {
+	return u.Update(func(s *OAuthClientUpsert) {
+		s.ClearLastUsedAt()
 	})
 }
 

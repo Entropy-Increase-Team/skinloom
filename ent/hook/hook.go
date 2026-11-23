@@ -117,6 +117,18 @@ func (f OAuthCodeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, e
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OAuthCodeMutation", m)
 }
 
+// The OAuthDeviceCodeFunc type is an adapter to allow the use of ordinary
+// function as OAuthDeviceCode mutator.
+type OAuthDeviceCodeFunc func(context.Context, *ent.OAuthDeviceCodeMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OAuthDeviceCodeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OAuthDeviceCodeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OAuthDeviceCodeMutation", m)
+}
+
 // The OAuthGrantFunc type is an adapter to allow the use of ordinary
 // function as OAuthGrant mutator.
 type OAuthGrantFunc func(context.Context, *ent.OAuthGrantMutation) (ent.Value, error)

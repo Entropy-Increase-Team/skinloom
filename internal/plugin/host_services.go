@@ -89,9 +89,6 @@ func (r *pluginRuntime) hostServices(ctx context.Context, args []any) (any, erro
 		if targetID == "" || targetID == "<nil>" || svcName == "" || svcName == "<nil>" {
 			return nil, errors.New("services.use requires (pluginId, serviceName)")
 		}
-		if !r.manifest.HasDependency(targetID) {
-			return nil, fmt.Errorf("%w: dependency %q must be declared in dependencies or optionalDependencies", ErrPermissionDenied, targetID)
-		}
 		if r.callService == nil {
 			return nil, errors.New("service bus unavailable")
 		}
@@ -100,6 +97,16 @@ func (r *pluginRuntime) hostServices(ctx context.Context, args []any) (any, erro
 			callArgs = rawArgs
 		}
 		return r.callService(ctx, targetID, svcName, callArgs...)
+
+	case "discover":
+		svcName := strings.TrimSpace(fmt.Sprint(argAt(args, 1)))
+		if svcName == "" || svcName == "<nil>" {
+			return nil, errors.New("services.discover requires serviceName")
+		}
+		if r.discoverServices == nil {
+			return []string{}, nil
+		}
+		return r.discoverServices(svcName)
 
 	default:
 		return nil, fmt.Errorf("unknown services op %q", op)

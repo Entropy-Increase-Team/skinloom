@@ -2,7 +2,10 @@ package plugintest
 
 import (
 	"context"
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"sort"
 	"strings"
@@ -76,8 +79,9 @@ type MockHost struct {
 	SiteLocales     []string
 	SitePublic      map[string]any
 	Settings        map[string]any
-	Locales         map[string]map[string]string
-	YggdrasilPubKey string
+	Locales          map[string]map[string]string
+	YggdrasilPubKey  string
+	YggdrasilPrivKey string
 
 	Users        map[int64]*plugin.User
 	Players      map[int64]*plugin.Player
@@ -90,8 +94,9 @@ type MockHost struct {
 	FilesStore map[string][]byte
 	CacheStore map[string]mockCacheEntry
 
-	FetchHandler   func(ctx context.Context, req plugin.FetchRequest) (*plugin.FetchResponse, error)
-	ServiceHandler func(ctx context.Context, targetPluginID, serviceName string, args []json.RawMessage) (any, error)
+	FetchHandler    func(ctx context.Context, req plugin.FetchRequest) (*plugin.FetchResponse, error)
+	ServiceHandler  func(ctx context.Context, targetPluginID, serviceName string, args []json.RawMessage) (any, error)
+	DiscoverHandler func(ctx context.Context, serviceName string) ([]string, error)
 
 	Notifications []SentNotification
 	Announcements []SentAnnouncement
@@ -483,13 +488,36 @@ func (c *mockHostClient) Settings(_ context.Context, req *pluginv1.HostOpRequest
 	if err != nil {
 		return nil, err
 	}
-	m.mu.RLock()
-	defer m.mu.RUnlock()
 	switch req.GetOp() {
 	case "get":
+		m.mu.RLock()
+		defer m.mu.RUnlock()
 		return encodeResp(m.Settings[strArg(args, 0)])
 	case "all":
+		m.mu.RLock()
+		defer m.mu.RUnlock()
 		return encodeResp(m.Settings)
+	case "patch":
+		if len(args) == 0 {
+			return nil, status.Error(codes.InvalidArgument, "settings patch argument is required")
+		}
+		patch, ok := args[0].(map[string]any)
+		if !ok {
+			return nil, status.Error(codes.InvalidArgument, "settings patch must be an object")
+		}
+		m.mu.Lock()
+		if m.Settings == nil {
+			m.Settings = map[string]any{}
+		}
+		for k, v := range patch {
+			m.Settings[k] = v
+		}
+		out := make(map[string]any, len(m.Settings))
+		for k, v := range m.Settings {
+			out[k] = v
+		}
+		m.mu.Unlock()
+		return encodeResp(out)
 	default:
 		return nil, status.Errorf(codes.InvalidArgument, "unknown settings op %q", req.GetOp())
 	}
@@ -622,6 +650,78 @@ func (c *mockHostClient) Players(_ context.Context, req *pluginv1.HostOpRequest,
 			}
 		}
 		return &pluginv1.HostOpResponse{}, nil
+	case "findByUUID":
+		if err := m.checkPermLocked("players.read"); err != nil {
+			return nil, err
+		}
+		target := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(strArg(args, 0)), "-", ""))
+		for _, p := range m.Players {
+			if strings.ToLower(strings.ReplaceAll(p.UUID, "-", "")) == target {
+				return encodeResp(p)
+			}
+		}
+		return &pluginv1.HostOpResponse{}, nil
+	case "listAll":
+		if err := m.checkPermLocked("players.read"); err != nil {
+			return nil, err
+		}
+		afterID := int64(asNum(args[0]))
+		limit := int(asNum(args[1]))
+		if limit <= 0 {
+			limit = 200
+		}
+		if limit > 500 {
+			limit = 500
+		}
+		all := make([]*plugin.Player, 0, len(m.Players))
+		for _, p := range m.Players {
+			if p.ID > afterID {
+				all = append(all, p)
+			}
+		}
+		sort.Slice(all, func(i, j int) bool { return all[i].ID < all[j].ID })
+		var nextAfterID int64
+		if len(all) > limit {
+			all = all[:limit]
+			nextAfterID = all[len(all)-1].ID
+		} else if len(all) == limit && limit > 0 {
+			nextAfterID = all[len(all)-1].ID
+		}
+		return encodeResp(map[string]any{"items": all, "nextAfterId": nextAfterID})
+	case "remapUUID":
+		if err := m.checkPermLocked("players.uuid.write"); err != nil {
+			return nil, err
+		}
+		oldNorm := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(strArg(args, 0)), "-", ""))
+		newNorm := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(strArg(args, 1)), "-", ""))
+		if len(oldNorm) != 32 || len(newNorm) != 32 {
+			return nil, status.Error(codes.InvalidArgument, "invalid UUID")
+		}
+		var target *plugin.Player
+		for _, p := range m.Players {
+			if strings.ToLower(strings.ReplaceAll(p.UUID, "-", "")) == oldNorm {
+				target = p
+				break
+			}
+		}
+		if target == nil {
+			return nil, status.Error(codes.NotFound, "player not found")
+		}
+		if oldNorm != newNorm {
+			for _, p := range m.Players {
+				if p.ID != target.ID && strings.ToLower(strings.ReplaceAll(p.UUID, "-", "")) == newNorm {
+					return nil, status.Error(codes.AlreadyExists, "UUID already in use")
+				}
+			}
+			target.UUID = newNorm
+		}
+		m.Audits = append(m.Audits, RecordedAudit{
+			Action:     "plugin.mock.player.remapUuid",
+			TargetType: "player",
+			TargetID:   oldNorm,
+			Meta:       map[string]any{"uuid": []string{oldNorm, newNorm}},
+		})
+		return encodeResp(target)
 	case "list":
 		if err := m.checkPermLocked("players.read"); err != nil {
 			return nil, err
@@ -912,6 +1012,50 @@ func (c *mockHostClient) Mail(_ context.Context, req *pluginv1.MailSendRequest, 
 
 func (c *mockHostClient) Yggdrasil(_ context.Context, req *pluginv1.HostOpRequest, _ ...grpc.CallOption) (*pluginv1.HostOpResponse, error) {
 	m := c.m
+	if req.GetOp() == "setSigningKey" {
+		if err := m.checkPerm("yggdrasil.key.write"); err != nil {
+			return nil, err
+		}
+		args, err := decodeArgs(req)
+		if err != nil {
+			return nil, err
+		}
+		pemText := strings.TrimSpace(strArg(args, 0))
+		block, _ := pem.Decode([]byte(pemText))
+		if block == nil {
+			return nil, status.Error(codes.InvalidArgument, "not PEM")
+		}
+		var rk *rsa.PrivateKey
+		if parsed, pErr := x509.ParsePKCS8PrivateKey(block.Bytes); pErr == nil {
+			var ok bool
+			rk, ok = parsed.(*rsa.PrivateKey)
+			if !ok {
+				return nil, status.Error(codes.InvalidArgument, "not RSA")
+			}
+		} else if parsed1, p1Err := x509.ParsePKCS1PrivateKey(block.Bytes); p1Err == nil {
+			rk = parsed1
+		} else {
+			return nil, status.Error(codes.InvalidArgument, "unsupported RSA private key")
+		}
+		if rk.N.BitLen() < 4096 {
+			return nil, status.Errorf(codes.InvalidArgument, "RSA key too small: %d bits", rk.N.BitLen())
+		}
+		pubDER, err := x509.MarshalPKIXPublicKey(&rk.PublicKey)
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		pubPEM := string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubDER}))
+		m.mu.Lock()
+		m.YggdrasilPrivKey = pemText
+		m.YggdrasilPubKey = pubPEM
+		m.Audits = append(m.Audits, RecordedAudit{
+			Action:     "plugin.mock.yggdrasil.setSigningKey",
+			TargetType: "yggdrasil",
+			TargetID:   "signing_key",
+		})
+		m.mu.Unlock()
+		return encodeResp(map[string]any{"updated": true})
+	}
 	if err := m.checkPerm("yggdrasil.extend"); err != nil {
 		return nil, err
 	}
@@ -970,6 +1114,21 @@ func (c *mockHostClient) CallPluginService(ctx context.Context, req *pluginv1.Ca
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return encodeResp(res)
+}
+
+func (c *mockHostClient) DiscoverPluginServices(ctx context.Context, req *pluginv1.DiscoverPluginServicesRequest, _ ...grpc.CallOption) (*pluginv1.DiscoverPluginServicesResponse, error) {
+	m := c.m
+	m.mu.RLock()
+	h := m.DiscoverHandler
+	m.mu.RUnlock()
+	if h == nil {
+		return &pluginv1.DiscoverPluginServicesResponse{}, nil
+	}
+	ids, err := h(ctx, req.GetServiceName())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &pluginv1.DiscoverPluginServicesResponse{PluginIds: ids}, nil
 }
 
 func (c *mockHostClient) Log(_ context.Context, req *pluginv1.LogRequest, _ ...grpc.CallOption) (*pluginv1.Empty, error) {

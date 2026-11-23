@@ -644,12 +644,28 @@ func (d *NativeDriver) buildRegistrations(resp *pluginv1.InitResponse) (*DriverR
 				return nil, err
 			}
 		}
+		if rt.GetWebhookNoCsrf() && authLevel != "public" {
+			return nil, fmt.Errorf("route %s %s: webhookNoCsrf is only allowed on public routes", method, pattern)
+		}
+		var fwdHeaders []string
+		seenFwd := make(map[string]bool, len(rt.GetForwardHeaders()))
+		for _, h := range rt.GetForwardHeaders() {
+			lh := strings.ToLower(strings.TrimSpace(h))
+			if lh == "" || lh == "cookie" || lh == "proxy-authorization" || strings.HasPrefix(lh, "x-skinloom-") || seenFwd[lh] {
+				continue
+			}
+			seenFwd[lh] = true
+			fwdHeaders = append(fwdHeaders, lh)
+		}
 		regs.Routes = append(regs.Routes, routeBinding{
-			Method:      method,
-			Pattern:     pattern,
-			Auth:        authLevel,
-			StreamProxy: rt.GetStreamProxy(),
-			HandlerID:   rt.GetHandlerId(),
+			Method:         method,
+			Pattern:        pattern,
+			Auth:           authLevel,
+			StreamProxy:    rt.GetStreamProxy(),
+			ForwardHeaders: fwdHeaders,
+			OpenCORS:       rt.GetOpenCors(),
+			WebhookNoCSRF:  rt.GetWebhookNoCsrf(),
+			HandlerID:      rt.GetHandlerId(),
 		})
 	}
 

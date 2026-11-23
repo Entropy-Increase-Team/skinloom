@@ -81,6 +81,8 @@ const (
 	EdgeOauthCodes = "oauth_codes"
 	// EdgeOauthTokens holds the string denoting the oauth_tokens edge name in mutations.
 	EdgeOauthTokens = "oauth_tokens"
+	// EdgeOauthDeviceCodes holds the string denoting the oauth_device_codes edge name in mutations.
+	EdgeOauthDeviceCodes = "oauth_device_codes"
 	// EdgeSocialAccounts holds the string denoting the social_accounts edge name in mutations.
 	EdgeSocialAccounts = "social_accounts"
 	// EdgeSocialFlows holds the string denoting the social_flows edge name in mutations.
@@ -194,6 +196,13 @@ const (
 	OauthTokensInverseTable = "oauth_tokens"
 	// OauthTokensColumn is the table column denoting the oauth_tokens relation/edge.
 	OauthTokensColumn = "user_id"
+	// OauthDeviceCodesTable is the table that holds the oauth_device_codes relation/edge.
+	OauthDeviceCodesTable = "oauth_device_codes"
+	// OauthDeviceCodesInverseTable is the table name for the OAuthDeviceCode entity.
+	// It exists in this package in order to avoid circular dependency with the "oauthdevicecode" package.
+	OauthDeviceCodesInverseTable = "oauth_device_codes"
+	// OauthDeviceCodesColumn is the table column denoting the oauth_device_codes relation/edge.
+	OauthDeviceCodesColumn = "user_id"
 	// SocialAccountsTable is the table that holds the social_accounts relation/edge.
 	SocialAccountsTable = "social_accounts"
 	// SocialAccountsInverseTable is the table name for the SocialAccount entity.
@@ -645,6 +654,20 @@ func ByOauthTokens(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByOauthDeviceCodesCount orders the results by oauth_device_codes count.
+func ByOauthDeviceCodesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newOauthDeviceCodesStep(), opts...)
+	}
+}
+
+// ByOauthDeviceCodes orders the results by oauth_device_codes terms.
+func ByOauthDeviceCodes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOauthDeviceCodesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // BySocialAccountsCount orders the results by social_accounts count.
 func BySocialAccountsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -789,6 +812,13 @@ func newOauthTokensStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(OauthTokensInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, OauthTokensTable, OauthTokensColumn),
+	)
+}
+func newOauthDeviceCodesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OauthDeviceCodesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, OauthDeviceCodesTable, OauthDeviceCodesColumn),
 	)
 }
 func newSocialAccountsStep() *sqlgraph.Step {

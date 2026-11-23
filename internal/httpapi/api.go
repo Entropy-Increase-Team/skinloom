@@ -230,28 +230,46 @@ func trustThemeWebFn(d Deps) func(string) bool {
 	}
 }
 
+func isHostAuthBearer(authHeader, adminToken string) bool {
+	hdr := strings.TrimSpace(authHeader)
+	if len(hdr) < 7 || !strings.EqualFold(hdr[:7], "Bearer ") {
+		return false
+	}
+	tok := strings.TrimSpace(hdr[7:])
+	if tok == "" {
+		return false
+	}
+	if adminToken != "" && subtle.ConstantTimeCompare([]byte(tok), []byte(adminToken)) == 1 {
+		return true
+	}
+	return strings.HasPrefix(tok, "slo_") || strings.HasPrefix(tok, "slp_") || strings.HasPrefix(tok, "slr_")
+}
+
 func pluginViewerFromReq(r *http.Request, d Deps) plugin.Viewer {
+	hasHostAuth := isHostAuthBearer(r.Header.Get("Authorization"), d.AdminToken)
 	if v := requestInfo(r.Context()).viewer(); v != nil && v.User != nil {
 		return plugin.Viewer{
-			Authenticated: true,
-			UserID:        v.User.ID,
-			Email:         v.User.Email,
-			Nickname:      v.User.Nickname,
-			Role:          string(v.User.Role),
-			Admin:         v.IsAdmin(),
-			Superadmin:    v.User.Role == user.RoleSuperadmin,
+			Authenticated:     true,
+			UserID:            v.User.ID,
+			Email:             v.User.Email,
+			Nickname:          v.User.Nickname,
+			Role:              string(v.User.Role),
+			Admin:             v.IsAdmin(),
+			Superadmin:        v.User.Role == user.RoleSuperadmin,
+			HasHostAuthHeader: hasHostAuth,
 		}
 	}
 	if token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer "); ok &&
 		d.AdminToken != "" && subtle.ConstantTimeCompare([]byte(token), []byte(d.AdminToken)) == 1 {
 		return plugin.Viewer{
-			Authenticated: true,
-			Role:          "superadmin",
-			Admin:         true,
-			Superadmin:    true,
+			Authenticated:     true,
+			Role:              "superadmin",
+			Admin:             true,
+			Superadmin:        true,
+			HasHostAuthHeader: true,
 		}
 	}
-	return plugin.Viewer{}
+	return plugin.Viewer{HasHostAuthHeader: hasHostAuth}
 }
 
 // setupModeGuard refuses all business, game, and OAuth routes while the server is in

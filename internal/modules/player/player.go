@@ -20,6 +20,9 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthdevicecode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	entplayer "github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/scoreentry"
 	tex "github.com/Entropy-Increase-Team/skinloom/ent/texture"
@@ -168,8 +171,18 @@ func (s *Service) Create(ctx context.Context, userID int64, name string, p Polic
 			return err
 		}
 		var err error
+		uuid := newUUID(name, p)
+		if !p.UUIDv4 && p.KeepUUIDOnRename {
+			taken, uerr := tx.Player.Query().Where(entplayer.UUID(uuid)).Exist(ctx)
+			if uerr != nil {
+				return uerr
+			}
+			if taken {
+				uuid = RandomUUID()
+			}
+		}
 		created, err = tx.Player.Create().
-			SetUserID(userID).SetName(name).SetNameLower(Key(name)).SetUUID(newUUID(name, p)).
+			SetUserID(userID).SetName(name).SetNameLower(Key(name)).SetUUID(uuid).
 			Save(ctx)
 		if db.IsConstraint(err) {
 			return errNameTaken
@@ -231,6 +244,16 @@ func (s *Service) Delete(ctx context.Context, userID, id int64, refund bool, rec
 			return err
 		}
 		if err := tx.Player.DeleteOne(pl).Exec(ctx); err != nil {
+			return err
+		}
+		// Revoke OIDC / Yggdrasil Connect tokens and pending authorizations bound to this player.
+		if _, err := tx.OAuthToken.Delete().Where(oauthtoken.PlayerID(pl.ID)).Exec(ctx); err != nil {
+			return err
+		}
+		if _, err := tx.OAuthCode.Delete().Where(oauthcode.PlayerID(pl.ID)).Exec(ctx); err != nil {
+			return err
+		}
+		if _, err := tx.OAuthDeviceCode.Delete().Where(oauthdevicecode.PlayerID(pl.ID)).Exec(ctx); err != nil {
 			return err
 		}
 		if err := hook.OnPlayerDeleted.Publish(ctx, s.hooks, tx, event(pl)); err != nil {

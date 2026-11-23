@@ -27,6 +27,20 @@ func (_u *SiteSecretUpdate) Where(ps ...predicate.SiteSecret) *SiteSecretUpdate 
 	return _u
 }
 
+// SetValue sets the "value" field.
+func (_u *SiteSecretUpdate) SetValue(v string) *SiteSecretUpdate {
+	_u.mutation.SetValue(v)
+	return _u
+}
+
+// SetNillableValue sets the "value" field if the given value is not nil.
+func (_u *SiteSecretUpdate) SetNillableValue(v *string) *SiteSecretUpdate {
+	if v != nil {
+		_u.SetValue(*v)
+	}
+	return _u
+}
+
 // Mutation returns the SiteSecretMutation object of the builder.
 func (_u *SiteSecretUpdate) Mutation() *SiteSecretMutation {
 	return _u.mutation
@@ -68,6 +82,9 @@ func (_u *SiteSecretUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 			}
 		}
 	}
+	if value, ok := _u.mutation.Value(); ok {
+		_spec.SetField(sitesecret.FieldValue, field.TypeString, value)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{sitesecret.Label}
@@ -86,6 +103,20 @@ type SiteSecretUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *SiteSecretMutation
+}
+
+// SetValue sets the "value" field.
+func (_u *SiteSecretUpdateOne) SetValue(v string) *SiteSecretUpdateOne {
+	_u.mutation.SetValue(v)
+	return _u
+}
+
+// SetNillableValue sets the "value" field if the given value is not nil.
+func (_u *SiteSecretUpdateOne) SetNillableValue(v *string) *SiteSecretUpdateOne {
+	if v != nil {
+		_u.SetValue(*v)
+	}
+	return _u
 }
 
 // Mutation returns the SiteSecretMutation object of the builder.
@@ -158,6 +189,9 @@ func (_u *SiteSecretUpdateOne) sqlSave(ctx context.Context) (_node *SiteSecret, 
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.Value(); ok {
+		_spec.SetField(sitesecret.FieldValue, field.TypeString, value)
 	}
 	_node = &SiteSecret{config: _u.config}
 	_spec.Assign = _node.assignValues

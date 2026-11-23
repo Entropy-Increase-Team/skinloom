@@ -19,6 +19,7 @@ export type PluginPermission =
   | 'native.exec'
   | 'notify.send'
   | 'players.read'
+  | 'players.uuid.write'
   | 'players.write'
   | 'provider.render'
   | 'provider.search'
@@ -35,6 +36,7 @@ export type PluginPermission =
   | 'users.read'
   | 'users.write'
   | 'yggdrasil.extend'
+  | 'yggdrasil.key.write'
 
 export const PERMISSION_RISK: Record<PluginPermission, PermissionRiskTier> = {
   'admin.ui': 'normal',
@@ -50,6 +52,7 @@ export const PERMISSION_RISK: Record<PluginPermission, PermissionRiskTier> = {
   'native.exec': 'high_risk',
   'notify.send': 'normal',
   'players.read': 'normal',
+  'players.uuid.write': 'high_risk',
   'players.write': 'sensitive',
   'provider.render': 'sensitive',
   'provider.search': 'sensitive',
@@ -66,6 +69,7 @@ export const PERMISSION_RISK: Record<PluginPermission, PermissionRiskTier> = {
   'users.read': 'normal',
   'users.write': 'sensitive',
   'yggdrasil.extend': 'sensitive',
+  'yggdrasil.key.write': 'high_risk',
 } as const
 
 export const NATIVE_ONLY_PERMISSIONS: readonly PluginPermission[] = [

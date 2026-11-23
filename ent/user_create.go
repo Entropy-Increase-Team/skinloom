@@ -17,6 +17,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthdevicecode"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
@@ -487,6 +488,21 @@ func (_c *UserCreate) AddOauthTokens(v ...*OAuthToken) *UserCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddOauthTokenIDs(ids...)
+}
+
+// AddOauthDeviceCodeIDs adds the "oauth_device_codes" edge to the OAuthDeviceCode entity by IDs.
+func (_c *UserCreate) AddOauthDeviceCodeIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddOauthDeviceCodeIDs(ids...)
+	return _c
+}
+
+// AddOauthDeviceCodes adds the "oauth_device_codes" edges to the OAuthDeviceCode entity.
+func (_c *UserCreate) AddOauthDeviceCodes(v ...*OAuthDeviceCode) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddOauthDeviceCodeIDs(ids...)
 }
 
 // AddSocialAccountIDs adds the "social_accounts" edge to the SocialAccount entity by IDs.
@@ -1031,6 +1047,22 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.OauthDeviceCodesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthDeviceCodesTable,
+			Columns: []string{user.OauthDeviceCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthdevicecode.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

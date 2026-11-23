@@ -56,12 +56,15 @@ type hookBinding struct {
 }
 
 type routeBinding struct {
-	Method      string `json:"method"`
-	Pattern     string `json:"pattern"`
-	Auth        string `json:"auth"` // public | user | admin | superadmin
-	StreamProxy bool   `json:"streamProxy,omitempty"`
-	FnID        int    `json:"-"`
-	HandlerID   string `json:"-"`
+	Method         string   `json:"method"`
+	Pattern        string   `json:"pattern"`
+	Auth           string   `json:"auth"` // public | user | admin | superadmin
+	StreamProxy    bool     `json:"streamProxy,omitempty"`
+	ForwardHeaders []string `json:"forwardHeaders,omitempty"`
+	OpenCORS       bool     `json:"openCors,omitempty"`
+	WebhookNoCSRF  bool     `json:"webhookNoCsrf,omitempty"`
+	FnID           int      `json:"-"`
+	HandlerID      string   `json:"-"`
 }
 
 // LogEntry is one captured line emitted through ctx.log.
@@ -160,9 +163,11 @@ type pluginRuntime struct {
 	routes []routeBinding
 	driver Driver
 
-	emitLocalEvent func(eventName string, payload any)
-	callService    func(ctx context.Context, targetID, svcName string, args ...any) (any, error)
-	onTrip         func(id string, rt *pluginRuntime, err error)
+	emitLocalEvent   func(eventName string, payload any)
+	callService      func(ctx context.Context, targetID, svcName string, args ...any) (any, error)
+	discoverServices func(svcName string) ([]string, error)
+	patchSettings    func(ctx context.Context, patch map[string]any) (map[string]any, error)
+	onTrip           func(id string, rt *pluginRuntime, err error)
 	closed         atomic.Bool
 }
 
@@ -226,7 +231,13 @@ func newPluginRuntime(
 		callService: func(ctx context.Context, targetID, svcName string, args ...any) (any, error) {
 			return mgr.CallService(ctx, manifest.ID, targetID, svcName, args...)
 		},
+		discoverServices: func(svcName string) ([]string, error) {
+			return mgr.DiscoverServiceProviders(manifest.ID, svcName)
+		},
 		onTrip: mgr.handleCircuitTrip,
+	}
+	rt.patchSettings = func(ctx context.Context, patch map[string]any) (map[string]any, error) {
+		return mgr.patchOwnSettings(ctx, rt, manifest.ID, patch)
 	}
 	return rt, nil
 }
@@ -659,16 +670,27 @@ func (r *pluginRuntime) hostFetch(ctx context.Context, args []any) (any, error) 
 	return r.fetch.Fetch(ctx, rawURL, req)
 }
 
-func (r *pluginRuntime) hostSettings(_ context.Context, args []any) (any, error) {
+func (r *pluginRuntime) hostSettings(ctx context.Context, args []any) (any, error) {
 	op, _ := argAt(args, 0).(string)
-	r.settingsMu.RLock()
-	defer r.settingsMu.RUnlock()
 	switch op {
 	case "get":
+		r.settingsMu.RLock()
+		defer r.settingsMu.RUnlock()
 		key, _ := argAt(args, 1).(string)
 		return r.settings[key], nil
 	case "all":
+		r.settingsMu.RLock()
+		defer r.settingsMu.RUnlock()
 		return cloneMap(r.settings), nil
+	case "patch":
+		patch, ok := asMap(argAt(args, 1))
+		if !ok || patch == nil {
+			return nil, fmt.Errorf("%w: settings.patch expects a JSON object", ErrInvalidSettings)
+		}
+		if r.patchSettings == nil {
+			return nil, errors.New("settings persistence unavailable")
+		}
+		return r.patchSettings(ctx, patch)
 	default:
 		return nil, fmt.Errorf("unknown settings op %q", op)
 	}

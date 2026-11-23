@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthdevicecode"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
@@ -78,6 +79,26 @@ func (_u *OAuthClientUpdate) AppendRedirectUris(v []string) *OAuthClientUpdate {
 	return _u
 }
 
+// SetLastUsedAt sets the "last_used_at" field.
+func (_u *OAuthClientUpdate) SetLastUsedAt(v time.Time) *OAuthClientUpdate {
+	_u.mutation.SetLastUsedAt(v)
+	return _u
+}
+
+// SetNillableLastUsedAt sets the "last_used_at" field if the given value is not nil.
+func (_u *OAuthClientUpdate) SetNillableLastUsedAt(v *time.Time) *OAuthClientUpdate {
+	if v != nil {
+		_u.SetLastUsedAt(*v)
+	}
+	return _u
+}
+
+// ClearLastUsedAt clears the value of the "last_used_at" field.
+func (_u *OAuthClientUpdate) ClearLastUsedAt() *OAuthClientUpdate {
+	_u.mutation.ClearLastUsedAt()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *OAuthClientUpdate) SetUpdatedAt(v time.Time) *OAuthClientUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -127,6 +148,21 @@ func (_u *OAuthClientUpdate) AddTokens(v ...*OAuthToken) *OAuthClientUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.AddTokenIDs(ids...)
+}
+
+// AddDeviceCodeIDs adds the "device_codes" edge to the OAuthDeviceCode entity by IDs.
+func (_u *OAuthClientUpdate) AddDeviceCodeIDs(ids ...int64) *OAuthClientUpdate {
+	_u.mutation.AddDeviceCodeIDs(ids...)
+	return _u
+}
+
+// AddDeviceCodes adds the "device_codes" edges to the OAuthDeviceCode entity.
+func (_u *OAuthClientUpdate) AddDeviceCodes(v ...*OAuthDeviceCode) *OAuthClientUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddDeviceCodeIDs(ids...)
 }
 
 // Mutation returns the OAuthClientMutation object of the builder.
@@ -195,6 +231,27 @@ func (_u *OAuthClientUpdate) RemoveTokens(v ...*OAuthToken) *OAuthClientUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveTokenIDs(ids...)
+}
+
+// ClearDeviceCodes clears all "device_codes" edges to the OAuthDeviceCode entity.
+func (_u *OAuthClientUpdate) ClearDeviceCodes() *OAuthClientUpdate {
+	_u.mutation.ClearDeviceCodes()
+	return _u
+}
+
+// RemoveDeviceCodeIDs removes the "device_codes" edge to OAuthDeviceCode entities by IDs.
+func (_u *OAuthClientUpdate) RemoveDeviceCodeIDs(ids ...int64) *OAuthClientUpdate {
+	_u.mutation.RemoveDeviceCodeIDs(ids...)
+	return _u
+}
+
+// RemoveDeviceCodes removes "device_codes" edges to OAuthDeviceCode entities.
+func (_u *OAuthClientUpdate) RemoveDeviceCodes(v ...*OAuthDeviceCode) *OAuthClientUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveDeviceCodeIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -279,6 +336,12 @@ func (_u *OAuthClientUpdate) sqlSave(ctx context.Context) (_node int, err error)
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, oauthclient.FieldRedirectUris, value)
 		})
+	}
+	if value, ok := _u.mutation.LastUsedAt(); ok {
+		_spec.SetField(oauthclient.FieldLastUsedAt, field.TypeTime, value)
+	}
+	if _u.mutation.LastUsedAtCleared() {
+		_spec.ClearField(oauthclient.FieldLastUsedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(oauthclient.FieldUpdatedAt, field.TypeTime, value)
@@ -418,6 +481,51 @@ func (_u *OAuthClientUpdate) sqlSave(ctx context.Context) (_node int, err error)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.DeviceCodesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   oauthclient.DeviceCodesTable,
+			Columns: []string{oauthclient.DeviceCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthdevicecode.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedDeviceCodesIDs(); len(nodes) > 0 && !_u.mutation.DeviceCodesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   oauthclient.DeviceCodesTable,
+			Columns: []string{oauthclient.DeviceCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthdevicecode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.DeviceCodesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   oauthclient.DeviceCodesTable,
+			Columns: []string{oauthclient.DeviceCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthdevicecode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{oauthclient.Label}
@@ -484,6 +592,26 @@ func (_u *OAuthClientUpdateOne) AppendRedirectUris(v []string) *OAuthClientUpdat
 	return _u
 }
 
+// SetLastUsedAt sets the "last_used_at" field.
+func (_u *OAuthClientUpdateOne) SetLastUsedAt(v time.Time) *OAuthClientUpdateOne {
+	_u.mutation.SetLastUsedAt(v)
+	return _u
+}
+
+// SetNillableLastUsedAt sets the "last_used_at" field if the given value is not nil.
+func (_u *OAuthClientUpdateOne) SetNillableLastUsedAt(v *time.Time) *OAuthClientUpdateOne {
+	if v != nil {
+		_u.SetLastUsedAt(*v)
+	}
+	return _u
+}
+
+// ClearLastUsedAt clears the value of the "last_used_at" field.
+func (_u *OAuthClientUpdateOne) ClearLastUsedAt() *OAuthClientUpdateOne {
+	_u.mutation.ClearLastUsedAt()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *OAuthClientUpdateOne) SetUpdatedAt(v time.Time) *OAuthClientUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
@@ -533,6 +661,21 @@ func (_u *OAuthClientUpdateOne) AddTokens(v ...*OAuthToken) *OAuthClientUpdateOn
 		ids[i] = v[i].ID
 	}
 	return _u.AddTokenIDs(ids...)
+}
+
+// AddDeviceCodeIDs adds the "device_codes" edge to the OAuthDeviceCode entity by IDs.
+func (_u *OAuthClientUpdateOne) AddDeviceCodeIDs(ids ...int64) *OAuthClientUpdateOne {
+	_u.mutation.AddDeviceCodeIDs(ids...)
+	return _u
+}
+
+// AddDeviceCodes adds the "device_codes" edges to the OAuthDeviceCode entity.
+func (_u *OAuthClientUpdateOne) AddDeviceCodes(v ...*OAuthDeviceCode) *OAuthClientUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddDeviceCodeIDs(ids...)
 }
 
 // Mutation returns the OAuthClientMutation object of the builder.
@@ -601,6 +744,27 @@ func (_u *OAuthClientUpdateOne) RemoveTokens(v ...*OAuthToken) *OAuthClientUpdat
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveTokenIDs(ids...)
+}
+
+// ClearDeviceCodes clears all "device_codes" edges to the OAuthDeviceCode entity.
+func (_u *OAuthClientUpdateOne) ClearDeviceCodes() *OAuthClientUpdateOne {
+	_u.mutation.ClearDeviceCodes()
+	return _u
+}
+
+// RemoveDeviceCodeIDs removes the "device_codes" edge to OAuthDeviceCode entities by IDs.
+func (_u *OAuthClientUpdateOne) RemoveDeviceCodeIDs(ids ...int64) *OAuthClientUpdateOne {
+	_u.mutation.RemoveDeviceCodeIDs(ids...)
+	return _u
+}
+
+// RemoveDeviceCodes removes "device_codes" edges to OAuthDeviceCode entities.
+func (_u *OAuthClientUpdateOne) RemoveDeviceCodes(v ...*OAuthDeviceCode) *OAuthClientUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveDeviceCodeIDs(ids...)
 }
 
 // Where appends a list predicates to the OAuthClientUpdate builder.
@@ -716,6 +880,12 @@ func (_u *OAuthClientUpdateOne) sqlSave(ctx context.Context) (_node *OAuthClient
 			sqljson.Append(u, oauthclient.FieldRedirectUris, value)
 		})
 	}
+	if value, ok := _u.mutation.LastUsedAt(); ok {
+		_spec.SetField(oauthclient.FieldLastUsedAt, field.TypeTime, value)
+	}
+	if _u.mutation.LastUsedAtCleared() {
+		_spec.ClearField(oauthclient.FieldLastUsedAt, field.TypeTime)
+	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(oauthclient.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -847,6 +1017,51 @@ func (_u *OAuthClientUpdateOne) sqlSave(ctx context.Context) (_node *OAuthClient
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.DeviceCodesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   oauthclient.DeviceCodesTable,
+			Columns: []string{oauthclient.DeviceCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthdevicecode.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedDeviceCodesIDs(); len(nodes) > 0 && !_u.mutation.DeviceCodesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   oauthclient.DeviceCodesTable,
+			Columns: []string{oauthclient.DeviceCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthdevicecode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.DeviceCodesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   oauthclient.DeviceCodesTable,
+			Columns: []string{oauthclient.DeviceCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthdevicecode.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

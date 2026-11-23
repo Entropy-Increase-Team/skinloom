@@ -15,15 +15,18 @@ import (
 	"log/slog"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthdevicecode"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
@@ -46,15 +49,19 @@ const (
 )
 
 var (
-	ErrNotFound     = errors.New("not found")
-	ErrInvalidToken = errors.New("invalid or expired token")
-	ErrBanned       = errors.New("the account is banned")
+	ErrNotFound          = errors.New("not found")
+	ErrInvalidToken      = errors.New("invalid or expired token")
+	ErrInsufficientScope = errors.New("insufficient scope")
+	ErrBanned            = errors.New("the account is banned")
 )
 
 // Policy is what the service needs from the settings.
 type Policy struct {
-	AccessTTL  time.Duration
-	RefreshTTL time.Duration
+	AccessTTL       time.Duration
+	RefreshTTL      time.Duration
+	EnableOIDC      bool
+	EnableDCR       bool
+	RequireVerified bool
 }
 
 // SettingDefs are the oauth.* settings.
@@ -64,29 +71,53 @@ func SettingDefs() []settings.Def {
 			Doc: "How long an application's access token is valid (1 day); it then uses its refresh token. (Blessing Skin: 1 year)"},
 		{Key: "oauth.refresh_token_ttl_seconds", Type: settings.TypeInt, Default: 2592000, Range: settings.Between(3600, 31536000),
 			Doc: "How long an unused refresh token stays valid (30 days); each refresh starts a new one."},
+		{Key: "oauth.enable_oidc", Type: settings.TypeBool, Public: true, Default: true,
+			Doc: "Enable built-in OpenID Connect & Yggdrasil Connect provider (/.well-known/openid-configuration, /oauth/userinfo, /oauth/device_authorization)."},
+		{Key: "oauth.enable_dcr", Type: settings.TypeBool, Public: true, Default: true,
+			Doc: "Allow native launchers to dynamically register temporary public PKCE clients via RFC 7591 (POST /oauth/register, restricted to loopback or custom app schemes)."},
 	}
 }
 
 // PolicyFrom reads the policy from a settings snapshot.
 func PolicyFrom(s *settings.Snapshot) Policy {
 	p := Policy{
-		AccessTTL:  time.Duration(settings.Decode[int64](s, "oauth.access_token_ttl_seconds")) * time.Second,
-		RefreshTTL: time.Duration(settings.Decode[int64](s, "oauth.refresh_token_ttl_seconds")) * time.Second,
+		AccessTTL:       time.Duration(settings.Decode[int64](s, "oauth.access_token_ttl_seconds")) * time.Second,
+		RefreshTTL:      time.Duration(settings.Decode[int64](s, "oauth.refresh_token_ttl_seconds")) * time.Second,
+		EnableOIDC:      settings.Decode[bool](s, "oauth.enable_oidc"),
+		EnableDCR:       settings.Decode[bool](s, "oauth.enable_dcr"),
+		RequireVerified: account.VerificationRequired(s),
 	}
 	p.RefreshTTL = max(p.RefreshTTL, p.AccessTTL)
 	return p
 }
 
-// Service implements the authorization server and personal access tokens.
+// Service implements the authorization server, OpenID Connect / Yggdrasil Connect
+// provider, and personal access tokens.
 type Service struct {
-	db  *ent.Client
-	log *slog.Logger
-	now func() time.Time
+	db      *ent.Client
+	log     *slog.Logger
+	now     func() time.Time
+	KeyBits int // RSA key size for OIDC RS256 signing key (default 2048)
+
+	keyMu   sync.Mutex
+	oidcKey *oidcSigningKey
+
+	dcrLimiter    *windowLimiter
+	devReqLimiter *windowLimiter
+	devUsrLimiter *windowLimiter
 }
 
 // NewService creates the service.
 func NewService(db *ent.Client, log *slog.Logger) *Service {
-	return &Service{db: db, log: log, now: time.Now}
+	return &Service{
+		db:            db,
+		log:           log,
+		now:           time.Now,
+		KeyBits:       2048,
+		dcrLimiter:    newWindowLimiter(dcrLimitPerHour, dcrWindow, 4096),
+		devReqLimiter: newWindowLimiter(20, 10*time.Minute, 4096),
+		devUsrLimiter: newWindowLimiter(30, 10*time.Minute, 4096),
+	}
 }
 
 func randomToken(prefix string) string {
@@ -172,9 +203,10 @@ func contains(list []string, s string) bool {
 	return false
 }
 
-// Clients lists a user's applications.
+// Clients lists a user's manually registered applications (excluding dynamic DCR clients).
 func (s *Service) Clients(ctx context.Context, userID int64) ([]*ent.OAuthClient, error) {
-	return s.db.OAuthClient.Query().Where(oauthclient.UserID(userID)).Order(ent.Asc(oauthclient.FieldID)).All(ctx)
+	return s.db.OAuthClient.Query().Where(oauthclient.UserID(userID), oauthclient.Dynamic(false)).
+		Order(ent.Asc(oauthclient.FieldID)).All(ctx)
 }
 
 // CreateClient registers an application. Confidential ones get a secret, returned
@@ -191,7 +223,7 @@ func (s *Service) CreateClient(ctx context.Context, userID int64, in ClientInput
 	if err := errors.Join(err, rerr); err != nil {
 		return nil, "", err
 	}
-	n, err := s.db.OAuthClient.Query().Where(oauthclient.UserID(userID)).Count(ctx)
+	n, err := s.db.OAuthClient.Query().Where(oauthclient.UserID(userID), oauthclient.Dynamic(false)).Count(ctx)
 	if err != nil {
 		return nil, "", err
 	}
@@ -209,7 +241,7 @@ func (s *Service) CreateClient(ctx context.Context, userID int64, in ClientInput
 }
 
 func (s *Service) ownClient(ctx context.Context, userID, id int64) (*ent.OAuthClient, error) {
-	c, err := s.db.OAuthClient.Query().Where(oauthclient.ID(id), oauthclient.UserID(userID)).Only(ctx)
+	c, err := s.db.OAuthClient.Query().Where(oauthclient.ID(id), oauthclient.UserID(userID), oauthclient.Dynamic(false)).Only(ctx)
 	if ent.IsNotFound(err) {
 		return nil, ErrNotFound
 	}
@@ -256,7 +288,7 @@ func (s *Service) ResetSecret(ctx context.Context, userID, id int64) (string, er
 
 // DeleteClient deletes an application with everything it was granted.
 func (s *Service) DeleteClient(ctx context.Context, userID, id int64) error {
-	n, err := s.db.OAuthClient.Delete().Where(oauthclient.ID(id), oauthclient.UserID(userID)).Exec(ctx)
+	n, err := s.db.OAuthClient.Delete().Where(oauthclient.ID(id), oauthclient.UserID(userID), oauthclient.Dynamic(false)).Exec(ctx)
 	if err == nil && n == 0 {
 		return ErrNotFound
 	}
@@ -286,7 +318,11 @@ func (s *Service) Grants(ctx context.Context, userID int64) ([]Grant, error) {
 	}
 	out := make([]Grant, len(rows))
 	for i, g := range rows {
-		out[i] = Grant{Client: g.Edges.Client, Owner: g.Edges.Client.Edges.Owner.Nickname,
+		owner := ""
+		if !g.Edges.Client.Dynamic && g.Edges.Client.Edges.Owner != nil {
+			owner = g.Edges.Client.Edges.Owner.Nickname
+		}
+		out[i] = Grant{Client: g.Edges.Client, Owner: owner,
 			Scopes: g.Scopes, CreatedAt: g.CreatedAt, UpdatedAt: g.UpdatedAt}
 	}
 	return out, nil
@@ -304,6 +340,9 @@ func (s *Service) RevokeGrant(ctx context.Context, userID, clientID int64) error
 			return ErrNotFound
 		}
 		if _, err := tx.OAuthToken.Delete().Where(oauthtoken.UserID(userID), oauthtoken.ClientID(clientID)).Exec(ctx); err != nil {
+			return err
+		}
+		if _, err := tx.OAuthDeviceCode.Delete().Where(oauthdevicecode.UserID(userID), oauthdevicecode.ClientID(clientID)).Exec(ctx); err != nil {
 			return err
 		}
 		_, err = tx.OAuthCode.Delete().Where(oauthcode.UserID(userID), oauthcode.ClientID(clientID)).Exec(ctx)
@@ -325,6 +364,9 @@ func (s *Service) CreatePersonalToken(ctx context.Context, u *ent.User, name str
 		known, ok := lookupScope(sc)
 		if !ok {
 			return nil, "", &validate.FieldError{Field: "scopes", Message: "unknown scope " + sc}
+		}
+		if known.OIDC {
+			return nil, "", &validate.FieldError{Field: "scopes", Message: known.Name + " cannot be used on personal access tokens"}
 		}
 		if known.Admin && !isAdmin(u) {
 			return nil, "", &validate.FieldError{Field: "scopes", Message: known.Name + " is for administrators"}
@@ -374,12 +416,14 @@ func isAdmin(u *ent.User) bool { return u.Role == user.RoleAdmin || u.Role == us
 
 // ---- Using a token ----
 
-// Principal is who a resource API request acts for, and what it may do.
+// Principal is who a resource API or UserInfo request acts for, and what it may do.
 type Principal struct {
-	User     *ent.User
-	Scopes   []string
-	TokenID  int64
-	ClientID *int64 // nil for a personal access token
+	User              *ent.User
+	Scopes            []string
+	TokenID           int64
+	ClientID          *int64 // nil for a personal access token
+	PlayerID          *int64
+	PlayerNameAtIssue string
 }
 
 // Can reports whether the token allows scope (administration scopes also need the
@@ -400,7 +444,7 @@ func (s *Service) Authenticate(ctx context.Context, token string) (*Principal, e
 	}
 	row, err := s.db.OAuthToken.Query().Where(oauthtoken.TokenHash(hash(token))).WithUser().
 		WithClient(func(q *ent.OAuthClientQuery) {
-			q.Select(oauthclient.FieldID, oauthclient.FieldUserID).
+			q.Select(oauthclient.FieldID, oauthclient.FieldUserID, oauthclient.FieldDynamic).
 				WithOwner(func(q *ent.UserQuery) { q.Select(user.FieldID, user.FieldStatus) })
 		}).Only(ctx)
 	if ent.IsNotFound(err) {
@@ -413,7 +457,7 @@ func (s *Service) Authenticate(ctx context.Context, token string) (*Principal, e
 	if row.ExpiresAt != nil && !now.Before(*row.ExpiresAt) {
 		return nil, ErrInvalidToken
 	}
-	if c := row.Edges.Client; row.ClientID != nil && (c == nil || c.Edges.Owner == nil || c.Edges.Owner.Status != user.StatusActive) {
+	if c := row.Edges.Client; row.ClientID != nil && (c == nil || (!c.Dynamic && (c.Edges.Owner == nil || c.Edges.Owner.Status != user.StatusActive))) {
 		return nil, ErrInvalidToken
 	}
 	switch row.Edges.User.Status {
@@ -429,19 +473,45 @@ func (s *Service) Authenticate(ctx context.Context, token string) (*Principal, e
 			s.log.Warn("oauth token last use", "err", err)
 		}
 	}
-	return &Principal{User: row.Edges.User, Scopes: row.Scopes, TokenID: row.ID, ClientID: row.ClientID}, nil
+	return &Principal{
+		User:              row.Edges.User,
+		Scopes:            row.Scopes,
+		TokenID:           row.ID,
+		ClientID:          row.ClientID,
+		PlayerID:          row.PlayerID,
+		PlayerNameAtIssue: row.PlayerNameAtIssue,
+	}, nil
 }
 
-// Cleanup deletes codes and tokens that can no longer be used.
+// Cleanup deletes expired codes, device codes, tokens, and abandoned dynamic DCR clients.
 func (s *Service) Cleanup(ctx context.Context) (int, error) {
 	now := s.now()
 	a, err := s.db.OAuthCode.Delete().Where(oauthcode.ExpiresAtLTE(now)).Exec(ctx)
 	if err != nil {
 		return a, err
 	}
-	b, err := s.db.OAuthToken.Delete().Where(oauthtoken.Or(
+	b, err := s.db.OAuthDeviceCode.Delete().Where(oauthdevicecode.ExpiresAtLTE(now)).Exec(ctx)
+	if err != nil {
+		return a + b, err
+	}
+	c, err := s.db.OAuthToken.Delete().Where(oauthtoken.Or(
 		oauthtoken.And(oauthtoken.KindEQ(oauthtoken.KindOauth), oauthtoken.RefreshUntilLTE(now)),
 		oauthtoken.And(oauthtoken.KindEQ(oauthtoken.KindPersonal), oauthtoken.ExpiresAtLTE(now)),
 	)).Exec(ctx)
-	return a + b, err
+	if err != nil {
+		return a + b + c, err
+	}
+	staleCutoff := now.Add(-30 * 24 * time.Hour)
+	unusedCutoff := now.Add(-24 * time.Hour)
+	d, err := s.db.OAuthClient.Delete().Where(
+		oauthclient.Dynamic(true),
+		oauthclient.Or(
+			oauthclient.LastUsedAtLTE(staleCutoff),
+			oauthclient.And(oauthclient.LastUsedAtIsNil(), oauthclient.CreatedAtLTE(unusedCutoff)),
+		),
+		oauthclient.Not(oauthclient.HasTokens()),
+		oauthclient.Not(oauthclient.HasCodes()),
+		oauthclient.Not(oauthclient.HasDeviceCodes()),
+	).Exec(ctx)
+	return a + b + c + d, err
 }

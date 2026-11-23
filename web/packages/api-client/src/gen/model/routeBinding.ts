@@ -8,7 +8,10 @@
 
 export interface RouteBinding {
   auth: string;
+  forwardHeaders?: string[];
   method: string;
+  openCors?: boolean;
   pattern: string;
   streamProxy?: boolean;
+  webhookNoCsrf?: boolean;
 }

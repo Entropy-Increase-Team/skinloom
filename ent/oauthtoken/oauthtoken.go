@@ -29,6 +29,10 @@ const (
 	FieldName = "name"
 	// FieldScopes holds the string denoting the scopes field in the database.
 	FieldScopes = "scopes"
+	// FieldPlayerID holds the string denoting the player_id field in the database.
+	FieldPlayerID = "player_id"
+	// FieldPlayerNameAtIssue holds the string denoting the player_name_at_issue field in the database.
+	FieldPlayerNameAtIssue = "player_name_at_issue"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldExpiresAt holds the string denoting the expires_at field in the database.
@@ -69,6 +73,8 @@ var Columns = []string{
 	FieldClientID,
 	FieldName,
 	FieldScopes,
+	FieldPlayerID,
+	FieldPlayerNameAtIssue,
 	FieldCreatedAt,
 	FieldExpiresAt,
 	FieldRefreshUntil,
@@ -94,6 +100,10 @@ var (
 	DefaultName string
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
+	// DefaultPlayerNameAtIssue holds the default value on creation for the "player_name_at_issue" field.
+	DefaultPlayerNameAtIssue string
+	// PlayerNameAtIssueValidator is a validator for the "player_name_at_issue" field. It is called by the builders before save.
+	PlayerNameAtIssueValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 )
@@ -157,6 +167,16 @@ func ByClientID(opts ...sql.OrderTermOption) OrderOption {
 // ByName orders the results by the name field.
 func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByPlayerID orders the results by the player_id field.
+func ByPlayerID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPlayerID, opts...).ToFunc()
+}
+
+// ByPlayerNameAtIssue orders the results by the player_name_at_issue field.
+func ByPlayerNameAtIssue(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPlayerNameAtIssue, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

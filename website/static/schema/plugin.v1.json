@@ -667,6 +667,7 @@
           "native.exec",
           "notify.send",
           "players.read",
+          "players.uuid.write",
           "players.write",
           "provider.render",
           "provider.search",
@@ -682,7 +683,8 @@
           "users.ban",
           "users.read",
           "users.write",
-          "yggdrasil.extend"
+          "yggdrasil.extend",
+          "yggdrasil.key.write"
         ],
         "type": "string"
       },

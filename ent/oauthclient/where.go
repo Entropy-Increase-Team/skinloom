@@ -70,6 +70,16 @@ func SecretHash(v string) predicate.OAuthClient {
 	return predicate.OAuthClient(sql.FieldEQ(FieldSecretHash, v))
 }
 
+// Dynamic applies equality check predicate on the "dynamic" field. It's identical to DynamicEQ.
+func Dynamic(v bool) predicate.OAuthClient {
+	return predicate.OAuthClient(sql.FieldEQ(FieldDynamic, v))
+}
+
+// LastUsedAt applies equality check predicate on the "last_used_at" field. It's identical to LastUsedAtEQ.
+func LastUsedAt(v time.Time) predicate.OAuthClient {
+	return predicate.OAuthClient(sql.FieldEQ(FieldLastUsedAt, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.OAuthClient {
 	return predicate.OAuthClient(sql.FieldEQ(FieldCreatedAt, v))
@@ -240,6 +250,66 @@ func SecretHashContainsFold(v string) predicate.OAuthClient {
 	return predicate.OAuthClient(sql.FieldContainsFold(FieldSecretHash, v))
 }
 
+// DynamicEQ applies the EQ predicate on the "dynamic" field.
+func DynamicEQ(v bool) predicate.OAuthClient {
+	return predicate.OAuthClient(sql.FieldEQ(FieldDynamic, v))
+}
+
+// DynamicNEQ applies the NEQ predicate on the "dynamic" field.
+func DynamicNEQ(v bool) predicate.OAuthClient {
+	return predicate.OAuthClient(sql.FieldNEQ(FieldDynamic, v))
+}
+
+// LastUsedAtEQ applies the EQ predicate on the "last_used_at" field.
+func LastUsedAtEQ(v time.Time) predicate.OAuthClient {
+	return predicate.OAuthClient(sql.FieldEQ(FieldLastUsedAt, v))
+}
+
+// LastUsedAtNEQ applies the NEQ predicate on the "last_used_at" field.
+func LastUsedAtNEQ(v time.Time) predicate.OAuthClient {
+	return predicate.OAuthClient(sql.FieldNEQ(FieldLastUsedAt, v))
+}
+
+// LastUsedAtIn applies the In predicate on the "last_used_at" field.
+func LastUsedAtIn(vs ...time.Time) predicate.OAuthClient {
+	return predicate.OAuthClient(sql.FieldIn(FieldLastUsedAt, vs...))
+}
+
+// LastUsedAtNotIn applies the NotIn predicate on the "last_used_at" field.
+func LastUsedAtNotIn(vs ...time.Time) predicate.OAuthClient {
+	return predicate.OAuthClient(sql.FieldNotIn(FieldLastUsedAt, vs...))
+}
+
+// LastUsedAtGT applies the GT predicate on the "last_used_at" field.
+func LastUsedAtGT(v time.Time) predicate.OAuthClient {
+	return predicate.OAuthClient(sql.FieldGT(FieldLastUsedAt, v))
+}
+
+// LastUsedAtGTE applies the GTE predicate on the "last_used_at" field.
+func LastUsedAtGTE(v time.Time) predicate.OAuthClient {
+	return predicate.OAuthClient(sql.FieldGTE(FieldLastUsedAt, v))
+}
+
+// LastUsedAtLT applies the LT predicate on the "last_used_at" field.
+func LastUsedAtLT(v time.Time) predicate.OAuthClient {
+	return predicate.OAuthClient(sql.FieldLT(FieldLastUsedAt, v))
+}
+
+// LastUsedAtLTE applies the LTE predicate on the "last_used_at" field.
+func LastUsedAtLTE(v time.Time) predicate.OAuthClient {
+	return predicate.OAuthClient(sql.FieldLTE(FieldLastUsedAt, v))
+}
+
+// LastUsedAtIsNil applies the IsNil predicate on the "last_used_at" field.
+func LastUsedAtIsNil() predicate.OAuthClient {
+	return predicate.OAuthClient(sql.FieldIsNull(FieldLastUsedAt))
+}
+
+// LastUsedAtNotNil applies the NotNil predicate on the "last_used_at" field.
+func LastUsedAtNotNil() predicate.OAuthClient {
+	return predicate.OAuthClient(sql.FieldNotNull(FieldLastUsedAt))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.OAuthClient {
 	return predicate.OAuthClient(sql.FieldEQ(FieldCreatedAt, v))
@@ -404,6 +474,29 @@ func HasTokens() predicate.OAuthClient {
 func HasTokensWith(preds ...predicate.OAuthToken) predicate.OAuthClient {
 	return predicate.OAuthClient(func(s *sql.Selector) {
 		step := newTokensStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasDeviceCodes applies the HasEdge predicate on the "device_codes" edge.
+func HasDeviceCodes() predicate.OAuthClient {
+	return predicate.OAuthClient(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, DeviceCodesTable, DeviceCodesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasDeviceCodesWith applies the HasEdge predicate on the "device_codes" edge with a given conditions (other predicates).
+func HasDeviceCodesWith(preds ...predicate.OAuthDeviceCode) predicate.OAuthClient {
+	return predicate.OAuthClient(func(s *sql.Selector) {
+		step := newDeviceCodesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

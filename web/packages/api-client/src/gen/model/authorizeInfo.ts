@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.0.0-dev
  */
 import type { OAuthClientRef } from './oAuthClientRef';
+import type { PlayerOption } from './playerOption';
 
 export interface AuthorizeInfo {
   /** A URL to the JSON Schema for this object. */
@@ -15,6 +16,10 @@ export interface AuthorizeInfo {
   error?: string;
   /** You already allowed all of it: approve without asking */
   granted: boolean;
+  /** The application asks you to pick a Minecraft character */
+  needsPlayerSelect?: boolean;
+  /** Your characters when needsPlayerSelect is true */
+  players?: PlayerOption[];
   /** Send the browser here (an error the application handles) */
   redirect?: string;
   redirectUri?: string;

@@ -44,11 +44,13 @@ const (
 	PermProviderRender  = "provider.render"
 
 	// High-risk permissions
-	PermUsersBan        = "users.ban"
-	PermAuthProvider    = "auth.provider"
-	PermAuthPassword    = "auth.password"
-	PermProviderStorage = "provider.storage"
-	PermNativeExec      = "native.exec"
+	PermUsersBan          = "users.ban"
+	PermAuthProvider      = "auth.provider"
+	PermAuthPassword      = "auth.password"
+	PermProviderStorage   = "provider.storage"
+	PermNativeExec        = "native.exec"
+	PermYggdrasilKeyWrite = "yggdrasil.key.write"
+	PermPlayersUUIDWrite  = "players.uuid.write"
 )
 
 // PermissionDef describes a known capability permission and its risk tier.
@@ -215,6 +217,16 @@ var permissionCatalog = map[string]PermissionDef{
 		Name: PermNativeExec, Tier: RiskHighRisk, NativeOnly: true,
 		Description:  "Execute as a native OS subprocess outside the WASM sandbox.",
 		Descriptions: LocalizedText{"zh-CN": "以独立操作系统原生子进程在 WASM 沙箱之外执行。", "en": "Execute as a native OS subprocess outside the WASM sandbox."},
+	},
+	PermYggdrasilKeyWrite: {
+		Name: PermYggdrasilKeyWrite, Tier: RiskHighRisk,
+		Description:  "Replace the site's Yggdrasil RSA signing key and refresh signature caches.",
+		Descriptions: LocalizedText{"zh-CN": "替换站点 Yggdrasil 签名私钥（4096 位 RSA）并刷新签名缓存。", "en": "Replace the site's Yggdrasil RSA signing key and refresh signature caches."},
+	},
+	PermPlayersUUIDWrite: {
+		Name: PermPlayersUUIDWrite, Tier: RiskHighRisk,
+		Description:  "Remap player UUIDs and invalidate stale game join sessions.",
+		Descriptions: LocalizedText{"zh-CN": "重映射站点游戏角色的 UUID 并使旧游戏会话失效。", "en": "Remap player UUIDs and invalidate stale game join sessions."},
 	},
 }
 

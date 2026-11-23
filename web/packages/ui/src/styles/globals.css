@@ -14,7 +14,7 @@
 /* Components in this package use utility classes too. */
 @source '../';
 /* Common responsive & layout utilities guaranteed available to runtime-loaded plugins (ADR 0042). */
-@source inline("sm:inline-flex sm:col-span-2 lg:col-span-5 sm:text-center sm:text-right min-h-10 max-h-64 pt-6 max-w-7xl aspect-[4/3] left-2 bg-card/60 bg-card/85 bg-muted/60 border-border/70");
+@source inline("sm:inline-flex sm:col-span-2 lg:col-span-5 sm:text-center sm:text-right min-h-10 max-h-64 max-w-64 md:items-end md:flex-row underline-offset-2 whitespace-pre-wrap pt-6 max-w-7xl aspect-[4/3] left-2 bg-card/60 bg-card/85 bg-muted/60 border-border/70");
 
 @custom-variant dark (&:is(.dark *));
 

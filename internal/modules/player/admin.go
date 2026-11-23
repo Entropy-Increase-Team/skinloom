@@ -2,15 +2,21 @@ package player
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"strconv"
 	"strings"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/closetitem"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthdevicecode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	entplayer "github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggsession"
+	"github.com/Entropy-Increase-Team/skinloom/ent/yggtoken"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
@@ -180,7 +186,7 @@ func (s *Service) Edit(ctx context.Context, id int64, c Change, p Policy, rec *a
 			upd := tx.Player.UpdateOne(cur)
 			if renamed {
 				upd.SetName(name).SetNameLower(Key(name))
-				if !p.UUIDv4 {
+				if !p.UUIDv4 && !p.KeepUUIDOnRename {
 					upd.SetUUID(OfflineUUID(name))
 				}
 				rec = rec.With("name", []string{cur.Name, name})
@@ -226,6 +232,9 @@ func (s *Service) Edit(ctx context.Context, id int64, c Change, p Policy, rec *a
 				}
 			}
 			if moving {
+				if err := revokePlayerSessions(ctx, tx, cur.ID, false); err != nil {
+					return err
+				}
 				if err := hook.OnPlayerUpdated.Publish(ctx, s.hooks, tx, event(pl)); err != nil {
 					return err
 				}
@@ -242,3 +251,128 @@ func (s *Service) Edit(ctx context.Context, id int64, c Change, p Policy, rec *a
 }
 
 func sameID(a, b *int64) bool { return (a == nil) == (b == nil) && (a == nil || *a == *b) }
+
+func revokePlayerSessions(ctx context.Context, tx *ent.Client, playerID int64, deleteYggTokens bool) error {
+	if _, err := tx.YggSession.Delete().Where(yggsession.PlayerID(playerID)).Exec(ctx); err != nil {
+		return err
+	}
+	if deleteYggTokens {
+		if _, err := tx.YggToken.Delete().Where(yggtoken.PlayerID(playerID)).Exec(ctx); err != nil {
+			return err
+		}
+	}
+	if _, err := tx.OAuthToken.Delete().Where(oauthtoken.PlayerID(playerID)).Exec(ctx); err != nil {
+		return err
+	}
+	if _, err := tx.OAuthCode.Delete().Where(oauthcode.PlayerID(playerID)).Exec(ctx); err != nil {
+		return err
+	}
+	if _, err := tx.OAuthDeviceCode.Delete().Where(oauthdevicecode.PlayerID(playerID)).Exec(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
+// NormalizeUUID parses a UUID in canonical 32-hex or 8-4-4-4-12 dashed format and
+// returns its canonical 32-char lowercase hex representation.
+func NormalizeUUID(raw string) (string, bool) {
+	s := strings.TrimSpace(raw)
+	switch len(s) {
+	case 32:
+		// Undashed 32-hex UUID.
+	case 36:
+		if s[8] != '-' || s[13] != '-' || s[18] != '-' || s[23] != '-' {
+			return "", false
+		}
+		s = s[0:8] + s[9:13] + s[14:18] + s[19:23] + s[24:36]
+	default:
+		return "", false
+	}
+	u := strings.ToLower(s)
+	if _, err := hex.DecodeString(u); err != nil {
+		return "", false
+	}
+	return u, true
+}
+
+// FindByUUID looks up a player by its 32-hex UUID (dashes allowed).
+func (s *Service) FindByUUID(ctx context.Context, rawUUID string) (*ent.Player, error) {
+	u, ok := NormalizeUUID(rawUUID)
+	if !ok {
+		return nil, ErrNotFound
+	}
+	p, err := s.db.Player.Query().Where(entplayer.UUID(u)).WithOwner().WithSkin().WithCape().Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, ErrNotFound
+	}
+	return p, err
+}
+
+// ListAll returns players ordered by ascending ID after afterID (excluding players
+// whose owner account is soft-deleted), up to limit (default 200, max 500).
+func (s *Service) ListAll(ctx context.Context, afterID int64, limit int) ([]*ent.Player, error) {
+	if limit <= 0 {
+		limit = 200
+	}
+	if limit > 500 {
+		limit = 500
+	}
+	q := s.db.Player.Query().Where(entplayer.HasOwnerWith(user.StatusNEQ(user.StatusDeleted)))
+	if afterID > 0 {
+		q = q.Where(entplayer.IDGT(afterID))
+	}
+	return q.Order(ent.Asc(entplayer.FieldID)).Limit(limit).All(ctx)
+}
+
+var errUUIDTaken = &validate.FieldError{Field: "uuid", Message: "UUID already in use"}
+
+// RemapUUID changes the UUID of the player currently holding oldUUID to newUUID inside
+// one transaction, clears stale Yggdrasil join sessions for that player, and writes rec
+// to the audit log when provided.
+func (s *Service) RemapUUID(ctx context.Context, oldUUID, newUUID string, rec *audit.Entry) (*ent.Player, error) {
+	oldNorm, ok := NormalizeUUID(oldUUID)
+	if !ok {
+		return nil, &validate.FieldError{Field: "oldUuid", Message: "invalid UUID"}
+	}
+	newNorm, ok := NormalizeUUID(newUUID)
+	if !ok || newNorm == "00000000000000000000000000000000" {
+		return nil, &validate.FieldError{Field: "newUuid", Message: "invalid UUID"}
+	}
+	var out *ent.Player
+	err := db.WithTx(ctx, s.db, func(tx *ent.Client) error {
+		cur, err := tx.Player.Query().Where(entplayer.UUID(oldNorm)).Only(ctx)
+		if ent.IsNotFound(err) {
+			return ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if oldNorm == newNorm {
+			out = cur
+			return nil
+		}
+		taken, err := tx.Player.Query().Where(entplayer.UUID(newNorm), entplayer.IDNEQ(cur.ID)).Exist(ctx)
+		if err != nil {
+			return err
+		}
+		if taken {
+			return errUUIDTaken
+		}
+		pl, err := tx.Player.UpdateOne(cur).SetUUID(newNorm).Save(ctx)
+		if db.IsConstraint(err) {
+			return errUUIDTaken
+		}
+		if err != nil {
+			return err
+		}
+		if err := revokePlayerSessions(ctx, tx, cur.ID, true); err != nil {
+			return err
+		}
+		if err := hook.OnPlayerUpdated.Publish(ctx, s.hooks, tx, event(pl)); err != nil {
+			return err
+		}
+		out = pl
+		return audit.Write(ctx, tx, rec.With("uuid", []string{oldNorm, newNorm}))
+	})
+	return out, err
+}

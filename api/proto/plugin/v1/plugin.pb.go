@@ -310,14 +310,17 @@ func (x *HookRegistration) GetHandlerId() string {
 }
 
 type RouteRegistration struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Method        string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
-	Pattern       string                 `protobuf:"bytes,2,opt,name=pattern,proto3" json:"pattern,omitempty"`
-	Auth          string                 `protobuf:"bytes,3,opt,name=auth,proto3" json:"auth,omitempty"`
-	HandlerId     string                 `protobuf:"bytes,4,opt,name=handler_id,json=handlerId,proto3" json:"handler_id,omitempty"`
-	StreamProxy   bool                   `protobuf:"varint,5,opt,name=stream_proxy,json=streamProxy,proto3" json:"stream_proxy,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Method         string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	Pattern        string                 `protobuf:"bytes,2,opt,name=pattern,proto3" json:"pattern,omitempty"`
+	Auth           string                 `protobuf:"bytes,3,opt,name=auth,proto3" json:"auth,omitempty"`
+	HandlerId      string                 `protobuf:"bytes,4,opt,name=handler_id,json=handlerId,proto3" json:"handler_id,omitempty"`
+	StreamProxy    bool                   `protobuf:"varint,5,opt,name=stream_proxy,json=streamProxy,proto3" json:"stream_proxy,omitempty"`
+	ForwardHeaders []string               `protobuf:"bytes,6,rep,name=forward_headers,json=forwardHeaders,proto3" json:"forward_headers,omitempty"`
+	OpenCors       bool                   `protobuf:"varint,7,opt,name=open_cors,json=openCors,proto3" json:"open_cors,omitempty"`
+	WebhookNoCsrf  bool                   `protobuf:"varint,8,opt,name=webhook_no_csrf,json=webhookNoCsrf,proto3" json:"webhook_no_csrf,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *RouteRegistration) Reset() {
@@ -381,6 +384,27 @@ func (x *RouteRegistration) GetHandlerId() string {
 func (x *RouteRegistration) GetStreamProxy() bool {
 	if x != nil {
 		return x.StreamProxy
+	}
+	return false
+}
+
+func (x *RouteRegistration) GetForwardHeaders() []string {
+	if x != nil {
+		return x.ForwardHeaders
+	}
+	return nil
+}
+
+func (x *RouteRegistration) GetOpenCors() bool {
+	if x != nil {
+		return x.OpenCors
+	}
+	return false
+}
+
+func (x *RouteRegistration) GetWebhookNoCsrf() bool {
+	if x != nil {
+		return x.WebhookNoCsrf
 	}
 	return false
 }
@@ -2957,6 +2981,94 @@ func (x *CallPluginServiceRequest) GetArgsJson() []byte {
 	return nil
 }
 
+type DiscoverPluginServicesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiscoverPluginServicesRequest) Reset() {
+	*x = DiscoverPluginServicesRequest{}
+	mi := &file_plugin_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiscoverPluginServicesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiscoverPluginServicesRequest) ProtoMessage() {}
+
+func (x *DiscoverPluginServicesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_plugin_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiscoverPluginServicesRequest.ProtoReflect.Descriptor instead.
+func (*DiscoverPluginServicesRequest) Descriptor() ([]byte, []int) {
+	return file_plugin_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *DiscoverPluginServicesRequest) GetServiceName() string {
+	if x != nil {
+		return x.ServiceName
+	}
+	return ""
+}
+
+type DiscoverPluginServicesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PluginIds     []string               `protobuf:"bytes,1,rep,name=plugin_ids,json=pluginIds,proto3" json:"plugin_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiscoverPluginServicesResponse) Reset() {
+	*x = DiscoverPluginServicesResponse{}
+	mi := &file_plugin_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiscoverPluginServicesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiscoverPluginServicesResponse) ProtoMessage() {}
+
+func (x *DiscoverPluginServicesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_plugin_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiscoverPluginServicesResponse.ProtoReflect.Descriptor instead.
+func (*DiscoverPluginServicesResponse) Descriptor() ([]byte, []int) {
+	return file_plugin_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *DiscoverPluginServicesResponse) GetPluginIds() []string {
+	if x != nil {
+		return x.PluginIds
+	}
+	return nil
+}
+
 type LogRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Level         string                 `protobuf:"bytes,1,opt,name=level,proto3" json:"level,omitempty"`
@@ -2967,7 +3079,7 @@ type LogRequest struct {
 
 func (x *LogRequest) Reset() {
 	*x = LogRequest{}
-	mi := &file_plugin_proto_msgTypes[48]
+	mi := &file_plugin_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2979,7 +3091,7 @@ func (x *LogRequest) String() string {
 func (*LogRequest) ProtoMessage() {}
 
 func (x *LogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[48]
+	mi := &file_plugin_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2992,7 +3104,7 @@ func (x *LogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogRequest.ProtoReflect.Descriptor instead.
 func (*LogRequest) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{48}
+	return file_plugin_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *LogRequest) GetLevel() string {
@@ -3019,7 +3131,7 @@ type StoragePutRequest struct {
 
 func (x *StoragePutRequest) Reset() {
 	*x = StoragePutRequest{}
-	mi := &file_plugin_proto_msgTypes[49]
+	mi := &file_plugin_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3031,7 +3143,7 @@ func (x *StoragePutRequest) String() string {
 func (*StoragePutRequest) ProtoMessage() {}
 
 func (x *StoragePutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[49]
+	mi := &file_plugin_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3044,7 +3156,7 @@ func (x *StoragePutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoragePutRequest.ProtoReflect.Descriptor instead.
 func (*StoragePutRequest) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{49}
+	return file_plugin_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *StoragePutRequest) GetKey() string {
@@ -3070,7 +3182,7 @@ type StorageKeyRequest struct {
 
 func (x *StorageKeyRequest) Reset() {
 	*x = StorageKeyRequest{}
-	mi := &file_plugin_proto_msgTypes[50]
+	mi := &file_plugin_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3082,7 +3194,7 @@ func (x *StorageKeyRequest) String() string {
 func (*StorageKeyRequest) ProtoMessage() {}
 
 func (x *StorageKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[50]
+	mi := &file_plugin_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3095,7 +3207,7 @@ func (x *StorageKeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StorageKeyRequest.ProtoReflect.Descriptor instead.
 func (*StorageKeyRequest) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{50}
+	return file_plugin_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *StorageKeyRequest) GetKey() string {
@@ -3116,7 +3228,7 @@ type StorageGetResponse struct {
 
 func (x *StorageGetResponse) Reset() {
 	*x = StorageGetResponse{}
-	mi := &file_plugin_proto_msgTypes[51]
+	mi := &file_plugin_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3128,7 +3240,7 @@ func (x *StorageGetResponse) String() string {
 func (*StorageGetResponse) ProtoMessage() {}
 
 func (x *StorageGetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[51]
+	mi := &file_plugin_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3141,7 +3253,7 @@ func (x *StorageGetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StorageGetResponse.ProtoReflect.Descriptor instead.
 func (*StorageGetResponse) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{51}
+	return file_plugin_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *StorageGetResponse) GetFound() bool {
@@ -3176,7 +3288,7 @@ type StorageStatResponse struct {
 
 func (x *StorageStatResponse) Reset() {
 	*x = StorageStatResponse{}
-	mi := &file_plugin_proto_msgTypes[52]
+	mi := &file_plugin_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3188,7 +3300,7 @@ func (x *StorageStatResponse) String() string {
 func (*StorageStatResponse) ProtoMessage() {}
 
 func (x *StorageStatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[52]
+	mi := &file_plugin_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3201,7 +3313,7 @@ func (x *StorageStatResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StorageStatResponse.ProtoReflect.Descriptor instead.
 func (*StorageStatResponse) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{52}
+	return file_plugin_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *StorageStatResponse) GetExists() bool {
@@ -3235,7 +3347,7 @@ type StorageEntry struct {
 
 func (x *StorageEntry) Reset() {
 	*x = StorageEntry{}
-	mi := &file_plugin_proto_msgTypes[53]
+	mi := &file_plugin_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3247,7 +3359,7 @@ func (x *StorageEntry) String() string {
 func (*StorageEntry) ProtoMessage() {}
 
 func (x *StorageEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[53]
+	mi := &file_plugin_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3260,7 +3372,7 @@ func (x *StorageEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StorageEntry.ProtoReflect.Descriptor instead.
 func (*StorageEntry) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{53}
+	return file_plugin_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *StorageEntry) GetKey() string {
@@ -3287,7 +3399,7 @@ type StorageListRequest struct {
 
 func (x *StorageListRequest) Reset() {
 	*x = StorageListRequest{}
-	mi := &file_plugin_proto_msgTypes[54]
+	mi := &file_plugin_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3299,7 +3411,7 @@ func (x *StorageListRequest) String() string {
 func (*StorageListRequest) ProtoMessage() {}
 
 func (x *StorageListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[54]
+	mi := &file_plugin_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3312,7 +3424,7 @@ func (x *StorageListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StorageListRequest.ProtoReflect.Descriptor instead.
 func (*StorageListRequest) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{54}
+	return file_plugin_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *StorageListRequest) GetCursor() string {
@@ -3339,7 +3451,7 @@ type StorageListResponse struct {
 
 func (x *StorageListResponse) Reset() {
 	*x = StorageListResponse{}
-	mi := &file_plugin_proto_msgTypes[55]
+	mi := &file_plugin_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3351,7 +3463,7 @@ func (x *StorageListResponse) String() string {
 func (*StorageListResponse) ProtoMessage() {}
 
 func (x *StorageListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[55]
+	mi := &file_plugin_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3364,7 +3476,7 @@ func (x *StorageListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StorageListResponse.ProtoReflect.Descriptor instead.
 func (*StorageListResponse) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{55}
+	return file_plugin_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *StorageListResponse) GetEntries() []*StorageEntry {
@@ -3390,7 +3502,7 @@ type StorageURLResponse struct {
 
 func (x *StorageURLResponse) Reset() {
 	*x = StorageURLResponse{}
-	mi := &file_plugin_proto_msgTypes[56]
+	mi := &file_plugin_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3402,7 +3514,7 @@ func (x *StorageURLResponse) String() string {
 func (*StorageURLResponse) ProtoMessage() {}
 
 func (x *StorageURLResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[56]
+	mi := &file_plugin_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3415,7 +3527,7 @@ func (x *StorageURLResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StorageURLResponse.ProtoReflect.Descriptor instead.
 func (*StorageURLResponse) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{56}
+	return file_plugin_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *StorageURLResponse) GetUrl() string {
@@ -3442,7 +3554,7 @@ type TextureSearchDoc struct {
 
 func (x *TextureSearchDoc) Reset() {
 	*x = TextureSearchDoc{}
-	mi := &file_plugin_proto_msgTypes[57]
+	mi := &file_plugin_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3454,7 +3566,7 @@ func (x *TextureSearchDoc) String() string {
 func (*TextureSearchDoc) ProtoMessage() {}
 
 func (x *TextureSearchDoc) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[57]
+	mi := &file_plugin_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3467,7 +3579,7 @@ func (x *TextureSearchDoc) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TextureSearchDoc.ProtoReflect.Descriptor instead.
 func (*TextureSearchDoc) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{57}
+	return file_plugin_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *TextureSearchDoc) GetId() int64 {
@@ -3542,7 +3654,7 @@ type SearchIndexRequest struct {
 
 func (x *SearchIndexRequest) Reset() {
 	*x = SearchIndexRequest{}
-	mi := &file_plugin_proto_msgTypes[58]
+	mi := &file_plugin_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3554,7 +3666,7 @@ func (x *SearchIndexRequest) String() string {
 func (*SearchIndexRequest) ProtoMessage() {}
 
 func (x *SearchIndexRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[58]
+	mi := &file_plugin_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3567,7 +3679,7 @@ func (x *SearchIndexRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchIndexRequest.ProtoReflect.Descriptor instead.
 func (*SearchIndexRequest) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{58}
+	return file_plugin_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *SearchIndexRequest) GetDoc() *TextureSearchDoc {
@@ -3586,7 +3698,7 @@ type SearchDeleteRequest struct {
 
 func (x *SearchDeleteRequest) Reset() {
 	*x = SearchDeleteRequest{}
-	mi := &file_plugin_proto_msgTypes[59]
+	mi := &file_plugin_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3598,7 +3710,7 @@ func (x *SearchDeleteRequest) String() string {
 func (*SearchDeleteRequest) ProtoMessage() {}
 
 func (x *SearchDeleteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[59]
+	mi := &file_plugin_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3611,7 +3723,7 @@ func (x *SearchDeleteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchDeleteRequest.ProtoReflect.Descriptor instead.
 func (*SearchDeleteRequest) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{59}
+	return file_plugin_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *SearchDeleteRequest) GetTextureId() int64 {
@@ -3636,7 +3748,7 @@ type SearchQueryRequest struct {
 
 func (x *SearchQueryRequest) Reset() {
 	*x = SearchQueryRequest{}
-	mi := &file_plugin_proto_msgTypes[60]
+	mi := &file_plugin_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3648,7 +3760,7 @@ func (x *SearchQueryRequest) String() string {
 func (*SearchQueryRequest) ProtoMessage() {}
 
 func (x *SearchQueryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[60]
+	mi := &file_plugin_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3661,7 +3773,7 @@ func (x *SearchQueryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchQueryRequest.ProtoReflect.Descriptor instead.
 func (*SearchQueryRequest) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{60}
+	return file_plugin_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *SearchQueryRequest) GetQuery() string {
@@ -3724,7 +3836,7 @@ type SearchQueryResponse struct {
 
 func (x *SearchQueryResponse) Reset() {
 	*x = SearchQueryResponse{}
-	mi := &file_plugin_proto_msgTypes[61]
+	mi := &file_plugin_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3736,7 +3848,7 @@ func (x *SearchQueryResponse) String() string {
 func (*SearchQueryResponse) ProtoMessage() {}
 
 func (x *SearchQueryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[61]
+	mi := &file_plugin_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3749,7 +3861,7 @@ func (x *SearchQueryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchQueryResponse.ProtoReflect.Descriptor instead.
 func (*SearchQueryResponse) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{61}
+	return file_plugin_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *SearchQueryResponse) GetTextureIds() []int64 {
@@ -3785,7 +3897,7 @@ type RenderAvatarRequest struct {
 
 func (x *RenderAvatarRequest) Reset() {
 	*x = RenderAvatarRequest{}
-	mi := &file_plugin_proto_msgTypes[62]
+	mi := &file_plugin_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3797,7 +3909,7 @@ func (x *RenderAvatarRequest) String() string {
 func (*RenderAvatarRequest) ProtoMessage() {}
 
 func (x *RenderAvatarRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[62]
+	mi := &file_plugin_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3810,7 +3922,7 @@ func (x *RenderAvatarRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenderAvatarRequest.ProtoReflect.Descriptor instead.
 func (*RenderAvatarRequest) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{62}
+	return file_plugin_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *RenderAvatarRequest) GetSkinPng() []byte {
@@ -3853,7 +3965,7 @@ type RenderPreviewRequest struct {
 
 func (x *RenderPreviewRequest) Reset() {
 	*x = RenderPreviewRequest{}
-	mi := &file_plugin_proto_msgTypes[63]
+	mi := &file_plugin_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3865,7 +3977,7 @@ func (x *RenderPreviewRequest) String() string {
 func (*RenderPreviewRequest) ProtoMessage() {}
 
 func (x *RenderPreviewRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[63]
+	mi := &file_plugin_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3878,7 +3990,7 @@ func (x *RenderPreviewRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenderPreviewRequest.ProtoReflect.Descriptor instead.
 func (*RenderPreviewRequest) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{63}
+	return file_plugin_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *RenderPreviewRequest) GetTexturePng() []byte {
@@ -3919,7 +4031,7 @@ type RenderImageResponse struct {
 
 func (x *RenderImageResponse) Reset() {
 	*x = RenderImageResponse{}
-	mi := &file_plugin_proto_msgTypes[64]
+	mi := &file_plugin_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3931,7 +4043,7 @@ func (x *RenderImageResponse) String() string {
 func (*RenderImageResponse) ProtoMessage() {}
 
 func (x *RenderImageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[64]
+	mi := &file_plugin_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3944,7 +4056,7 @@ func (x *RenderImageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenderImageResponse.ProtoReflect.Descriptor instead.
 func (*RenderImageResponse) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{64}
+	return file_plugin_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *RenderImageResponse) GetImageBytes() []byte {
@@ -3991,14 +4103,17 @@ const file_plugin_proto_rawDesc = "" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
 	"\x05order\x18\x03 \x01(\x05R\x05order\x12\x1d\n" +
 	"\n" +
-	"handler_id\x18\x04 \x01(\tR\thandlerId\"\x9b\x01\n" +
+	"handler_id\x18\x04 \x01(\tR\thandlerId\"\x89\x02\n" +
 	"\x11RouteRegistration\x12\x16\n" +
 	"\x06method\x18\x01 \x01(\tR\x06method\x12\x18\n" +
 	"\apattern\x18\x02 \x01(\tR\apattern\x12\x12\n" +
 	"\x04auth\x18\x03 \x01(\tR\x04auth\x12\x1d\n" +
 	"\n" +
 	"handler_id\x18\x04 \x01(\tR\thandlerId\x12!\n" +
-	"\fstream_proxy\x18\x05 \x01(\bR\vstreamProxy\"Y\n" +
+	"\fstream_proxy\x18\x05 \x01(\bR\vstreamProxy\x12'\n" +
+	"\x0fforward_headers\x18\x06 \x03(\tR\x0eforwardHeaders\x12\x1b\n" +
+	"\topen_cors\x18\a \x01(\bR\bopenCors\x12&\n" +
+	"\x0fwebhook_no_csrf\x18\b \x01(\bR\rwebhookNoCsrf\"Y\n" +
 	"\x10CronRegistration\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04expr\x18\x02 \x01(\tR\x04expr\x12\x1d\n" +
@@ -4213,7 +4328,12 @@ const file_plugin_proto_rawDesc = "" +
 	"\x18CallPluginServiceRequest\x12(\n" +
 	"\x10target_plugin_id\x18\x01 \x01(\tR\x0etargetPluginId\x12!\n" +
 	"\fservice_name\x18\x02 \x01(\tR\vserviceName\x12\x1b\n" +
-	"\targs_json\x18\x03 \x01(\fR\bargsJson\"<\n" +
+	"\targs_json\x18\x03 \x01(\fR\bargsJson\"B\n" +
+	"\x1dDiscoverPluginServicesRequest\x12!\n" +
+	"\fservice_name\x18\x01 \x01(\tR\vserviceName\"?\n" +
+	"\x1eDiscoverPluginServicesResponse\x12\x1d\n" +
+	"\n" +
+	"plugin_ids\x18\x01 \x03(\tR\tpluginIds\"<\n" +
 	"\n" +
 	"LogRequest\x12\x14\n" +
 	"\x05level\x18\x01 \x01(\tR\x05level\x12\x18\n" +
@@ -4302,7 +4422,7 @@ const file_plugin_proto_rawDesc = "" +
 	"\rInvokeService\x12(.skinloom.plugin.v1.InvokeServiceRequest\x1a).skinloom.plugin.v1.InvokeServiceResponse\x12j\n" +
 	"\x0fInvokeExtension\x12*.skinloom.plugin.v1.InvokeExtensionRequest\x1a+.skinloom.plugin.v1.InvokeExtensionResponse\x12|\n" +
 	"\x15NotifySettingsChanged\x120.skinloom.plugin.v1.NotifySettingsChangedRequest\x1a1.skinloom.plugin.v1.NotifySettingsChangedResponse\x12^\n" +
-	"\vHealthCheck\x12&.skinloom.plugin.v1.HealthCheckRequest\x1a'.skinloom.plugin.v1.HealthCheckResponse2\xe9\x0e\n" +
+	"\vHealthCheck\x12&.skinloom.plugin.v1.HealthCheckRequest\x1a'.skinloom.plugin.v1.HealthCheckResponse2\xea\x0f\n" +
 	"\vHostService\x12K\n" +
 	"\x02KV\x12!.skinloom.plugin.v1.HostOpRequest\x1a\".skinloom.plugin.v1.HostOpResponse\x12M\n" +
 	"\x04Docs\x12!.skinloom.plugin.v1.HostOpRequest\x1a\".skinloom.plugin.v1.HostOpResponse\x12U\n" +
@@ -4323,7 +4443,8 @@ const file_plugin_proto_rawDesc = "" +
 	"\tYggdrasil\x12!.skinloom.plugin.v1.HostOpRequest\x1a\".skinloom.plugin.v1.HostOpResponse\x12J\n" +
 	"\x05Audit\x12&.skinloom.plugin.v1.AuditRecordRequest\x1a\x19.skinloom.plugin.v1.Empty\x12L\n" +
 	"\tEmitEvent\x12$.skinloom.plugin.v1.EmitEventRequest\x1a\x19.skinloom.plugin.v1.Empty\x12e\n" +
-	"\x11CallPluginService\x12,.skinloom.plugin.v1.CallPluginServiceRequest\x1a\".skinloom.plugin.v1.HostOpResponse\x12@\n" +
+	"\x11CallPluginService\x12,.skinloom.plugin.v1.CallPluginServiceRequest\x1a\".skinloom.plugin.v1.HostOpResponse\x12\x7f\n" +
+	"\x16DiscoverPluginServices\x121.skinloom.plugin.v1.DiscoverPluginServicesRequest\x1a2.skinloom.plugin.v1.DiscoverPluginServicesResponse\x12@\n" +
 	"\x03Log\x12\x1e.skinloom.plugin.v1.LogRequest\x1a\x19.skinloom.plugin.v1.Empty\x12N\n" +
 	"\x05Cache\x12!.skinloom.plugin.v1.HostOpRequest\x1a\".skinloom.plugin.v1.HostOpResponse\x12M\n" +
 	"\x04I18n\x12!.skinloom.plugin.v1.HostOpRequest\x1a\".skinloom.plugin.v1.HostOpResponse2\x8a\x04\n" +
@@ -4354,79 +4475,81 @@ func file_plugin_proto_rawDescGZIP() []byte {
 	return file_plugin_proto_rawDescData
 }
 
-var file_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 71)
+var file_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 73)
 var file_plugin_proto_goTypes = []any{
-	(*Empty)(nil),                         // 0: skinloom.plugin.v1.Empty
-	(*DatabaseConfig)(nil),                // 1: skinloom.plugin.v1.DatabaseConfig
-	(*InitRequest)(nil),                   // 2: skinloom.plugin.v1.InitRequest
-	(*HookRegistration)(nil),              // 3: skinloom.plugin.v1.HookRegistration
-	(*RouteRegistration)(nil),             // 4: skinloom.plugin.v1.RouteRegistration
-	(*CronRegistration)(nil),              // 5: skinloom.plugin.v1.CronRegistration
-	(*AuthProviderRegistration)(nil),      // 6: skinloom.plugin.v1.AuthProviderRegistration
-	(*PasswordVerifierRegistration)(nil),  // 7: skinloom.plugin.v1.PasswordVerifierRegistration
-	(*NamedProviderRegistration)(nil),     // 8: skinloom.plugin.v1.NamedProviderRegistration
-	(*YggdrasilMetaExtension)(nil),        // 9: skinloom.plugin.v1.YggdrasilMetaExtension
-	(*ProviderCapabilities)(nil),          // 10: skinloom.plugin.v1.ProviderCapabilities
-	(*HTTPProxyInfo)(nil),                 // 11: skinloom.plugin.v1.HTTPProxyInfo
-	(*InitResponse)(nil),                  // 12: skinloom.plugin.v1.InitResponse
-	(*LifecycleRequest)(nil),              // 13: skinloom.plugin.v1.LifecycleRequest
-	(*LifecycleResponse)(nil),             // 14: skinloom.plugin.v1.LifecycleResponse
-	(*InvokeGuardRequest)(nil),            // 15: skinloom.plugin.v1.InvokeGuardRequest
-	(*InvokeGuardResponse)(nil),           // 16: skinloom.plugin.v1.InvokeGuardResponse
-	(*InvokeFilterRequest)(nil),           // 17: skinloom.plugin.v1.InvokeFilterRequest
-	(*InvokeFilterResponse)(nil),          // 18: skinloom.plugin.v1.InvokeFilterResponse
-	(*InvokeEventRequest)(nil),            // 19: skinloom.plugin.v1.InvokeEventRequest
-	(*InvokeEventResponse)(nil),           // 20: skinloom.plugin.v1.InvokeEventResponse
-	(*ViewerInfo)(nil),                    // 21: skinloom.plugin.v1.ViewerInfo
-	(*InvokeHTTPRequest)(nil),             // 22: skinloom.plugin.v1.InvokeHTTPRequest
-	(*InvokeHTTPResponse)(nil),            // 23: skinloom.plugin.v1.InvokeHTTPResponse
-	(*InvokeCronRequest)(nil),             // 24: skinloom.plugin.v1.InvokeCronRequest
-	(*InvokeCronResponse)(nil),            // 25: skinloom.plugin.v1.InvokeCronResponse
-	(*InvokeServiceRequest)(nil),          // 26: skinloom.plugin.v1.InvokeServiceRequest
-	(*InvokeServiceResponse)(nil),         // 27: skinloom.plugin.v1.InvokeServiceResponse
-	(*InvokeExtensionRequest)(nil),        // 28: skinloom.plugin.v1.InvokeExtensionRequest
-	(*InvokeExtensionResponse)(nil),       // 29: skinloom.plugin.v1.InvokeExtensionResponse
-	(*NotifySettingsChangedRequest)(nil),  // 30: skinloom.plugin.v1.NotifySettingsChangedRequest
-	(*NotifySettingsChangedResponse)(nil), // 31: skinloom.plugin.v1.NotifySettingsChangedResponse
-	(*HealthCheckRequest)(nil),            // 32: skinloom.plugin.v1.HealthCheckRequest
-	(*HealthCheckResponse)(nil),           // 33: skinloom.plugin.v1.HealthCheckResponse
-	(*HostOpRequest)(nil),                 // 34: skinloom.plugin.v1.HostOpRequest
-	(*HostOpResponse)(nil),                // 35: skinloom.plugin.v1.HostOpResponse
-	(*FilesPutRequest)(nil),               // 36: skinloom.plugin.v1.FilesPutRequest
-	(*FilesPutResponse)(nil),              // 37: skinloom.plugin.v1.FilesPutResponse
-	(*FilesKeyRequest)(nil),               // 38: skinloom.plugin.v1.FilesKeyRequest
-	(*FilesGetResponse)(nil),              // 39: skinloom.plugin.v1.FilesGetResponse
-	(*FilesDeleteResponse)(nil),           // 40: skinloom.plugin.v1.FilesDeleteResponse
-	(*FilesURLResponse)(nil),              // 41: skinloom.plugin.v1.FilesURLResponse
-	(*FetchRequest)(nil),                  // 42: skinloom.plugin.v1.FetchRequest
-	(*FetchResponse)(nil),                 // 43: skinloom.plugin.v1.FetchResponse
-	(*MailSendRequest)(nil),               // 44: skinloom.plugin.v1.MailSendRequest
-	(*AuditRecordRequest)(nil),            // 45: skinloom.plugin.v1.AuditRecordRequest
-	(*EmitEventRequest)(nil),              // 46: skinloom.plugin.v1.EmitEventRequest
-	(*CallPluginServiceRequest)(nil),      // 47: skinloom.plugin.v1.CallPluginServiceRequest
-	(*LogRequest)(nil),                    // 48: skinloom.plugin.v1.LogRequest
-	(*StoragePutRequest)(nil),             // 49: skinloom.plugin.v1.StoragePutRequest
-	(*StorageKeyRequest)(nil),             // 50: skinloom.plugin.v1.StorageKeyRequest
-	(*StorageGetResponse)(nil),            // 51: skinloom.plugin.v1.StorageGetResponse
-	(*StorageStatResponse)(nil),           // 52: skinloom.plugin.v1.StorageStatResponse
-	(*StorageEntry)(nil),                  // 53: skinloom.plugin.v1.StorageEntry
-	(*StorageListRequest)(nil),            // 54: skinloom.plugin.v1.StorageListRequest
-	(*StorageListResponse)(nil),           // 55: skinloom.plugin.v1.StorageListResponse
-	(*StorageURLResponse)(nil),            // 56: skinloom.plugin.v1.StorageURLResponse
-	(*TextureSearchDoc)(nil),              // 57: skinloom.plugin.v1.TextureSearchDoc
-	(*SearchIndexRequest)(nil),            // 58: skinloom.plugin.v1.SearchIndexRequest
-	(*SearchDeleteRequest)(nil),           // 59: skinloom.plugin.v1.SearchDeleteRequest
-	(*SearchQueryRequest)(nil),            // 60: skinloom.plugin.v1.SearchQueryRequest
-	(*SearchQueryResponse)(nil),           // 61: skinloom.plugin.v1.SearchQueryResponse
-	(*RenderAvatarRequest)(nil),           // 62: skinloom.plugin.v1.RenderAvatarRequest
-	(*RenderPreviewRequest)(nil),          // 63: skinloom.plugin.v1.RenderPreviewRequest
-	(*RenderImageResponse)(nil),           // 64: skinloom.plugin.v1.RenderImageResponse
-	nil,                                   // 65: skinloom.plugin.v1.InvokeHTTPRequest.ParamsEntry
-	nil,                                   // 66: skinloom.plugin.v1.InvokeHTTPRequest.QueryEntry
-	nil,                                   // 67: skinloom.plugin.v1.InvokeHTTPRequest.HeadersEntry
-	nil,                                   // 68: skinloom.plugin.v1.InvokeHTTPResponse.HeadersEntry
-	nil,                                   // 69: skinloom.plugin.v1.FetchRequest.HeadersEntry
-	nil,                                   // 70: skinloom.plugin.v1.FetchResponse.HeadersEntry
+	(*Empty)(nil),                          // 0: skinloom.plugin.v1.Empty
+	(*DatabaseConfig)(nil),                 // 1: skinloom.plugin.v1.DatabaseConfig
+	(*InitRequest)(nil),                    // 2: skinloom.plugin.v1.InitRequest
+	(*HookRegistration)(nil),               // 3: skinloom.plugin.v1.HookRegistration
+	(*RouteRegistration)(nil),              // 4: skinloom.plugin.v1.RouteRegistration
+	(*CronRegistration)(nil),               // 5: skinloom.plugin.v1.CronRegistration
+	(*AuthProviderRegistration)(nil),       // 6: skinloom.plugin.v1.AuthProviderRegistration
+	(*PasswordVerifierRegistration)(nil),   // 7: skinloom.plugin.v1.PasswordVerifierRegistration
+	(*NamedProviderRegistration)(nil),      // 8: skinloom.plugin.v1.NamedProviderRegistration
+	(*YggdrasilMetaExtension)(nil),         // 9: skinloom.plugin.v1.YggdrasilMetaExtension
+	(*ProviderCapabilities)(nil),           // 10: skinloom.plugin.v1.ProviderCapabilities
+	(*HTTPProxyInfo)(nil),                  // 11: skinloom.plugin.v1.HTTPProxyInfo
+	(*InitResponse)(nil),                   // 12: skinloom.plugin.v1.InitResponse
+	(*LifecycleRequest)(nil),               // 13: skinloom.plugin.v1.LifecycleRequest
+	(*LifecycleResponse)(nil),              // 14: skinloom.plugin.v1.LifecycleResponse
+	(*InvokeGuardRequest)(nil),             // 15: skinloom.plugin.v1.InvokeGuardRequest
+	(*InvokeGuardResponse)(nil),            // 16: skinloom.plugin.v1.InvokeGuardResponse
+	(*InvokeFilterRequest)(nil),            // 17: skinloom.plugin.v1.InvokeFilterRequest
+	(*InvokeFilterResponse)(nil),           // 18: skinloom.plugin.v1.InvokeFilterResponse
+	(*InvokeEventRequest)(nil),             // 19: skinloom.plugin.v1.InvokeEventRequest
+	(*InvokeEventResponse)(nil),            // 20: skinloom.plugin.v1.InvokeEventResponse
+	(*ViewerInfo)(nil),                     // 21: skinloom.plugin.v1.ViewerInfo
+	(*InvokeHTTPRequest)(nil),              // 22: skinloom.plugin.v1.InvokeHTTPRequest
+	(*InvokeHTTPResponse)(nil),             // 23: skinloom.plugin.v1.InvokeHTTPResponse
+	(*InvokeCronRequest)(nil),              // 24: skinloom.plugin.v1.InvokeCronRequest
+	(*InvokeCronResponse)(nil),             // 25: skinloom.plugin.v1.InvokeCronResponse
+	(*InvokeServiceRequest)(nil),           // 26: skinloom.plugin.v1.InvokeServiceRequest
+	(*InvokeServiceResponse)(nil),          // 27: skinloom.plugin.v1.InvokeServiceResponse
+	(*InvokeExtensionRequest)(nil),         // 28: skinloom.plugin.v1.InvokeExtensionRequest
+	(*InvokeExtensionResponse)(nil),        // 29: skinloom.plugin.v1.InvokeExtensionResponse
+	(*NotifySettingsChangedRequest)(nil),   // 30: skinloom.plugin.v1.NotifySettingsChangedRequest
+	(*NotifySettingsChangedResponse)(nil),  // 31: skinloom.plugin.v1.NotifySettingsChangedResponse
+	(*HealthCheckRequest)(nil),             // 32: skinloom.plugin.v1.HealthCheckRequest
+	(*HealthCheckResponse)(nil),            // 33: skinloom.plugin.v1.HealthCheckResponse
+	(*HostOpRequest)(nil),                  // 34: skinloom.plugin.v1.HostOpRequest
+	(*HostOpResponse)(nil),                 // 35: skinloom.plugin.v1.HostOpResponse
+	(*FilesPutRequest)(nil),                // 36: skinloom.plugin.v1.FilesPutRequest
+	(*FilesPutResponse)(nil),               // 37: skinloom.plugin.v1.FilesPutResponse
+	(*FilesKeyRequest)(nil),                // 38: skinloom.plugin.v1.FilesKeyRequest
+	(*FilesGetResponse)(nil),               // 39: skinloom.plugin.v1.FilesGetResponse
+	(*FilesDeleteResponse)(nil),            // 40: skinloom.plugin.v1.FilesDeleteResponse
+	(*FilesURLResponse)(nil),               // 41: skinloom.plugin.v1.FilesURLResponse
+	(*FetchRequest)(nil),                   // 42: skinloom.plugin.v1.FetchRequest
+	(*FetchResponse)(nil),                  // 43: skinloom.plugin.v1.FetchResponse
+	(*MailSendRequest)(nil),                // 44: skinloom.plugin.v1.MailSendRequest
+	(*AuditRecordRequest)(nil),             // 45: skinloom.plugin.v1.AuditRecordRequest
+	(*EmitEventRequest)(nil),               // 46: skinloom.plugin.v1.EmitEventRequest
+	(*CallPluginServiceRequest)(nil),       // 47: skinloom.plugin.v1.CallPluginServiceRequest
+	(*DiscoverPluginServicesRequest)(nil),  // 48: skinloom.plugin.v1.DiscoverPluginServicesRequest
+	(*DiscoverPluginServicesResponse)(nil), // 49: skinloom.plugin.v1.DiscoverPluginServicesResponse
+	(*LogRequest)(nil),                     // 50: skinloom.plugin.v1.LogRequest
+	(*StoragePutRequest)(nil),              // 51: skinloom.plugin.v1.StoragePutRequest
+	(*StorageKeyRequest)(nil),              // 52: skinloom.plugin.v1.StorageKeyRequest
+	(*StorageGetResponse)(nil),             // 53: skinloom.plugin.v1.StorageGetResponse
+	(*StorageStatResponse)(nil),            // 54: skinloom.plugin.v1.StorageStatResponse
+	(*StorageEntry)(nil),                   // 55: skinloom.plugin.v1.StorageEntry
+	(*StorageListRequest)(nil),             // 56: skinloom.plugin.v1.StorageListRequest
+	(*StorageListResponse)(nil),            // 57: skinloom.plugin.v1.StorageListResponse
+	(*StorageURLResponse)(nil),             // 58: skinloom.plugin.v1.StorageURLResponse
+	(*TextureSearchDoc)(nil),               // 59: skinloom.plugin.v1.TextureSearchDoc
+	(*SearchIndexRequest)(nil),             // 60: skinloom.plugin.v1.SearchIndexRequest
+	(*SearchDeleteRequest)(nil),            // 61: skinloom.plugin.v1.SearchDeleteRequest
+	(*SearchQueryRequest)(nil),             // 62: skinloom.plugin.v1.SearchQueryRequest
+	(*SearchQueryResponse)(nil),            // 63: skinloom.plugin.v1.SearchQueryResponse
+	(*RenderAvatarRequest)(nil),            // 64: skinloom.plugin.v1.RenderAvatarRequest
+	(*RenderPreviewRequest)(nil),           // 65: skinloom.plugin.v1.RenderPreviewRequest
+	(*RenderImageResponse)(nil),            // 66: skinloom.plugin.v1.RenderImageResponse
+	nil,                                    // 67: skinloom.plugin.v1.InvokeHTTPRequest.ParamsEntry
+	nil,                                    // 68: skinloom.plugin.v1.InvokeHTTPRequest.QueryEntry
+	nil,                                    // 69: skinloom.plugin.v1.InvokeHTTPRequest.HeadersEntry
+	nil,                                    // 70: skinloom.plugin.v1.InvokeHTTPResponse.HeadersEntry
+	nil,                                    // 71: skinloom.plugin.v1.FetchRequest.HeadersEntry
+	nil,                                    // 72: skinloom.plugin.v1.FetchResponse.HeadersEntry
 }
 var file_plugin_proto_depIdxs = []int32{
 	1,  // 0: skinloom.plugin.v1.InitRequest.database:type_name -> skinloom.plugin.v1.DatabaseConfig
@@ -4440,15 +4563,15 @@ var file_plugin_proto_depIdxs = []int32{
 	9,  // 8: skinloom.plugin.v1.InitResponse.static_yggdrasil_meta:type_name -> skinloom.plugin.v1.YggdrasilMetaExtension
 	10, // 9: skinloom.plugin.v1.InitResponse.providers:type_name -> skinloom.plugin.v1.ProviderCapabilities
 	11, // 10: skinloom.plugin.v1.InitResponse.http_proxy:type_name -> skinloom.plugin.v1.HTTPProxyInfo
-	65, // 11: skinloom.plugin.v1.InvokeHTTPRequest.params:type_name -> skinloom.plugin.v1.InvokeHTTPRequest.ParamsEntry
-	66, // 12: skinloom.plugin.v1.InvokeHTTPRequest.query:type_name -> skinloom.plugin.v1.InvokeHTTPRequest.QueryEntry
-	67, // 13: skinloom.plugin.v1.InvokeHTTPRequest.headers:type_name -> skinloom.plugin.v1.InvokeHTTPRequest.HeadersEntry
+	67, // 11: skinloom.plugin.v1.InvokeHTTPRequest.params:type_name -> skinloom.plugin.v1.InvokeHTTPRequest.ParamsEntry
+	68, // 12: skinloom.plugin.v1.InvokeHTTPRequest.query:type_name -> skinloom.plugin.v1.InvokeHTTPRequest.QueryEntry
+	69, // 13: skinloom.plugin.v1.InvokeHTTPRequest.headers:type_name -> skinloom.plugin.v1.InvokeHTTPRequest.HeadersEntry
 	21, // 14: skinloom.plugin.v1.InvokeHTTPRequest.user:type_name -> skinloom.plugin.v1.ViewerInfo
-	68, // 15: skinloom.plugin.v1.InvokeHTTPResponse.headers:type_name -> skinloom.plugin.v1.InvokeHTTPResponse.HeadersEntry
-	69, // 16: skinloom.plugin.v1.FetchRequest.headers:type_name -> skinloom.plugin.v1.FetchRequest.HeadersEntry
-	70, // 17: skinloom.plugin.v1.FetchResponse.headers:type_name -> skinloom.plugin.v1.FetchResponse.HeadersEntry
-	53, // 18: skinloom.plugin.v1.StorageListResponse.entries:type_name -> skinloom.plugin.v1.StorageEntry
-	57, // 19: skinloom.plugin.v1.SearchIndexRequest.doc:type_name -> skinloom.plugin.v1.TextureSearchDoc
+	70, // 15: skinloom.plugin.v1.InvokeHTTPResponse.headers:type_name -> skinloom.plugin.v1.InvokeHTTPResponse.HeadersEntry
+	71, // 16: skinloom.plugin.v1.FetchRequest.headers:type_name -> skinloom.plugin.v1.FetchRequest.HeadersEntry
+	72, // 17: skinloom.plugin.v1.FetchResponse.headers:type_name -> skinloom.plugin.v1.FetchResponse.HeadersEntry
+	55, // 18: skinloom.plugin.v1.StorageListResponse.entries:type_name -> skinloom.plugin.v1.StorageEntry
+	59, // 19: skinloom.plugin.v1.SearchIndexRequest.doc:type_name -> skinloom.plugin.v1.TextureSearchDoc
 	2,  // 20: skinloom.plugin.v1.PluginService.Init:input_type -> skinloom.plugin.v1.InitRequest
 	13, // 21: skinloom.plugin.v1.PluginService.Lifecycle:input_type -> skinloom.plugin.v1.LifecycleRequest
 	15, // 22: skinloom.plugin.v1.PluginService.InvokeGuard:input_type -> skinloom.plugin.v1.InvokeGuardRequest
@@ -4480,67 +4603,69 @@ var file_plugin_proto_depIdxs = []int32{
 	45, // 48: skinloom.plugin.v1.HostService.Audit:input_type -> skinloom.plugin.v1.AuditRecordRequest
 	46, // 49: skinloom.plugin.v1.HostService.EmitEvent:input_type -> skinloom.plugin.v1.EmitEventRequest
 	47, // 50: skinloom.plugin.v1.HostService.CallPluginService:input_type -> skinloom.plugin.v1.CallPluginServiceRequest
-	48, // 51: skinloom.plugin.v1.HostService.Log:input_type -> skinloom.plugin.v1.LogRequest
-	34, // 52: skinloom.plugin.v1.HostService.Cache:input_type -> skinloom.plugin.v1.HostOpRequest
-	34, // 53: skinloom.plugin.v1.HostService.I18n:input_type -> skinloom.plugin.v1.HostOpRequest
-	49, // 54: skinloom.plugin.v1.StorageProviderService.Put:input_type -> skinloom.plugin.v1.StoragePutRequest
-	50, // 55: skinloom.plugin.v1.StorageProviderService.Get:input_type -> skinloom.plugin.v1.StorageKeyRequest
-	50, // 56: skinloom.plugin.v1.StorageProviderService.Delete:input_type -> skinloom.plugin.v1.StorageKeyRequest
-	50, // 57: skinloom.plugin.v1.StorageProviderService.Stat:input_type -> skinloom.plugin.v1.StorageKeyRequest
-	54, // 58: skinloom.plugin.v1.StorageProviderService.List:input_type -> skinloom.plugin.v1.StorageListRequest
-	50, // 59: skinloom.plugin.v1.StorageProviderService.URL:input_type -> skinloom.plugin.v1.StorageKeyRequest
-	58, // 60: skinloom.plugin.v1.SearchProviderService.Index:input_type -> skinloom.plugin.v1.SearchIndexRequest
-	59, // 61: skinloom.plugin.v1.SearchProviderService.Delete:input_type -> skinloom.plugin.v1.SearchDeleteRequest
-	60, // 62: skinloom.plugin.v1.SearchProviderService.Search:input_type -> skinloom.plugin.v1.SearchQueryRequest
-	62, // 63: skinloom.plugin.v1.RenderProviderService.RenderAvatar:input_type -> skinloom.plugin.v1.RenderAvatarRequest
-	63, // 64: skinloom.plugin.v1.RenderProviderService.RenderPreview:input_type -> skinloom.plugin.v1.RenderPreviewRequest
-	12, // 65: skinloom.plugin.v1.PluginService.Init:output_type -> skinloom.plugin.v1.InitResponse
-	14, // 66: skinloom.plugin.v1.PluginService.Lifecycle:output_type -> skinloom.plugin.v1.LifecycleResponse
-	16, // 67: skinloom.plugin.v1.PluginService.InvokeGuard:output_type -> skinloom.plugin.v1.InvokeGuardResponse
-	18, // 68: skinloom.plugin.v1.PluginService.InvokeFilter:output_type -> skinloom.plugin.v1.InvokeFilterResponse
-	20, // 69: skinloom.plugin.v1.PluginService.InvokeEvent:output_type -> skinloom.plugin.v1.InvokeEventResponse
-	23, // 70: skinloom.plugin.v1.PluginService.InvokeHTTP:output_type -> skinloom.plugin.v1.InvokeHTTPResponse
-	25, // 71: skinloom.plugin.v1.PluginService.InvokeCron:output_type -> skinloom.plugin.v1.InvokeCronResponse
-	27, // 72: skinloom.plugin.v1.PluginService.InvokeService:output_type -> skinloom.plugin.v1.InvokeServiceResponse
-	29, // 73: skinloom.plugin.v1.PluginService.InvokeExtension:output_type -> skinloom.plugin.v1.InvokeExtensionResponse
-	31, // 74: skinloom.plugin.v1.PluginService.NotifySettingsChanged:output_type -> skinloom.plugin.v1.NotifySettingsChangedResponse
-	33, // 75: skinloom.plugin.v1.PluginService.HealthCheck:output_type -> skinloom.plugin.v1.HealthCheckResponse
-	35, // 76: skinloom.plugin.v1.HostService.KV:output_type -> skinloom.plugin.v1.HostOpResponse
-	35, // 77: skinloom.plugin.v1.HostService.Docs:output_type -> skinloom.plugin.v1.HostOpResponse
-	37, // 78: skinloom.plugin.v1.HostService.FilesPut:output_type -> skinloom.plugin.v1.FilesPutResponse
-	39, // 79: skinloom.plugin.v1.HostService.FilesGet:output_type -> skinloom.plugin.v1.FilesGetResponse
-	40, // 80: skinloom.plugin.v1.HostService.FilesDelete:output_type -> skinloom.plugin.v1.FilesDeleteResponse
-	41, // 81: skinloom.plugin.v1.HostService.FilesURL:output_type -> skinloom.plugin.v1.FilesURLResponse
-	43, // 82: skinloom.plugin.v1.HostService.Fetch:output_type -> skinloom.plugin.v1.FetchResponse
-	35, // 83: skinloom.plugin.v1.HostService.Settings:output_type -> skinloom.plugin.v1.HostOpResponse
-	35, // 84: skinloom.plugin.v1.HostService.Site:output_type -> skinloom.plugin.v1.HostOpResponse
-	35, // 85: skinloom.plugin.v1.HostService.Users:output_type -> skinloom.plugin.v1.HostOpResponse
-	35, // 86: skinloom.plugin.v1.HostService.Players:output_type -> skinloom.plugin.v1.HostOpResponse
-	35, // 87: skinloom.plugin.v1.HostService.Textures:output_type -> skinloom.plugin.v1.HostOpResponse
-	35, // 88: skinloom.plugin.v1.HostService.Closet:output_type -> skinloom.plugin.v1.HostOpResponse
-	35, // 89: skinloom.plugin.v1.HostService.Score:output_type -> skinloom.plugin.v1.HostOpResponse
-	35, // 90: skinloom.plugin.v1.HostService.Notify:output_type -> skinloom.plugin.v1.HostOpResponse
-	35, // 91: skinloom.plugin.v1.HostService.Mail:output_type -> skinloom.plugin.v1.HostOpResponse
-	35, // 92: skinloom.plugin.v1.HostService.Yggdrasil:output_type -> skinloom.plugin.v1.HostOpResponse
-	0,  // 93: skinloom.plugin.v1.HostService.Audit:output_type -> skinloom.plugin.v1.Empty
-	0,  // 94: skinloom.plugin.v1.HostService.EmitEvent:output_type -> skinloom.plugin.v1.Empty
-	35, // 95: skinloom.plugin.v1.HostService.CallPluginService:output_type -> skinloom.plugin.v1.HostOpResponse
-	0,  // 96: skinloom.plugin.v1.HostService.Log:output_type -> skinloom.plugin.v1.Empty
-	35, // 97: skinloom.plugin.v1.HostService.Cache:output_type -> skinloom.plugin.v1.HostOpResponse
-	35, // 98: skinloom.plugin.v1.HostService.I18n:output_type -> skinloom.plugin.v1.HostOpResponse
-	0,  // 99: skinloom.plugin.v1.StorageProviderService.Put:output_type -> skinloom.plugin.v1.Empty
-	51, // 100: skinloom.plugin.v1.StorageProviderService.Get:output_type -> skinloom.plugin.v1.StorageGetResponse
-	0,  // 101: skinloom.plugin.v1.StorageProviderService.Delete:output_type -> skinloom.plugin.v1.Empty
-	52, // 102: skinloom.plugin.v1.StorageProviderService.Stat:output_type -> skinloom.plugin.v1.StorageStatResponse
-	55, // 103: skinloom.plugin.v1.StorageProviderService.List:output_type -> skinloom.plugin.v1.StorageListResponse
-	56, // 104: skinloom.plugin.v1.StorageProviderService.URL:output_type -> skinloom.plugin.v1.StorageURLResponse
-	0,  // 105: skinloom.plugin.v1.SearchProviderService.Index:output_type -> skinloom.plugin.v1.Empty
-	0,  // 106: skinloom.plugin.v1.SearchProviderService.Delete:output_type -> skinloom.plugin.v1.Empty
-	61, // 107: skinloom.plugin.v1.SearchProviderService.Search:output_type -> skinloom.plugin.v1.SearchQueryResponse
-	64, // 108: skinloom.plugin.v1.RenderProviderService.RenderAvatar:output_type -> skinloom.plugin.v1.RenderImageResponse
-	64, // 109: skinloom.plugin.v1.RenderProviderService.RenderPreview:output_type -> skinloom.plugin.v1.RenderImageResponse
-	65, // [65:110] is the sub-list for method output_type
-	20, // [20:65] is the sub-list for method input_type
+	48, // 51: skinloom.plugin.v1.HostService.DiscoverPluginServices:input_type -> skinloom.plugin.v1.DiscoverPluginServicesRequest
+	50, // 52: skinloom.plugin.v1.HostService.Log:input_type -> skinloom.plugin.v1.LogRequest
+	34, // 53: skinloom.plugin.v1.HostService.Cache:input_type -> skinloom.plugin.v1.HostOpRequest
+	34, // 54: skinloom.plugin.v1.HostService.I18n:input_type -> skinloom.plugin.v1.HostOpRequest
+	51, // 55: skinloom.plugin.v1.StorageProviderService.Put:input_type -> skinloom.plugin.v1.StoragePutRequest
+	52, // 56: skinloom.plugin.v1.StorageProviderService.Get:input_type -> skinloom.plugin.v1.StorageKeyRequest
+	52, // 57: skinloom.plugin.v1.StorageProviderService.Delete:input_type -> skinloom.plugin.v1.StorageKeyRequest
+	52, // 58: skinloom.plugin.v1.StorageProviderService.Stat:input_type -> skinloom.plugin.v1.StorageKeyRequest
+	56, // 59: skinloom.plugin.v1.StorageProviderService.List:input_type -> skinloom.plugin.v1.StorageListRequest
+	52, // 60: skinloom.plugin.v1.StorageProviderService.URL:input_type -> skinloom.plugin.v1.StorageKeyRequest
+	60, // 61: skinloom.plugin.v1.SearchProviderService.Index:input_type -> skinloom.plugin.v1.SearchIndexRequest
+	61, // 62: skinloom.plugin.v1.SearchProviderService.Delete:input_type -> skinloom.plugin.v1.SearchDeleteRequest
+	62, // 63: skinloom.plugin.v1.SearchProviderService.Search:input_type -> skinloom.plugin.v1.SearchQueryRequest
+	64, // 64: skinloom.plugin.v1.RenderProviderService.RenderAvatar:input_type -> skinloom.plugin.v1.RenderAvatarRequest
+	65, // 65: skinloom.plugin.v1.RenderProviderService.RenderPreview:input_type -> skinloom.plugin.v1.RenderPreviewRequest
+	12, // 66: skinloom.plugin.v1.PluginService.Init:output_type -> skinloom.plugin.v1.InitResponse
+	14, // 67: skinloom.plugin.v1.PluginService.Lifecycle:output_type -> skinloom.plugin.v1.LifecycleResponse
+	16, // 68: skinloom.plugin.v1.PluginService.InvokeGuard:output_type -> skinloom.plugin.v1.InvokeGuardResponse
+	18, // 69: skinloom.plugin.v1.PluginService.InvokeFilter:output_type -> skinloom.plugin.v1.InvokeFilterResponse
+	20, // 70: skinloom.plugin.v1.PluginService.InvokeEvent:output_type -> skinloom.plugin.v1.InvokeEventResponse
+	23, // 71: skinloom.plugin.v1.PluginService.InvokeHTTP:output_type -> skinloom.plugin.v1.InvokeHTTPResponse
+	25, // 72: skinloom.plugin.v1.PluginService.InvokeCron:output_type -> skinloom.plugin.v1.InvokeCronResponse
+	27, // 73: skinloom.plugin.v1.PluginService.InvokeService:output_type -> skinloom.plugin.v1.InvokeServiceResponse
+	29, // 74: skinloom.plugin.v1.PluginService.InvokeExtension:output_type -> skinloom.plugin.v1.InvokeExtensionResponse
+	31, // 75: skinloom.plugin.v1.PluginService.NotifySettingsChanged:output_type -> skinloom.plugin.v1.NotifySettingsChangedResponse
+	33, // 76: skinloom.plugin.v1.PluginService.HealthCheck:output_type -> skinloom.plugin.v1.HealthCheckResponse
+	35, // 77: skinloom.plugin.v1.HostService.KV:output_type -> skinloom.plugin.v1.HostOpResponse
+	35, // 78: skinloom.plugin.v1.HostService.Docs:output_type -> skinloom.plugin.v1.HostOpResponse
+	37, // 79: skinloom.plugin.v1.HostService.FilesPut:output_type -> skinloom.plugin.v1.FilesPutResponse
+	39, // 80: skinloom.plugin.v1.HostService.FilesGet:output_type -> skinloom.plugin.v1.FilesGetResponse
+	40, // 81: skinloom.plugin.v1.HostService.FilesDelete:output_type -> skinloom.plugin.v1.FilesDeleteResponse
+	41, // 82: skinloom.plugin.v1.HostService.FilesURL:output_type -> skinloom.plugin.v1.FilesURLResponse
+	43, // 83: skinloom.plugin.v1.HostService.Fetch:output_type -> skinloom.plugin.v1.FetchResponse
+	35, // 84: skinloom.plugin.v1.HostService.Settings:output_type -> skinloom.plugin.v1.HostOpResponse
+	35, // 85: skinloom.plugin.v1.HostService.Site:output_type -> skinloom.plugin.v1.HostOpResponse
+	35, // 86: skinloom.plugin.v1.HostService.Users:output_type -> skinloom.plugin.v1.HostOpResponse
+	35, // 87: skinloom.plugin.v1.HostService.Players:output_type -> skinloom.plugin.v1.HostOpResponse
+	35, // 88: skinloom.plugin.v1.HostService.Textures:output_type -> skinloom.plugin.v1.HostOpResponse
+	35, // 89: skinloom.plugin.v1.HostService.Closet:output_type -> skinloom.plugin.v1.HostOpResponse
+	35, // 90: skinloom.plugin.v1.HostService.Score:output_type -> skinloom.plugin.v1.HostOpResponse
+	35, // 91: skinloom.plugin.v1.HostService.Notify:output_type -> skinloom.plugin.v1.HostOpResponse
+	35, // 92: skinloom.plugin.v1.HostService.Mail:output_type -> skinloom.plugin.v1.HostOpResponse
+	35, // 93: skinloom.plugin.v1.HostService.Yggdrasil:output_type -> skinloom.plugin.v1.HostOpResponse
+	0,  // 94: skinloom.plugin.v1.HostService.Audit:output_type -> skinloom.plugin.v1.Empty
+	0,  // 95: skinloom.plugin.v1.HostService.EmitEvent:output_type -> skinloom.plugin.v1.Empty
+	35, // 96: skinloom.plugin.v1.HostService.CallPluginService:output_type -> skinloom.plugin.v1.HostOpResponse
+	49, // 97: skinloom.plugin.v1.HostService.DiscoverPluginServices:output_type -> skinloom.plugin.v1.DiscoverPluginServicesResponse
+	0,  // 98: skinloom.plugin.v1.HostService.Log:output_type -> skinloom.plugin.v1.Empty
+	35, // 99: skinloom.plugin.v1.HostService.Cache:output_type -> skinloom.plugin.v1.HostOpResponse
+	35, // 100: skinloom.plugin.v1.HostService.I18n:output_type -> skinloom.plugin.v1.HostOpResponse
+	0,  // 101: skinloom.plugin.v1.StorageProviderService.Put:output_type -> skinloom.plugin.v1.Empty
+	53, // 102: skinloom.plugin.v1.StorageProviderService.Get:output_type -> skinloom.plugin.v1.StorageGetResponse
+	0,  // 103: skinloom.plugin.v1.StorageProviderService.Delete:output_type -> skinloom.plugin.v1.Empty
+	54, // 104: skinloom.plugin.v1.StorageProviderService.Stat:output_type -> skinloom.plugin.v1.StorageStatResponse
+	57, // 105: skinloom.plugin.v1.StorageProviderService.List:output_type -> skinloom.plugin.v1.StorageListResponse
+	58, // 106: skinloom.plugin.v1.StorageProviderService.URL:output_type -> skinloom.plugin.v1.StorageURLResponse
+	0,  // 107: skinloom.plugin.v1.SearchProviderService.Index:output_type -> skinloom.plugin.v1.Empty
+	0,  // 108: skinloom.plugin.v1.SearchProviderService.Delete:output_type -> skinloom.plugin.v1.Empty
+	63, // 109: skinloom.plugin.v1.SearchProviderService.Search:output_type -> skinloom.plugin.v1.SearchQueryResponse
+	66, // 110: skinloom.plugin.v1.RenderProviderService.RenderAvatar:output_type -> skinloom.plugin.v1.RenderImageResponse
+	66, // 111: skinloom.plugin.v1.RenderProviderService.RenderPreview:output_type -> skinloom.plugin.v1.RenderImageResponse
+	66, // [66:112] is the sub-list for method output_type
+	20, // [20:66] is the sub-list for method input_type
 	20, // [20:20] is the sub-list for extension type_name
 	20, // [20:20] is the sub-list for extension extendee
 	0,  // [0:20] is the sub-list for field type_name
@@ -4557,7 +4682,7 @@ func file_plugin_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_plugin_proto_rawDesc), len(file_plugin_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   71,
+			NumMessages:   73,
 			NumExtensions: 0,
 			NumServices:   5,
 		},

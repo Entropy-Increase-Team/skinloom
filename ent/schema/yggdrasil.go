@@ -25,7 +25,7 @@ func (SiteSecret) Annotations() []schema.Annotation {
 func (SiteSecret) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("id").MaxLen(64).NotEmpty().Immutable().StorageKey("key"),
-		field.Text("value").Immutable().Sensitive(),
+		field.Text("value").Sensitive(),
 		field.Time("created_at").SchemaType(datetimeType).Default(time.Now).Immutable(),
 	}
 }

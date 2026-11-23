@@ -103,6 +103,9 @@ func (_u *OAuthTokenUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 	if _u.mutation.RefreshHashCleared() {
 		_spec.ClearField(oauthtoken.FieldRefreshHash, field.TypeString)
 	}
+	if _u.mutation.PlayerIDCleared() {
+		_spec.ClearField(oauthtoken.FieldPlayerID, field.TypeInt64)
+	}
 	if _u.mutation.ExpiresAtCleared() {
 		_spec.ClearField(oauthtoken.FieldExpiresAt, field.TypeTime)
 	}
@@ -239,6 +242,9 @@ func (_u *OAuthTokenUpdateOne) sqlSave(ctx context.Context) (_node *OAuthToken, 
 	}
 	if _u.mutation.RefreshHashCleared() {
 		_spec.ClearField(oauthtoken.FieldRefreshHash, field.TypeString)
+	}
+	if _u.mutation.PlayerIDCleared() {
+		_spec.ClearField(oauthtoken.FieldPlayerID, field.TypeInt64)
 	}
 	if _u.mutation.ExpiresAtCleared() {
 		_spec.ClearField(oauthtoken.FieldExpiresAt, field.TypeTime)

@@ -11,7 +11,7 @@ sidebar_position: 5
 
 ---
 
-## 一、 权限目录与三级风险分级（29 项）
+## 一、 权限目录与三级风险分级（31 项）
 
 定义源：[`internal/plugin/permissions.go`](https://github.com/Entropy-Increase-Team/skinloom/blob/main/internal/plugin/permissions.go)。
 
@@ -58,6 +58,8 @@ sidebar_position: 5
 | `auth.password` | — | 注册外部密码哈希验证算法 |
 | `provider.storage` | ✓ | 替换或提供材质对象存储后端驱动 |
 | `native.exec` | ✓ | 以原生 OS 子进程方式运行在 WASM 沙箱之外（所有 `runtime: "native"` 插件自动附带） |
+| `yggdrasil.key.write` | — | 替换站点 Yggdrasil 签名私钥（4096 位 RSA）并刷新签名缓存（强制写审计日志） |
+| `players.uuid.write` | — | 重映射游戏角色 UUID 并使旧游戏会话失效（强制写审计日志） |
 
 ---
 

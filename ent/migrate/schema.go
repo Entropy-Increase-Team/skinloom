@@ -233,6 +233,8 @@ var (
 		{Name: "name", Type: field.TypeString, Size: 64},
 		{Name: "secret_hash", Type: field.TypeString, Nullable: true, Size: 64},
 		{Name: "redirect_uris", Type: field.TypeJSON},
+		{Name: "dynamic", Type: field.TypeBool, Default: false},
+		{Name: "last_used_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
 		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
 		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
 		{Name: "user_id", Type: field.TypeInt64},
@@ -245,7 +247,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "oauth_clients_users_oauth_clients",
-				Columns:    []*schema.Column{OauthClientsColumns[6]},
+				Columns:    []*schema.Column{OauthClientsColumns[8]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -254,7 +256,12 @@ var (
 			{
 				Name:    "oauthclient_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{OauthClientsColumns[6]},
+				Columns: []*schema.Column{OauthClientsColumns[8]},
+			},
+			{
+				Name:    "oauthclient_dynamic_last_used_at",
+				Unique:  false,
+				Columns: []*schema.Column{OauthClientsColumns[4], OauthClientsColumns[5]},
 			},
 		},
 	}
@@ -266,6 +273,9 @@ var (
 		{Name: "scopes", Type: field.TypeJSON},
 		{Name: "code_challenge", Type: field.TypeString, Size: 128, Default: ""},
 		{Name: "code_challenge_method", Type: field.TypeString, Size: 8, Default: ""},
+		{Name: "nonce", Type: field.TypeString, Size: 256, Default: ""},
+		{Name: "player_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "auth_time", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
 		{Name: "expires_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
 		{Name: "client_id", Type: field.TypeInt64},
 		{Name: "user_id", Type: field.TypeInt64},
@@ -278,13 +288,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "oauth_codes_oauth_clients_codes",
-				Columns:    []*schema.Column{OauthCodesColumns[7]},
+				Columns:    []*schema.Column{OauthCodesColumns[10]},
 				RefColumns: []*schema.Column{OauthClientsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "oauth_codes_users_oauth_codes",
-				Columns:    []*schema.Column{OauthCodesColumns[8]},
+				Columns:    []*schema.Column{OauthCodesColumns[11]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -293,17 +303,79 @@ var (
 			{
 				Name:    "oauthcode_client_id",
 				Unique:  false,
-				Columns: []*schema.Column{OauthCodesColumns[7]},
+				Columns: []*schema.Column{OauthCodesColumns[10]},
 			},
 			{
 				Name:    "oauthcode_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{OauthCodesColumns[8]},
+				Columns: []*schema.Column{OauthCodesColumns[11]},
+			},
+			{
+				Name:    "oauthcode_player_id",
+				Unique:  false,
+				Columns: []*schema.Column{OauthCodesColumns[7]},
 			},
 			{
 				Name:    "oauthcode_expires_at",
 				Unique:  false,
-				Columns: []*schema.Column{OauthCodesColumns[6]},
+				Columns: []*schema.Column{OauthCodesColumns[9]},
+			},
+		},
+	}
+	// OauthDeviceCodesColumns holds the columns for the "oauth_device_codes" table.
+	OauthDeviceCodesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "device_code_hash", Type: field.TypeString, Unique: true, Size: 64},
+		{Name: "user_code_hash", Type: field.TypeString, Unique: true, Size: 64},
+		{Name: "scopes", Type: field.TypeJSON},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "approved", "denied", "consumed"}, Default: "pending"},
+		{Name: "player_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "interval_sec", Type: field.TypeInt, Default: 5},
+		{Name: "last_polled_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "expires_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "client_id", Type: field.TypeInt64},
+		{Name: "user_id", Type: field.TypeInt64, Nullable: true},
+	}
+	// OauthDeviceCodesTable holds the schema information for the "oauth_device_codes" table.
+	OauthDeviceCodesTable = &schema.Table{
+		Name:       "oauth_device_codes",
+		Columns:    OauthDeviceCodesColumns,
+		PrimaryKey: []*schema.Column{OauthDeviceCodesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "oauth_device_codes_oauth_clients_device_codes",
+				Columns:    []*schema.Column{OauthDeviceCodesColumns[10]},
+				RefColumns: []*schema.Column{OauthClientsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "oauth_device_codes_users_oauth_device_codes",
+				Columns:    []*schema.Column{OauthDeviceCodesColumns[11]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "oauthdevicecode_client_id",
+				Unique:  false,
+				Columns: []*schema.Column{OauthDeviceCodesColumns[10]},
+			},
+			{
+				Name:    "oauthdevicecode_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{OauthDeviceCodesColumns[11]},
+			},
+			{
+				Name:    "oauthdevicecode_player_id",
+				Unique:  false,
+				Columns: []*schema.Column{OauthDeviceCodesColumns[5]},
+			},
+			{
+				Name:    "oauthdevicecode_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{OauthDeviceCodesColumns[8]},
 			},
 		},
 	}
@@ -356,6 +428,8 @@ var (
 		{Name: "refresh_hash", Type: field.TypeString, Unique: true, Nullable: true, Size: 64},
 		{Name: "name", Type: field.TypeString, Size: 64, Default: ""},
 		{Name: "scopes", Type: field.TypeJSON},
+		{Name: "player_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "player_name_at_issue", Type: field.TypeString, Size: 32, Default: ""},
 		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(6)"}},
 		{Name: "expires_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
 		{Name: "refresh_until", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
@@ -371,13 +445,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "oauth_tokens_oauth_clients_tokens",
-				Columns:    []*schema.Column{OauthTokensColumns[10]},
+				Columns:    []*schema.Column{OauthTokensColumns[12]},
 				RefColumns: []*schema.Column{OauthClientsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "oauth_tokens_users_oauth_tokens",
-				Columns:    []*schema.Column{OauthTokensColumns[11]},
+				Columns:    []*schema.Column{OauthTokensColumns[13]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -386,22 +460,27 @@ var (
 			{
 				Name:    "oauthtoken_user_id_kind",
 				Unique:  false,
-				Columns: []*schema.Column{OauthTokensColumns[11], OauthTokensColumns[1]},
+				Columns: []*schema.Column{OauthTokensColumns[13], OauthTokensColumns[1]},
 			},
 			{
 				Name:    "oauthtoken_client_id_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{OauthTokensColumns[10], OauthTokensColumns[11]},
+				Columns: []*schema.Column{OauthTokensColumns[12], OauthTokensColumns[13]},
+			},
+			{
+				Name:    "oauthtoken_player_id",
+				Unique:  false,
+				Columns: []*schema.Column{OauthTokensColumns[6]},
 			},
 			{
 				Name:    "oauthtoken_refresh_until",
 				Unique:  false,
-				Columns: []*schema.Column{OauthTokensColumns[8]},
+				Columns: []*schema.Column{OauthTokensColumns[10]},
 			},
 			{
 				Name:    "oauthtoken_expires_at",
 				Unique:  false,
-				Columns: []*schema.Column{OauthTokensColumns[7]},
+				Columns: []*schema.Column{OauthTokensColumns[9]},
 			},
 		},
 	}
@@ -1056,6 +1135,7 @@ var (
 		NotificationsTable,
 		OauthClientsTable,
 		OauthCodesTable,
+		OauthDeviceCodesTable,
 		OauthGrantsTable,
 		OauthTokensTable,
 		PlayersTable,
@@ -1113,6 +1193,11 @@ func init() {
 	OauthCodesTable.ForeignKeys[1].RefTable = UsersTable
 	OauthCodesTable.Annotation = &entsql.Annotation{
 		Table: "oauth_codes",
+	}
+	OauthDeviceCodesTable.ForeignKeys[0].RefTable = OauthClientsTable
+	OauthDeviceCodesTable.ForeignKeys[1].RefTable = UsersTable
+	OauthDeviceCodesTable.Annotation = &entsql.Annotation{
+		Table: "oauth_device_codes",
 	}
 	OauthGrantsTable.ForeignKeys[0].RefTable = OauthClientsTable
 	OauthGrantsTable.ForeignKeys[1].RefTable = UsersTable

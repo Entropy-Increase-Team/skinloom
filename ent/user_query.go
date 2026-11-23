@@ -18,6 +18,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthdevicecode"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
@@ -54,6 +55,7 @@ type UserQuery struct {
 	withOauthGrants       *OAuthGrantQuery
 	withOauthCodes        *OAuthCodeQuery
 	withOauthTokens       *OAuthTokenQuery
+	withOauthDeviceCodes  *OAuthDeviceCodeQuery
 	withSocialAccounts    *SocialAccountQuery
 	withSocialFlows       *SocialFlowQuery
 	withAnnouncementsSent *AnnouncementQuery
@@ -423,6 +425,28 @@ func (_q *UserQuery) QueryOauthTokens() *OAuthTokenQuery {
 	return query
 }
 
+// QueryOauthDeviceCodes chains the current query on the "oauth_device_codes" edge.
+func (_q *UserQuery) QueryOauthDeviceCodes() *OAuthDeviceCodeQuery {
+	query := (&OAuthDeviceCodeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(oauthdevicecode.Table, oauthdevicecode.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.OauthDeviceCodesTable, user.OauthDeviceCodesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // QuerySocialAccounts chains the current query on the "social_accounts" edge.
 func (_q *UserQuery) QuerySocialAccounts() *SocialAccountQuery {
 	query := (&SocialAccountClient{config: _q.config}).Query()
@@ -696,6 +720,7 @@ func (_q *UserQuery) Clone() *UserQuery {
 		withOauthGrants:       _q.withOauthGrants.Clone(),
 		withOauthCodes:        _q.withOauthCodes.Clone(),
 		withOauthTokens:       _q.withOauthTokens.Clone(),
+		withOauthDeviceCodes:  _q.withOauthDeviceCodes.Clone(),
 		withSocialAccounts:    _q.withSocialAccounts.Clone(),
 		withSocialFlows:       _q.withSocialFlows.Clone(),
 		withAnnouncementsSent: _q.withAnnouncementsSent.Clone(),
@@ -870,6 +895,17 @@ func (_q *UserQuery) WithOauthTokens(opts ...func(*OAuthTokenQuery)) *UserQuery 
 	return _q
 }
 
+// WithOauthDeviceCodes tells the query-builder to eager-load the nodes that are connected to
+// the "oauth_device_codes" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithOauthDeviceCodes(opts ...func(*OAuthDeviceCodeQuery)) *UserQuery {
+	query := (&OAuthDeviceCodeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withOauthDeviceCodes = query
+	return _q
+}
+
 // WithSocialAccounts tells the query-builder to eager-load the nodes that are connected to
 // the "social_accounts" edge. The optional arguments are used to configure the query builder of the edge.
 func (_q *UserQuery) WithSocialAccounts(opts ...func(*SocialAccountQuery)) *UserQuery {
@@ -981,7 +1017,7 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = _q.querySpec()
-		loadedTypes = [18]bool{
+		loadedTypes = [19]bool{
 			_q.withSessions != nil,
 			_q.withAuthTokens != nil,
 			_q.withTextures != nil,
@@ -997,6 +1033,7 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 			_q.withOauthGrants != nil,
 			_q.withOauthCodes != nil,
 			_q.withOauthTokens != nil,
+			_q.withOauthDeviceCodes != nil,
 			_q.withSocialAccounts != nil,
 			_q.withSocialFlows != nil,
 			_q.withAnnouncementsSent != nil,
@@ -1122,6 +1159,13 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := _q.loadOauthTokens(ctx, query, nodes,
 			func(n *User) { n.Edges.OauthTokens = []*OAuthToken{} },
 			func(n *User, e *OAuthToken) { n.Edges.OauthTokens = append(n.Edges.OauthTokens, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withOauthDeviceCodes; query != nil {
+		if err := _q.loadOauthDeviceCodes(ctx, query, nodes,
+			func(n *User) { n.Edges.OauthDeviceCodes = []*OAuthDeviceCode{} },
+			func(n *User, e *OAuthDeviceCode) { n.Edges.OauthDeviceCodes = append(n.Edges.OauthDeviceCodes, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -1609,6 +1653,39 @@ func (_q *UserQuery) loadOauthTokens(ctx context.Context, query *OAuthTokenQuery
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadOauthDeviceCodes(ctx context.Context, query *OAuthDeviceCodeQuery, nodes []*User, init func(*User), assign func(*User, *OAuthDeviceCode)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(oauthdevicecode.FieldUserID)
+	}
+	query.Where(predicate.OAuthDeviceCode(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.OauthDeviceCodesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

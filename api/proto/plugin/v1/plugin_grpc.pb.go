@@ -501,29 +501,30 @@ var PluginService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	HostService_KV_FullMethodName                = "/skinloom.plugin.v1.HostService/KV"
-	HostService_Docs_FullMethodName              = "/skinloom.plugin.v1.HostService/Docs"
-	HostService_FilesPut_FullMethodName          = "/skinloom.plugin.v1.HostService/FilesPut"
-	HostService_FilesGet_FullMethodName          = "/skinloom.plugin.v1.HostService/FilesGet"
-	HostService_FilesDelete_FullMethodName       = "/skinloom.plugin.v1.HostService/FilesDelete"
-	HostService_FilesURL_FullMethodName          = "/skinloom.plugin.v1.HostService/FilesURL"
-	HostService_Fetch_FullMethodName             = "/skinloom.plugin.v1.HostService/Fetch"
-	HostService_Settings_FullMethodName          = "/skinloom.plugin.v1.HostService/Settings"
-	HostService_Site_FullMethodName              = "/skinloom.plugin.v1.HostService/Site"
-	HostService_Users_FullMethodName             = "/skinloom.plugin.v1.HostService/Users"
-	HostService_Players_FullMethodName           = "/skinloom.plugin.v1.HostService/Players"
-	HostService_Textures_FullMethodName          = "/skinloom.plugin.v1.HostService/Textures"
-	HostService_Closet_FullMethodName            = "/skinloom.plugin.v1.HostService/Closet"
-	HostService_Score_FullMethodName             = "/skinloom.plugin.v1.HostService/Score"
-	HostService_Notify_FullMethodName            = "/skinloom.plugin.v1.HostService/Notify"
-	HostService_Mail_FullMethodName              = "/skinloom.plugin.v1.HostService/Mail"
-	HostService_Yggdrasil_FullMethodName         = "/skinloom.plugin.v1.HostService/Yggdrasil"
-	HostService_Audit_FullMethodName             = "/skinloom.plugin.v1.HostService/Audit"
-	HostService_EmitEvent_FullMethodName         = "/skinloom.plugin.v1.HostService/EmitEvent"
-	HostService_CallPluginService_FullMethodName = "/skinloom.plugin.v1.HostService/CallPluginService"
-	HostService_Log_FullMethodName               = "/skinloom.plugin.v1.HostService/Log"
-	HostService_Cache_FullMethodName             = "/skinloom.plugin.v1.HostService/Cache"
-	HostService_I18N_FullMethodName              = "/skinloom.plugin.v1.HostService/I18n"
+	HostService_KV_FullMethodName                     = "/skinloom.plugin.v1.HostService/KV"
+	HostService_Docs_FullMethodName                   = "/skinloom.plugin.v1.HostService/Docs"
+	HostService_FilesPut_FullMethodName               = "/skinloom.plugin.v1.HostService/FilesPut"
+	HostService_FilesGet_FullMethodName               = "/skinloom.plugin.v1.HostService/FilesGet"
+	HostService_FilesDelete_FullMethodName            = "/skinloom.plugin.v1.HostService/FilesDelete"
+	HostService_FilesURL_FullMethodName               = "/skinloom.plugin.v1.HostService/FilesURL"
+	HostService_Fetch_FullMethodName                  = "/skinloom.plugin.v1.HostService/Fetch"
+	HostService_Settings_FullMethodName               = "/skinloom.plugin.v1.HostService/Settings"
+	HostService_Site_FullMethodName                   = "/skinloom.plugin.v1.HostService/Site"
+	HostService_Users_FullMethodName                  = "/skinloom.plugin.v1.HostService/Users"
+	HostService_Players_FullMethodName                = "/skinloom.plugin.v1.HostService/Players"
+	HostService_Textures_FullMethodName               = "/skinloom.plugin.v1.HostService/Textures"
+	HostService_Closet_FullMethodName                 = "/skinloom.plugin.v1.HostService/Closet"
+	HostService_Score_FullMethodName                  = "/skinloom.plugin.v1.HostService/Score"
+	HostService_Notify_FullMethodName                 = "/skinloom.plugin.v1.HostService/Notify"
+	HostService_Mail_FullMethodName                   = "/skinloom.plugin.v1.HostService/Mail"
+	HostService_Yggdrasil_FullMethodName              = "/skinloom.plugin.v1.HostService/Yggdrasil"
+	HostService_Audit_FullMethodName                  = "/skinloom.plugin.v1.HostService/Audit"
+	HostService_EmitEvent_FullMethodName              = "/skinloom.plugin.v1.HostService/EmitEvent"
+	HostService_CallPluginService_FullMethodName      = "/skinloom.plugin.v1.HostService/CallPluginService"
+	HostService_DiscoverPluginServices_FullMethodName = "/skinloom.plugin.v1.HostService/DiscoverPluginServices"
+	HostService_Log_FullMethodName                    = "/skinloom.plugin.v1.HostService/Log"
+	HostService_Cache_FullMethodName                  = "/skinloom.plugin.v1.HostService/Cache"
+	HostService_I18N_FullMethodName                   = "/skinloom.plugin.v1.HostService/I18n"
 )
 
 // HostServiceClient is the client API for HostService service.
@@ -550,6 +551,7 @@ type HostServiceClient interface {
 	Audit(ctx context.Context, in *AuditRecordRequest, opts ...grpc.CallOption) (*Empty, error)
 	EmitEvent(ctx context.Context, in *EmitEventRequest, opts ...grpc.CallOption) (*Empty, error)
 	CallPluginService(ctx context.Context, in *CallPluginServiceRequest, opts ...grpc.CallOption) (*HostOpResponse, error)
+	DiscoverPluginServices(ctx context.Context, in *DiscoverPluginServicesRequest, opts ...grpc.CallOption) (*DiscoverPluginServicesResponse, error)
 	Log(ctx context.Context, in *LogRequest, opts ...grpc.CallOption) (*Empty, error)
 	Cache(ctx context.Context, in *HostOpRequest, opts ...grpc.CallOption) (*HostOpResponse, error)
 	I18N(ctx context.Context, in *HostOpRequest, opts ...grpc.CallOption) (*HostOpResponse, error)
@@ -763,6 +765,16 @@ func (c *hostServiceClient) CallPluginService(ctx context.Context, in *CallPlugi
 	return out, nil
 }
 
+func (c *hostServiceClient) DiscoverPluginServices(ctx context.Context, in *DiscoverPluginServicesRequest, opts ...grpc.CallOption) (*DiscoverPluginServicesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DiscoverPluginServicesResponse)
+	err := c.cc.Invoke(ctx, HostService_DiscoverPluginServices_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *hostServiceClient) Log(ctx context.Context, in *LogRequest, opts ...grpc.CallOption) (*Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Empty)
@@ -817,6 +829,7 @@ type HostServiceServer interface {
 	Audit(context.Context, *AuditRecordRequest) (*Empty, error)
 	EmitEvent(context.Context, *EmitEventRequest) (*Empty, error)
 	CallPluginService(context.Context, *CallPluginServiceRequest) (*HostOpResponse, error)
+	DiscoverPluginServices(context.Context, *DiscoverPluginServicesRequest) (*DiscoverPluginServicesResponse, error)
 	Log(context.Context, *LogRequest) (*Empty, error)
 	Cache(context.Context, *HostOpRequest) (*HostOpResponse, error)
 	I18N(context.Context, *HostOpRequest) (*HostOpResponse, error)
@@ -889,6 +902,9 @@ func (UnimplementedHostServiceServer) EmitEvent(context.Context, *EmitEventReque
 }
 func (UnimplementedHostServiceServer) CallPluginService(context.Context, *CallPluginServiceRequest) (*HostOpResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CallPluginService not implemented")
+}
+func (UnimplementedHostServiceServer) DiscoverPluginServices(context.Context, *DiscoverPluginServicesRequest) (*DiscoverPluginServicesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DiscoverPluginServices not implemented")
 }
 func (UnimplementedHostServiceServer) Log(context.Context, *LogRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Log not implemented")
@@ -1280,6 +1296,24 @@ func _HostService_CallPluginService_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HostService_DiscoverPluginServices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DiscoverPluginServicesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HostServiceServer).DiscoverPluginServices(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HostService_DiscoverPluginServices_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HostServiceServer).DiscoverPluginServices(ctx, req.(*DiscoverPluginServicesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _HostService_Log_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(LogRequest)
 	if err := dec(in); err != nil {
@@ -1420,6 +1454,10 @@ var HostService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CallPluginService",
 			Handler:    _HostService_CallPluginService_Handler,
+		},
+		{
+			MethodName: "DiscoverPluginServices",
+			Handler:    _HostService_DiscoverPluginServices_Handler,
 		},
 		{
 			MethodName: "Log",

@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthdevicecode"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/predicate"
@@ -23,14 +24,15 @@ import (
 // OAuthClientQuery is the builder for querying OAuthClient entities.
 type OAuthClientQuery struct {
 	config
-	ctx        *QueryContext
-	order      []oauthclient.OrderOption
-	inters     []Interceptor
-	predicates []predicate.OAuthClient
-	withOwner  *UserQuery
-	withGrants *OAuthGrantQuery
-	withCodes  *OAuthCodeQuery
-	withTokens *OAuthTokenQuery
+	ctx             *QueryContext
+	order           []oauthclient.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.OAuthClient
+	withOwner       *UserQuery
+	withGrants      *OAuthGrantQuery
+	withCodes       *OAuthCodeQuery
+	withTokens      *OAuthTokenQuery
+	withDeviceCodes *OAuthDeviceCodeQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -148,6 +150,28 @@ func (_q *OAuthClientQuery) QueryTokens() *OAuthTokenQuery {
 			sqlgraph.From(oauthclient.Table, oauthclient.FieldID, selector),
 			sqlgraph.To(oauthtoken.Table, oauthtoken.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, oauthclient.TokensTable, oauthclient.TokensColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryDeviceCodes chains the current query on the "device_codes" edge.
+func (_q *OAuthClientQuery) QueryDeviceCodes() *OAuthDeviceCodeQuery {
+	query := (&OAuthDeviceCodeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oauthclient.Table, oauthclient.FieldID, selector),
+			sqlgraph.To(oauthdevicecode.Table, oauthdevicecode.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, oauthclient.DeviceCodesTable, oauthclient.DeviceCodesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -342,15 +366,16 @@ func (_q *OAuthClientQuery) Clone() *OAuthClientQuery {
 		return nil
 	}
 	return &OAuthClientQuery{
-		config:     _q.config,
-		ctx:        _q.ctx.Clone(),
-		order:      append([]oauthclient.OrderOption{}, _q.order...),
-		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.OAuthClient{}, _q.predicates...),
-		withOwner:  _q.withOwner.Clone(),
-		withGrants: _q.withGrants.Clone(),
-		withCodes:  _q.withCodes.Clone(),
-		withTokens: _q.withTokens.Clone(),
+		config:          _q.config,
+		ctx:             _q.ctx.Clone(),
+		order:           append([]oauthclient.OrderOption{}, _q.order...),
+		inters:          append([]Interceptor{}, _q.inters...),
+		predicates:      append([]predicate.OAuthClient{}, _q.predicates...),
+		withOwner:       _q.withOwner.Clone(),
+		withGrants:      _q.withGrants.Clone(),
+		withCodes:       _q.withCodes.Clone(),
+		withTokens:      _q.withTokens.Clone(),
+		withDeviceCodes: _q.withDeviceCodes.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -398,6 +423,17 @@ func (_q *OAuthClientQuery) WithTokens(opts ...func(*OAuthTokenQuery)) *OAuthCli
 		opt(query)
 	}
 	_q.withTokens = query
+	return _q
+}
+
+// WithDeviceCodes tells the query-builder to eager-load the nodes that are connected to
+// the "device_codes" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *OAuthClientQuery) WithDeviceCodes(opts ...func(*OAuthDeviceCodeQuery)) *OAuthClientQuery {
+	query := (&OAuthDeviceCodeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withDeviceCodes = query
 	return _q
 }
 
@@ -479,11 +515,12 @@ func (_q *OAuthClientQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 	var (
 		nodes       = []*OAuthClient{}
 		_spec       = _q.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [5]bool{
 			_q.withOwner != nil,
 			_q.withGrants != nil,
 			_q.withCodes != nil,
 			_q.withTokens != nil,
+			_q.withDeviceCodes != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -528,6 +565,13 @@ func (_q *OAuthClientQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 		if err := _q.loadTokens(ctx, query, nodes,
 			func(n *OAuthClient) { n.Edges.Tokens = []*OAuthToken{} },
 			func(n *OAuthClient, e *OAuthToken) { n.Edges.Tokens = append(n.Edges.Tokens, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withDeviceCodes; query != nil {
+		if err := _q.loadDeviceCodes(ctx, query, nodes,
+			func(n *OAuthClient) { n.Edges.DeviceCodes = []*OAuthDeviceCode{} },
+			func(n *OAuthClient, e *OAuthDeviceCode) { n.Edges.DeviceCodes = append(n.Edges.DeviceCodes, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -651,6 +695,36 @@ func (_q *OAuthClientQuery) loadTokens(ctx context.Context, query *OAuthTokenQue
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "client_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *OAuthClientQuery) loadDeviceCodes(ctx context.Context, query *OAuthDeviceCodeQuery, nodes []*OAuthClient, init func(*OAuthClient), assign func(*OAuthClient, *OAuthDeviceCode)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*OAuthClient)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(oauthdevicecode.FieldClientID)
+	}
+	query.Where(predicate.OAuthDeviceCode(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(oauthclient.DeviceCodesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ClientID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "client_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

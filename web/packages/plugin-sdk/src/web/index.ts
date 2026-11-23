@@ -192,12 +192,23 @@ export function navigate(to: string): void {
   }
 }
 
+function nonEmptyString(v: unknown): string | undefined {
+  return typeof v === 'string' && v.trim() !== '' ? v : undefined
+}
+
 export class PluginApiError extends Error {
   readonly status: number
   readonly problem: { title?: string; detail?: string; [key: string]: unknown }
 
   constructor(status: number, problem: { title?: string; detail?: string; [key: string]: unknown }) {
-    super(problem.detail ?? problem.title ?? `HTTP ${status}`)
+    super(
+      nonEmptyString(problem.detail) ??
+        nonEmptyString(problem.title) ??
+        nonEmptyString(problem.errorMessage) ??
+        nonEmptyString(problem.message) ??
+        nonEmptyString(problem.error) ??
+        `HTTP ${status}`,
+    )
     this.name = 'PluginApiError'
     this.status = status
     this.problem = problem

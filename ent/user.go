@@ -91,6 +91,8 @@ type UserEdges struct {
 	OauthCodes []*OAuthCode `json:"oauth_codes,omitempty"`
 	// OauthTokens holds the value of the oauth_tokens edge.
 	OauthTokens []*OAuthToken `json:"oauth_tokens,omitempty"`
+	// OauthDeviceCodes holds the value of the oauth_device_codes edge.
+	OauthDeviceCodes []*OAuthDeviceCode `json:"oauth_device_codes,omitempty"`
 	// SocialAccounts holds the value of the social_accounts edge.
 	SocialAccounts []*SocialAccount `json:"social_accounts,omitempty"`
 	// SocialFlows holds the value of the social_flows edge.
@@ -99,7 +101,7 @@ type UserEdges struct {
 	AnnouncementsSent []*Announcement `json:"announcements_sent,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [18]bool
+	loadedTypes [19]bool
 }
 
 // SessionsOrErr returns the Sessions value or an error if the edge
@@ -237,10 +239,19 @@ func (e UserEdges) OauthTokensOrErr() ([]*OAuthToken, error) {
 	return nil, &NotLoadedError{edge: "oauth_tokens"}
 }
 
+// OauthDeviceCodesOrErr returns the OauthDeviceCodes value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) OauthDeviceCodesOrErr() ([]*OAuthDeviceCode, error) {
+	if e.loadedTypes[15] {
+		return e.OauthDeviceCodes, nil
+	}
+	return nil, &NotLoadedError{edge: "oauth_device_codes"}
+}
+
 // SocialAccountsOrErr returns the SocialAccounts value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) SocialAccountsOrErr() ([]*SocialAccount, error) {
-	if e.loadedTypes[15] {
+	if e.loadedTypes[16] {
 		return e.SocialAccounts, nil
 	}
 	return nil, &NotLoadedError{edge: "social_accounts"}
@@ -249,7 +260,7 @@ func (e UserEdges) SocialAccountsOrErr() ([]*SocialAccount, error) {
 // SocialFlowsOrErr returns the SocialFlows value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) SocialFlowsOrErr() ([]*SocialFlow, error) {
-	if e.loadedTypes[16] {
+	if e.loadedTypes[17] {
 		return e.SocialFlows, nil
 	}
 	return nil, &NotLoadedError{edge: "social_flows"}
@@ -258,7 +269,7 @@ func (e UserEdges) SocialFlowsOrErr() ([]*SocialFlow, error) {
 // AnnouncementsSentOrErr returns the AnnouncementsSent value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) AnnouncementsSentOrErr() ([]*Announcement, error) {
-	if e.loadedTypes[17] {
+	if e.loadedTypes[18] {
 		return e.AnnouncementsSent, nil
 	}
 	return nil, &NotLoadedError{edge: "announcements_sent"}
@@ -495,6 +506,11 @@ func (_m *User) QueryOauthCodes() *OAuthCodeQuery {
 // QueryOauthTokens queries the "oauth_tokens" edge of the User entity.
 func (_m *User) QueryOauthTokens() *OAuthTokenQuery {
 	return NewUserClient(_m.config).QueryOauthTokens(_m)
+}
+
+// QueryOauthDeviceCodes queries the "oauth_device_codes" edge of the User entity.
+func (_m *User) QueryOauthDeviceCodes() *OAuthDeviceCodeQuery {
+	return NewUserClient(_m.config).QueryOauthDeviceCodes(_m)
 }
 
 // QuerySocialAccounts queries the "social_accounts" edge of the User entity.

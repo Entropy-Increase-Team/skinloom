@@ -107,6 +107,11 @@ type Player struct {
 	UpdatedAt string `json:"updatedAt"`
 }
 
+type PlayerPage struct {
+	Items       []Player `json:"items"`
+	NextAfterID int64    `json:"nextAfterId"`
+}
+
 type Texture struct {
 	ID         int64  `json:"id"`
 	Name       string `json:"name"`
@@ -299,6 +304,41 @@ func (c *PlayersClient) FindByName(ctx context.Context, name string) (*Player, e
 	}
 	var out *Player
 	if err := callHostOp(ctx, c.host.Players, "findByName", []any{name}, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *PlayersClient) FindByUUID(ctx context.Context, uuid string) (*Player, error) {
+	if c.host == nil {
+		return nil, errors.New("host service unavailable")
+	}
+	var out *Player
+	if err := callHostOp(ctx, c.host.Players, "findByUUID", []any{uuid}, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *PlayersClient) ListAll(ctx context.Context, afterID int64, limit int) (*PlayerPage, error) {
+	if c.host == nil {
+		return nil, errors.New("host service unavailable")
+	}
+	var out PlayerPage
+	if err := callHostOp(ctx, c.host.Players, "listAll", []any{afterID, limit}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// RemapUUID changes the UUID of the player matching oldUUID to newUUID.
+// Requires the high-risk "players.uuid.write" permission.
+func (c *PlayersClient) RemapUUID(ctx context.Context, oldUUID, newUUID string) (*Player, error) {
+	if c.host == nil {
+		return nil, errors.New("host service unavailable")
+	}
+	var out *Player
+	if err := callHostOp(ctx, c.host.Players, "remapUUID", []any{oldUUID, newUUID}, &out); err != nil {
 		return nil, err
 	}
 	return out, nil

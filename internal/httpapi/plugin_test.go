@@ -674,7 +674,11 @@ func TestPluginPublicRoutesEndToEnd(t *testing.T) {
 	// Manifest validation must reject missing permission and reserved host routes.
 	for _, bad := range []string{
 		`{"id":"bad-perm","kind":"plugin","version":"1.0.0","name":"Bad","apiVersion":1,"routes":{"public":["/mcskin/{name}.json"]}}`,
-		`{"id":"bad-api","kind":"plugin","version":"1.0.0","name":"Bad","apiVersion":1,"permissions":["routes.public"],"routes":{"public":["/api/hijack"]}}`,
+		`{"id":"bad-api-root","kind":"plugin","version":"1.0.0","name":"Bad","apiVersion":1,"permissions":["routes.public"],"routes":{"public":["/api"]}}`,
+		`{"id":"bad-api-wild","kind":"plugin","version":"1.0.0","name":"Bad","apiVersion":1,"permissions":["routes.public"],"routes":{"public":["/api/*"]}}`,
+		`{"id":"bad-api-v1","kind":"plugin","version":"1.0.0","name":"Bad","apiVersion":1,"permissions":["routes.public"],"routes":{"public":["/api/v1/hijack"]}}`,
+		`{"id":"bad-api-ygg","kind":"plugin","version":"1.0.0","name":"Bad","apiVersion":1,"permissions":["routes.public"],"routes":{"public":["/api/yggdrasil/hijack"]}}`,
+		`{"id":"bad-api-plg","kind":"plugin","version":"1.0.0","name":"Bad","apiVersion":1,"permissions":["routes.public"],"routes":{"public":["/api/plugins/hijack"]}}`,
 		`{"id":"bad-oauth","kind":"plugin","version":"1.0.0","name":"Bad","apiVersion":1,"permissions":["routes.public"],"routes":{"public":["/oauth/start"]}}`,
 		`{"id":"bad-csl","kind":"plugin","version":"1.0.0","name":"Bad","apiVersion":1,"permissions":["routes.public"],"routes":{"public":["/steve.json"]}}`,
 		`{"id":"bad-root","kind":"plugin","version":"1.0.0","name":"Bad","apiVersion":1,"permissions":["routes.public"],"routes":{"public":["/"]}}`,
@@ -682,6 +686,10 @@ func TestPluginPublicRoutesEndToEnd(t *testing.T) {
 		if _, err := plugin.ParseManifest([]byte(bad)); err == nil {
 			t.Errorf("expected ParseManifest to reject %s", bad)
 		}
+	}
+	// Non-reserved /api/<custom>/* sub-trees (e.g. MUA Union protocol) are allowed.
+	if _, err := plugin.ParseManifest([]byte(`{"id":"ok-union","kind":"plugin","version":"1.0.0","name":"Union","apiVersion":1,"permissions":["routes.public"],"routes":{"public":["/api/union/*"]}}`)); err != nil {
+		t.Fatalf("expected ParseManifest to accept /api/union/*, got %v", err)
 	}
 
 	h, _ := New(d)

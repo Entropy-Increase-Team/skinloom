@@ -3,8 +3,8 @@
 import { Badge } from '@skinloom/ui'
 import { useTranslations } from 'next-intl'
 
-/** Message key of a scope name: "Player.ReadWrite" → "Player_ReadWrite". */
-export const scopeKey = (name: string) => name.replace('.', '_')
+/** Message key of a scope name: "Yggdrasil.PlayerProfiles.Select" → "Yggdrasil_PlayerProfiles_Select". */
+export const scopeKey = (name: string) => name.replaceAll('.', '_')
 
 /** What each scope allows, in words. */
 export function ScopeList({ scopes }: { scopes: string[] }) {

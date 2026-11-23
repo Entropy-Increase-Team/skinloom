@@ -90,6 +90,34 @@ func (_c *OAuthTokenCreate) SetScopes(v []string) *OAuthTokenCreate {
 	return _c
 }
 
+// SetPlayerID sets the "player_id" field.
+func (_c *OAuthTokenCreate) SetPlayerID(v int64) *OAuthTokenCreate {
+	_c.mutation.SetPlayerID(v)
+	return _c
+}
+
+// SetNillablePlayerID sets the "player_id" field if the given value is not nil.
+func (_c *OAuthTokenCreate) SetNillablePlayerID(v *int64) *OAuthTokenCreate {
+	if v != nil {
+		_c.SetPlayerID(*v)
+	}
+	return _c
+}
+
+// SetPlayerNameAtIssue sets the "player_name_at_issue" field.
+func (_c *OAuthTokenCreate) SetPlayerNameAtIssue(v string) *OAuthTokenCreate {
+	_c.mutation.SetPlayerNameAtIssue(v)
+	return _c
+}
+
+// SetNillablePlayerNameAtIssue sets the "player_name_at_issue" field if the given value is not nil.
+func (_c *OAuthTokenCreate) SetNillablePlayerNameAtIssue(v *string) *OAuthTokenCreate {
+	if v != nil {
+		_c.SetPlayerNameAtIssue(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *OAuthTokenCreate) SetCreatedAt(v time.Time) *OAuthTokenCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -201,6 +229,10 @@ func (_c *OAuthTokenCreate) defaults() {
 		v := oauthtoken.DefaultName
 		_c.mutation.SetName(v)
 	}
+	if _, ok := _c.mutation.PlayerNameAtIssue(); !ok {
+		v := oauthtoken.DefaultPlayerNameAtIssue
+		_c.mutation.SetPlayerNameAtIssue(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := oauthtoken.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -243,6 +275,14 @@ func (_c *OAuthTokenCreate) check() error {
 	}
 	if _, ok := _c.mutation.Scopes(); !ok {
 		return &ValidationError{Name: "scopes", err: errors.New(`ent: missing required field "OAuthToken.scopes"`)}
+	}
+	if _, ok := _c.mutation.PlayerNameAtIssue(); !ok {
+		return &ValidationError{Name: "player_name_at_issue", err: errors.New(`ent: missing required field "OAuthToken.player_name_at_issue"`)}
+	}
+	if v, ok := _c.mutation.PlayerNameAtIssue(); ok {
+		if err := oauthtoken.PlayerNameAtIssueValidator(v); err != nil {
+			return &ValidationError{Name: "player_name_at_issue", err: fmt.Errorf(`ent: validator failed for field "OAuthToken.player_name_at_issue": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "OAuthToken.created_at"`)}
@@ -302,6 +342,14 @@ func (_c *OAuthTokenCreate) createSpec() (*OAuthToken, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Scopes(); ok {
 		_spec.SetField(oauthtoken.FieldScopes, field.TypeJSON, value)
 		_node.Scopes = value
+	}
+	if value, ok := _c.mutation.PlayerID(); ok {
+		_spec.SetField(oauthtoken.FieldPlayerID, field.TypeInt64, value)
+		_node.PlayerID = &value
+	}
+	if value, ok := _c.mutation.PlayerNameAtIssue(); ok {
+		_spec.SetField(oauthtoken.FieldPlayerNameAtIssue, field.TypeString, value)
+		_node.PlayerNameAtIssue = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(oauthtoken.FieldCreatedAt, field.TypeTime, value)
@@ -460,6 +508,12 @@ func (u *OAuthTokenUpsertOne) UpdateNewValues() *OAuthTokenUpsertOne {
 		}
 		if _, exists := u.create.mutation.Scopes(); exists {
 			s.SetIgnore(oauthtoken.FieldScopes)
+		}
+		if _, exists := u.create.mutation.PlayerID(); exists {
+			s.SetIgnore(oauthtoken.FieldPlayerID)
+		}
+		if _, exists := u.create.mutation.PlayerNameAtIssue(); exists {
+			s.SetIgnore(oauthtoken.FieldPlayerNameAtIssue)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(oauthtoken.FieldCreatedAt)
@@ -724,6 +778,12 @@ func (u *OAuthTokenUpsertBulk) UpdateNewValues() *OAuthTokenUpsertBulk {
 			}
 			if _, exists := b.mutation.Scopes(); exists {
 				s.SetIgnore(oauthtoken.FieldScopes)
+			}
+			if _, exists := b.mutation.PlayerID(); exists {
+				s.SetIgnore(oauthtoken.FieldPlayerID)
+			}
+			if _, exists := b.mutation.PlayerNameAtIssue(); exists {
+				s.SetIgnore(oauthtoken.FieldPlayerNameAtIssue)
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(oauthtoken.FieldCreatedAt)

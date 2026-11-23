@@ -1385,6 +1385,29 @@ func HasOauthTokensWith(preds ...predicate.OAuthToken) predicate.User {
 	})
 }
 
+// HasOauthDeviceCodes applies the HasEdge predicate on the "oauth_device_codes" edge.
+func HasOauthDeviceCodes() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, OauthDeviceCodesTable, OauthDeviceCodesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOauthDeviceCodesWith applies the HasEdge predicate on the "oauth_device_codes" edge with a given conditions (other predicates).
+func HasOauthDeviceCodesWith(preds ...predicate.OAuthDeviceCode) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newOauthDeviceCodesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasSocialAccounts applies the HasEdge predicate on the "social_accounts" edge.
 func HasSocialAccounts() predicate.User {
 	return predicate.User(func(s *sql.Selector) {

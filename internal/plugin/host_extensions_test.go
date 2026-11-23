@@ -3,10 +3,14 @@ package plugin
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"image"
@@ -629,4 +633,348 @@ func TestHostSecurityAndEdgeRegressions(t *testing.T) {
 	if recAssetDis.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 on disabled plugin asset, got %d", recAssetDis.Code)
 	}
+}
+
+func TestHighRiskYggdrasilAndPlayerOpsAndRouteOptions(t *testing.T) {
+	env := newFullTestEnv(t)
+	ctx := context.Background()
+
+	u, err := env.db.Ent.User.Create().
+		SetEmail("union@example.com").SetEmailNormalized("union@example.com").
+		SetNickname("UnionUser").SetPasswordHash("x").SetPasswordAlgo("argon2id").
+		SetRole(user.RoleUser).SetScore(500).SetStatus(user.StatusActive).Save(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pl, _, err := env.players.Create(ctx, u.ID, "UnionHero", player.PolicyFrom(env.settings.Current()), score.Rates{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Runtime without high-risk permissions must be denied setSigningKey and remapUUID.
+	mLow, err := ParseManifest([]byte(`{
+		"id": "low-priv",
+		"kind": "plugin",
+		"version": "1.0.0",
+		"name": "Low Priv",
+		"apiVersion": 1,
+		"permissions": ["yggdrasil.extend", "players.read"]
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rtLow, err := newPluginRuntime(mLow, "", nil, nil, nil, nil, env.mgr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := rtLow.hostYggdrasil(ctx, []any{"setSigningKey", "invalid"}); !errors.Is(err, ErrPermissionDenied) {
+		t.Fatalf("expected ErrPermissionDenied on setSigningKey without yggdrasil.key.write, got %v", err)
+	}
+	if _, err := rtLow.hostPlayers(ctx, []any{"remapUUID", pl.UUID, "11111111222233334444555566667777"}); !errors.Is(err, ErrPermissionDenied) {
+		t.Fatalf("expected ErrPermissionDenied on remapUUID without players.uuid.write, got %v", err)
+	}
+	if found, err := rtLow.hostPlayers(ctx, []any{"findByUUID", pl.UUID}); err != nil || found.(map[string]any)["name"] != "UnionHero" {
+		t.Fatalf("findByUUID = %v, err=%v", found, err)
+	}
+	if listed, err := rtLow.hostPlayers(ctx, []any{"listAll", float64(0), float64(10)}); err != nil || len(listed.(map[string]any)["items"].([]map[string]any)) != 1 {
+		t.Fatalf("listAll = %v, err=%v", listed, err)
+	}
+
+	// Runtime with high-risk permissions succeeds and records mandatory audit entries.
+	mHigh, err := ParseManifest([]byte(`{
+		"id": "high-priv",
+		"kind": "plugin",
+		"version": "1.0.0",
+		"name": "High Priv",
+		"apiVersion": 1,
+		"permissions": ["routes.public", "yggdrasil.extend", "yggdrasil.key.write", "players.read", "players.uuid.write"],
+		"routes": {"public": ["/api/union/*"]}
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rtHigh, err := newPluginRuntime(mHigh, "", nil, nil, nil, nil, env.mgr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	k4096, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pem4096 := string(pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(k4096)}))
+	if _, err := rtHigh.hostYggdrasil(ctx, []any{"setSigningKey", pem4096}); err != nil {
+		t.Fatalf("hostYggdrasil setSigningKey: %v", err)
+	}
+	if cnt, _ := env.db.Ent.AuditLog.Query().Where(auditlog.Action("plugin.yggdrasil.setSigningKey")).Count(ctx); cnt != 1 {
+		t.Fatalf("expected 1 audit log for setSigningKey, got %d", cnt)
+	}
+
+	remappedUUID := "abcdef0123456789abcdef0123456789"
+	if res, err := rtHigh.hostPlayers(ctx, []any{"remapUUID", pl.UUID, remappedUUID}); err != nil || res.(map[string]any)["uuid"] != remappedUUID {
+		t.Fatalf("hostPlayers remapUUID = %v, err=%v", res, err)
+	}
+	if cnt, _ := env.db.Ent.AuditLog.Query().Where(auditlog.Action("plugin.player.remapUuid")).Count(ctx); cnt != 1 {
+		t.Fatalf("expected 1 audit log for remapUUID, got %d", cnt)
+	}
+
+	// Verify OpenCORS, ForwardHeaders (with Cookie/X-SkinLoom-*/AdminToken scrubbing), and WebhookNoCSRF.
+	var capturedReq map[string]any
+	rtHigh.routes = []routeBinding{
+		{
+			Method:         http.MethodPost,
+			Pattern:        "/api/union/member/sync",
+			Auth:           "public",
+			ForwardHeaders: []string{"X-Message-Signature", "Cookie", "X-SkinLoom-User-ID", "Authorization"},
+			OpenCORS:       true,
+			WebhookNoCSRF:  true,
+			HandlerID:      "h1",
+		},
+	}
+	rtHigh.driver = &stubHTTPDriver{fn: func(_ context.Context, _ string, req map[string]any) (any, error) {
+		capturedReq = req
+		return map[string]any{"ok": true}, nil
+	}}
+	env.mgr.mu.Lock()
+	env.mgr.active["high-priv"] = rtHigh
+	env.mgr.mu.Unlock()
+	defer func() {
+		env.mgr.mu.Lock()
+		delete(env.mgr.active, "high-priv")
+		env.mgr.mu.Unlock()
+	}()
+
+	if !env.mgr.IsWebhookNoCSRFRoute(http.MethodPost, "/api/union/member/sync") {
+		t.Fatalf("expected IsWebhookNoCSRFRoute=true for /api/union/member/sync")
+	}
+	if env.mgr.IsWebhookNoCSRFRoute(http.MethodGet, "/api/union/member/sync") {
+		t.Fatalf("expected IsWebhookNoCSRFRoute=false for wrong method")
+	}
+
+	// OPTIONS preflight on OpenCORS route returns 204 with ACAO: * and no ACAC.
+	optRec := httptest.NewRecorder()
+	env.mgr.ServePublicRoute(optRec, httptest.NewRequest(http.MethodOptions, "/api/union/member/sync", nil), Viewer{}, "en")
+	if optRec.Code != http.StatusNoContent || optRec.Header().Get("Access-Control-Allow-Origin") != "*" || optRec.Header().Get("Access-Control-Allow-Credentials") != "" {
+		t.Fatalf("OPTIONS OpenCORS = %d headers=%v", optRec.Code, optRec.Header())
+	}
+
+	// POST with AdminToken viewer + sensitive headers: Viewer must be stripped, AdminToken Authorization/Cookie/X-SkinLoom-* scrubbed, X-Message-Signature forwarded.
+	req := httptest.NewRequest(http.MethodPost, "/api/union/member/sync", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Message-Signature", "sig-value")
+	req.Header.Set("Cookie", "skinloom_session=secret")
+	req.Header.Set("X-SkinLoom-User-ID", "999")
+	req.Header.Set("Authorization", "Bearer admin-token")
+	postRec := httptest.NewRecorder()
+	adminViewer := Viewer{Authenticated: true, UserID: 0, Role: "superadmin", Admin: true, Superadmin: true}
+	env.mgr.ServePublicRoute(postRec, req, adminViewer, "en")
+	if postRec.Code != http.StatusOK || postRec.Header().Get("Access-Control-Allow-Origin") != "*" {
+		t.Fatalf("POST webhook = %d %s headers=%v", postRec.Code, postRec.Body.String(), postRec.Header())
+	}
+	if capturedReq["user"] != nil {
+		t.Fatalf("expected WebhookNoCSRF to strip viewer, got %v", capturedReq["user"])
+	}
+	hdrs := capturedReq["headers"].(map[string]string)
+	if hdrs["x-message-signature"] != "sig-value" {
+		t.Fatalf("expected X-Message-Signature forwarded, got %v", hdrs)
+	}
+	if hdrs["cookie"] != "" || hdrs["x-skinloom-user-id"] != "" || hdrs["authorization"] != "" {
+		t.Fatalf("expected sensitive headers scrubbed, got %v", hdrs)
+	}
+
+	// H1: Even when a browser cookie is present (UserID > 0), HasHostAuthHeader or slo_ bearer
+	// and Proxy-Authorization must NEVER be forwarded to a plugin.
+	reqDual := httptest.NewRequest(http.MethodPost, "/api/union/member/sync", strings.NewReader(`{}`))
+	reqDual.Header.Set("Content-Type", "application/json")
+	reqDual.Header.Set("Authorization", "Bearer admin-secret-token")
+	reqDual.Header.Set("Proxy-Authorization", "Basic c2VjcmV0")
+	reqDual.Header.Set("X-Message-Signature", "sig-2")
+	rtHigh.routes[0].ForwardHeaders = append(rtHigh.routes[0].ForwardHeaders, "Proxy-Authorization")
+	postRec2 := httptest.NewRecorder()
+	dualViewer := Viewer{Authenticated: true, UserID: 42, Role: "superadmin", Admin: true, Superadmin: true, HasHostAuthHeader: true}
+	env.mgr.ServePublicRoute(postRec2, reqDual, dualViewer, "en")
+	hdrs2 := capturedReq["headers"].(map[string]string)
+	if hdrs2["authorization"] != "" || hdrs2["proxy-authorization"] != "" {
+		t.Fatalf("H1 regression: expected dual-auth Authorization and Proxy-Authorization scrubbed, got %v", hdrs2)
+	}
+	reqOAuth := httptest.NewRequest(http.MethodPost, "/api/union/member/sync", strings.NewReader(`{}`))
+	reqOAuth.Header.Set("Authorization", "Bearer slo_host_oauth_secret")
+	postRec3 := httptest.NewRecorder()
+	env.mgr.ServePublicRoute(postRec3, reqOAuth, Viewer{}, "en")
+	hdrs3 := capturedReq["headers"].(map[string]string)
+	if hdrs3["authorization"] != "" {
+		t.Fatalf("H1 regression: expected Bearer slo_ host token scrubbed, got %v", hdrs3)
+	}
+
+	// Verify hostSettings("patch", ...) persists schema-validated settings to DB and updates runtime snapshot.
+	mSet, err := ParseManifest([]byte(`{
+		"id": "mua-patch-test",
+		"kind": "plugin",
+		"version": "1.0.0",
+		"name": "Patch Test",
+		"apiVersion": 1,
+		"settings": {
+			"apiRoot": {"type": "string", "default": "https://default.example"},
+			"secretKey": {"type": "secret", "default": ""},
+			"enabled": {"type": "boolean", "default": false}
+		}
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	if err := env.db.Ent.Plugin.Create().
+		SetID("mua-patch-test").SetKind("plugin").SetRuntime("js").SetVersion("1.0.0").
+		SetStatus("enabled").SetGrantedPermissions([]string{}).
+		SetSettings(map[string]any{"apiRoot": "https://default.example", "secretKey": "", "enabled": false}).
+		SetSource("local").SetInstalledAt(now).SetUpdatedAt(now).Exec(ctx); err != nil {
+		t.Fatal(err)
+	}
+	env.mgr.mu.Lock()
+	env.mgr.stored["mua-patch-test"] = &storedBundle{manifest: mSet}
+	rtSet, err := newPluginRuntime(mSet, "", nil, nil, nil, nil, env.mgr)
+	if err != nil {
+		env.mgr.mu.Unlock()
+		t.Fatal(err)
+	}
+	env.mgr.active["mua-patch-test"] = rtSet
+	env.mgr.mu.Unlock()
+	defer func() {
+		env.mgr.mu.Lock()
+		delete(env.mgr.active, "mua-patch-test")
+		delete(env.mgr.stored, "mua-patch-test")
+		env.mgr.mu.Unlock()
+	}()
+
+	patched, err := rtSet.hostSettings(ctx, []any{"patch", map[string]any{
+		"apiRoot":   "https://skin.mualliance.ltd/api/union",
+		"secretKey": "imported-secret",
+		"enabled":   true,
+	}})
+	if err != nil {
+		t.Fatalf("hostSettings patch failed: %v", err)
+	}
+	pm := patched.(map[string]any)
+	if pm["apiRoot"] != "https://skin.mualliance.ltd/api/union" || pm["secretKey"] != "imported-secret" || pm["enabled"] != true {
+		t.Fatalf("unexpected patched settings: %+v", pm)
+	}
+	row, err := env.db.Ent.Plugin.Get(ctx, "mua-patch-test")
+	if err != nil || row.Settings["secretKey"] != "imported-secret" || row.Settings["enabled"] != true {
+		t.Fatalf("persisted plugin settings mismatch: row=%+v err=%v", row, err)
+	}
+
+	// Verify DiscoverServiceProviders + bidirectional opt-in CallService:
+	// "mig-provider" declares optionalDependencies: {"mig-hub": "^1.0.0"} and exposes "bsMigrateDescribe".
+	// "mig-hub" can discover & call it WITHOUT hardcoding "mig-provider", whereas unrelated "mig-stranger" cannot.
+	mHub, err := ParseManifest([]byte(`{"id":"mig-hub","kind":"plugin","version":"1.0.0","name":"Hub","apiVersion":1}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mProv, err := ParseManifest([]byte(`{"id":"mig-provider","kind":"plugin","version":"1.0.0","name":"Prov","apiVersion":1,"optionalDependencies":{"mig-hub":"^1.0.0"},"services":["bsMigrateDescribe"]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mStranger, err := ParseManifest([]byte(`{"id":"mig-stranger","kind":"plugin","version":"1.0.0","name":"Stranger","apiVersion":1}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rtHub, _ := newPluginRuntime(mHub, "", nil, nil, nil, nil, env.mgr)
+	rtProv, _ := newPluginRuntime(mProv, "", nil, nil, nil, nil, env.mgr)
+	rtStranger, _ := newPluginRuntime(mStranger, "", nil, nil, nil, nil, env.mgr)
+	rtProv.services = []serviceBinding{{Name: "bsMigrateDescribe", HandlerID: "svc1"}}
+	rtProv.driver = &stubServiceDriver{fn: func(_ context.Context, _ string, svcName, caller string, _ ...any) (any, error) {
+		return map[string]any{"service": svcName, "caller": caller}, nil
+	}}
+	env.mgr.mu.Lock()
+	env.mgr.active["mig-hub"] = rtHub
+	env.mgr.active["mig-provider"] = rtProv
+	env.mgr.active["mig-stranger"] = rtStranger
+	env.mgr.mu.Unlock()
+	defer func() {
+		env.mgr.mu.Lock()
+		delete(env.mgr.active, "mig-hub")
+		delete(env.mgr.active, "mig-provider")
+		delete(env.mgr.active, "mig-stranger")
+		env.mgr.mu.Unlock()
+	}()
+
+	foundHub, err := env.mgr.DiscoverServiceProviders("mig-hub", "bsMigrateDescribe")
+	if err != nil || len(foundHub) != 1 || foundHub[0] != "mig-provider" {
+		t.Fatalf("DiscoverServiceProviders(mig-hub) = %v, err=%v", foundHub, err)
+	}
+	if res, err := env.mgr.CallService(ctx, "mig-hub", "mig-provider", "bsMigrateDescribe"); err != nil || res.(map[string]any)["caller"] != "mig-hub" {
+		t.Fatalf("bidirectional CallService(mig-hub -> mig-provider) = %v, err=%v", res, err)
+	}
+	foundStranger, err := env.mgr.DiscoverServiceProviders("mig-stranger", "bsMigrateDescribe")
+	if err != nil || len(foundStranger) != 0 {
+		t.Fatalf("expected mig-stranger to discover 0 providers, got %v, err=%v", foundStranger, err)
+	}
+	if _, err := env.mgr.CallService(ctx, "mig-stranger", "mig-provider", "bsMigrateDescribe"); !errors.Is(err, ErrPermissionDenied) {
+		t.Fatalf("expected ErrPermissionDenied for mig-stranger -> mig-provider, got %v", err)
+	}
+
+	// H7: Cyclic CallService (mig-hub -> mig-provider -> mig-hub) must fail cleanly without deadlocking.
+	rtHub.manifest.Services = []string{"pingBack"}
+	rtHub.services = []serviceBinding{{Name: "pingBack", HandlerID: "svc-hub"}}
+	rtHub.driver = &stubServiceDriver{fn: func(c context.Context, _ string, _, _ string, _ ...any) (any, error) {
+		return env.mgr.CallService(c, "mig-hub", "mig-provider", "bsMigrateDescribe")
+	}}
+	rtProv.driver = &stubServiceDriver{fn: func(c context.Context, _ string, _, _ string, _ ...any) (any, error) {
+		return env.mgr.CallService(c, "mig-provider", "mig-hub", "pingBack")
+	}}
+	if _, err := env.mgr.CallService(ctx, "mig-hub", "mig-provider", "bsMigrateDescribe"); err == nil || !strings.Contains(err.Error(), "cyclic") {
+		t.Fatalf("H7 regression: expected cyclic error on recursive CallService, got %v", err)
+	}
+
+	// H2: UpdateSettings triggering a settings.onChange callback that calls hostSettings("patch", ...) must NOT deadlock.
+	rtSet.driver = &stubSettingsDriver{fn: func(c context.Context, next map[string]any) {
+		if next["apiRoot"] == "https://trigger.example" {
+			_, _ = rtSet.hostSettings(c, []any{"patch", map[string]any{"enabled": false}})
+		}
+	}}
+	done := make(chan error, 1)
+	go func() {
+		err := env.mgr.UpdateSettings(ctx, "mua-patch-test", map[string]any{
+			"apiRoot":   "https://trigger.example",
+			"secretKey": "imported-secret",
+			"enabled":   true,
+		})
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("H2 regression: UpdateSettings with re-entrant Settings.Patch failed: %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("H2 regression: UpdateSettings deadlocked when OnChange called Settings.Patch")
+	}
+}
+
+type stubSettingsDriver struct {
+	Driver
+	fn func(ctx context.Context, next map[string]any)
+}
+
+func (s *stubSettingsDriver) NotifySettingsChanged(ctx context.Context, next map[string]any) error {
+	s.fn(ctx, next)
+	return nil
+}
+
+type stubServiceDriver struct {
+	Driver
+	fn func(ctx context.Context, handlerID, svcName, caller string, args ...any) (any, error)
+}
+
+func (s *stubServiceDriver) InvokeService(ctx context.Context, handlerID, svcName, caller string, args ...any) (any, error) {
+	return s.fn(ctx, handlerID, svcName, caller, args...)
+}
+
+type stubHTTPDriver struct {
+	Driver
+	fn func(ctx context.Context, handlerID string, req map[string]any) (any, error)
+}
+
+func (s *stubHTTPDriver) InvokeHTTP(ctx context.Context, handlerID string, req map[string]any) (any, error) {
+	return s.fn(ctx, handlerID, req)
 }

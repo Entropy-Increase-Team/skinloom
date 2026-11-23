@@ -22,6 +22,10 @@ const (
 	FieldSecretHash = "secret_hash"
 	// FieldRedirectUris holds the string denoting the redirect_uris field in the database.
 	FieldRedirectUris = "redirect_uris"
+	// FieldDynamic holds the string denoting the dynamic field in the database.
+	FieldDynamic = "dynamic"
+	// FieldLastUsedAt holds the string denoting the last_used_at field in the database.
+	FieldLastUsedAt = "last_used_at"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -34,6 +38,8 @@ const (
 	EdgeCodes = "codes"
 	// EdgeTokens holds the string denoting the tokens edge name in mutations.
 	EdgeTokens = "tokens"
+	// EdgeDeviceCodes holds the string denoting the device_codes edge name in mutations.
+	EdgeDeviceCodes = "device_codes"
 	// Table holds the table name of the oauthclient in the database.
 	Table = "oauth_clients"
 	// OwnerTable is the table that holds the owner relation/edge.
@@ -64,6 +70,13 @@ const (
 	TokensInverseTable = "oauth_tokens"
 	// TokensColumn is the table column denoting the tokens relation/edge.
 	TokensColumn = "client_id"
+	// DeviceCodesTable is the table that holds the device_codes relation/edge.
+	DeviceCodesTable = "oauth_device_codes"
+	// DeviceCodesInverseTable is the table name for the OAuthDeviceCode entity.
+	// It exists in this package in order to avoid circular dependency with the "oauthdevicecode" package.
+	DeviceCodesInverseTable = "oauth_device_codes"
+	// DeviceCodesColumn is the table column denoting the device_codes relation/edge.
+	DeviceCodesColumn = "client_id"
 )
 
 // Columns holds all SQL columns for oauthclient fields.
@@ -73,6 +86,8 @@ var Columns = []string{
 	FieldName,
 	FieldSecretHash,
 	FieldRedirectUris,
+	FieldDynamic,
+	FieldLastUsedAt,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -92,6 +107,8 @@ var (
 	NameValidator func(string) error
 	// SecretHashValidator is a validator for the "secret_hash" field. It is called by the builders before save.
 	SecretHashValidator func(string) error
+	// DefaultDynamic holds the default value on creation for the "dynamic" field.
+	DefaultDynamic bool
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -121,6 +138,16 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 // BySecretHash orders the results by the secret_hash field.
 func BySecretHash(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSecretHash, opts...).ToFunc()
+}
+
+// ByDynamic orders the results by the dynamic field.
+func ByDynamic(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDynamic, opts...).ToFunc()
+}
+
+// ByLastUsedAt orders the results by the last_used_at field.
+func ByLastUsedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastUsedAt, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.
@@ -181,6 +208,20 @@ func ByTokens(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newTokensStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByDeviceCodesCount orders the results by device_codes count.
+func ByDeviceCodesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newDeviceCodesStep(), opts...)
+	}
+}
+
+// ByDeviceCodes orders the results by device_codes terms.
+func ByDeviceCodes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newDeviceCodesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newOwnerStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -207,5 +248,12 @@ func newTokensStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(TokensInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, TokensTable, TokensColumn),
+	)
+}
+func newDeviceCodesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(DeviceCodesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, DeviceCodesTable, DeviceCodesColumn),
 	)
 }

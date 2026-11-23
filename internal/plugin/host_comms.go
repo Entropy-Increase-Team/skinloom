@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/cdn"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/mail"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/notify"
@@ -213,13 +214,37 @@ func (r *pluginRuntime) hostCDN(_ context.Context, args []any) (any, error) {
 }
 
 func (r *pluginRuntime) hostYggdrasil(ctx context.Context, args []any) (any, error) {
-	if err := r.perms.Check(PermYggdrasilExtend); err != nil {
-		return nil, err
-	}
 	if r.yggdrasil == nil {
 		return nil, errors.New("yggdrasil service unavailable")
 	}
 	op, _ := argAt(args, 0).(string)
+	if op == "setSigningKey" {
+		if err := r.perms.Check(PermYggdrasilKeyWrite); err != nil {
+			return nil, err
+		}
+		pemText, _ := argAt(args, 1).(string)
+		if err := r.yggdrasil.SetSigningKey(ctx, pemText); err != nil {
+			return nil, err
+		}
+		if r.db != nil {
+			entry := (&audit.Entry{
+				Action: "plugin.yggdrasil.setSigningKey",
+				Meta:   map[string]any{"plugin": r.id},
+			}).Target("yggdrasil", "signing_key")
+			if err := audit.Write(ctx, r.db, entry); err != nil {
+				r.log.Warn("yggdrasil setSigningKey audit write failed", "err", err)
+			}
+		}
+		if r.siteSettings != nil {
+			if _, err := r.siteSettings.Touch(ctx); err != nil {
+				r.log.Warn("yggdrasil setSigningKey cluster touch failed", "err", err)
+			}
+		}
+		return map[string]any{"updated": true}, nil
+	}
+	if err := r.perms.Check(PermYggdrasilExtend); err != nil {
+		return nil, err
+	}
 	switch op {
 	case "publicKey":
 		pemText, _, err := r.yggdrasil.PublicKey(ctx)

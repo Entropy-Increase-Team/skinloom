@@ -24,6 +24,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthdevicecode"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
@@ -69,6 +70,8 @@ type Client struct {
 	OAuthClient *OAuthClientClient
 	// OAuthCode is the client for interacting with the OAuthCode builders.
 	OAuthCode *OAuthCodeClient
+	// OAuthDeviceCode is the client for interacting with the OAuthDeviceCode builders.
+	OAuthDeviceCode *OAuthDeviceCodeClient
 	// OAuthGrant is the client for interacting with the OAuthGrant builders.
 	OAuthGrant *OAuthGrantClient
 	// OAuthToken is the client for interacting with the OAuthToken builders.
@@ -125,6 +128,7 @@ func (c *Client) init() {
 	c.Notification = NewNotificationClient(c.config)
 	c.OAuthClient = NewOAuthClientClient(c.config)
 	c.OAuthCode = NewOAuthCodeClient(c.config)
+	c.OAuthDeviceCode = NewOAuthDeviceCodeClient(c.config)
 	c.OAuthGrant = NewOAuthGrantClient(c.config)
 	c.OAuthToken = NewOAuthTokenClient(c.config)
 	c.Player = NewPlayerClient(c.config)
@@ -233,35 +237,36 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:           ctx,
-		config:        cfg,
-		Announcement:  NewAnnouncementClient(cfg),
-		AuditLog:      NewAuditLogClient(cfg),
-		AuthToken:     NewAuthTokenClient(cfg),
-		Blob:          NewBlobClient(cfg),
-		ClosetItem:    NewClosetItemClient(cfg),
-		Job:           NewJobClient(cfg),
-		Notification:  NewNotificationClient(cfg),
-		OAuthClient:   NewOAuthClientClient(cfg),
-		OAuthCode:     NewOAuthCodeClient(cfg),
-		OAuthGrant:    NewOAuthGrantClient(cfg),
-		OAuthToken:    NewOAuthTokenClient(cfg),
-		Player:        NewPlayerClient(cfg),
-		Plugin:        NewPluginClient(cfg),
-		PluginDoc:     NewPluginDocClient(cfg),
-		PluginKV:      NewPluginKVClient(cfg),
-		Report:        NewReportClient(cfg),
-		ScoreEntry:    NewScoreEntryClient(cfg),
-		Session:       NewSessionClient(cfg),
-		Setting:       NewSettingClient(cfg),
-		SiteSecret:    NewSiteSecretClient(cfg),
-		SocialAccount: NewSocialAccountClient(cfg),
-		SocialFlow:    NewSocialFlowClient(cfg),
-		SystemState:   NewSystemStateClient(cfg),
-		Texture:       NewTextureClient(cfg),
-		User:          NewUserClient(cfg),
-		YggSession:    NewYggSessionClient(cfg),
-		YggToken:      NewYggTokenClient(cfg),
+		ctx:             ctx,
+		config:          cfg,
+		Announcement:    NewAnnouncementClient(cfg),
+		AuditLog:        NewAuditLogClient(cfg),
+		AuthToken:       NewAuthTokenClient(cfg),
+		Blob:            NewBlobClient(cfg),
+		ClosetItem:      NewClosetItemClient(cfg),
+		Job:             NewJobClient(cfg),
+		Notification:    NewNotificationClient(cfg),
+		OAuthClient:     NewOAuthClientClient(cfg),
+		OAuthCode:       NewOAuthCodeClient(cfg),
+		OAuthDeviceCode: NewOAuthDeviceCodeClient(cfg),
+		OAuthGrant:      NewOAuthGrantClient(cfg),
+		OAuthToken:      NewOAuthTokenClient(cfg),
+		Player:          NewPlayerClient(cfg),
+		Plugin:          NewPluginClient(cfg),
+		PluginDoc:       NewPluginDocClient(cfg),
+		PluginKV:        NewPluginKVClient(cfg),
+		Report:          NewReportClient(cfg),
+		ScoreEntry:      NewScoreEntryClient(cfg),
+		Session:         NewSessionClient(cfg),
+		Setting:         NewSettingClient(cfg),
+		SiteSecret:      NewSiteSecretClient(cfg),
+		SocialAccount:   NewSocialAccountClient(cfg),
+		SocialFlow:      NewSocialFlowClient(cfg),
+		SystemState:     NewSystemStateClient(cfg),
+		Texture:         NewTextureClient(cfg),
+		User:            NewUserClient(cfg),
+		YggSession:      NewYggSessionClient(cfg),
+		YggToken:        NewYggTokenClient(cfg),
 	}, nil
 }
 
@@ -279,35 +284,36 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:           ctx,
-		config:        cfg,
-		Announcement:  NewAnnouncementClient(cfg),
-		AuditLog:      NewAuditLogClient(cfg),
-		AuthToken:     NewAuthTokenClient(cfg),
-		Blob:          NewBlobClient(cfg),
-		ClosetItem:    NewClosetItemClient(cfg),
-		Job:           NewJobClient(cfg),
-		Notification:  NewNotificationClient(cfg),
-		OAuthClient:   NewOAuthClientClient(cfg),
-		OAuthCode:     NewOAuthCodeClient(cfg),
-		OAuthGrant:    NewOAuthGrantClient(cfg),
-		OAuthToken:    NewOAuthTokenClient(cfg),
-		Player:        NewPlayerClient(cfg),
-		Plugin:        NewPluginClient(cfg),
-		PluginDoc:     NewPluginDocClient(cfg),
-		PluginKV:      NewPluginKVClient(cfg),
-		Report:        NewReportClient(cfg),
-		ScoreEntry:    NewScoreEntryClient(cfg),
-		Session:       NewSessionClient(cfg),
-		Setting:       NewSettingClient(cfg),
-		SiteSecret:    NewSiteSecretClient(cfg),
-		SocialAccount: NewSocialAccountClient(cfg),
-		SocialFlow:    NewSocialFlowClient(cfg),
-		SystemState:   NewSystemStateClient(cfg),
-		Texture:       NewTextureClient(cfg),
-		User:          NewUserClient(cfg),
-		YggSession:    NewYggSessionClient(cfg),
-		YggToken:      NewYggTokenClient(cfg),
+		ctx:             ctx,
+		config:          cfg,
+		Announcement:    NewAnnouncementClient(cfg),
+		AuditLog:        NewAuditLogClient(cfg),
+		AuthToken:       NewAuthTokenClient(cfg),
+		Blob:            NewBlobClient(cfg),
+		ClosetItem:      NewClosetItemClient(cfg),
+		Job:             NewJobClient(cfg),
+		Notification:    NewNotificationClient(cfg),
+		OAuthClient:     NewOAuthClientClient(cfg),
+		OAuthCode:       NewOAuthCodeClient(cfg),
+		OAuthDeviceCode: NewOAuthDeviceCodeClient(cfg),
+		OAuthGrant:      NewOAuthGrantClient(cfg),
+		OAuthToken:      NewOAuthTokenClient(cfg),
+		Player:          NewPlayerClient(cfg),
+		Plugin:          NewPluginClient(cfg),
+		PluginDoc:       NewPluginDocClient(cfg),
+		PluginKV:        NewPluginKVClient(cfg),
+		Report:          NewReportClient(cfg),
+		ScoreEntry:      NewScoreEntryClient(cfg),
+		Session:         NewSessionClient(cfg),
+		Setting:         NewSettingClient(cfg),
+		SiteSecret:      NewSiteSecretClient(cfg),
+		SocialAccount:   NewSocialAccountClient(cfg),
+		SocialFlow:      NewSocialFlowClient(cfg),
+		SystemState:     NewSystemStateClient(cfg),
+		Texture:         NewTextureClient(cfg),
+		User:            NewUserClient(cfg),
+		YggSession:      NewYggSessionClient(cfg),
+		YggToken:        NewYggTokenClient(cfg),
 	}, nil
 }
 
@@ -338,10 +344,10 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.Announcement, c.AuditLog, c.AuthToken, c.Blob, c.ClosetItem, c.Job,
-		c.Notification, c.OAuthClient, c.OAuthCode, c.OAuthGrant, c.OAuthToken,
-		c.Player, c.Plugin, c.PluginDoc, c.PluginKV, c.Report, c.ScoreEntry, c.Session,
-		c.Setting, c.SiteSecret, c.SocialAccount, c.SocialFlow, c.SystemState,
-		c.Texture, c.User, c.YggSession, c.YggToken,
+		c.Notification, c.OAuthClient, c.OAuthCode, c.OAuthDeviceCode, c.OAuthGrant,
+		c.OAuthToken, c.Player, c.Plugin, c.PluginDoc, c.PluginKV, c.Report,
+		c.ScoreEntry, c.Session, c.Setting, c.SiteSecret, c.SocialAccount,
+		c.SocialFlow, c.SystemState, c.Texture, c.User, c.YggSession, c.YggToken,
 	} {
 		n.Use(hooks...)
 	}
@@ -352,10 +358,10 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.Announcement, c.AuditLog, c.AuthToken, c.Blob, c.ClosetItem, c.Job,
-		c.Notification, c.OAuthClient, c.OAuthCode, c.OAuthGrant, c.OAuthToken,
-		c.Player, c.Plugin, c.PluginDoc, c.PluginKV, c.Report, c.ScoreEntry, c.Session,
-		c.Setting, c.SiteSecret, c.SocialAccount, c.SocialFlow, c.SystemState,
-		c.Texture, c.User, c.YggSession, c.YggToken,
+		c.Notification, c.OAuthClient, c.OAuthCode, c.OAuthDeviceCode, c.OAuthGrant,
+		c.OAuthToken, c.Player, c.Plugin, c.PluginDoc, c.PluginKV, c.Report,
+		c.ScoreEntry, c.Session, c.Setting, c.SiteSecret, c.SocialAccount,
+		c.SocialFlow, c.SystemState, c.Texture, c.User, c.YggSession, c.YggToken,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -382,6 +388,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.OAuthClient.mutate(ctx, m)
 	case *OAuthCodeMutation:
 		return c.OAuthCode.mutate(ctx, m)
+	case *OAuthDeviceCodeMutation:
+		return c.OAuthDeviceCode.mutate(ctx, m)
 	case *OAuthGrantMutation:
 		return c.OAuthGrant.mutate(ctx, m)
 	case *OAuthTokenMutation:
@@ -1654,6 +1662,22 @@ func (c *OAuthClientClient) QueryTokens(_m *OAuthClient) *OAuthTokenQuery {
 	return query
 }
 
+// QueryDeviceCodes queries the device_codes edge of a OAuthClient.
+func (c *OAuthClientClient) QueryDeviceCodes(_m *OAuthClient) *OAuthDeviceCodeQuery {
+	query := (&OAuthDeviceCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oauthclient.Table, oauthclient.FieldID, id),
+			sqlgraph.To(oauthdevicecode.Table, oauthdevicecode.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, oauthclient.DeviceCodesTable, oauthclient.DeviceCodesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *OAuthClientClient) Hooks() []Hook {
 	return c.hooks.OAuthClient
@@ -1841,6 +1865,171 @@ func (c *OAuthCodeClient) mutate(ctx context.Context, m *OAuthCodeMutation) (Val
 		return (&OAuthCodeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown OAuthCode mutation op: %q", m.Op())
+	}
+}
+
+// OAuthDeviceCodeClient is a client for the OAuthDeviceCode schema.
+type OAuthDeviceCodeClient struct {
+	config
+}
+
+// NewOAuthDeviceCodeClient returns a client for the OAuthDeviceCode from the given config.
+func NewOAuthDeviceCodeClient(c config) *OAuthDeviceCodeClient {
+	return &OAuthDeviceCodeClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `oauthdevicecode.Hooks(f(g(h())))`.
+func (c *OAuthDeviceCodeClient) Use(hooks ...Hook) {
+	c.hooks.OAuthDeviceCode = append(c.hooks.OAuthDeviceCode, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `oauthdevicecode.Intercept(f(g(h())))`.
+func (c *OAuthDeviceCodeClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OAuthDeviceCode = append(c.inters.OAuthDeviceCode, interceptors...)
+}
+
+// Create returns a builder for creating a OAuthDeviceCode entity.
+func (c *OAuthDeviceCodeClient) Create() *OAuthDeviceCodeCreate {
+	mutation := newOAuthDeviceCodeMutation(c.config, OpCreate)
+	return &OAuthDeviceCodeCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OAuthDeviceCode entities.
+func (c *OAuthDeviceCodeClient) CreateBulk(builders ...*OAuthDeviceCodeCreate) *OAuthDeviceCodeCreateBulk {
+	return &OAuthDeviceCodeCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OAuthDeviceCodeClient) MapCreateBulk(slice any, setFunc func(*OAuthDeviceCodeCreate, int)) *OAuthDeviceCodeCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OAuthDeviceCodeCreateBulk{err: fmt.Errorf("calling to OAuthDeviceCodeClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OAuthDeviceCodeCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OAuthDeviceCodeCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OAuthDeviceCode.
+func (c *OAuthDeviceCodeClient) Update() *OAuthDeviceCodeUpdate {
+	mutation := newOAuthDeviceCodeMutation(c.config, OpUpdate)
+	return &OAuthDeviceCodeUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OAuthDeviceCodeClient) UpdateOne(_m *OAuthDeviceCode) *OAuthDeviceCodeUpdateOne {
+	mutation := newOAuthDeviceCodeMutation(c.config, OpUpdateOne, withOAuthDeviceCode(_m))
+	return &OAuthDeviceCodeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OAuthDeviceCodeClient) UpdateOneID(id int64) *OAuthDeviceCodeUpdateOne {
+	mutation := newOAuthDeviceCodeMutation(c.config, OpUpdateOne, withOAuthDeviceCodeID(id))
+	return &OAuthDeviceCodeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OAuthDeviceCode.
+func (c *OAuthDeviceCodeClient) Delete() *OAuthDeviceCodeDelete {
+	mutation := newOAuthDeviceCodeMutation(c.config, OpDelete)
+	return &OAuthDeviceCodeDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OAuthDeviceCodeClient) DeleteOne(_m *OAuthDeviceCode) *OAuthDeviceCodeDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OAuthDeviceCodeClient) DeleteOneID(id int64) *OAuthDeviceCodeDeleteOne {
+	builder := c.Delete().Where(oauthdevicecode.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OAuthDeviceCodeDeleteOne{builder}
+}
+
+// Query returns a query builder for OAuthDeviceCode.
+func (c *OAuthDeviceCodeClient) Query() *OAuthDeviceCodeQuery {
+	return &OAuthDeviceCodeQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOAuthDeviceCode},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OAuthDeviceCode entity by its id.
+func (c *OAuthDeviceCodeClient) Get(ctx context.Context, id int64) (*OAuthDeviceCode, error) {
+	return c.Query().Where(oauthdevicecode.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OAuthDeviceCodeClient) GetX(ctx context.Context, id int64) *OAuthDeviceCode {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryClient queries the client edge of a OAuthDeviceCode.
+func (c *OAuthDeviceCodeClient) QueryClient(_m *OAuthDeviceCode) *OAuthClientQuery {
+	query := (&OAuthClientClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oauthdevicecode.Table, oauthdevicecode.FieldID, id),
+			sqlgraph.To(oauthclient.Table, oauthclient.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, oauthdevicecode.ClientTable, oauthdevicecode.ClientColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUser queries the user edge of a OAuthDeviceCode.
+func (c *OAuthDeviceCodeClient) QueryUser(_m *OAuthDeviceCode) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oauthdevicecode.Table, oauthdevicecode.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, oauthdevicecode.UserTable, oauthdevicecode.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OAuthDeviceCodeClient) Hooks() []Hook {
+	return c.hooks.OAuthDeviceCode
+}
+
+// Interceptors returns the client interceptors.
+func (c *OAuthDeviceCodeClient) Interceptors() []Interceptor {
+	return c.inters.OAuthDeviceCode
+}
+
+func (c *OAuthDeviceCodeClient) mutate(ctx context.Context, m *OAuthDeviceCodeMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OAuthDeviceCodeCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OAuthDeviceCodeUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OAuthDeviceCodeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OAuthDeviceCodeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OAuthDeviceCode mutation op: %q", m.Op())
 	}
 }
 
@@ -4555,6 +4744,22 @@ func (c *UserClient) QueryOauthTokens(_m *User) *OAuthTokenQuery {
 	return query
 }
 
+// QueryOauthDeviceCodes queries the oauth_device_codes edge of a User.
+func (c *UserClient) QueryOauthDeviceCodes(_m *User) *OAuthDeviceCodeQuery {
+	query := (&OAuthDeviceCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(oauthdevicecode.Table, oauthdevicecode.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.OauthDeviceCodesTable, user.OauthDeviceCodesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QuerySocialAccounts queries the social_accounts edge of a User.
 func (c *UserClient) QuerySocialAccounts(_m *User) *SocialAccountQuery {
 	query := (&SocialAccountClient{config: c.config}).Query()
@@ -4946,15 +5151,17 @@ func (c *YggTokenClient) mutate(ctx context.Context, m *YggTokenMutation) (Value
 type (
 	hooks struct {
 		Announcement, AuditLog, AuthToken, Blob, ClosetItem, Job, Notification,
-		OAuthClient, OAuthCode, OAuthGrant, OAuthToken, Player, Plugin, PluginDoc,
-		PluginKV, Report, ScoreEntry, Session, Setting, SiteSecret, SocialAccount,
-		SocialFlow, SystemState, Texture, User, YggSession, YggToken []ent.Hook
+		OAuthClient, OAuthCode, OAuthDeviceCode, OAuthGrant, OAuthToken, Player,
+		Plugin, PluginDoc, PluginKV, Report, ScoreEntry, Session, Setting, SiteSecret,
+		SocialAccount, SocialFlow, SystemState, Texture, User, YggSession,
+		YggToken []ent.Hook
 	}
 	inters struct {
 		Announcement, AuditLog, AuthToken, Blob, ClosetItem, Job, Notification,
-		OAuthClient, OAuthCode, OAuthGrant, OAuthToken, Player, Plugin, PluginDoc,
-		PluginKV, Report, ScoreEntry, Session, Setting, SiteSecret, SocialAccount,
-		SocialFlow, SystemState, Texture, User, YggSession, YggToken []ent.Interceptor
+		OAuthClient, OAuthCode, OAuthDeviceCode, OAuthGrant, OAuthToken, Player,
+		Plugin, PluginDoc, PluginKV, Report, ScoreEntry, Session, Setting, SiteSecret,
+		SocialAccount, SocialFlow, SystemState, Texture, User, YggSession,
+		YggToken []ent.Interceptor
 	}
 )
 

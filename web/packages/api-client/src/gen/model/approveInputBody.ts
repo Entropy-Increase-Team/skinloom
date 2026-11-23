@@ -16,6 +16,9 @@ export interface ApproveInputBody {
   code_challenge?: string;
   /** @maxLength 8 */
   code_challenge_method?: string;
+  /** @maxLength 256 */
+  nonce?: string;
+  playerId?: number;
   /** @maxLength 2048 */
   redirect_uri?: string;
   /** @maxLength 32 */

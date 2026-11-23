@@ -41,8 +41,12 @@ func SettingDefs() []settings.Def {
 		{Key: "player.name_length_max", Type: settings.TypeInt, Public: true, Default: 16, Range: settings.Between(1, MaxNameLen),
 			Doc: fmt.Sprintf("Longest player name, in characters, at most %d. (BS player_name_length_max)", MaxNameLen)},
 		{
-			Key: "yggdrasil.uuid_algorithm", Type: settings.TypeString, Default: "v3", Enum: []any{"v3", "v4"},
-			Doc: "UUIDs of new players. v3: derived from the name like offline-mode servers (a rename gives a new UUID); v4: random, kept on rename. (BS ygg_uuid_algorithm)",
+			Key: "yggdrasil.uuid_algorithm", Type: settings.TypeString, Public: true, Default: "v3", Enum: []any{"v3", "v4"},
+			Doc: "UUIDs of new players. v3: derived from the name like offline-mode servers (a rename gives a new UUID unless player.keep_uuid_on_rename is enabled); v4: random, kept on rename. (BS ygg_uuid_algorithm)",
+		},
+		{
+			Key: "player.keep_uuid_on_rename", Type: settings.TypeBool, Public: true, Default: false,
+			Doc: "Keep a player's UUID unchanged when renamed even under v3 UUIDs. Recommended for MUA Union and servers that key player data by UUID.",
 		},
 		{
 			Key: "delivery.profile_cache_seconds", Type: settings.TypeInt, Default: 60, Range: settings.Between(0, 31536000),
@@ -57,10 +61,11 @@ func SettingDefs() []settings.Def {
 
 // Policy is what player management needs from the settings.
 type Policy struct {
-	Rule     string
-	Custom   *regexp.Regexp // RuleCustom; nil = any name
-	Min, Max int
-	UUIDv4   bool
+	Rule             string
+	Custom           *regexp.Regexp // RuleCustom; nil = any name
+	Min, Max         int
+	UUIDv4           bool
+	KeepUUIDOnRename bool
 }
 
 var customRules sync.Map // pattern → *regexp.Regexp
@@ -68,10 +73,11 @@ var customRules sync.Map // pattern → *regexp.Regexp
 // PolicyFrom reads the policy from a settings snapshot.
 func PolicyFrom(s *settings.Snapshot) Policy {
 	p := Policy{
-		Rule:   s.String("player.name_rule"),
-		Min:    settings.Decode[int](s, "player.name_length_min"),
-		Max:    settings.Decode[int](s, "player.name_length_max"),
-		UUIDv4: s.String("yggdrasil.uuid_algorithm") == "v4",
+		Rule:             s.String("player.name_rule"),
+		Min:              settings.Decode[int](s, "player.name_length_min"),
+		Max:              settings.Decode[int](s, "player.name_length_max"),
+		UUIDv4:           s.String("yggdrasil.uuid_algorithm") == "v4",
+		KeepUUIDOnRename: settings.Decode[bool](s, "player.keep_uuid_on_rename"),
 	}
 	p.Max = max(p.Max, p.Min) // a misconfigured range still lets names of length min through
 	if pattern := s.String("player.name_regexp"); p.Rule == RuleCustom && pattern != "" {

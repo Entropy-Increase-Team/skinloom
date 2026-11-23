@@ -199,6 +199,18 @@ type (
 	}
 )
 
+// SetValue sets the "value" field.
+func (u *SiteSecretUpsert) SetValue(v string) *SiteSecretUpsert {
+	u.Set(sitesecret.FieldValue, v)
+	return u
+}
+
+// UpdateValue sets the "value" field to the value that was provided on create.
+func (u *SiteSecretUpsert) UpdateValue() *SiteSecretUpsert {
+	u.SetExcluded(sitesecret.FieldValue)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -215,9 +227,6 @@ func (u *SiteSecretUpsertOne) UpdateNewValues() *SiteSecretUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		if _, exists := u.create.mutation.ID(); exists {
 			s.SetIgnore(sitesecret.FieldID)
-		}
-		if _, exists := u.create.mutation.Value(); exists {
-			s.SetIgnore(sitesecret.FieldValue)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(sitesecret.FieldCreatedAt)
@@ -251,6 +260,20 @@ func (u *SiteSecretUpsertOne) Update(set func(*SiteSecretUpsert)) *SiteSecretUps
 		set(&SiteSecretUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetValue sets the "value" field.
+func (u *SiteSecretUpsertOne) SetValue(v string) *SiteSecretUpsertOne {
+	return u.Update(func(s *SiteSecretUpsert) {
+		s.SetValue(v)
+	})
+}
+
+// UpdateValue sets the "value" field to the value that was provided on create.
+func (u *SiteSecretUpsertOne) UpdateValue() *SiteSecretUpsertOne {
+	return u.Update(func(s *SiteSecretUpsert) {
+		s.UpdateValue()
+	})
 }
 
 // Exec executes the query.
@@ -436,9 +459,6 @@ func (u *SiteSecretUpsertBulk) UpdateNewValues() *SiteSecretUpsertBulk {
 			if _, exists := b.mutation.ID(); exists {
 				s.SetIgnore(sitesecret.FieldID)
 			}
-			if _, exists := b.mutation.Value(); exists {
-				s.SetIgnore(sitesecret.FieldValue)
-			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(sitesecret.FieldCreatedAt)
 			}
@@ -472,6 +492,20 @@ func (u *SiteSecretUpsertBulk) Update(set func(*SiteSecretUpsert)) *SiteSecretUp
 		set(&SiteSecretUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetValue sets the "value" field.
+func (u *SiteSecretUpsertBulk) SetValue(v string) *SiteSecretUpsertBulk {
+	return u.Update(func(s *SiteSecretUpsert) {
+		s.SetValue(v)
+	})
+}
+
+// UpdateValue sets the "value" field to the value that was provided on create.
+func (u *SiteSecretUpsertBulk) UpdateValue() *SiteSecretUpsertBulk {
+	return u.Update(func(s *SiteSecretUpsert) {
+		s.UpdateValue()
+	})
 }
 
 // Exec executes the query.

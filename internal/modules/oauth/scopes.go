@@ -1,8 +1,21 @@
 package oauth
 
 import (
+	"net/http"
 	"slices"
 	"strings"
+)
+
+// OIDC and Yggdrasil Connect scope constants.
+const (
+	ScopeOpenID            = "openid"
+	ScopeProfile           = "profile"
+	ScopeEmail             = "email"
+	ScopeOfflineAccess     = "offline_access"
+	ScopeYggProfilesRead   = "Yggdrasil.PlayerProfiles.Read"
+	ScopeYggProfilesSelect = "Yggdrasil.PlayerProfiles.Select"
+	ScopeYggServerJoin     = "Yggdrasil.Server.Join"
+	ScopePlayerWrite       = "Player.ReadWrite"
 )
 
 // Scope is a permission an application or a personal access token can be given,
@@ -10,10 +23,18 @@ import (
 type Scope struct {
 	Name  string `json:"name"`
 	Admin bool   `json:"admin" doc:"Only administrators can grant it; others' grants leave it out"`
+	OIDC  bool   `json:"oidc,omitempty" doc:"OpenID Connect / Yggdrasil Connect scope (not for personal access tokens)"`
 }
 
 // Scopes are the scopes this site knows, in display order.
 var Scopes = []Scope{
+	{Name: ScopeOpenID, OIDC: true},
+	{Name: ScopeProfile, OIDC: true},
+	{Name: ScopeEmail, OIDC: true},
+	{Name: ScopeOfflineAccess, OIDC: true},
+	{Name: ScopeYggProfilesRead, OIDC: true},
+	{Name: ScopeYggProfilesSelect, OIDC: true},
+	{Name: ScopeYggServerJoin, OIDC: true},
 	{Name: "User.Read"},
 	{Name: "Notification.Read"},
 	{Name: "Player.Read"},
@@ -29,6 +50,54 @@ var Scopes = []Scope{
 	{Name: "ClosetManagement.ReadWrite", Admin: true},
 	{Name: "ReportsManagement.Read", Admin: true},
 	{Name: "ReportsManagement.ReadWrite", Admin: true},
+}
+
+// HasOIDCScope reports whether scopes include any OpenID Connect or Yggdrasil Connect scope.
+func HasOIDCScope(scopes []string) bool {
+	for _, sc := range scopes {
+		if s, ok := lookupScope(sc); ok && s.OIDC {
+			return true
+		}
+	}
+	return false
+}
+
+// ValidateScopeCombination enforces OpenID Connect and Yggdrasil Connect scope rules.
+func ValidateScopeCombination(scopes []string, enableOIDC bool) *Error {
+	if !HasOIDCScope(scopes) {
+		return nil
+	}
+	if !enableOIDC {
+		return &Error{Status: http.StatusBadRequest, Code: "invalid_scope", Description: "OpenID Connect and Yggdrasil Connect are disabled on this site."}
+	}
+	if !slices.Contains(scopes, ScopeOpenID) {
+		return &Error{Status: http.StatusBadRequest, Code: "invalid_scope", Description: "OIDC and Yggdrasil scopes require the openid scope."}
+	}
+	hasRead := slices.Contains(scopes, ScopeYggProfilesRead)
+	hasSelect := slices.Contains(scopes, ScopeYggProfilesSelect)
+	hasJoin := slices.Contains(scopes, ScopeYggServerJoin)
+	if hasRead && hasSelect {
+		return &Error{Status: http.StatusBadRequest, Code: "invalid_scope", Description: "Yggdrasil.PlayerProfiles.Read and Yggdrasil.PlayerProfiles.Select cannot be requested together."}
+	}
+	if hasJoin && !hasSelect {
+		return &Error{Status: http.StatusBadRequest, Code: "invalid_scope", Description: "Yggdrasil.Server.Join requires Yggdrasil.PlayerProfiles.Select."}
+	}
+	return nil
+}
+
+// ValidateDynamicClientScopes restricts unauthenticated RFC 7591 dynamic clients
+// strictly to non-admin OIDC and Yggdrasil Connect scopes.
+func ValidateDynamicClientScopes(scopes []string) *Error {
+	if len(scopes) == 0 {
+		return &Error{Status: http.StatusBadRequest, Code: "invalid_scope", Description: "Dynamic clients must request OIDC or Yggdrasil Connect scopes."}
+	}
+	for _, sc := range scopes {
+		s, ok := lookupScope(sc)
+		if !ok || !s.OIDC || s.Admin {
+			return &Error{Status: http.StatusBadRequest, Code: "invalid_scope", Description: "Dynamic clients may only request OIDC and Yggdrasil Connect scopes."}
+		}
+	}
+	return nil
 }
 
 // DefaultScope is granted when a request names none (as Blessing Skin did).

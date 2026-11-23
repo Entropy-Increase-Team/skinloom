@@ -161,6 +161,10 @@ func csrfGuard(d Deps) func(http.Handler) http.Handler {
 			setupRoute := r.URL.Path == "/api/v1/setup" || strings.HasPrefix(r.URL.Path, "/api/v1/setup/")
 			isAPIv1 := strings.HasPrefix(r.URL.Path, "/api/v1/")
 			isPluginAPI := strings.HasPrefix(r.URL.Path, "/api/plugins/") || (d.Plugins != nil && d.Plugins.HasPublicRoute(r.URL.Path))
+			if isPluginAPI && !isUpgrade && d.Plugins != nil && d.Plugins.IsWebhookNoCSRFRoute(r.Method, r.URL.Path) {
+				next.ServeHTTP(w, r)
+				return
+			}
 			if (!isAPIv1 && !isPluginAPI) || (cookieErr != nil && setupErr != nil && !sessionEndpoints[r.URL.Path] && !flow && !setupRoute) {
 				next.ServeHTTP(w, r)
 				return

@@ -650,14 +650,14 @@ describe('@skinloom/cli', () => {
         apiVersion: 1,
         server: 'server.js',
         permissions: ['routes.public'],
-        routes: { public: ['/oauth/start', '/api/hijack', '/steve.json'] },
+        routes: { public: ['/oauth/start', '/api/v1/hijack', '/api/*', '/steve.json'] },
       }),
     )
     const badRes = lintPlugin(dir)
     expect(badRes.ok).toBe(false)
-    expect(badRes.errors.filter((e) => e.code === 'manifest.routes.public')).toHaveLength(3)
+    expect(badRes.errors.filter((e) => e.code === 'manifest.routes.public')).toHaveLength(4)
 
-    // Valid routes.public with permission passes cleanly
+    // Valid routes.public with permission (including non-reserved /api/<custom>/*) passes cleanly
     writeFileSync(
       path.join(dir, 'plugin.json'),
       JSON.stringify({
@@ -668,7 +668,7 @@ describe('@skinloom/cli', () => {
         apiVersion: 1,
         server: 'server.js',
         permissions: ['routes.public'],
-        routes: { public: ['/mcskin/{name}.json'] },
+        routes: { public: ['/mcskin/{name}.json', '/api/union/*'] },
       }),
     )
     expect(lintPlugin(dir).ok).toBe(true)

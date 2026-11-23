@@ -14,7 +14,9 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -30,6 +32,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/jsrt"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/audit"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/captcha"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/cdn"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/mail"
@@ -52,13 +55,14 @@ const (
 
 // Viewer describes the authenticated caller of /api/plugins/<id>/*.
 type Viewer struct {
-	Authenticated bool
-	UserID        int64
-	Email         string
-	Nickname      string
-	Role          string // user | admin | superadmin
-	Admin         bool
-	Superadmin    bool
+	Authenticated     bool
+	UserID            int64
+	Email             string
+	Nickname          string
+	Role              string // user | admin | superadmin
+	Admin             bool
+	Superadmin        bool
+	HasHostAuthHeader bool // true when request carried host AdminToken or host Bearer (slo_/slp_/slr_)
 }
 
 // PlatformPackageFetcher downloads a platform-specific .slp archive from a
@@ -964,10 +968,10 @@ func (m *Manager) Uninstall(ctx context.Context, id string, purge bool) error {
 // notifies ctx.settings.onChange, and broadcasts a cluster config bump.
 func (m *Manager) UpdateSettings(ctx context.Context, id string, next map[string]any) error {
 	m.settingsMu.Lock()
-	defer m.settingsMu.Unlock()
 
 	mf := m.manifestForRow(ctx, id)
 	if mf == nil {
+		m.settingsMu.Unlock()
 		return fmt.Errorf("%w: plugin manifest is unavailable; reload or reinstall %q before editing settings", ErrInvalidSettings, id)
 	}
 
@@ -991,17 +995,104 @@ func (m *Manager) UpdateSettings(ctx context.Context, id string, next map[string
 		savedSettings = cloneMap(updated.Settings)
 		return nil
 	})
+	m.settingsMu.Unlock()
 	if err != nil {
 		return err
 	}
 	m.mu.RLock()
 	rt := m.active[id]
 	m.mu.RUnlock()
-	if rt != nil {
+	if rt != nil && !rt.closed.Load() {
 		rt.notifySettingsChanged(ctx, savedSettings)
 	}
 	m.bumpConfigVersion(ctx)
 	return nil
+}
+
+// patchOwnSettings validates and persists a partial update to plugin id's own
+// declared settings from inside a host RPC call without triggering a re-entrant
+// gRPC callback back into the calling plugin.
+func (m *Manager) patchOwnSettings(ctx context.Context, callerRT *pluginRuntime, id string, patch map[string]any) (map[string]any, error) {
+	if callerRT == nil || callerRT.closed.Load() {
+		return nil, fmt.Errorf("plugin %q is not active", id)
+	}
+	m.mu.RLock()
+	activeRT := m.active[id]
+	m.mu.RUnlock()
+	if activeRT != callerRT {
+		return nil, fmt.Errorf("plugin %q runtime has been superseded", id)
+	}
+
+	m.settingsMu.Lock()
+
+	mf := m.manifestForRow(ctx, id)
+	if mf == nil {
+		m.settingsMu.Unlock()
+		return nil, fmt.Errorf("%w: plugin manifest is unavailable for %q", ErrInvalidSettings, id)
+	}
+
+	var (
+		savedSettings map[string]any
+		changed       bool
+		changedKeys   []string
+	)
+	err := db.WithTx(ctx, m.db, func(tx *ent.Client) error {
+		row, err := tx.Plugin.Get(ctx, id)
+		if err != nil {
+			return err
+		}
+		merged, err := validateAndMergeSettingsPatch(mf, row.Settings, patch)
+		if err != nil {
+			return err
+		}
+		if reflect.DeepEqual(row.Settings, merged) {
+			savedSettings = cloneMap(row.Settings)
+			return nil
+		}
+		changed = true
+		for k := range patch {
+			changedKeys = append(changedKeys, k)
+		}
+		sort.Strings(changedKeys)
+		updated, err := tx.Plugin.UpdateOneID(id).
+			SetSettings(merged).
+			SetUpdatedAt(time.Now().UTC()).
+			Save(ctx)
+		if err != nil {
+			return err
+		}
+		savedSettings = cloneMap(updated.Settings)
+		if m.db != nil {
+			rec := (&audit.Entry{
+				Action: "plugin.settings.patched",
+				Meta:   map[string]any{"plugin": id, "keys": changedKeys},
+			}).Target("plugin", id)
+			if aErr := audit.Write(ctx, tx, rec); aErr != nil && m.log != nil {
+				m.log.Warn("plugin settings patch audit failed", "plugin", id, "err", aErr)
+			}
+		}
+		return nil
+	})
+	m.settingsMu.Unlock()
+	if err != nil {
+		return nil, err
+	}
+
+	m.mu.RLock()
+	rt := m.active[id]
+	m.mu.RUnlock()
+	if rt != nil && rt == callerRT && !rt.closed.Load() {
+		mergedWithDefaults := mergeDefaultSettings(rt.manifest.Settings, savedSettings)
+		rt.settingsMu.Lock()
+		rt.rawSettings = cloneMap(savedSettings)
+		rt.settings = mergedWithDefaults
+		rt.settingsMu.Unlock()
+		savedSettings = cloneMap(mergedWithDefaults)
+	}
+	if changed {
+		m.bumpConfigVersion(ctx)
+	}
+	return savedSettings, nil
 }
 
 func (m *Manager) handleCircuitTrip(id string, trippedRT *pluginRuntime, tripErr error) {
@@ -1216,6 +1307,48 @@ func (m *Manager) matchPublicRouteRuntime(p string) *pluginRuntime {
 	return matched
 }
 
+// IsWebhookNoCSRFRoute reports whether the incoming request matches an active plugin's
+// public route explicitly opted into WebhookNoCSRF (used by csrfGuard to allow signed
+// external machine webhooks while serveRuntimeRoute strips Viewer).
+func (m *Manager) IsWebhookNoCSRFRoute(method, rawPath string) bool {
+	if m == nil {
+		return false
+	}
+	var rt *pluginRuntime
+	var subpath string
+	if rest, ok := strings.CutPrefix(rawPath, "/api/plugins/"); ok {
+		id, tail, hasTail := strings.Cut(rest, "/")
+		if id == "" {
+			return false
+		}
+		m.mu.RLock()
+		rt = m.active[id]
+		m.mu.RUnlock()
+		if rt == nil || rt.closed.Load() {
+			return false
+		}
+		if hasTail {
+			subpath = "/" + strings.TrimPrefix(tail, "/")
+		} else {
+			subpath = "/"
+		}
+	} else {
+		rt = m.matchPublicRouteRuntime(rawPath)
+		if rt == nil {
+			return false
+		}
+		subpath = rawPath
+	}
+	if !strings.HasPrefix(subpath, "/") {
+		subpath = "/" + subpath
+	}
+	if subpath != "/" {
+		subpath = strings.TrimRight(subpath, "/")
+	}
+	route, _, _ := matchRoute(rt.routes, method, subpath)
+	return route != nil && route.Auth == "public" && route.WebhookNoCSRF
+}
+
 // ServePublicRoute dispatches a root-level request claimed via manifest routes.public.
 // Returns true if an active plugin owns the path (even if the plugin returns 404/405).
 func (m *Manager) ServePublicRoute(w http.ResponseWriter, r *http.Request, viewer Viewer, locale string) bool {
@@ -1252,12 +1385,37 @@ func (m *Manager) serveRuntimeRoute(w http.ResponseWriter, r *http.Request, rt *
 
 	route, params, pathMatched := matchRoute(rt.routes, r.Method, subpath)
 	if route == nil {
+		if r.Method == http.MethodOptions && pathMatched && hasOpenCORSRoute(rt.routes, subpath) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", openCORSAllowHeaders(rt.routes, subpath))
+			w.Header().Set("Access-Control-Max-Age", "86400")
+			w.Header().Set("Vary", "Origin")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		if pathMatched {
 			writePluginProblem(w, http.StatusMethodNotAllowed, "method not allowed")
 			return
 		}
 		writePluginProblem(w, http.StatusNotFound, "plugin route not found")
 		return
+	}
+
+	// Capture whether the request carried host credentials (AdminToken or host
+	// OAuth/PAT Bearer tokens) before WebhookNoCSRF strips Viewer, so Authorization
+	// is never forwarded when it holds host credentials.
+	isHostAuth := viewer.HasHostAuthHeader ||
+		(viewer.Authenticated && viewer.UserID == 0 && viewer.Superadmin) ||
+		isHostPrefixedBearer(r.Header.Get("Authorization"))
+	if route.WebhookNoCSRF {
+		// Defense-in-depth: CSRF-exempt webhook routes must never observe browser
+		// cookies or host credentials.
+		viewer = Viewer{}
+	}
+	if route.OpenCORS {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Vary", "Origin")
 	}
 
 	switch route.Auth {
@@ -1347,6 +1505,18 @@ func (m *Manager) serveRuntimeRoute(w http.ResponseWriter, r *http.Request, rt *
 	for _, k := range []string{"Content-Type", "Accept", "User-Agent"} {
 		if v := r.Header.Get(k); v != "" {
 			hdrMap[strings.ToLower(k)] = v
+		}
+	}
+	for _, hk := range route.ForwardHeaders {
+		lk := strings.ToLower(strings.TrimSpace(hk))
+		if lk == "" || lk == "cookie" || lk == "proxy-authorization" || strings.HasPrefix(lk, "x-skinloom-") {
+			continue
+		}
+		if lk == "authorization" && isHostAuth {
+			continue
+		}
+		if v := r.Header.Get(hk); v != "" {
+			hdrMap[lk] = v
 		}
 	}
 
@@ -1465,6 +1635,51 @@ func servePluginStreamProxy(
 	}
 
 	proxy.ServeHTTP(w, outReq)
+}
+
+func isHostPrefixedBearer(authHeader string) bool {
+	hdr := strings.TrimSpace(authHeader)
+	if len(hdr) < 7 || !strings.EqualFold(hdr[:7], "Bearer ") {
+		return false
+	}
+	tok := strings.TrimSpace(hdr[7:])
+	return strings.HasPrefix(tok, "slo_") || strings.HasPrefix(tok, "slp_") || strings.HasPrefix(tok, "slr_")
+}
+
+func hasOpenCORSRoute(routes []routeBinding, actual string) bool {
+	actualSegs := splitPathSegments(actual)
+	for idx := range routes {
+		if !routes[idx].OpenCORS {
+			continue
+		}
+		if _, ok := matchSegments(splitPathSegments(routes[idx].Pattern), actualSegs); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func openCORSAllowHeaders(routes []routeBinding, actual string) string {
+	headers := []string{"Authorization", "Content-Type", "Accept"}
+	seen := map[string]bool{"authorization": true, "content-type": true, "accept": true}
+	actualSegs := splitPathSegments(actual)
+	for idx := range routes {
+		if !routes[idx].OpenCORS {
+			continue
+		}
+		if _, ok := matchSegments(splitPathSegments(routes[idx].Pattern), actualSegs); !ok {
+			continue
+		}
+		for _, hk := range routes[idx].ForwardHeaders {
+			lk := strings.ToLower(strings.TrimSpace(hk))
+			if lk == "" || lk == "cookie" || lk == "proxy-authorization" || strings.HasPrefix(lk, "x-skinloom-") || seen[lk] {
+				continue
+			}
+			seen[lk] = true
+			headers = append(headers, http.CanonicalHeaderKey(lk))
+		}
+	}
+	return strings.Join(headers, ", ")
 }
 
 func matchRoute(routes []routeBinding, method, actual string) (*routeBinding, map[string]string, bool) {
@@ -1621,7 +1836,7 @@ func writePluginRouteResponse(w http.ResponseWriter, out any) {
 	}
 
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	if status == http.StatusNoContent {
+	if status == http.StatusNoContent || status == http.StatusNotModified || (status >= 300 && status < 400 && body == nil) {
 		w.WriteHeader(status)
 		return
 	}
@@ -1943,25 +2158,47 @@ func (m *Manager) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+type serviceCallChainKey struct{}
+
+const maxServiceCallDepth = 4
+
 // CallService invokes an exported service method on another active plugin (ctx.services.use).
+// Either the caller declares targetID in dependencies/optionalDependencies, OR targetID
+// explicitly opts in by declaring callerID in its dependencies/optionalDependencies.
 func (m *Manager) CallService(ctx context.Context, callerID, targetID, svcName string, args ...any) (any, error) {
+	chain, _ := ctx.Value(serviceCallChainKey{}).([]string)
 	if callerID != "" {
 		if callerID == targetID {
 			return nil, fmt.Errorf("plugin %q cannot call its own service %q", callerID, svcName)
 		}
+		if len(chain) == 0 {
+			chain = []string{callerID}
+		}
+		if slices.Contains(chain, targetID) {
+			return nil, fmt.Errorf("cyclic plugin service call detected: %s -> %s", strings.Join(chain, " -> "), targetID)
+		}
+		if len(chain) >= maxServiceCallDepth {
+			return nil, fmt.Errorf("plugin service call depth exceeded (%d)", maxServiceCallDepth)
+		}
+	}
+	var callerRT *pluginRuntime
+	if callerID != "" {
 		m.mu.RLock()
-		callerRT := m.active[callerID]
+		callerRT = m.active[callerID]
 		m.mu.RUnlock()
 		if callerRT == nil || callerRT.closed.Load() {
 			return nil, fmt.Errorf("calling plugin %q is not active", callerID)
-		}
-		if !callerRT.manifest.HasDependency(targetID) {
-			return nil, fmt.Errorf("%w: dependency %q must be declared in dependencies or optionalDependencies", ErrPermissionDenied, targetID)
 		}
 	}
 	m.mu.RLock()
 	rt := m.active[targetID]
 	m.mu.RUnlock()
+	if callerID != "" {
+		targetOptedIn := rt != nil && !rt.closed.Load() && rt.manifest.HasDependency(callerID)
+		if !callerRT.manifest.HasDependency(targetID) && !targetOptedIn {
+			return nil, fmt.Errorf("%w: dependency between %q and %q must be declared in dependencies or optionalDependencies", ErrPermissionDenied, callerID, targetID)
+		}
+	}
 	if rt == nil || rt.closed.Load() {
 		return nil, fmt.Errorf("plugin %q is not active", targetID)
 	}
@@ -1978,7 +2215,54 @@ func (m *Manager) CallService(ctx context.Context, callerID, targetID, svcName s
 	if foundSvc == nil {
 		return nil, fmt.Errorf("plugin %q does not expose service %q", targetID, svcName)
 	}
-	return rt.invokeService(ctx, resolveHandlerID(foundSvc.HandlerID, foundSvc.FnID), svcName, callerID, args...)
+	nextChain := append(append([]string(nil), chain...), targetID)
+	callCtx := context.WithValue(ctx, serviceCallChainKey{}, nextChain)
+	return rt.invokeService(callCtx, resolveHandlerID(foundSvc.HandlerID, foundSvc.FnID), svcName, callerID, args...)
+}
+
+// DiscoverServiceProviders returns sorted IDs of active plugins exposing svcName
+// that share a declared dependency relationship with callerID (either caller
+// depends on target, or target opted into caller via dependencies/optionalDependencies).
+func (m *Manager) DiscoverServiceProviders(callerID, svcName string) ([]string, error) {
+	svcName = strings.TrimSpace(svcName)
+	if svcName == "" {
+		return nil, errors.New("service name is required")
+	}
+	m.mu.RLock()
+	callerRT := m.active[callerID]
+	if callerID != "" && (callerRT == nil || callerRT.closed.Load()) {
+		m.mu.RUnlock()
+		return nil, fmt.Errorf("calling plugin %q is not active", callerID)
+	}
+	candidates := make([]*pluginRuntime, 0, len(m.active))
+	for id, rt := range m.active {
+		if id == callerID || rt == nil || rt.closed.Load() {
+			continue
+		}
+		if callerID != "" && !callerRT.manifest.HasDependency(id) && !rt.manifest.HasDependency(callerID) {
+			continue
+		}
+		candidates = append(candidates, rt)
+	}
+	m.mu.RUnlock()
+
+	out := make([]string, 0, len(candidates))
+	for _, rt := range candidates {
+		rt.setupMu.Lock()
+		exposes := false
+		for idx := range rt.services {
+			if rt.services[idx].Name == svcName {
+				exposes = true
+				break
+			}
+		}
+		rt.setupMu.Unlock()
+		if exposes {
+			out = append(out, rt.id)
+		}
+	}
+	sort.Strings(out)
+	return out, nil
 }
 
 func (m *Manager) prepareDriver(ctx context.Context, rt *pluginRuntime, sb *storedBundle) (Driver, *PluginDBConfig, error) {

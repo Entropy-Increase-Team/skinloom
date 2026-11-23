@@ -33,6 +33,9 @@ type OAuthClient func(*sql.Selector)
 // OAuthCode is the predicate function for oauthcode builders.
 type OAuthCode func(*sql.Selector)
 
+// OAuthDeviceCode is the predicate function for oauthdevicecode builders.
+type OAuthDeviceCode func(*sql.Selector)
+
 // OAuthGrant is the predicate function for oauthgrant builders.
 type OAuthGrant func(*sql.Selector)
 

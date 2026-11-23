@@ -34,6 +34,12 @@ type OAuthCode struct {
 	CodeChallenge string `json:"code_challenge,omitempty"`
 	// CodeChallengeMethod holds the value of the "code_challenge_method" field.
 	CodeChallengeMethod string `json:"code_challenge_method,omitempty"`
+	// Nonce holds the value of the "nonce" field.
+	Nonce string `json:"nonce,omitempty"`
+	// PlayerID holds the value of the "player_id" field.
+	PlayerID *int64 `json:"player_id,omitempty"`
+	// AuthTime holds the value of the "auth_time" field.
+	AuthTime *time.Time `json:"auth_time,omitempty"`
 	// ExpiresAt holds the value of the "expires_at" field.
 	ExpiresAt time.Time `json:"expires_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -82,11 +88,11 @@ func (*OAuthCode) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case oauthcode.FieldScopes:
 			values[i] = new([]byte)
-		case oauthcode.FieldID, oauthcode.FieldClientID, oauthcode.FieldUserID:
+		case oauthcode.FieldID, oauthcode.FieldClientID, oauthcode.FieldUserID, oauthcode.FieldPlayerID:
 			values[i] = new(sql.NullInt64)
-		case oauthcode.FieldCodeHash, oauthcode.FieldRedirectURI, oauthcode.FieldCodeChallenge, oauthcode.FieldCodeChallengeMethod:
+		case oauthcode.FieldCodeHash, oauthcode.FieldRedirectURI, oauthcode.FieldCodeChallenge, oauthcode.FieldCodeChallengeMethod, oauthcode.FieldNonce:
 			values[i] = new(sql.NullString)
-		case oauthcode.FieldExpiresAt:
+		case oauthcode.FieldAuthTime, oauthcode.FieldExpiresAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -152,6 +158,26 @@ func (_m *OAuthCode) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field code_challenge_method", values[i])
 			} else if value.Valid {
 				_m.CodeChallengeMethod = value.String
+			}
+		case oauthcode.FieldNonce:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field nonce", values[i])
+			} else if value.Valid {
+				_m.Nonce = value.String
+			}
+		case oauthcode.FieldPlayerID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field player_id", values[i])
+			} else if value.Valid {
+				_m.PlayerID = new(int64)
+				*_m.PlayerID = value.Int64
+			}
+		case oauthcode.FieldAuthTime:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field auth_time", values[i])
+			} else if value.Valid {
+				_m.AuthTime = new(time.Time)
+				*_m.AuthTime = value.Time
 			}
 		case oauthcode.FieldExpiresAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -224,6 +250,19 @@ func (_m *OAuthCode) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("code_challenge_method=")
 	builder.WriteString(_m.CodeChallengeMethod)
+	builder.WriteString(", ")
+	builder.WriteString("nonce=")
+	builder.WriteString(_m.Nonce)
+	builder.WriteString(", ")
+	if v := _m.PlayerID; v != nil {
+		builder.WriteString("player_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.AuthTime; v != nil {
+		builder.WriteString("auth_time=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("expires_at=")
 	builder.WriteString(_m.ExpiresAt.Format(time.ANSIC))

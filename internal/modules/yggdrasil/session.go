@@ -21,6 +21,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/yggsession"
 	"github.com/Entropy-Increase-Team/skinloom/ent/yggtoken"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/oauth"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/score"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
@@ -175,10 +176,12 @@ func (s *Service) sign(ctx context.Context, value string) (string, error) {
 	}
 	sig = base64.StdEncoding.EncodeToString(raw)
 	s.sigMu.Lock()
-	if len(s.sigs) >= 10000 {
-		s.sigs = map[string]string{} // bounded; refilled by the next requests
+	if s.keyGen == k.gen {
+		if len(s.sigs) >= 10000 {
+			s.sigs = map[string]string{} // bounded; refilled by the next requests
+		}
+		s.sigs[value] = sig
 	}
-	s.sigs[value] = sig
 	s.sigMu.Unlock()
 	return sig, nil
 }
@@ -326,6 +329,14 @@ func (s *Service) owned(ctx context.Context, token, profileID string, pol Policy
 	}
 	if p.UserID != t.user.ID {
 		return nil, nil, forbidden("Profile not owned by this token.")
+	}
+	if t.isOAuth {
+		if !oauth.HasScope(t.scopes, oauth.ScopePlayerWrite) {
+			return nil, nil, forbidden("OAuth token lacks Player.ReadWrite scope for texture updates.")
+		}
+		if t.player != nil && p.ID != t.player.ID {
+			return nil, nil, forbidden("Profile not bound to this token.")
+		}
 	}
 	if pol.RequireVerified && t.user.EmailVerifiedAt == nil {
 		return nil, nil, errUnverified

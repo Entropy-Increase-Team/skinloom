@@ -473,6 +473,7 @@ func pluginPreludeJS() string {
         return v === null ? undefined : v;
       },
       all: () => __sl_settings('all'),
+      patch: (patch) => __sl_settings('patch', patch || {}),
       onChange(fn) {
         if (typeof fn !== 'function') throw new TypeError('onChange expects a function');
         settingsListeners.push(fn);
@@ -606,6 +607,7 @@ func pluginPreludeJS() string {
       },
       use: (pluginId, serviceName) => (...callArgs) =>
         __sl_services('call', String(pluginId), String(serviceName), callArgs),
+      discover: (serviceName) => __sl_services('discover', String(serviceName)),
     },
     audit: {
       record: (action, targetType = '', targetId = '', meta = null) =>

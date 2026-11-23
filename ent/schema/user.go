@@ -73,6 +73,7 @@ func (User) Edges() []ent.Edge {
 		edge.To("oauth_grants", OAuthGrant.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("oauth_codes", OAuthCode.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("oauth_tokens", OAuthToken.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("oauth_device_codes", OAuthDeviceCode.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("social_accounts", SocialAccount.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("social_flows", SocialFlow.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("announcements_sent", Announcement.Type).Annotations(entsql.OnDelete(entsql.SetNull)),

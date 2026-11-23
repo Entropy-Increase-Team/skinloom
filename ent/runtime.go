@@ -14,6 +14,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthdevicecode"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
@@ -267,12 +268,16 @@ func init() {
 	oauthclientDescSecretHash := oauthclientFields[3].Descriptor()
 	// oauthclient.SecretHashValidator is a validator for the "secret_hash" field. It is called by the builders before save.
 	oauthclient.SecretHashValidator = oauthclientDescSecretHash.Validators[0].(func(string) error)
+	// oauthclientDescDynamic is the schema descriptor for dynamic field.
+	oauthclientDescDynamic := oauthclientFields[5].Descriptor()
+	// oauthclient.DefaultDynamic holds the default value on creation for the dynamic field.
+	oauthclient.DefaultDynamic = oauthclientDescDynamic.Default.(bool)
 	// oauthclientDescCreatedAt is the schema descriptor for created_at field.
-	oauthclientDescCreatedAt := oauthclientFields[5].Descriptor()
+	oauthclientDescCreatedAt := oauthclientFields[7].Descriptor()
 	// oauthclient.DefaultCreatedAt holds the default value on creation for the created_at field.
 	oauthclient.DefaultCreatedAt = oauthclientDescCreatedAt.Default.(func() time.Time)
 	// oauthclientDescUpdatedAt is the schema descriptor for updated_at field.
-	oauthclientDescUpdatedAt := oauthclientFields[6].Descriptor()
+	oauthclientDescUpdatedAt := oauthclientFields[8].Descriptor()
 	// oauthclient.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	oauthclient.DefaultUpdatedAt = oauthclientDescUpdatedAt.Default.(func() time.Time)
 	// oauthclient.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -313,6 +318,58 @@ func init() {
 	oauthcode.DefaultCodeChallengeMethod = oauthcodeDescCodeChallengeMethod.Default.(string)
 	// oauthcode.CodeChallengeMethodValidator is a validator for the "code_challenge_method" field. It is called by the builders before save.
 	oauthcode.CodeChallengeMethodValidator = oauthcodeDescCodeChallengeMethod.Validators[0].(func(string) error)
+	// oauthcodeDescNonce is the schema descriptor for nonce field.
+	oauthcodeDescNonce := oauthcodeFields[8].Descriptor()
+	// oauthcode.DefaultNonce holds the default value on creation for the nonce field.
+	oauthcode.DefaultNonce = oauthcodeDescNonce.Default.(string)
+	// oauthcode.NonceValidator is a validator for the "nonce" field. It is called by the builders before save.
+	oauthcode.NonceValidator = oauthcodeDescNonce.Validators[0].(func(string) error)
+	oauthdevicecodeFields := schema.OAuthDeviceCode{}.Fields()
+	_ = oauthdevicecodeFields
+	// oauthdevicecodeDescDeviceCodeHash is the schema descriptor for device_code_hash field.
+	oauthdevicecodeDescDeviceCodeHash := oauthdevicecodeFields[1].Descriptor()
+	// oauthdevicecode.DeviceCodeHashValidator is a validator for the "device_code_hash" field. It is called by the builders before save.
+	oauthdevicecode.DeviceCodeHashValidator = func() func(string) error {
+		validators := oauthdevicecodeDescDeviceCodeHash.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(device_code_hash string) error {
+			for _, fn := range fns {
+				if err := fn(device_code_hash); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// oauthdevicecodeDescUserCodeHash is the schema descriptor for user_code_hash field.
+	oauthdevicecodeDescUserCodeHash := oauthdevicecodeFields[2].Descriptor()
+	// oauthdevicecode.UserCodeHashValidator is a validator for the "user_code_hash" field. It is called by the builders before save.
+	oauthdevicecode.UserCodeHashValidator = func() func(string) error {
+		validators := oauthdevicecodeDescUserCodeHash.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(user_code_hash string) error {
+			for _, fn := range fns {
+				if err := fn(user_code_hash); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// oauthdevicecodeDescIntervalSec is the schema descriptor for interval_sec field.
+	oauthdevicecodeDescIntervalSec := oauthdevicecodeFields[8].Descriptor()
+	// oauthdevicecode.DefaultIntervalSec holds the default value on creation for the interval_sec field.
+	oauthdevicecode.DefaultIntervalSec = oauthdevicecodeDescIntervalSec.Default.(int)
+	// oauthdevicecodeDescCreatedAt is the schema descriptor for created_at field.
+	oauthdevicecodeDescCreatedAt := oauthdevicecodeFields[11].Descriptor()
+	// oauthdevicecode.DefaultCreatedAt holds the default value on creation for the created_at field.
+	oauthdevicecode.DefaultCreatedAt = oauthdevicecodeDescCreatedAt.Default.(func() time.Time)
 	oauthgrantFields := schema.OAuthGrant{}.Fields()
 	_ = oauthgrantFields
 	// oauthgrantDescCreatedAt is the schema descriptor for created_at field.
@@ -355,8 +412,14 @@ func init() {
 	oauthtoken.DefaultName = oauthtokenDescName.Default.(string)
 	// oauthtoken.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	oauthtoken.NameValidator = oauthtokenDescName.Validators[0].(func(string) error)
+	// oauthtokenDescPlayerNameAtIssue is the schema descriptor for player_name_at_issue field.
+	oauthtokenDescPlayerNameAtIssue := oauthtokenFields[9].Descriptor()
+	// oauthtoken.DefaultPlayerNameAtIssue holds the default value on creation for the player_name_at_issue field.
+	oauthtoken.DefaultPlayerNameAtIssue = oauthtokenDescPlayerNameAtIssue.Default.(string)
+	// oauthtoken.PlayerNameAtIssueValidator is a validator for the "player_name_at_issue" field. It is called by the builders before save.
+	oauthtoken.PlayerNameAtIssueValidator = oauthtokenDescPlayerNameAtIssue.Validators[0].(func(string) error)
 	// oauthtokenDescCreatedAt is the schema descriptor for created_at field.
-	oauthtokenDescCreatedAt := oauthtokenFields[8].Descriptor()
+	oauthtokenDescCreatedAt := oauthtokenFields[10].Descriptor()
 	// oauthtoken.DefaultCreatedAt holds the default value on creation for the created_at field.
 	oauthtoken.DefaultCreatedAt = oauthtokenDescCreatedAt.Default.(func() time.Time)
 	playerFields := schema.Player{}.Fields()

@@ -309,7 +309,7 @@ func (h *Harness) DoHTTP(ctx context.Context, req *plugin.HTTPRequest) (*plugin.
 	}
 
 	var viewer *pluginv1.ViewerInfo
-	if req.User != nil && req.User.Authenticated {
+	if req.User != nil && req.User.Authenticated && !matched.GetWebhookNoCsrf() {
 		viewer = &pluginv1.ViewerInfo{
 			Authenticated: true,
 			UserId:        req.User.UserID,
@@ -385,6 +385,35 @@ func (h *Harness) CallService(ctx context.Context, serviceName, callerID string,
 		return nil, err
 	}
 	return json.RawMessage(resp.GetResultJson()), nil
+}
+
+// TriggerYggdrasilMeta invokes the plugin's registered Yggdrasil meta provider callback.
+func (h *Harness) TriggerYggdrasilMeta(ctx context.Context) (*plugin.YggdrasilMetaExtension, error) {
+	if !h.initResp.GetHasYggdrasilMetaProvider() {
+		if st := h.initResp.GetStaticYggdrasilMeta(); st != nil {
+			ext := &plugin.YggdrasilMetaExtension{SkinDomains: append([]string(nil), st.GetSkinDomains()...)}
+			if len(st.GetMetaJson()) > 0 {
+				_ = json.Unmarshal(st.GetMetaJson(), &ext.Meta)
+			}
+			return ext, nil
+		}
+		return nil, nil
+	}
+	resp, err := h.srv.InvokeExtension(ctx, &pluginv1.InvokeExtensionRequest{
+		Kind:      "yggdrasil_meta",
+		HandlerId: h.initResp.GetYggdrasilMetaHandlerId(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.GetResultJson()) == 0 {
+		return nil, nil
+	}
+	var ext plugin.YggdrasilMetaExtension
+	if err := json.Unmarshal(resp.GetResultJson(), &ext); err != nil {
+		return nil, err
+	}
+	return &ext, nil
 }
 
 // UpdateSettings pushes updated settings into the plugin and triggers Settings.OnChange.

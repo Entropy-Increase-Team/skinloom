@@ -1010,7 +1010,11 @@
     "pageTitle": "授权应用",
     "title": "{app} 想要访问你的账号",
     "by": "由 {owner} 创建",
+    "dynamicClient": "动态注册的本地客户端（PKCE）",
     "wants": "它将可以：",
+    "selectPlayer": "选择要登录的游戏角色",
+    "noPlayersHint": "你还没有创建游戏角色，请先创建一个角色后再回来授权。",
+    "goCreatePlayer": "前往创建角色",
     "redirectTo": "授权后将返回 {host}。只授权你信任的应用。",
     "allow": "授权",
     "deny": "拒绝",
@@ -1080,7 +1084,26 @@
       "deleted": "已删除令牌 {name}",
       "deleteTitle": "删除令牌 {name}？"
     },
+    "device": {
+      "pageTitle": "设备授权登录",
+      "enterCodeHint": "请输入游戏启动器或设备上显示的 8 位验证码以完成登录授权。",
+      "codeLabel": "设备验证码",
+      "continue": "下一步",
+      "useAnotherCode": "重新输入验证码",
+      "phishingWarning": "请核对设备显示的验证码是否为 {code}。仅在你本人于启动器或设备上发起登录时点击授权。",
+      "approvedTitle": "设备授权成功",
+      "approvedHint": "你现在可以返回启动器或设备继续操作，并安全关闭此页面。",
+      "deniedTitle": "已拒绝设备授权",
+      "deniedHint": "该设备不会获得你的账号访问权限，你可以关闭此页面。"
+    },
     "scopes": {
+      "openid": "使用你的账号身份进行 OpenID Connect 登录",
+      "profile": "读取你的昵称与头像地址",
+      "email": "读取你的电子邮箱地址及验证状态",
+      "offline_access": "保持登录状态（签发刷新令牌）",
+      "Yggdrasil_PlayerProfiles_Read": "查看你拥有的全部 Minecraft 角色列表",
+      "Yggdrasil_PlayerProfiles_Select": "选择并绑定一个 Minecraft 角色用于本次登录",
+      "Yggdrasil_Server_Join": "代表所选角色加入多人游戏服务器（Yggdrasil）",
       "User_Read": "读取你的账号信息（昵称、邮箱、积分等）",
       "Notification_Read": "读取你的站内通知并标为已读",
       "Player_Read": "查看你的角色",
@@ -1509,6 +1532,10 @@
       "name_length_max": {
         "label": "角色名最长长度",
         "help": "角色名称的最多字符数"
+      },
+      "keep_uuid_on_rename": {
+        "label": "改名时保持 UUID 不变",
+        "help": "即使使用 v3 UUID 算法，角色改名时也保留原有 UUID 不变。接入 MUA Union 或按 UUID 存储玩家存档的服务器建议开启。"
       }
     },
     "delivery": {
@@ -1557,6 +1584,10 @@
       "enable_ali": {
         "label": "发送 API 地址提示头",
         "help": "每个页面都带上 X-Authlib-Injector-API-Location，启动器只填站点地址就能找到接口。"
+      },
+      "disable_authserver": {
+        "label": "禁用传统密码登录接口（AuthServer）",
+        "help": "禁用旧版 /api/yggdrasil/authserver/* 接口，强制启动器使用更安全的 OIDC / Yggdrasil Connect 授权登录。"
       }
     },
     "oauth": {
@@ -1567,6 +1598,14 @@
       "refresh_token_ttl_seconds": {
         "label": "刷新令牌有效期（秒）",
         "help": "没有使用的刷新令牌保持有效多久，默认 30 天；每次刷新都会换一个新的。"
+      },
+      "enable_oidc": {
+        "label": "启用内置 OIDC / Yggdrasil Connect",
+        "help": "开启标准 OpenID Connect 与 Yggdrasil Connect（含设备码授权与启动器选角登录，无需外部 Janus 服务），并在 /api/yggdrasil 元数据中自动通告。"
+      },
+      "enable_dcr": {
+        "label": "允许启动器动态客户端注册（DCR）",
+        "help": "允许本地启动器通过 RFC 7591（POST /oauth/register）临时注册公开 PKCE 客户端（仅限本机环回地址或原生应用协议，防开放重定向滥用）。"
       }
     },
     "seo": {
@@ -2161,7 +2200,9 @@
       "auth_provider": "注册第三方登录或身份认证提供方。",
       "auth_password": "注册外部历史密码校验算法。",
       "provider_storage": "注册自定义材质对象存储后端驱动。",
-      "native_exec": "以独立操作系统原生子进程在 WASM 沙箱之外执行。"
+      "native_exec": "以独立操作系统原生子进程在 WASM 沙箱之外执行。",
+      "yggdrasil_key_write": "替换站点 Yggdrasil 签名私钥（4096 位 RSA）并刷新签名缓存。",
+      "players_uuid_write": "重映射站点游戏角色的 UUID 并使旧游戏会话和令牌失效。"
     },
     "actions": {
       "refresh": "刷新",

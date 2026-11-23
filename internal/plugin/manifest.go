@@ -384,7 +384,6 @@ func (m *Manifest) Validate() error {
 }
 
 var reservedPublicRouteHeads = map[string]bool{
-	"api":            true,
 	"oauth":          true,
 	".well-known":    true,
 	"csl":            true,
@@ -409,6 +408,21 @@ var reservedPublicRouteHeads = map[string]bool{
 	"p":              true,
 	"favicon.ico":    true,
 	"robots.txt":     true,
+}
+
+// reservedPublicAPISubroutes protects SkinLoom's own /api/* namespaces while
+// letting plugins mount non-conflicting protocol sub-trees such as /api/union/*.
+var reservedPublicAPISubroutes = map[string]bool{
+	"v1":        true,
+	"yggdrasil": true,
+	"plugins":   true,
+	"user":      true,
+	"players":   true,
+	"closet":    true,
+	"admin":     true,
+	"docs":      true,
+	"openapi":   true,
+	"schemas":   true,
 }
 
 func (m *Manifest) validatePublicRoutes() error {
@@ -456,7 +470,19 @@ func validatePublicRoutePattern(raw string) error {
 	if head == "*" || strings.HasPrefix(head, ":") || strings.ContainsAny(head, "{}") {
 		return fmt.Errorf("%w: routes.public pattern %q must begin with a literal path segment", ErrBadManifest, raw)
 	}
-	if reservedPublicRouteHeads[strings.ToLower(head)] {
+	lowerHead := strings.ToLower(head)
+	if lowerHead == "api" {
+		if len(segs) < 2 {
+			return fmt.Errorf("%w: routes.public pattern %q conflicts with host reserved path '/api'", ErrBadManifest, raw)
+		}
+		sub := segs[1]
+		if sub == "*" || strings.HasPrefix(sub, ":") || strings.ContainsAny(sub, "{}") {
+			return fmt.Errorf("%w: routes.public pattern %q must begin with a literal sub-path under '/api/'", ErrBadManifest, raw)
+		}
+		if reservedPublicAPISubroutes[strings.ToLower(sub)] {
+			return fmt.Errorf("%w: routes.public pattern %q conflicts with host reserved path '/api/%s'", ErrBadManifest, raw, sub)
+		}
+	} else if reservedPublicRouteHeads[lowerHead] {
 		return fmt.Errorf("%w: routes.public pattern %q conflicts with host reserved path '/%s'", ErrBadManifest, raw, head)
 	}
 	if len(segs) == 1 && strings.HasSuffix(strings.ToLower(head), ".json") {

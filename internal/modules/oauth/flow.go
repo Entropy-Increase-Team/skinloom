@@ -9,16 +9,20 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
+	entplayer "github.com/Entropy-Increase-Team/skinloom/ent/player"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
 )
 
 // Error is an OAuth error (RFC 6749 §4.1.2.1, §5.2).
@@ -44,6 +48,13 @@ type RequestError struct{ Description string }
 
 func (e *RequestError) Error() string { return e.Description }
 
+// PlayerOption is a character choice shown on the OIDC / Yggdrasil Connect consent screen.
+type PlayerOption struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	UUID string `json:"uuid"`
+}
+
 // AuthRequest is an authorization request (GET /oauth/authorize).
 type AuthRequest struct {
 	ResponseType        string
@@ -51,17 +62,21 @@ type AuthRequest struct {
 	RedirectURI         string
 	Scope               string
 	State               string
+	Nonce               string
 	CodeChallenge       string
 	CodeChallengeMethod string
+	PlayerID            *int64
 }
 
 // Prepared is a valid authorization request, ready for the consent screen.
 type Prepared struct {
-	Client      *ent.OAuthClient
-	Owner       string   // the application's owner (nickname)
-	RedirectURI string   // where the answer goes
-	Scopes      []string // what would be granted (administration scopes only to administrators)
-	Granted     bool     // the user already allowed all of it: no need to ask again
+	Client            *ent.OAuthClient
+	Owner             string         // the application's owner (nickname, empty for dynamic clients)
+	RedirectURI       string         // where the answer goes
+	Scopes            []string       // what would be granted (administration scopes only to administrators)
+	Granted           bool           // the user already allowed all of it: no need to ask again
+	NeedsPlayerSelect bool           // Yggdrasil.PlayerProfiles.Select requested: show character picker
+	Players           []PlayerOption // user's characters when NeedsPlayerSelect is true
 }
 
 // redirectError is an error answered by redirecting to the application.
@@ -107,14 +122,64 @@ func (s *Service) client(ctx context.Context, id string) (*ent.OAuthClient, erro
 	}
 	c, err := s.db.OAuthClient.Query().Where(oauthclient.ID(n)).
 		WithOwner(func(q *ent.UserQuery) { q.Select(user.FieldID, user.FieldNickname, user.FieldStatus) }).Only(ctx)
-	if ent.IsNotFound(err) || (err == nil && c.Edges.Owner.Status != user.StatusActive) {
+	if ent.IsNotFound(err) || (err == nil && !c.Dynamic && (c.Edges.Owner == nil || c.Edges.Owner.Status != user.StatusActive)) {
 		return nil, ErrNotFound // a banned or deleted owner's applications stop working
 	}
 	return c, err
 }
 
+func resolvePolicy(pol []Policy) Policy {
+	if len(pol) > 0 {
+		return pol[0]
+	}
+	return Policy{EnableOIDC: true, EnableDCR: true}
+}
+
+// matchesRedirectURI checks whether candidate is allowed for client. Public clients
+// additionally get RFC 8252 §7.3 loopback dynamic port matching (http://127.0.0.1:*,
+// http://localhost:*, http://[::1]:* with matching host, path, and query).
+func matchesRedirectURI(registered []string, candidate string, isPublic bool) bool {
+	if strings.Contains(candidate, "#") {
+		return false
+	}
+	if contains(registered, candidate) {
+		return true
+	}
+	if !isPublic {
+		return false
+	}
+	cu, err := url.Parse(candidate)
+	if err != nil || cu.User != nil || cu.Opaque != "" || cu.Fragment != "" ||
+		strings.ToLower(cu.Scheme) != "http" || !isLoopbackHost(cu.Hostname()) || !validOptionalPort(cu) {
+		return false
+	}
+	for _, reg := range registered {
+		ru, err := url.Parse(reg)
+		if err != nil || ru.User != nil || ru.Opaque != "" || strings.ToLower(ru.Scheme) != "http" || !isLoopbackHost(ru.Hostname()) {
+			continue
+		}
+		if strings.EqualFold(ru.Hostname(), cu.Hostname()) && ru.Path == cu.Path && ru.RawQuery == cu.RawQuery {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Service) playerOptions(ctx context.Context, userID int64) ([]PlayerOption, error) {
+	list, err := s.db.Player.Query().Where(entplayer.UserID(userID)).Order(ent.Asc(entplayer.FieldID)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]PlayerOption, len(list))
+	for i, pl := range list {
+		out[i] = PlayerOption{ID: pl.ID, Name: pl.Name, UUID: pl.UUID}
+	}
+	return out, nil
+}
+
 // Prepare checks an authorization request for a signed-in user.
-func (s *Service) Prepare(ctx context.Context, u *ent.User, r AuthRequest) (*Prepared, error) {
+func (s *Service) Prepare(ctx context.Context, u *ent.User, r AuthRequest, pol ...Policy) (*Prepared, error) {
+	pCfg := resolvePolicy(pol)
 	c, err := s.client(ctx, r.ClientID)
 	if errors.Is(err, ErrNotFound) {
 		return nil, &RequestError{"Unknown application (client_id)."}
@@ -128,7 +193,7 @@ func (s *Service) Prepare(ctx context.Context, u *ent.User, r AuthRequest) (*Pre
 		redirect = c.RedirectUris[0]
 	case redirect == "":
 		return nil, &RequestError{"The application has several redirect URIs and did not say which (redirect_uri)."}
-	case !contains(c.RedirectUris, redirect):
+	case !matchesRedirectURI(c.RedirectUris, redirect, c.SecretHash == nil):
 		return nil, &RequestError{"The redirect URI is not registered for this application."}
 	}
 	back := func(e *Error) error { return &redirectError{uri: redirect, state: r.State, err: e} }
@@ -140,8 +205,19 @@ func (s *Service) Prepare(ctx context.Context, u *ent.User, r AuthRequest) (*Pre
 	if unknown != "" {
 		return nil, back(&Error{http.StatusBadRequest, "invalid_scope", "Unknown scope " + unknown + "."})
 	}
+	if serr := ValidateScopeCombination(scopes, pCfg.EnableOIDC); serr != nil {
+		return nil, back(serr)
+	}
+	if c.Dynamic {
+		if derr := ValidateDynamicClientScopes(scopes); derr != nil {
+			return nil, back(derr)
+		}
+	}
 	if scopes = allowedFor(scopes, isAdmin(u)); len(scopes) == 0 {
 		return nil, back(&Error{http.StatusBadRequest, "invalid_scope", "Only administrators can grant these scopes."})
+	}
+	if pCfg.RequireVerified && u.EmailVerifiedAt == nil && slices.Contains(scopes, ScopeYggServerJoin) {
+		return nil, back(&Error{http.StatusForbidden, "access_denied", "Verify your email address before authorizing Yggdrasil.Server.Join."})
 	}
 	method := r.CodeChallengeMethod
 	if r.CodeChallenge != "" && method == "" {
@@ -152,13 +228,31 @@ func (s *Service) Prepare(ctx context.Context, u *ent.User, r AuthRequest) (*Pre
 		return nil, back(invalidRequest("code_challenge_method without code_challenge."))
 	case r.CodeChallenge == "" && c.SecretHash == nil:
 		return nil, back(invalidRequest("Public clients must use PKCE (code_challenge)."))
+	case c.Dynamic && method != "S256":
+		return nil, back(invalidRequest("Dynamic public clients must use PKCE S256 (code_challenge_method=S256)."))
 	case method != "" && method != "S256" && method != "plain":
 		return nil, back(invalidRequest("code_challenge_method must be S256 or plain."))
 	case r.CodeChallenge != "" && !pkceVerifier.MatchString(r.CodeChallenge):
 		return nil, back(invalidRequest("Malformed code_challenge."))
+	case len(r.Nonce) > 256:
+		return nil, back(invalidRequest("nonce is too long."))
 	}
 
-	p := &Prepared{Client: c, Owner: c.Edges.Owner.Nickname, RedirectURI: redirect, Scopes: scopes}
+	owner := ""
+	if !c.Dynamic && c.Edges.Owner != nil {
+		owner = c.Edges.Owner.Nickname
+	}
+	p := &Prepared{Client: c, Owner: owner, RedirectURI: redirect, Scopes: scopes}
+	if slices.Contains(scopes, ScopeYggProfilesSelect) {
+		p.NeedsPlayerSelect = true
+		players, err := s.playerOptions(ctx, u.ID)
+		if err != nil {
+			return nil, err
+		}
+		p.Players = players
+		// Require explicit character selection instead of auto-skipping consent.
+		return p, nil
+	}
 	g, err := s.db.OAuthGrant.Query().Where(oauthgrant.UserID(u.ID), oauthgrant.ClientID(c.ID)).Only(ctx)
 	switch {
 	case err == nil:
@@ -171,14 +265,32 @@ func (s *Service) Prepare(ctx context.Context, u *ent.User, r AuthRequest) (*Pre
 
 // Approve answers an authorization request the user allowed (or refused): it records
 // the grant and returns the address to send the browser to, with a code.
-func (s *Service) Approve(ctx context.Context, u *ent.User, r AuthRequest, allow bool) (string, *Prepared, error) {
-	p, err := s.Prepare(ctx, u, r)
+func (s *Service) Approve(ctx context.Context, u *ent.User, r AuthRequest, allow bool, pol ...Policy) (string, *Prepared, error) {
+	p, err := s.Prepare(ctx, u, r, pol...)
 	if err != nil {
 		return "", nil, err
 	}
 	if !allow {
 		return withQuery(p.RedirectURI, map[string]string{"error": "access_denied",
 			"error_description": "The user refused.", "state": r.State}), p, nil
+	}
+	var selectedPlayerID *int64
+	if p.NeedsPlayerSelect {
+		if r.PlayerID == nil || *r.PlayerID <= 0 {
+			return "", nil, &validate.FieldError{Field: "playerId", Message: "select one of your players"}
+		}
+		ok := false
+		for _, pl := range p.Players {
+			if pl.ID == *r.PlayerID {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			return "", nil, &validate.FieldError{Field: "playerId", Message: "select one of your players"}
+		}
+		v := *r.PlayerID
+		selectedPlayerID = &v
 	}
 	if err := s.recordGrant(ctx, u.ID, p); err != nil {
 		return "", nil, err
@@ -187,12 +299,19 @@ func (s *Service) Approve(ctx context.Context, u *ent.User, r AuthRequest, allow
 	if r.CodeChallenge != "" && method == "" {
 		method = "plain"
 	}
+	now := s.now()
 	code := randomToken("")
-	err = s.db.OAuthCode.Create().SetCodeHash(hash(code)).SetClientID(p.Client.ID).SetUserID(u.ID).
+	create := s.db.OAuthCode.Create().SetCodeHash(hash(code)).SetClientID(p.Client.ID).SetUserID(u.ID).
 		SetRedirectURI(r.RedirectURI).SetScopes(p.Scopes).SetCodeChallenge(r.CodeChallenge).
-		SetCodeChallengeMethod(method).SetExpiresAt(s.now().Add(CodeTTL)).Exec(ctx)
-	if err != nil {
+		SetCodeChallengeMethod(method).SetNonce(r.Nonce).SetAuthTime(now).SetExpiresAt(now.Add(CodeTTL))
+	if selectedPlayerID != nil {
+		create.SetPlayerID(*selectedPlayerID)
+	}
+	if err := create.Exec(ctx); err != nil {
 		return "", nil, err
+	}
+	if p.Client.Dynamic {
+		_ = s.db.OAuthClient.UpdateOneID(p.Client.ID).SetLastUsedAt(now).Exec(ctx)
 	}
 	return withQuery(p.RedirectURI, map[string]string{"code": code, "state": r.State}), p, nil
 }
@@ -229,17 +348,20 @@ type TokenRequest struct {
 	RedirectURI  string
 	CodeVerifier string
 	RefreshToken string
+	DeviceCode   string
 	Scope        string
 	ClientID     string
 	ClientSecret string
+	Issuer       string // site URL used as iss claim in OIDC id_token
 }
 
-// TokenResponse is a successful token response (RFC 6749 §5.1).
+// TokenResponse is a successful token response (RFC 6749 §5.1 + OIDC Core §3.1.3.3).
 type TokenResponse struct {
 	TokenType    string `json:"token_type"`
 	ExpiresIn    int64  `json:"expires_in"`
 	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+	IDToken      string `json:"id_token,omitempty"`
 	Scope        string `json:"scope"`
 }
 
@@ -265,8 +387,8 @@ func (s *Service) authClient(ctx context.Context, id, secret string) (*ent.OAuth
 	return c, nil
 }
 
-// Token answers a token request: an authorization code or a refresh token for new
-// tokens. Refresh tokens rotate: the old pair stops working.
+// Token answers a token request: an authorization code, device code, or a refresh
+// token for new tokens. Refresh tokens rotate: the old pair stops working.
 func (s *Service) Token(ctx context.Context, r TokenRequest, p Policy) (*TokenResponse, error) {
 	c, err := s.authClient(ctx, r.ClientID, r.ClientSecret)
 	if err != nil {
@@ -277,10 +399,12 @@ func (s *Service) Token(ctx context.Context, r TokenRequest, p Policy) (*TokenRe
 		return s.exchangeCode(ctx, c, r, p)
 	case "refresh_token":
 		return s.refresh(ctx, c, r, p)
+	case DeviceGrantType:
+		return s.pollDeviceToken(ctx, c, r, p)
 	case "":
 		return nil, invalidRequest("grant_type is required.")
 	default:
-		return nil, &Error{http.StatusBadRequest, "unsupported_grant_type", "Supported: authorization_code, refresh_token."}
+		return nil, &Error{http.StatusBadRequest, "unsupported_grant_type", "Supported: authorization_code, refresh_token, urn:ietf:params:oauth:grant-type:device_code."}
 	}
 }
 
@@ -299,9 +423,27 @@ func checkVerifier(code *ent.OAuthCode, verifier string) bool {
 	return subtle.ConstantTimeCompare([]byte(want), []byte(code.CodeChallenge)) == 1
 }
 
+type issueParams struct {
+	userID     int64
+	clientID   int64
+	scopes     []string
+	playerID   *int64
+	playerName string
+	nonce      string
+	authTime   time.Time
+	issuer     string
+}
+
 func (s *Service) exchangeCode(ctx context.Context, c *ent.OAuthClient, r TokenRequest, p Policy) (*TokenResponse, error) {
 	if r.Code == "" {
 		return nil, invalidRequest("code is required.")
+	}
+	// Pre-load OIDC signing key outside the write transaction so SQLite's single
+	// writer doesn't deadlock if site_secrets needs to generate the key on first use.
+	if p.EnableOIDC {
+		if _, err := s.loadOIDCKey(ctx); err != nil {
+			return nil, err
+		}
 	}
 	var out *TokenResponse
 	err := db.WithTx(ctx, s.db, func(tx *ent.Client) error {
@@ -329,7 +471,40 @@ func (s *Service) exchangeCode(ctx context.Context, c *ent.OAuthClient, r TokenR
 		case code.Edges.User.Status != user.StatusActive:
 			return invalidGrant("The account is not active.")
 		}
-		out, err = s.issue(ctx, tx, code.UserID, c.ID, code.Scopes, p)
+		if serr := ValidateScopeCombination(code.Scopes, p.EnableOIDC); serr != nil {
+			return invalidGrant(serr.Description)
+		}
+		if c.Dynamic {
+			if derr := ValidateDynamicClientScopes(code.Scopes); derr != nil {
+				return invalidGrant(derr.Description)
+			}
+			_ = tx.OAuthClient.Update().Where(oauthclient.ID(c.ID)).SetLastUsedAt(s.now()).Exec(ctx)
+		}
+		playerName := ""
+		if code.PlayerID != nil {
+			pl, err := tx.Player.Query().Where(entplayer.ID(*code.PlayerID), entplayer.UserID(code.UserID)).Only(ctx)
+			if ent.IsNotFound(err) {
+				return invalidGrant("The selected player no longer exists.")
+			}
+			if err != nil {
+				return err
+			}
+			playerName = pl.Name
+		}
+		authTime := s.now()
+		if code.AuthTime != nil {
+			authTime = *code.AuthTime
+		}
+		out, err = s.issue(ctx, tx, issueParams{
+			userID:     code.UserID,
+			clientID:   c.ID,
+			scopes:     code.Scopes,
+			playerID:   code.PlayerID,
+			playerName: playerName,
+			nonce:      code.Nonce,
+			authTime:   authTime,
+			issuer:     r.Issuer,
+		}, p)
 		return err
 	})
 	return out, s.keepCodeDeleted(ctx, r.Code, err)
@@ -352,6 +527,11 @@ func (s *Service) refresh(ctx context.Context, c *ent.OAuthClient, r TokenReques
 	if !strings.HasPrefix(r.RefreshToken, refreshPrefix) {
 		return nil, invalidGrant("The refresh token is invalid or expired.")
 	}
+	if p.EnableOIDC {
+		if _, err := s.loadOIDCKey(ctx); err != nil {
+			return nil, err
+		}
+	}
 	var out *TokenResponse
 	err := db.WithTx(ctx, s.db, func(tx *ent.Client) error {
 		old, err := tx.OAuthToken.Query().Where(oauthtoken.RefreshHash(hash(r.RefreshToken))).WithUser().Only(ctx)
@@ -373,29 +553,93 @@ func (s *Service) refresh(ctx context.Context, c *ent.OAuthClient, r TokenReques
 			}
 			scopes = asked
 		}
+		if serr := ValidateScopeCombination(scopes, p.EnableOIDC); serr != nil {
+			return invalidGrant(serr.Description)
+		}
+		if c.Dynamic {
+			if derr := ValidateDynamicClientScopes(scopes); derr != nil {
+				return invalidGrant(derr.Description)
+			}
+		}
+		if p.RequireVerified && old.Edges.User.EmailVerifiedAt == nil && slices.Contains(scopes, ScopeYggServerJoin) {
+			return invalidGrant("Verify your email address first.")
+		}
+		playerName := ""
+		if old.PlayerID != nil {
+			pl, err := tx.Player.Query().Where(entplayer.ID(*old.PlayerID), entplayer.UserID(old.UserID)).Only(ctx)
+			if ent.IsNotFound(err) {
+				return invalidGrant("The bound player no longer exists.")
+			}
+			if err != nil {
+				return err
+			}
+			// Refresh updates player_name_at_issue to the player's latest name (#231).
+			playerName = pl.Name
+		}
 		if n, err := tx.OAuthToken.Delete().Where(oauthtoken.ID(old.ID)).Exec(ctx); err != nil || n == 0 {
 			if err == nil {
 				err = invalidGrant("The refresh token is invalid or expired.")
 			}
 			return err
 		}
-		out, err = s.issue(ctx, tx, old.UserID, c.ID, scopes, p)
+		if c.Dynamic {
+			_ = tx.OAuthClient.Update().Where(oauthclient.ID(c.ID)).SetLastUsedAt(s.now()).Exec(ctx)
+		}
+		out, err = s.issue(ctx, tx, issueParams{
+			userID:     old.UserID,
+			clientID:   c.ID,
+			scopes:     scopes,
+			playerID:   old.PlayerID,
+			playerName: playerName,
+			authTime:   old.CreatedAt,
+			issuer:     r.Issuer,
+		}, p)
 		return err
 	})
 	return out, err
 }
 
-func (s *Service) issue(ctx context.Context, tx *ent.Client, userID, clientID int64, scopes []string, p Policy) (*TokenResponse, error) {
+func (s *Service) issue(ctx context.Context, tx *ent.Client, in issueParams, p Policy) (*TokenResponse, error) {
 	now := s.now()
-	access, refresh := randomToken(accessPrefix), randomToken(refreshPrefix)
-	err := tx.OAuthToken.Create().SetKind(oauthtoken.KindOauth).SetTokenHash(hash(access)).SetRefreshHash(hash(refresh)).
-		SetUserID(userID).SetClientID(clientID).SetScopes(scopes).SetCreatedAt(now).
-		SetExpiresAt(now.Add(p.AccessTTL)).SetRefreshUntil(now.Add(p.RefreshTTL)).Exec(ctx)
-	if err != nil {
+	access := randomToken(accessPrefix)
+	wantRefresh := !HasOIDCScope(in.scopes) || slices.Contains(in.scopes, ScopeOfflineAccess) || slices.Contains(in.scopes, ScopeYggServerJoin)
+	refresh := ""
+	create := tx.OAuthToken.Create().
+		SetKind(oauthtoken.KindOauth).
+		SetTokenHash(hash(access)).
+		SetUserID(in.userID).
+		SetClientID(in.clientID).
+		SetScopes(in.scopes).
+		SetCreatedAt(now).
+		SetExpiresAt(now.Add(p.AccessTTL))
+	if wantRefresh {
+		refresh = randomToken(refreshPrefix)
+		create.SetRefreshHash(hash(refresh)).SetRefreshUntil(now.Add(p.RefreshTTL))
+	} else {
+		create.SetRefreshUntil(now.Add(p.AccessTTL))
+	}
+	if in.playerID != nil {
+		create.SetPlayerID(*in.playerID).SetPlayerNameAtIssue(in.playerName)
+	}
+	if err := create.Exec(ctx); err != nil {
 		return nil, err
 	}
-	return &TokenResponse{TokenType: "Bearer", ExpiresIn: int64(p.AccessTTL.Seconds()), AccessToken: access,
-		RefreshToken: refresh, Scope: strings.Join(scopes, " ")}, nil
+	resp := &TokenResponse{
+		TokenType:    "Bearer",
+		ExpiresIn:    int64(p.AccessTTL.Seconds()),
+		AccessToken:  access,
+		RefreshToken: refresh,
+		Scope:        strings.Join(in.scopes, " "),
+	}
+	if slices.Contains(in.scopes, ScopeOpenID) {
+		idTok, err := s.mintIDToken(ctx, in.issuer, strconv.FormatInt(in.clientID, 10),
+			strconv.FormatInt(in.userID, 10), in.nonce, in.authTime, p.AccessTTL)
+		if err != nil {
+			return nil, err
+		}
+		resp.IDToken = idTok
+	}
+	return resp, nil
 }
 
 // Revoke revokes an access or refresh token of the client (RFC 7009). Unknown tokens

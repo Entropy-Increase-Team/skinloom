@@ -58,9 +58,18 @@ func mountOAuth(r chi.Router, d Deps) {
 			oauthAnswer(w, d, nil, err, basic)
 			return
 		}
-		in := oauth.TokenRequest{GrantType: form.Get("grant_type"), Code: form.Get("code"), RedirectURI: form.Get("redirect_uri"),
-			CodeVerifier: form.Get("code_verifier"), RefreshToken: form.Get("refresh_token"), Scope: form.Get("scope"),
-			ClientID: form.Get("client_id"), ClientSecret: form.Get("client_secret")}
+		in := oauth.TokenRequest{
+			GrantType:    form.Get("grant_type"),
+			Code:         form.Get("code"),
+			RedirectURI:  form.Get("redirect_uri"),
+			CodeVerifier: form.Get("code_verifier"),
+			RefreshToken: form.Get("refresh_token"),
+			DeviceCode:   form.Get("device_code"),
+			Scope:        form.Get("scope"),
+			ClientID:     form.Get("client_id"),
+			ClientSecret: form.Get("client_secret"),
+			Issuer:       siteBase(req, d),
+		}
 		out, err := d.OAuth.Token(req.Context(), in, oauth.PolicyFrom(d.Settings.Current()))
 		oauthAnswer(w, d, out, err, basic)
 	})
@@ -78,25 +87,164 @@ func mountOAuth(r chi.Router, d Deps) {
 		oauthAnswer(w, d, nil, err, basic)
 	})
 	r.With(openCORS).Options("/oauth/revoke", func(http.ResponseWriter, *http.Request) {})
-	r.With(openCORS).Get("/.well-known/oauth-authorization-server", func(w http.ResponseWriter, req *http.Request) {
-		base := siteBase(req, d)
-		names := make([]string, len(oauth.Scopes))
-		for i, s := range oauth.Scopes {
-			names[i] = s.Name
+
+	// OpenID Connect & Yggdrasil Connect protocol endpoints.
+	r.With(openCORS).Get("/oauth/jwks", func(w http.ResponseWriter, req *http.Request) {
+		if !oauth.PolicyFrom(d.Settings.Current()).EnableOIDC {
+			http.NotFound(w, req)
+			return
+		}
+		jwks, err := d.OAuth.JWKS(req.Context())
+		if err != nil {
+			oauthAnswer(w, d, nil, err, false)
+			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "public, max-age=3600")
-		_ = json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(jwks)
+	})
+	r.With(openCORS).Options("/oauth/jwks", func(http.ResponseWriter, *http.Request) {})
+
+	serveUserInfo := func(w http.ResponseWriter, req *http.Request) {
+		if !oauth.PolicyFrom(d.Settings.Current()).EnableOIDC {
+			http.NotFound(w, req)
+			return
+		}
+		token := oauthBearer(req)
+		if token == "" {
+			w.Header().Set("WWW-Authenticate", `Bearer realm="openid"`)
+			oauthAnswer(w, d, nil, &oauth.Error{Status: http.StatusUnauthorized, Code: "invalid_token", Description: "Missing bearer token."}, false)
+			return
+		}
+		info, err := d.OAuth.UserInfo(req.Context(), token, siteBase(req, d))
+		switch {
+		case errors.Is(err, oauth.ErrInvalidToken):
+			w.Header().Set("WWW-Authenticate", `Bearer realm="openid", error="invalid_token"`)
+			oauthAnswer(w, d, nil, &oauth.Error{Status: http.StatusUnauthorized, Code: "invalid_token", Description: "The access token is invalid, expired, or its bound profile changed."}, false)
+			return
+		case errors.Is(err, oauth.ErrInsufficientScope):
+			w.Header().Set("WWW-Authenticate", `Bearer realm="openid", error="insufficient_scope", scope="openid"`)
+			oauthAnswer(w, d, nil, &oauth.Error{Status: http.StatusForbidden, Code: "insufficient_scope", Description: "The openid scope is required."}, false)
+			return
+		case errors.Is(err, oauth.ErrBanned):
+			oauthAnswer(w, d, nil, &oauth.Error{Status: http.StatusForbidden, Code: "access_denied", Description: "The account is banned."}, false)
+			return
+		case err != nil:
+			oauthAnswer(w, d, nil, err, false)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		_ = json.NewEncoder(w).Encode(info)
+	}
+	r.With(openCORS).Get("/oauth/userinfo", serveUserInfo)
+	r.With(openCORS).Post("/oauth/userinfo", serveUserInfo)
+	r.With(openCORS).Options("/oauth/userinfo", func(http.ResponseWriter, *http.Request) {})
+
+	r.With(openCORS).Post("/oauth/device_authorization", func(w http.ResponseWriter, req *http.Request) {
+		if !d.OAuth.AllowDeviceRequest(requestInfo(req.Context()).client.ClientIP) {
+			oauthAnswer(w, d, nil, &oauth.Error{Status: http.StatusTooManyRequests, Code: "slow_down", Description: "Too many device authorization requests from this address; try again later."}, false)
+			return
+		}
+		form, basic, err := oauthForm(w, req)
+		if err != nil {
+			oauthAnswer(w, d, nil, err, basic)
+			return
+		}
+		out, err := d.OAuth.RequestDeviceCode(req.Context(), form.Get("client_id"), form.Get("client_secret"),
+			form.Get("scope"), siteBase(req, d), oauth.PolicyFrom(d.Settings.Current()))
+		oauthAnswer(w, d, out, err, basic)
+	})
+	r.With(openCORS).Options("/oauth/device_authorization", func(http.ResponseWriter, *http.Request) {})
+
+	r.With(openCORS).Post("/oauth/register", func(w http.ResponseWriter, req *http.Request) {
+		body, err := io.ReadAll(http.MaxBytesReader(w, req.Body, oauthMaxBody))
+		if err != nil {
+			oauthAnswer(w, d, nil, &oauth.Error{Status: http.StatusBadRequest, Code: "invalid_request", Description: "Malformed request body."}, false)
+			return
+		}
+		var in oauth.DCRRequest
+		if err := json.Unmarshal(body, &in); err != nil {
+			oauthAnswer(w, d, nil, &oauth.Error{Status: http.StatusBadRequest, Code: "invalid_client_metadata", Description: "Invalid JSON body."}, false)
+			return
+		}
+		out, err := d.OAuth.RegisterDynamicClient(req.Context(), in, requestInfo(req.Context()).client.ClientIP, oauth.PolicyFrom(d.Settings.Current()))
+		if err != nil {
+			oauthAnswer(w, d, nil, err, false)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(out)
+	})
+	r.With(openCORS).Options("/oauth/register", func(http.ResponseWriter, *http.Request) {})
+
+	discoveryDoc := func(req *http.Request, oidc bool) map[string]any {
+		pol := oauth.PolicyFrom(d.Settings.Current())
+		base := siteBase(req, d)
+		names := make([]string, 0, len(oauth.Scopes))
+		for _, s := range oauth.Scopes {
+			if !pol.EnableOIDC && s.OIDC {
+				continue
+			}
+			names = append(names, s.Name)
+		}
+		grants := []string{"authorization_code", "refresh_token"}
+		if pol.EnableOIDC {
+			grants = append(grants, oauth.DeviceGrantType)
+		}
+		doc := map[string]any{
 			"issuer":                                base,
 			"authorization_endpoint":                base + "/oauth/authorize",
 			"token_endpoint":                        base + "/oauth/token",
 			"revocation_endpoint":                   base + "/oauth/revoke",
 			"scopes_supported":                      names,
 			"response_types_supported":              []string{"code"},
-			"grant_types_supported":                 []string{"authorization_code", "refresh_token"},
+			"grant_types_supported":                 grants,
 			"code_challenge_methods_supported":      []string{"S256", "plain"},
 			"token_endpoint_auth_methods_supported": []string{"client_secret_basic", "client_secret_post", "none"},
-		})
+		}
+		if pol.EnableOIDC {
+			doc["device_authorization_endpoint"] = base + "/oauth/device_authorization"
+			doc["jwks_uri"] = base + "/oauth/jwks"
+			doc["userinfo_endpoint"] = base + "/oauth/userinfo"
+			if pol.EnableDCR {
+				doc["registration_endpoint"] = base + "/oauth/register"
+			}
+		}
+		if oidc {
+			doc["subject_types_supported"] = []string{"public"}
+			doc["id_token_signing_alg_values_supported"] = []string{"RS256"}
+			doc["claims_supported"] = []string{
+				"sub", "iss", "aud", "exp", "iat", "auth_time", "nonce",
+				"name", "nickname", "preferred_username", "picture",
+				"email", "email_verified", "selectedProfile", "availableProfiles",
+			}
+		}
+		return doc
+	}
+	setDiscoveryCache := func(w http.ResponseWriter) {
+		if strings.TrimSpace(d.Settings.Current().String("site.url")) != "" {
+			w.Header().Set("Cache-Control", "public, max-age=3600")
+		} else {
+			w.Header().Set("Cache-Control", "no-store")
+			w.Header().Set("Vary", "Host")
+		}
+	}
+	r.With(openCORS).Get("/.well-known/oauth-authorization-server", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		setDiscoveryCache(w)
+		_ = json.NewEncoder(w).Encode(discoveryDoc(req, false))
+	})
+	r.With(openCORS).Get("/.well-known/openid-configuration", func(w http.ResponseWriter, req *http.Request) {
+		if !oauth.PolicyFrom(d.Settings.Current()).EnableOIDC {
+			http.NotFound(w, req)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		setDiscoveryCache(w)
+		_ = json.NewEncoder(w).Encode(discoveryDoc(req, true))
 	})
 }
 
@@ -243,12 +391,14 @@ type OAuthScopes struct {
 // AuthorizeInfo answers a look at an authorization request, for the consent screen:
 // exactly one of error, redirect or client is set.
 type AuthorizeInfo struct {
-	Error       string          `json:"error,omitempty" doc:"The request is broken and cannot go back to the application: show this"`
-	Redirect    string          `json:"redirect,omitempty" doc:"Send the browser here (an error the application handles)"`
-	Client      *OAuthClientRef `json:"client,omitempty"`
-	RedirectURI string          `json:"redirectUri,omitempty"`
-	Scopes      []string        `json:"scopes,omitempty" doc:"What would be granted"`
-	Granted     bool            `json:"granted" doc:"You already allowed all of it: approve without asking"`
+	Error             string               `json:"error,omitempty" doc:"The request is broken and cannot go back to the application: show this"`
+	Redirect          string               `json:"redirect,omitempty" doc:"Send the browser here (an error the application handles)"`
+	Client            *OAuthClientRef      `json:"client,omitempty"`
+	RedirectURI       string               `json:"redirectUri,omitempty"`
+	Scopes            []string             `json:"scopes,omitempty" doc:"What would be granted"`
+	Granted           bool                 `json:"granted" doc:"You already allowed all of it: approve without asking"`
+	NeedsPlayerSelect bool                 `json:"needsPlayerSelect,omitempty" doc:"The application asks you to pick a Minecraft character"`
+	Players           []oauth.PlayerOption `json:"players,omitempty" doc:"Your characters when needsPlayerSelect is true"`
 }
 
 // AuthorizeResult is where to send the browser after approving or refusing.
@@ -262,13 +412,14 @@ type authorizeQuery struct {
 	RedirectURI         string `query:"redirect_uri" maxLength:"2048"`
 	Scope               string `query:"scope" maxLength:"1024"`
 	State               string `query:"state" maxLength:"1024"`
+	Nonce               string `query:"nonce" maxLength:"256"`
 	CodeChallenge       string `query:"code_challenge" maxLength:"128"`
 	CodeChallengeMethod string `query:"code_challenge_method" maxLength:"8"`
 }
 
 func (q authorizeQuery) request() oauth.AuthRequest {
 	return oauth.AuthRequest{ResponseType: q.ResponseType, ClientID: q.ClientID, RedirectURI: q.RedirectURI, Scope: q.Scope,
-		State: q.State, CodeChallenge: q.CodeChallenge, CodeChallengeMethod: q.CodeChallengeMethod}
+		State: q.State, Nonce: q.Nonce, CodeChallenge: q.CodeChallenge, CodeChallengeMethod: q.CodeChallengeMethod}
 }
 
 type approveInput struct {
@@ -278,10 +429,38 @@ type approveInput struct {
 		RedirectURI         string `json:"redirect_uri,omitempty" maxLength:"2048"`
 		Scope               string `json:"scope,omitempty" maxLength:"1024"`
 		State               string `json:"state,omitempty" maxLength:"1024"`
+		Nonce               string `json:"nonce,omitempty" maxLength:"256"`
 		CodeChallenge       string `json:"code_challenge,omitempty" maxLength:"128"`
 		CodeChallengeMethod string `json:"code_challenge_method,omitempty" maxLength:"8"`
+		PlayerID            *int64 `json:"playerId,omitempty"`
 		Allow               bool   `json:"allow"`
 	}
+}
+
+// DeviceCodeInfo describes a pending RFC 8628 device authorization for the consent UI.
+type DeviceCodeInfo struct {
+	Error             string               `json:"error,omitempty"`
+	Client            *OAuthClientRef      `json:"client,omitempty"`
+	Scopes            []string             `json:"scopes,omitempty"`
+	NeedsPlayerSelect bool                 `json:"needsPlayerSelect,omitempty"`
+	Players           []oauth.PlayerOption `json:"players,omitempty"`
+	ExpiresAt         *time.Time           `json:"expiresAt,omitempty"`
+}
+
+type deviceLookupQuery struct {
+	UserCode string `query:"user_code" maxLength:"32"`
+}
+
+type deviceApproveInput struct {
+	Body struct {
+		UserCode string `json:"user_code" maxLength:"32"`
+		PlayerID *int64 `json:"playerId,omitempty"`
+		Allow    bool   `json:"allow"`
+	}
+}
+
+type deviceApproveResult struct {
+	Approved bool `json:"approved"`
 }
 
 type clientIDInput struct {
@@ -341,7 +520,7 @@ func registerOAuthAccount(api huma.API, d Deps) {
 			if err != nil {
 				return nil, err
 			}
-			p, err := d.OAuth.Prepare(ctx, v.User, in.request())
+			p, err := d.OAuth.Prepare(ctx, v.User, in.request(), oauth.PolicyFrom(d.Settings.Current()))
 			var re *oauth.RequestError
 			switch {
 			case errors.As(err, &re):
@@ -351,8 +530,14 @@ func registerOAuthAccount(api huma.API, d Deps) {
 			case err != nil:
 				return nil, err
 			}
-			return &struct{ Body AuthorizeInfo }{AuthorizeInfo{Client: &OAuthClientRef{ID: p.Client.ID, Name: p.Client.Name, Owner: p.Owner},
-				RedirectURI: p.RedirectURI, Scopes: p.Scopes, Granted: p.Granted}}, nil
+			return &struct{ Body AuthorizeInfo }{AuthorizeInfo{
+				Client:            &OAuthClientRef{ID: p.Client.ID, Name: p.Client.Name, Owner: p.Owner},
+				RedirectURI:       p.RedirectURI,
+				Scopes:            p.Scopes,
+				Granted:           p.Granted,
+				NeedsPlayerSelect: p.NeedsPlayerSelect,
+				Players:           p.Players,
+			}}, nil
 		})
 
 	huma.Register(api, op("authorize", http.MethodPost, "/api/v1/oauth/authorize", "Allow or refuse an application", 0),
@@ -362,9 +547,18 @@ func registerOAuthAccount(api huma.API, d Deps) {
 				return nil, err
 			}
 			b := in.Body
-			req := authorizeQuery{ResponseType: b.ResponseType, ClientID: b.ClientID, RedirectURI: b.RedirectURI, Scope: b.Scope,
-				State: b.State, CodeChallenge: b.CodeChallenge, CodeChallengeMethod: b.CodeChallengeMethod}
-			to, p, err := d.OAuth.Approve(ctx, v.User, req.request(), b.Allow)
+			req := oauth.AuthRequest{
+				ResponseType:        b.ResponseType,
+				ClientID:            b.ClientID,
+				RedirectURI:         b.RedirectURI,
+				Scope:               b.Scope,
+				State:               b.State,
+				Nonce:               b.Nonce,
+				CodeChallenge:       b.CodeChallenge,
+				CodeChallengeMethod: b.CodeChallengeMethod,
+				PlayerID:            b.PlayerID,
+			}
+			to, p, err := d.OAuth.Approve(ctx, v.User, req, b.Allow, oauth.PolicyFrom(d.Settings.Current()))
 			var re *oauth.RequestError
 			switch {
 			case errors.As(err, &re):
@@ -372,7 +566,7 @@ func registerOAuthAccount(api huma.API, d Deps) {
 			case oauth.RedirectOf(err) != "":
 				return &struct{ Body AuthorizeResult }{AuthorizeResult{oauth.RedirectOf(err)}}, nil
 			case err != nil:
-				return nil, err
+				return nil, apiError(err)
 			}
 			if b.Allow {
 				if err := d.Accounts.Audit(ctx, &v.User.ID, "oauth.authorize", "oauth_client", strconv.FormatInt(p.Client.ID, 10),
@@ -381,6 +575,61 @@ func registerOAuthAccount(api huma.API, d Deps) {
 				}
 			}
 			return &struct{ Body AuthorizeResult }{AuthorizeResult{to}}, nil
+		})
+
+	huma.Register(api, op("lookupDeviceCode", http.MethodGet, "/api/v1/oauth/device", "Look up an RFC 8628 device authorization user_code", 0),
+		func(ctx context.Context, in *deviceLookupQuery) (*struct{ Body DeviceCodeInfo }, error) {
+			v, err := signedIn(ctx)
+			if err != nil {
+				return nil, err
+			}
+			key := strconv.FormatInt(v.User.ID, 10) + "|" + requestInfo(ctx).client.ClientIP
+			if !d.OAuth.AllowDeviceLookup(key) {
+				return nil, huma.Error429TooManyRequests("Too many device code attempts; please try again later.")
+			}
+			prep, err := d.OAuth.LookupDeviceCode(ctx, v.User, in.UserCode, oauth.PolicyFrom(d.Settings.Current()))
+			var re *oauth.RequestError
+			if errors.As(err, &re) {
+				return &struct{ Body DeviceCodeInfo }{DeviceCodeInfo{Error: re.Description}}, nil
+			}
+			if err != nil {
+				return nil, err
+			}
+			exp := prep.ExpiresAt
+			return &struct{ Body DeviceCodeInfo }{DeviceCodeInfo{
+				Client:            &OAuthClientRef{ID: prep.Client.ID, Name: prep.Client.Name, Owner: prep.Owner},
+				Scopes:            prep.Scopes,
+				NeedsPlayerSelect: prep.NeedsPlayerSelect,
+				Players:           prep.Players,
+				ExpiresAt:         &exp,
+			}}, nil
+		})
+
+	huma.Register(api, op("approveDeviceCode", http.MethodPost, "/api/v1/oauth/device", "Approve or deny an RFC 8628 device authorization", 0),
+		func(ctx context.Context, in *deviceApproveInput) (*struct{ Body deviceApproveResult }, error) {
+			v, err := signedIn(ctx)
+			if err != nil {
+				return nil, err
+			}
+			key := strconv.FormatInt(v.User.ID, 10) + "|" + requestInfo(ctx).client.ClientIP
+			if !d.OAuth.AllowDeviceLookup(key) {
+				return nil, huma.Error429TooManyRequests("Too many device code attempts; please try again later.")
+			}
+			prep, err := d.OAuth.ApproveDeviceCode(ctx, v.User, in.Body.UserCode, in.Body.Allow, in.Body.PlayerID, oauth.PolicyFrom(d.Settings.Current()))
+			var re *oauth.RequestError
+			if errors.As(err, &re) {
+				return nil, huma.Error400BadRequest(re.Description)
+			}
+			if err != nil {
+				return nil, apiError(err)
+			}
+			if in.Body.Allow {
+				if err := d.Accounts.Audit(ctx, &v.User.ID, "oauth.device_authorize", "oauth_client", strconv.FormatInt(prep.Client.ID, 10),
+					requestInfo(ctx).client.ClientIP, map[string]any{"scopes": prep.Scopes}); err != nil {
+					d.Log.Warn("audit", "action", "oauth.device_authorize", "err", err)
+				}
+			}
+			return &struct{ Body deviceApproveResult }{deviceApproveResult{Approved: in.Body.Allow}}, nil
 		})
 
 	huma.Register(api, op("listOAuthClients", http.MethodGet, "/api/v1/me/oauth/clients", "Your applications", 0),
@@ -531,6 +780,9 @@ func registerOAuthAccount(api huma.API, d Deps) {
 
 // oauthBearer reads "Authorization: Bearer <token>".
 func oauthBearer(r *http.Request) string {
-	token, _ := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-	return strings.TrimSpace(token)
+	hdr := strings.TrimSpace(r.Header.Get("Authorization"))
+	if len(hdr) < 7 || !strings.EqualFold(hdr[:7], "Bearer ") {
+		return ""
+	}
+	return strings.TrimSpace(hdr[7:])
 }

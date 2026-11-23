@@ -2,7 +2,12 @@ package httpapi
 
 import (
 	"bytes"
+	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -150,5 +155,63 @@ func TestYggdrasilAPI(t *testing.T) {
 	}
 	if rec := launcher(t, h, "POST", YggdrasilPrefix+"/authserver/validate", fmt.Sprintf(`{"accessToken":%q}`, auth.AccessToken)); rec.Code != http.StatusForbidden {
 		t.Fatalf("validate after signout: %d", rec.Code)
+	}
+
+	// Mojang 1.20+ minecraftservices lookup aliases.
+	if rec := launcher(t, h, "GET", YggdrasilPrefix+"/minecraftservices/minecraft/profile/lookup/name/Steve", ""); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"name":"Steve"`) {
+		t.Fatalf("minecraftservices lookup by name: %d %s", rec.Code, rec.Body)
+	}
+	if rec := launcher(t, h, "POST", YggdrasilPrefix+"/minecraftservices/minecraft/profile/lookup/bulk/byname", `["Steve","Nobody"]`); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"name":"Steve"`) {
+		t.Fatalf("minecraftservices bulk lookup: %d %s", rec.Code, rec.Body)
+	}
+
+	// DisableAuthServer blocks /authserver/* and omits feature.non_email_login.
+	setSettings(t, d, `{"yggdrasil.disable_authserver": true}`)
+	if rec := launcher(t, h, "POST", YggdrasilPrefix+"/authserver/authenticate", `{"username":"alice@example.com","password":"secret-password"}`); rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 when disable_authserver=true, got %d %s", rec.Code, rec.Body)
+	}
+	if rec := launcher(t, h, "GET", YggdrasilPrefix+"/", ""); rec.Code != http.StatusOK || strings.Contains(rec.Body.String(), `"feature.non_email_login"`) {
+		t.Fatalf("expected feature.non_email_login omitted when disable_authserver=true: %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestYggdrasilSetSigningKey(t *testing.T) {
+	d := newTestDeps(t)
+	ctx := context.Background()
+	origPub, _, err := d.Yggdrasil.PublicKey(ctx)
+	if err != nil {
+		t.Fatalf("initial PublicKey: %v", err)
+	}
+
+	// Keys smaller than 4096 bits must be rejected.
+	smallKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	smallPEM := string(pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(smallKey)}))
+	if err := d.Yggdrasil.SetSigningKey(ctx, smallPEM); err == nil {
+		t.Fatalf("expected SetSigningKey to reject 2048-bit key")
+	}
+
+	// 4096-bit PKCS#1 key is accepted, stored canonically, and updates PublicKey immediately.
+	bigKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bigPEM := string(pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(bigKey)}))
+	if err := d.Yggdrasil.SetSigningKey(ctx, bigPEM); err != nil {
+		t.Fatalf("SetSigningKey 4096 PKCS#1: %v", err)
+	}
+	nextPub, _, err := d.Yggdrasil.PublicKey(ctx)
+	if err != nil {
+		t.Fatalf("updated PublicKey: %v", err)
+	}
+	if nextPub == origPub {
+		t.Fatalf("expected PublicKey to change after SetSigningKey")
+	}
+	wantPubDER, _ := x509.MarshalPKIXPublicKey(&bigKey.PublicKey)
+	wantPubPEM := string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: wantPubDER}))
+	if nextPub != wantPubPEM {
+		t.Fatalf("PublicKey mismatch after SetSigningKey")
 	}
 }

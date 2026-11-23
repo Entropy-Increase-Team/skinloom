@@ -12,6 +12,8 @@ import (
 
 	pluginv1 "github.com/Entropy-Increase-Team/skinloom/api/proto/plugin/v1"
 	"github.com/Entropy-Increase-Team/skinloom/ent"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/player"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/validate"
 )
 
 // hostGRPCServer implements pluginv1.HostServiceServer on the host side over
@@ -33,11 +35,21 @@ func mapHostErr(err error) error {
 	if errors.Is(err, ErrPermissionDenied) {
 		return status.Error(codes.PermissionDenied, err.Error())
 	}
-	if ent.IsNotFound(err) || errors.Is(err, ErrFileNotFound) {
+	if ent.IsNotFound(err) || errors.Is(err, ErrFileNotFound) || errors.Is(err, player.ErrNotFound) {
 		return status.Error(codes.NotFound, err.Error())
 	}
 	if errors.Is(err, ErrQuotaExceeded) {
 		return status.Error(codes.ResourceExhausted, err.Error())
+	}
+	if errors.Is(err, ErrInvalidSettings) {
+		return status.Error(codes.InvalidArgument, err.Error())
+	}
+	var fe *validate.FieldError
+	if errors.As(err, &fe) {
+		if fe.Field == "uuid" && fe.Message == "UUID already in use" {
+			return status.Error(codes.AlreadyExists, fe.Error())
+		}
+		return status.Error(codes.InvalidArgument, fe.Error())
 	}
 	return status.Error(codes.Internal, err.Error())
 }
@@ -223,10 +235,10 @@ func (s *hostGRPCServer) Mail(ctx context.Context, req *pluginv1.MailSendRequest
 }
 
 func (s *hostGRPCServer) Yggdrasil(ctx context.Context, req *pluginv1.HostOpRequest) (*pluginv1.HostOpResponse, error) {
-	// Native plugins only invoke query ops (publicKey, lookupName, lookupProfile) via HostService;
+	// Native plugins invoke query ops and privileged key update via HostService;
 	// metadata extensions are declared in InitResponse.
 	switch req.GetOp() {
-	case "publicKey", "lookupName", "lookupProfile":
+	case "publicKey", "lookupName", "lookupProfile", "setSigningKey":
 		return s.dispatchOp(ctx, req, s.rt.hostYggdrasil)
 	default:
 		return nil, status.Errorf(codes.InvalidArgument, "unsupported yggdrasil host op %q", req.GetOp())
@@ -273,6 +285,15 @@ func (s *hostGRPCServer) CallPluginService(ctx context.Context, req *pluginv1.Ca
 		return nil, mapHostErr(err)
 	}
 	return encodeOpResp(res)
+}
+
+func (s *hostGRPCServer) DiscoverPluginServices(ctx context.Context, req *pluginv1.DiscoverPluginServicesRequest) (*pluginv1.DiscoverPluginServicesResponse, error) {
+	res, err := s.rt.hostServices(ctx, []any{"discover", req.GetServiceName()})
+	if err != nil {
+		return nil, mapHostErr(err)
+	}
+	ids, _ := res.([]string)
+	return &pluginv1.DiscoverPluginServicesResponse{PluginIds: ids}, nil
 }
 
 func (s *hostGRPCServer) Log(_ context.Context, req *pluginv1.LogRequest) (*pluginv1.Empty, error) {

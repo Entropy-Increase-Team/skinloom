@@ -261,6 +261,7 @@ export interface PluginContext {
   settings: {
     get<T = unknown>(key: string): Promise<T | undefined>
     all<T extends Record<string, unknown> = Record<string, unknown>>(): Promise<T>
+    patch<T extends Record<string, unknown> = Record<string, unknown>>(patch: Record<string, unknown>): Promise<T>
     onChange(listener: (next: Record<string, unknown>) => Promise<void> | void): Promise<void> | void
   }
 
@@ -410,6 +411,7 @@ export interface PluginContext {
       pluginId: string,
       serviceName: string,
     ): (...args: TArgs) => Promise<TResult>
+    discover(serviceName: string): Promise<string[]>
   }
 
   audit: {

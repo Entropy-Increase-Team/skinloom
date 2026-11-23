@@ -41,3 +41,39 @@ func TestPlanPlugins(t *testing.T) {
 		}
 	}
 }
+
+func TestPlanYggdrasilConnectOptions(t *testing.T) {
+	r := &Report{}
+	d := &sourceData{
+		Options: map[string]string{
+			"plugins_enabled":        `[{"name":"yggdrasil-connect","version":"6.1.0"}]`,
+			"ygg_disable_authserver": "true",
+			"ygg_connect_server_url": "https://janus.example.com",
+		},
+	}
+	reg := testRegistry(t)
+	out := planSettings(d, planOptions{Settings: reg, Locales: []string{"zh-CN", "en"}, Location: shanghai}, r)
+	if string(out["yggdrasil.disable_authserver"]) != "true" {
+		t.Fatalf("expected yggdrasil.disable_authserver=true, got %q", string(out["yggdrasil.disable_authserver"]))
+	}
+	if string(out["player.keep_uuid_on_rename"]) != "true" {
+		t.Fatalf("expected player.keep_uuid_on_rename=true, got %q", string(out["player.keep_uuid_on_rename"]))
+	}
+
+	planPlugins(d, r)
+	var sawPluginHint, sawJanus bool
+	for _, e := range r.Entries {
+		if strings.Contains(e.Message, "bs-importer") && strings.Contains(e.Message, "yggdrasil-connect") {
+			sawPluginHint = true
+		}
+		if strings.Contains(e.Message, "ygg_connect_server_url") && strings.Contains(e.Message, "/.well-known/openid-configuration") {
+			sawJanus = true
+		}
+	}
+	if !sawPluginHint {
+		t.Fatalf("expected generic plugin migration hint in report, got %+v", r.Entries)
+	}
+	if !sawJanus {
+		t.Fatalf("expected built-in OIDC hint for ygg_connect_server_url, got %+v", r.Entries)
+	}
+}

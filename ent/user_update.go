@@ -17,6 +17,7 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthclient"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthcode"
+	"github.com/Entropy-Increase-Team/skinloom/ent/oauthdevicecode"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthgrant"
 	"github.com/Entropy-Increase-Team/skinloom/ent/oauthtoken"
 	"github.com/Entropy-Increase-Team/skinloom/ent/player"
@@ -550,6 +551,21 @@ func (_u *UserUpdate) AddOauthTokens(v ...*OAuthToken) *UserUpdate {
 	return _u.AddOauthTokenIDs(ids...)
 }
 
+// AddOauthDeviceCodeIDs adds the "oauth_device_codes" edge to the OAuthDeviceCode entity by IDs.
+func (_u *UserUpdate) AddOauthDeviceCodeIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddOauthDeviceCodeIDs(ids...)
+	return _u
+}
+
+// AddOauthDeviceCodes adds the "oauth_device_codes" edges to the OAuthDeviceCode entity.
+func (_u *UserUpdate) AddOauthDeviceCodes(v ...*OAuthDeviceCode) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOauthDeviceCodeIDs(ids...)
+}
+
 // AddSocialAccountIDs adds the "social_accounts" edge to the SocialAccount entity by IDs.
 func (_u *UserUpdate) AddSocialAccountIDs(ids ...int64) *UserUpdate {
 	_u.mutation.AddSocialAccountIDs(ids...)
@@ -913,6 +929,27 @@ func (_u *UserUpdate) RemoveOauthTokens(v ...*OAuthToken) *UserUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveOauthTokenIDs(ids...)
+}
+
+// ClearOauthDeviceCodes clears all "oauth_device_codes" edges to the OAuthDeviceCode entity.
+func (_u *UserUpdate) ClearOauthDeviceCodes() *UserUpdate {
+	_u.mutation.ClearOauthDeviceCodes()
+	return _u
+}
+
+// RemoveOauthDeviceCodeIDs removes the "oauth_device_codes" edge to OAuthDeviceCode entities by IDs.
+func (_u *UserUpdate) RemoveOauthDeviceCodeIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemoveOauthDeviceCodeIDs(ids...)
+	return _u
+}
+
+// RemoveOauthDeviceCodes removes "oauth_device_codes" edges to OAuthDeviceCode entities.
+func (_u *UserUpdate) RemoveOauthDeviceCodes(v ...*OAuthDeviceCode) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOauthDeviceCodeIDs(ids...)
 }
 
 // ClearSocialAccounts clears all "social_accounts" edges to the SocialAccount entity.
@@ -1826,6 +1863,51 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.OauthDeviceCodesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthDeviceCodesTable,
+			Columns: []string{user.OauthDeviceCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthdevicecode.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOauthDeviceCodesIDs(); len(nodes) > 0 && !_u.mutation.OauthDeviceCodesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthDeviceCodesTable,
+			Columns: []string{user.OauthDeviceCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthdevicecode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OauthDeviceCodesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthDeviceCodesTable,
+			Columns: []string{user.OauthDeviceCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthdevicecode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.SocialAccountsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -2487,6 +2569,21 @@ func (_u *UserUpdateOne) AddOauthTokens(v ...*OAuthToken) *UserUpdateOne {
 	return _u.AddOauthTokenIDs(ids...)
 }
 
+// AddOauthDeviceCodeIDs adds the "oauth_device_codes" edge to the OAuthDeviceCode entity by IDs.
+func (_u *UserUpdateOne) AddOauthDeviceCodeIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddOauthDeviceCodeIDs(ids...)
+	return _u
+}
+
+// AddOauthDeviceCodes adds the "oauth_device_codes" edges to the OAuthDeviceCode entity.
+func (_u *UserUpdateOne) AddOauthDeviceCodes(v ...*OAuthDeviceCode) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOauthDeviceCodeIDs(ids...)
+}
+
 // AddSocialAccountIDs adds the "social_accounts" edge to the SocialAccount entity by IDs.
 func (_u *UserUpdateOne) AddSocialAccountIDs(ids ...int64) *UserUpdateOne {
 	_u.mutation.AddSocialAccountIDs(ids...)
@@ -2850,6 +2947,27 @@ func (_u *UserUpdateOne) RemoveOauthTokens(v ...*OAuthToken) *UserUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveOauthTokenIDs(ids...)
+}
+
+// ClearOauthDeviceCodes clears all "oauth_device_codes" edges to the OAuthDeviceCode entity.
+func (_u *UserUpdateOne) ClearOauthDeviceCodes() *UserUpdateOne {
+	_u.mutation.ClearOauthDeviceCodes()
+	return _u
+}
+
+// RemoveOauthDeviceCodeIDs removes the "oauth_device_codes" edge to OAuthDeviceCode entities by IDs.
+func (_u *UserUpdateOne) RemoveOauthDeviceCodeIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemoveOauthDeviceCodeIDs(ids...)
+	return _u
+}
+
+// RemoveOauthDeviceCodes removes "oauth_device_codes" edges to OAuthDeviceCode entities.
+func (_u *UserUpdateOne) RemoveOauthDeviceCodes(v ...*OAuthDeviceCode) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOauthDeviceCodeIDs(ids...)
 }
 
 // ClearSocialAccounts clears all "social_accounts" edges to the SocialAccount entity.
@@ -3786,6 +3904,51 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OauthDeviceCodesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthDeviceCodesTable,
+			Columns: []string{user.OauthDeviceCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthdevicecode.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOauthDeviceCodesIDs(); len(nodes) > 0 && !_u.mutation.OauthDeviceCodesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthDeviceCodesTable,
+			Columns: []string{user.OauthDeviceCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthdevicecode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OauthDeviceCodesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OauthDeviceCodesTable,
+			Columns: []string{user.OauthDeviceCodesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(oauthdevicecode.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

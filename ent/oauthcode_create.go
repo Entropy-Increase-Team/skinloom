@@ -82,6 +82,48 @@ func (_c *OAuthCodeCreate) SetNillableCodeChallengeMethod(v *string) *OAuthCodeC
 	return _c
 }
 
+// SetNonce sets the "nonce" field.
+func (_c *OAuthCodeCreate) SetNonce(v string) *OAuthCodeCreate {
+	_c.mutation.SetNonce(v)
+	return _c
+}
+
+// SetNillableNonce sets the "nonce" field if the given value is not nil.
+func (_c *OAuthCodeCreate) SetNillableNonce(v *string) *OAuthCodeCreate {
+	if v != nil {
+		_c.SetNonce(*v)
+	}
+	return _c
+}
+
+// SetPlayerID sets the "player_id" field.
+func (_c *OAuthCodeCreate) SetPlayerID(v int64) *OAuthCodeCreate {
+	_c.mutation.SetPlayerID(v)
+	return _c
+}
+
+// SetNillablePlayerID sets the "player_id" field if the given value is not nil.
+func (_c *OAuthCodeCreate) SetNillablePlayerID(v *int64) *OAuthCodeCreate {
+	if v != nil {
+		_c.SetPlayerID(*v)
+	}
+	return _c
+}
+
+// SetAuthTime sets the "auth_time" field.
+func (_c *OAuthCodeCreate) SetAuthTime(v time.Time) *OAuthCodeCreate {
+	_c.mutation.SetAuthTime(v)
+	return _c
+}
+
+// SetNillableAuthTime sets the "auth_time" field if the given value is not nil.
+func (_c *OAuthCodeCreate) SetNillableAuthTime(v *time.Time) *OAuthCodeCreate {
+	if v != nil {
+		_c.SetAuthTime(*v)
+	}
+	return _c
+}
+
 // SetExpiresAt sets the "expires_at" field.
 func (_c *OAuthCodeCreate) SetExpiresAt(v time.Time) *OAuthCodeCreate {
 	_c.mutation.SetExpiresAt(v)
@@ -147,6 +189,10 @@ func (_c *OAuthCodeCreate) defaults() {
 		v := oauthcode.DefaultCodeChallengeMethod
 		_c.mutation.SetCodeChallengeMethod(v)
 	}
+	if _, ok := _c.mutation.Nonce(); !ok {
+		v := oauthcode.DefaultNonce
+		_c.mutation.SetNonce(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -190,6 +236,14 @@ func (_c *OAuthCodeCreate) check() error {
 	if v, ok := _c.mutation.CodeChallengeMethod(); ok {
 		if err := oauthcode.CodeChallengeMethodValidator(v); err != nil {
 			return &ValidationError{Name: "code_challenge_method", err: fmt.Errorf(`ent: validator failed for field "OAuthCode.code_challenge_method": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Nonce(); !ok {
+		return &ValidationError{Name: "nonce", err: errors.New(`ent: missing required field "OAuthCode.nonce"`)}
+	}
+	if v, ok := _c.mutation.Nonce(); ok {
+		if err := oauthcode.NonceValidator(v); err != nil {
+			return &ValidationError{Name: "nonce", err: fmt.Errorf(`ent: validator failed for field "OAuthCode.nonce": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.ExpiresAt(); !ok {
@@ -253,6 +307,18 @@ func (_c *OAuthCodeCreate) createSpec() (*OAuthCode, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.CodeChallengeMethod(); ok {
 		_spec.SetField(oauthcode.FieldCodeChallengeMethod, field.TypeString, value)
 		_node.CodeChallengeMethod = value
+	}
+	if value, ok := _c.mutation.Nonce(); ok {
+		_spec.SetField(oauthcode.FieldNonce, field.TypeString, value)
+		_node.Nonce = value
+	}
+	if value, ok := _c.mutation.PlayerID(); ok {
+		_spec.SetField(oauthcode.FieldPlayerID, field.TypeInt64, value)
+		_node.PlayerID = &value
+	}
+	if value, ok := _c.mutation.AuthTime(); ok {
+		_spec.SetField(oauthcode.FieldAuthTime, field.TypeTime, value)
+		_node.AuthTime = &value
 	}
 	if value, ok := _c.mutation.ExpiresAt(); ok {
 		_spec.SetField(oauthcode.FieldExpiresAt, field.TypeTime, value)
@@ -381,6 +447,15 @@ func (u *OAuthCodeUpsertOne) UpdateNewValues() *OAuthCodeUpsertOne {
 		}
 		if _, exists := u.create.mutation.CodeChallengeMethod(); exists {
 			s.SetIgnore(oauthcode.FieldCodeChallengeMethod)
+		}
+		if _, exists := u.create.mutation.Nonce(); exists {
+			s.SetIgnore(oauthcode.FieldNonce)
+		}
+		if _, exists := u.create.mutation.PlayerID(); exists {
+			s.SetIgnore(oauthcode.FieldPlayerID)
+		}
+		if _, exists := u.create.mutation.AuthTime(); exists {
+			s.SetIgnore(oauthcode.FieldAuthTime)
 		}
 		if _, exists := u.create.mutation.ExpiresAt(); exists {
 			s.SetIgnore(oauthcode.FieldExpiresAt)
@@ -618,6 +693,15 @@ func (u *OAuthCodeUpsertBulk) UpdateNewValues() *OAuthCodeUpsertBulk {
 			}
 			if _, exists := b.mutation.CodeChallengeMethod(); exists {
 				s.SetIgnore(oauthcode.FieldCodeChallengeMethod)
+			}
+			if _, exists := b.mutation.Nonce(); exists {
+				s.SetIgnore(oauthcode.FieldNonce)
+			}
+			if _, exists := b.mutation.PlayerID(); exists {
+				s.SetIgnore(oauthcode.FieldPlayerID)
+			}
+			if _, exists := b.mutation.AuthTime(); exists {
+				s.SetIgnore(oauthcode.FieldAuthTime)
 			}
 			if _, exists := b.mutation.ExpiresAt(); exists {
 				s.SetIgnore(oauthcode.FieldExpiresAt)

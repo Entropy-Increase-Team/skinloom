@@ -26,6 +26,12 @@ const (
 	FieldCodeChallenge = "code_challenge"
 	// FieldCodeChallengeMethod holds the string denoting the code_challenge_method field in the database.
 	FieldCodeChallengeMethod = "code_challenge_method"
+	// FieldNonce holds the string denoting the nonce field in the database.
+	FieldNonce = "nonce"
+	// FieldPlayerID holds the string denoting the player_id field in the database.
+	FieldPlayerID = "player_id"
+	// FieldAuthTime holds the string denoting the auth_time field in the database.
+	FieldAuthTime = "auth_time"
 	// FieldExpiresAt holds the string denoting the expires_at field in the database.
 	FieldExpiresAt = "expires_at"
 	// EdgeClient holds the string denoting the client edge name in mutations.
@@ -60,6 +66,9 @@ var Columns = []string{
 	FieldScopes,
 	FieldCodeChallenge,
 	FieldCodeChallengeMethod,
+	FieldNonce,
+	FieldPlayerID,
+	FieldAuthTime,
 	FieldExpiresAt,
 }
 
@@ -86,6 +95,10 @@ var (
 	DefaultCodeChallengeMethod string
 	// CodeChallengeMethodValidator is a validator for the "code_challenge_method" field. It is called by the builders before save.
 	CodeChallengeMethodValidator func(string) error
+	// DefaultNonce holds the default value on creation for the "nonce" field.
+	DefaultNonce string
+	// NonceValidator is a validator for the "nonce" field. It is called by the builders before save.
+	NonceValidator func(string) error
 )
 
 // OrderOption defines the ordering options for the OAuthCode queries.
@@ -124,6 +137,21 @@ func ByCodeChallenge(opts ...sql.OrderTermOption) OrderOption {
 // ByCodeChallengeMethod orders the results by the code_challenge_method field.
 func ByCodeChallengeMethod(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCodeChallengeMethod, opts...).ToFunc()
+}
+
+// ByNonce orders the results by the nonce field.
+func ByNonce(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNonce, opts...).ToFunc()
+}
+
+// ByPlayerID orders the results by the player_id field.
+func ByPlayerID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPlayerID, opts...).ToFunc()
+}
+
+// ByAuthTime orders the results by the auth_time field.
+func ByAuthTime(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAuthTime, opts...).ToFunc()
 }
 
 // ByExpiresAt orders the results by the expires_at field.
