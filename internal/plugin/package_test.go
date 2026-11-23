@@ -474,4 +474,14 @@ func TestLocalization_PriorityPermissionsAndCompat(t *testing.T) {
 	if vAdditive.ResolveChangelog("zh-CN") != "补全中文支持" || vAdditive.ResolveChangelog("en") != "Complete i18n" {
 		t.Fatalf("additive changelogI18n resolve failed: zh=%q en=%q", vAdditive.ResolveChangelog("zh-CN"), vAdditive.ResolveChangelog("en"))
 	}
+
+	// localizePackageWarnings translates unsigned / untrusted signature warnings for Chinese locales.
+	zhWarns := localizePackageWarnings([]string{packageUnsignedWarningEN, packageUntrustedWarningEN}, "zh-CN")
+	if len(zhWarns) != 2 || zhWarns[0] != packageUnsignedWarningZH || zhWarns[1] != packageUntrustedWarningZH {
+		t.Fatalf("localizePackageWarnings(zh-CN) = %+v", zhWarns)
+	}
+	enWarns := localizePackageWarnings([]string{packageUnsignedWarningEN, packageUntrustedWarningEN}, "en")
+	if len(enWarns) != 2 || enWarns[0] != packageUnsignedWarningEN || enWarns[1] != packageUntrustedWarningEN {
+		t.Fatalf("localizePackageWarnings(en) = %+v", enWarns)
+	}
 }

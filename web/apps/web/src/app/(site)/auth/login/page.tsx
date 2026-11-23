@@ -35,7 +35,13 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <SocialError code={socialError} />
-          <LoginForm next={next} captcha={boot.auth.captcha} providers={boot.auth.social} linkPending={linkPending} />
+          <LoginForm
+            next={next}
+            captcha={boot.auth.captcha}
+            providers={boot.auth.social}
+            externalProviders={boot.auth.providers}
+            linkPending={linkPending}
+          />
         </CardContent>
       </Card>
       <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">

@@ -763,6 +763,12 @@
           "mail": {
             "type": "boolean"
           },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/ExternalAuthProviderInfo"
+            },
+            "type": "array"
+          },
           "registration": {
             "enum": [
               "open",
@@ -2262,6 +2268,102 @@
         "required": [
           "database",
           "storage"
+        ],
+        "type": "object"
+      },
+      "ExternalAuthProviderInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "authUrl": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "credentials",
+              "redirect"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "mode"
+        ],
+        "type": "object"
+      },
+      "ExternalAuthVerifyInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ExternalAuthVerifyInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "input": {
+            "additionalProperties": {},
+            "description": "Provider-specific credentials or callback payload passed to the plugin verifier",
+            "type": "object"
+          },
+          "link": {
+            "description": "Link the verified external identity to the currently signed-in account",
+            "type": "boolean"
+          },
+          "next": {
+            "description": "Optional post-login redirect path on this site",
+            "maxLength": 512,
+            "type": "string"
+          },
+          "remember": {
+            "description": "Keep the session for 30 days",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "ExternalAuthVerifyResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/schemas/ExternalAuthVerifyResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "next": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "signed_in",
+              "signup_required",
+              "linked"
+            ],
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserView"
+          }
+        },
+        "required": [
+          "status",
+          "next"
         ],
         "type": "object"
       },
@@ -10890,6 +10992,80 @@
         ]
       }
     },
+    "/api/v1/auth/providers/{provider}/verify": {
+      "post": {
+        "description": "Verifies credentials or a callback payload through an active plugin registered via ctx.auth.registerProvider, then signs in (setting skinloom_session), links the current user, or opens a pending signup flow at /auth/social.",
+        "operationId": "verifyExternalAuth",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "User-Agent",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "skinloom_session",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalAuthVerifyInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalAuthVerifyResult"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Verify a plugin authentication provider",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/register": {
       "post": {
         "description": "Signs the new user in. Needs auth.registration = open and, unless captcha.provider is none, a solved captcha.",
@@ -12671,7 +12847,7 @@
             "name": "provider",
             "required": true,
             "schema": {
-              "maxLength": 32,
+              "maxLength": 64,
               "type": "string"
             }
           }
@@ -12710,7 +12886,7 @@
             "name": "provider",
             "required": true,
             "schema": {
-              "maxLength": 32,
+              "maxLength": 64,
               "type": "string"
             }
           }

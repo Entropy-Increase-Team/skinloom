@@ -15,11 +15,13 @@ import (
 	"strings"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
+	"github.com/Entropy-Increase-Team/skinloom/ent/blob"
 	entplugin "github.com/Entropy-Increase-Team/skinloom/ent/plugin"
 	"github.com/Entropy-Increase-Team/skinloom/ent/plugindoc"
 	"github.com/Entropy-Increase-Team/skinloom/ent/pluginkv"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/db"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 )
 
 var (
@@ -88,7 +90,9 @@ func (m *Manager) inspectPackageWithKeys(ctx context.Context, pkgBytes []byte, l
 		return nil, err
 	}
 
-	warnings := append([]string(nil), pkg.Warnings...)
+	verification := pkg.Verification
+	verification.Warnings = localizePackageWarnings(pkg.Verification.Warnings, locale)
+	warnings := localizePackageWarnings(pkg.Warnings, locale)
 	if pkg.Manifest.Kind == KindTheme {
 		themeWarns, tErr := pkg.ValidateTheme(m.themes)
 		if tErr != nil {
@@ -174,7 +178,7 @@ func (m *Manager) inspectPackageWithKeys(ctx context.Context, pkgBytes []byte, l
 		NativeBlockReason:       nativeBlockReason,
 		ArchiveSHA256:           pkg.ArchiveSHA256,
 		ArchiveBytes:            len(pkg.ArchiveBytes),
-		Verification:            pkg.Verification,
+		Verification:            verification,
 		Permissions:             permGroups,
 		RequiresHighRiskConfirm: needsHighRiskConfirm,
 		Warnings:                warnings,
@@ -260,6 +264,27 @@ func (m *Manager) InstallPackage(ctx context.Context, pkgBytes []byte, opts Inst
 	}
 
 	var pluginDir, prevBackupDir string
+	var themeDir, themeBackupDir string
+	rollbackDirs := func() {
+		if themeDir != "" {
+			if themeBackupDir != "" {
+				_ = os.RemoveAll(themeDir)
+				_ = renameDirWithRetry(themeBackupDir, themeDir)
+			} else {
+				_ = os.RemoveAll(themeDir)
+			}
+		}
+		if prevBackupDir != "" {
+			_ = os.RemoveAll(pluginDir)
+			_ = renameDirWithRetry(prevBackupDir, prevDir)
+		} else if pluginDir != "" && pluginDir != prevDir {
+			_ = os.RemoveAll(pluginDir)
+		}
+		if oldSHA != pkg.ArchiveSHA256 {
+			m.cleanupUnusedPackageBlob(ctx, pkg.ArchiveSHA256)
+		}
+	}
+
 	if m.dataDir != "" {
 		pluginDir = filepath.Join(m.dataDir, "plugins", pkg.Manifest.ID, pkg.Manifest.Version)
 		// Preserve existing same-version directory so rollback on activation failure restores it intact.
@@ -267,21 +292,30 @@ func (m *Manager) InstallPackage(ctx context.Context, pkgBytes []byte, opts Inst
 			if _, statErr := os.Stat(prevDir); statErr == nil {
 				if tmpBak, mkErr := os.MkdirTemp(filepath.Dir(prevDir), ".prev-"+pkg.Manifest.ID+"-*"); mkErr == nil {
 					_ = os.Remove(tmpBak)
-					if rnErr := os.Rename(prevDir, tmpBak); rnErr == nil {
+					if rnErr := renameDirWithRetry(prevDir, tmpBak); rnErr == nil {
 						prevBackupDir = tmpBak
 					}
 				}
 			}
 		}
 		if err := ExtractPackageFiles(pkg, pluginDir); err != nil {
-			if prevBackupDir != "" {
-				_ = os.RemoveAll(pluginDir)
-				_ = os.Rename(prevBackupDir, prevDir)
-			}
-			if oldSHA != pkg.ArchiveSHA256 {
-				m.cleanupUnusedPackageBlob(ctx, pkg.ArchiveSHA256)
-			}
+			rollbackDirs()
 			return nil, fmt.Errorf("extract plugin files: %w", err)
+		}
+		if pkg.Manifest.Kind == KindTheme {
+			themeDir = filepath.Join(m.dataDir, "themes", pkg.Manifest.ID)
+			if _, statErr := os.Stat(themeDir); statErr == nil {
+				if tmpBak, mkErr := os.MkdirTemp(filepath.Dir(themeDir), ".prev-theme-"+pkg.Manifest.ID+"-*"); mkErr == nil {
+					_ = os.Remove(tmpBak)
+					if rnErr := renameDirWithRetry(themeDir, tmpBak); rnErr == nil {
+						themeBackupDir = tmpBak
+					}
+				}
+			}
+			if err := ExtractPackageFiles(pkg, themeDir); err != nil {
+				rollbackDirs()
+				return nil, fmt.Errorf("extract theme files: %w", err)
+			}
 		}
 	}
 
@@ -302,25 +336,14 @@ func (m *Manager) InstallPackage(ctx context.Context, pkgBytes []byte, opts Inst
 
 	info, err := m.installBundle(ctx, sb, granted, opts.Enable)
 	if err != nil {
-		if prevBackupDir != "" {
-			_ = os.RemoveAll(pluginDir)
-			_ = os.Rename(prevBackupDir, prevDir)
-		} else if pluginDir != "" && pluginDir != prevDir {
-			_ = os.RemoveAll(pluginDir)
-		}
-		if oldSHA != pkg.ArchiveSHA256 {
-			m.cleanupUnusedPackageBlob(ctx, pkg.ArchiveSHA256)
-		}
+		rollbackDirs()
 		return nil, err
 	}
 	if prevBackupDir != "" {
 		_ = os.RemoveAll(prevBackupDir)
 	}
-	if pkg.Manifest.Kind == KindTheme && m.dataDir != "" {
-		themeDir := filepath.Join(m.dataDir, "themes", pkg.Manifest.ID)
-		if err := ExtractPackageFiles(pkg, themeDir); err != nil {
-			return nil, fmt.Errorf("extract theme files: %w", err)
-		}
+	if themeBackupDir != "" {
+		_ = os.RemoveAll(themeBackupDir)
 	}
 	cleaned := map[string]bool{pkg.ArchiveSHA256: true}
 	if oldSHA != "" && !cleaned[oldSHA] {
@@ -815,22 +838,18 @@ func (m *Manager) loadBundleFromRow(ctx context.Context, row *ent.Plugin, forceR
 			return targetDir, pkg.ArchiveSHA256, nil
 		}
 
-		if dir == "" && targetSHA != "" && m.store != nil {
-			rc, err := m.store.Open(ctx, targetSHA)
-			if err == nil {
-				slpBytes, readErr := io.ReadAll(io.LimitReader(rc, MaxNativeFatPackageBytes+1))
-				_ = rc.Close()
-				if readErr == nil && len(slpBytes) <= MaxNativeFatPackageBytes {
-					extractedDir, sha, exErr := extractAndVerify(slpBytes, targetSHA)
-					if exErr == nil {
-						dir = extractedDir
-						resolvedSHA = sha
-					} else if errors.Is(exErr, ErrUnsignedNativeForbidden) || row.Runtime != entplugin.RuntimeNative || row.RegistrySource == "" {
-						return nil, exErr
-					}
-					// If native package from shared store was for another arch and
-					// registry_source is configured, fall through to registry fallback below.
+		if dir == "" && targetSHA != "" && (m.store != nil || m.legacyStore != nil) {
+			slpBytes, readErr := m.readPackageBlob(ctx, targetSHA)
+			if readErr == nil && len(slpBytes) <= MaxNativeFatPackageBytes {
+				extractedDir, sha, exErr := extractAndVerify(slpBytes, targetSHA)
+				if exErr == nil {
+					dir = extractedDir
+					resolvedSHA = sha
+				} else if errors.Is(exErr, ErrUnsignedNativeForbidden) || row.Runtime != entplugin.RuntimeNative || row.RegistrySource == "" {
+					return nil, exErr
 				}
+				// If native package from shared store was for another arch and
+				// registry_source is configured, fall through to registry fallback below.
 			}
 		}
 
@@ -1050,8 +1069,106 @@ func (m *Manager) removeLocalDirs(id string, removeThemeDir bool) {
 	}
 }
 
+func (m *Manager) readPackageBlob(ctx context.Context, pkgSHA string) ([]byte, error) {
+	if pkgSHA == "" {
+		return nil, storage.ErrNotFound
+	}
+	if m.store != nil {
+		rc, err := m.store.Open(ctx, pkgSHA)
+		if err == nil {
+			defer rc.Close()
+			return io.ReadAll(io.LimitReader(rc, MaxNativeFatPackageBytes+1))
+		}
+		if !errors.Is(err, storage.ErrNotFound) || m.legacyStore == nil {
+			return nil, err
+		}
+	}
+	if m.legacyStore == nil {
+		return nil, storage.ErrNotFound
+	}
+	rc, err := m.legacyStore.Open(ctx, pkgSHA)
+	if err != nil {
+		return nil, err
+	}
+	data, readErr := io.ReadAll(io.LimitReader(rc, MaxNativeFatPackageBytes+1))
+	_ = rc.Close()
+	if readErr != nil {
+		return nil, readErr
+	}
+	if m.store != nil && len(data) <= MaxNativeFatPackageBytes {
+		if putErr := m.store.Put(ctx, pkgSHA, data); putErr == nil {
+			m.deleteLegacyPackageBlobIfUnreferencedTexture(ctx, pkgSHA)
+		}
+	}
+	return data, nil
+}
+
+// migrateLegacyPackageBlobs moves any v1.1 .slp archives that were stored in the
+// public texture store into the dedicated private plugin package store on boot,
+// removing the legacy public copy once safely persisted.
+func (m *Manager) migrateLegacyPackageBlobs(ctx context.Context) {
+	if m.store == nil || m.legacyStore == nil || m.db == nil {
+		return
+	}
+	rows, err := m.db.Plugin.Query().
+		Select(entplugin.FieldPackageSha256, entplugin.FieldPlatformPackages).
+		All(ctx)
+	if err != nil {
+		return
+	}
+	seen := map[string]struct{}{}
+	migrateOne := func(sha string) {
+		if sha == "" {
+			return
+		}
+		if _, dup := seen[sha]; dup {
+			return
+		}
+		seen[sha] = struct{}{}
+		if _, err := m.store.Stat(ctx, sha); err == nil {
+			// Already present in the private package store; remove any leftover public copy.
+			m.deleteLegacyPackageBlobIfUnreferencedTexture(ctx, sha)
+			return
+		}
+		rc, err := m.legacyStore.Open(ctx, sha)
+		if err != nil {
+			return
+		}
+		data, readErr := io.ReadAll(io.LimitReader(rc, MaxNativeFatPackageBytes+1))
+		_ = rc.Close()
+		if readErr != nil || len(data) > MaxNativeFatPackageBytes {
+			return
+		}
+		if putErr := m.store.Put(ctx, sha, data); putErr != nil {
+			m.log.Warn("migrate legacy plugin package blob failed", "sha256", sha, "err", putErr)
+			return
+		}
+		m.deleteLegacyPackageBlobIfUnreferencedTexture(ctx, sha)
+		m.log.Info("migrated plugin package archive to isolated private store", "sha256", sha)
+	}
+	for _, r := range rows {
+		migrateOne(r.PackageSha256)
+		for _, sha := range r.PlatformPackages {
+			migrateOne(sha)
+		}
+	}
+}
+
+func (m *Manager) deleteLegacyPackageBlobIfUnreferencedTexture(ctx context.Context, pkgSHA string) {
+	if m.legacyStore == nil || pkgSHA == "" {
+		return
+	}
+	if m.db != nil {
+		isTexture, err := m.db.Blob.Query().Where(blob.ID(pkgSHA)).Exist(ctx)
+		if err != nil || isTexture {
+			return
+		}
+	}
+	_ = m.legacyStore.Delete(ctx, pkgSHA)
+}
+
 func (m *Manager) cleanupUnusedPackageBlob(ctx context.Context, pkgSHA string) {
-	if m.store == nil || m.db == nil || pkgSHA == "" {
+	if (m.store == nil && m.legacyStore == nil) || m.db == nil || pkgSHA == "" {
 		return
 	}
 	rows, err := m.db.Plugin.Query().
@@ -1070,7 +1187,10 @@ func (m *Manager) cleanupUnusedPackageBlob(ctx context.Context, pkgSHA string) {
 			}
 		}
 	}
-	_ = m.store.Delete(ctx, pkgSHA)
+	if m.store != nil {
+		_ = m.store.Delete(ctx, pkgSHA)
+	}
+	m.deleteLegacyPackageBlobIfUnreferencedTexture(ctx, pkgSHA)
 }
 
 func (m *Manager) pluginUsage(ctx context.Context, id string) *PluginUsage {

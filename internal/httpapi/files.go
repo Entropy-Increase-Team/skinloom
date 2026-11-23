@@ -1,7 +1,9 @@
 package httpapi
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"mime"
 	"net/http"
 	"strconv"
@@ -12,6 +14,8 @@ import (
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 )
+
+var pngSignature = []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'}
 
 // mountFiles serves texture files: by hash for game clients (contract 02 §2.1), and
 // the original by texture id (/raw/{tid}, honouring visibility and
@@ -47,6 +51,19 @@ func serveByHash(d Deps) http.HandlerFunc {
 			return
 		}
 		defer f.Close()
+		// Defense-in-depth: texture endpoints serve PNG skin/cape blobs exclusively.
+		// Reject any non-PNG object (such as a legacy v1.1 .slp ZIP archive) rather
+		// than exposing it publicly with Content-Type: image/png.
+		var sig [8]byte
+		if _, err := io.ReadFull(f, sig[:]); err != nil || !bytes.Equal(sig[:], pngSignature) {
+			http.NotFound(w, r)
+			return
+		}
+		if _, err := f.Seek(0, io.SeekStart); err != nil {
+			d.Log.Warn("seek texture file", "hash", hash, "err", err)
+			http.Error(w, "storage unavailable", http.StatusServiceUnavailable)
+			return
+		}
 		h := w.Header()
 		h.Set("Content-Type", "image/png")
 		h.Set("Cache-Control", "public, max-age=31536000, immutable")

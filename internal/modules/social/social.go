@@ -252,8 +252,117 @@ func (s *Service) Callback(ctx context.Context, p Policy, in CallbackInput) (*Re
 	return &Result{Signup: signup, Next: f.Next}, nil
 }
 
+// PluginProviderPrefix namespaces plugin-registered auth providers inside
+// social_accounts and social_flows so they can never collide with built-in OAuth IDs.
+const PluginProviderPrefix = "plugin:"
+
+// ExternalAuthInput completes sign-in, linking, or pending signup for an identity
+// already verified by a plugin-registered auth provider.
+type ExternalAuthInput struct {
+	Provider   string // plugin auth provider ID (with or without "plugin:" prefix)
+	Identity   Identity
+	LinkUserID *int64 // non-nil links this identity to an already signed-in user
+	Next       string
+	Remember   bool
+	Meta       account.RequestMeta
+}
+
+// CompleteExternal signs in, links, or creates a pending signup flow for an identity
+// verified by a plugin auth provider.
+func (s *Service) CompleteExternal(ctx context.Context, in ExternalAuthInput) (*Result, error) {
+	id := strings.TrimSpace(strings.TrimPrefix(in.Provider, PluginProviderPrefix))
+	if id == "" || strings.TrimSpace(in.Identity.Subject) == "" {
+		return nil, &FlowError{Code: CodeFailed, Link: in.LinkUserID != nil, Err: ErrUnknownProvider}
+	}
+	providerKey := PluginProviderPrefix + id
+	cleanNext := CleanNext(in.Next)
+	ident := in.Identity
+	ident.Subject = strings.TrimSpace(ident.Subject)
+	if ident.Name == "" {
+		if ident.Nickname != "" {
+			ident.Name = ident.Nickname
+		} else {
+			ident.Name = ident.Email
+		}
+	}
+
+	if in.LinkUserID != nil {
+		switch err := s.link(ctx, *in.LinkUserID, providerKey, &ident, in.Meta); {
+		case errors.Is(err, ErrLinkedElsewhere):
+			return nil, &FlowError{Code: CodeTaken, Link: true, Err: err}
+		case errors.Is(err, ErrAlreadyLinked):
+			return nil, &FlowError{Code: CodeAlready, Link: true, Err: err}
+		case err != nil:
+			return nil, err
+		}
+		return &Result{Linked: true, Next: cleanNext}, nil
+	}
+
+	acct, err := s.db.SocialAccount.Query().
+		Where(socialaccount.Provider(providerKey), socialaccount.Subject(ident.Subject)).WithUser().Only(ctx)
+	switch {
+	case err == nil:
+		return s.signInUser(ctx, acct.Edges.User, providerKey, in.Remember, cleanNext, &ident, in.Meta)
+	case !ent.IsNotFound(err):
+		return nil, err
+	}
+
+	if ident.EmailVerified && strings.TrimSpace(ident.Email) != "" {
+		u, err := s.db.User.Query().
+			Where(user.EmailNormalized(account.NormalizeEmail(ident.Email)), user.EmailVerifiedAtNotNil()).Only(ctx)
+		if err != nil && !ent.IsNotFound(err) {
+			return nil, err
+		}
+		if u != nil && u.Status != user.StatusBanned {
+			switch err := s.link(ctx, u.ID, providerKey, &ident, in.Meta); {
+			case err == nil:
+				return s.signInUser(ctx, u, providerKey, in.Remember, cleanNext, &ident, in.Meta)
+			case !errors.Is(err, ErrAlreadyLinked) && !errors.Is(err, ErrLinkedElsewhere):
+				return nil, err
+			}
+		} else if u != nil {
+			return nil, &FlowError{Code: CodeDisabled, Err: account.ErrAccountDisabled}
+		}
+	}
+
+	signup := account.NewToken()
+	err = s.db.SocialFlow.Create().
+		SetID(account.HashToken(signup)).
+		SetPurpose(socialflow.PurposeSignup).
+		SetProvider(providerKey).
+		SetNext(cleanNext).
+		SetRemember(in.Remember).
+		SetSubject(ident.Subject).
+		SetEmail(clip.Bytes(ident.Email, 255)).
+		SetEmailVerified(ident.EmailVerified).
+		SetName(clip.Bytes(ident.Name, 255)).
+		SetNickname(clip.Bytes(ident.Nickname, 255)).
+		SetCreatedAt(s.now()).
+		SetExpiresAt(s.now().Add(SignupTTL)).
+		Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &Result{Signup: signup, Next: cleanNext}, nil
+}
+
+func (s *Service) hasProvider(p Policy, provider string) bool {
+	if _, ok := p.Provider(provider); ok {
+		return true
+	}
+	if rest, ok := strings.CutPrefix(provider, PluginProviderPrefix); ok && s.accounts != nil {
+		_, exists := s.accounts.LookupAuthProvider(rest)
+		return exists
+	}
+	return false
+}
+
 func (s *Service) signIn(ctx context.Context, u *ent.User, f *ent.SocialFlow, id *Identity, meta account.RequestMeta) (*Result, error) {
-	sess, err := s.accounts.SignIn(ctx, u, f.Remember, "social:"+f.Provider, meta)
+	return s.signInUser(ctx, u, f.Provider, f.Remember, f.Next, id, meta)
+}
+
+func (s *Service) signInUser(ctx context.Context, u *ent.User, provider string, remember bool, next string, id *Identity, meta account.RequestMeta) (*Result, error) {
+	sess, err := s.accounts.SignIn(ctx, u, remember, "social:"+provider, meta)
 	switch {
 	case errors.Is(err, account.ErrAccountDisabled):
 		return nil, &FlowError{Code: CodeDisabled, Err: err}
@@ -263,13 +372,13 @@ func (s *Service) signIn(ctx context.Context, u *ent.User, f *ent.SocialFlow, id
 		return nil, err
 	}
 	err = s.db.SocialAccount.Update().
-		Where(socialaccount.Provider(f.Provider), socialaccount.Subject(id.Subject)).
+		Where(socialaccount.Provider(provider), socialaccount.Subject(id.Subject)).
 		SetEmail(clip.Bytes(id.Email, 255)).SetName(clip.Bytes(id.Name, 255)).SetLastUsedAt(s.now()).
 		Exec(ctx)
 	if err != nil {
 		s.log.Debug("update social account", "err", err)
 	}
-	return &Result{User: u, Session: sess, Next: f.Next}, nil
+	return &Result{User: u, Session: sess, Next: next}, nil
 }
 
 // link connects the provider account id to userID. Checked first, inserted alone:
@@ -360,7 +469,7 @@ func (s *Service) Register(ctx context.Context, p Policy, in RegisterInput, rp a
 	if err != nil {
 		return nil, nil, "", err
 	}
-	if _, ok := p.Provider(f.Provider); !ok {
+	if !s.hasProvider(p, f.Provider) {
 		return nil, nil, "", ErrUnknownProvider
 	}
 	id := &Identity{Subject: f.Subject, Email: f.Email, Name: f.Name}
@@ -411,7 +520,7 @@ func (s *Service) Unlink(ctx context.Context, p Policy, u *ent.User, provider st
 		}
 		found, usable, others := false, false, 0
 		for _, l := range links {
-			_, ok := p.Provider(l.Provider)
+			ok := s.hasProvider(p, l.Provider)
 			if l.Provider == provider {
 				found, usable = true, ok
 			} else if ok {

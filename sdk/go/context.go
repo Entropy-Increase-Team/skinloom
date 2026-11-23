@@ -186,6 +186,7 @@ type ExternalUserInfo struct {
 	Email         string `json:"email,omitempty"`
 	EmailVerified bool   `json:"emailVerified,omitempty"`
 	Nickname      string `json:"nickname,omitempty"`
+	Next          string `json:"next,omitempty"`
 }
 
 // AuthProviderDef declares an external authentication provider.

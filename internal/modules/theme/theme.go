@@ -18,6 +18,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"slices"
 	"sort"
 	"strconv"
@@ -456,15 +457,53 @@ func (r *Registry) Watch(ctx context.Context, onChange func()) {
 	}
 	defer watcher.Close()
 
-	addDirs := func(root string) {
-		_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
-			if err == nil && d.IsDir() && (!strings.HasPrefix(d.Name(), ".") || p == root) {
-				_ = watcher.Add(p)
+	isHiddenRel := func(name string) bool {
+		rel, relErr := filepath.Rel(dir, name)
+		if relErr != nil || rel == "." {
+			return false
+		}
+		for _, seg := range strings.Split(filepath.ToSlash(rel), "/") {
+			if strings.HasPrefix(seg, ".") && seg != "." && seg != ".." {
+				return true
 			}
-			return nil
-		})
+		}
+		return false
 	}
-	addDirs(dir)
+
+	var addDirs func(root string)
+	var pollTicker *time.Ticker
+	var pollCh <-chan time.Time
+	var lastSig string
+	if runtime.GOOS == "windows" {
+		// On Windows, fsnotify opens a Win32 directory handle on each watched
+		// path, which causes os.Rename / os.RemoveAll on that directory to fail
+		// with ERROR_ACCESS_DENIED. Watch only the parent themes directory (for
+		// immediate install/upgrade/remove notifications) and lightly poll
+		// non-hidden child files for in-place edits without holding handles.
+		if err := watcher.Add(dir); err != nil && log != nil {
+			log.Warn("watch themes directory", "dir", dir, "err", err)
+		}
+		lastSig = localDirSignature(dir)
+		pollTicker = time.NewTicker(2 * time.Second)
+		defer pollTicker.Stop()
+		pollCh = pollTicker.C
+	} else {
+		addDirs = func(root string) {
+			_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+				if err != nil {
+					return nil
+				}
+				if d.IsDir() {
+					if p != dir && strings.HasPrefix(d.Name(), ".") {
+						return filepath.SkipDir
+					}
+					_ = watcher.Add(p)
+				}
+				return nil
+			})
+		}
+		addDirs(dir)
+	}
 
 	var timer *time.Timer
 	var timerCh <-chan time.Time
@@ -479,7 +518,10 @@ func (r *Registry) Watch(ctx context.Context, onChange func()) {
 			if !ok {
 				return
 			}
-			if ev.Has(fsnotify.Create) {
+			if isHiddenRel(ev.Name) {
+				continue
+			}
+			if addDirs != nil && ev.Has(fsnotify.Create) {
 				if info, err := os.Stat(ev.Name); err == nil && info.IsDir() {
 					addDirs(ev.Name)
 				}
@@ -491,8 +533,19 @@ func (r *Registry) Watch(ctx context.Context, onChange func()) {
 				timer = time.NewTimer(100 * time.Millisecond)
 				timerCh = timer.C
 			}
+		case <-pollCh:
+			if sig := localDirSignature(dir); sig != lastSig {
+				lastSig = sig
+				r.Reload()
+				if onChange != nil {
+					onChange()
+				}
+			}
 		case <-timerCh:
 			timerCh = nil
+			if runtime.GOOS == "windows" {
+				lastSig = localDirSignature(dir)
+			}
 			r.Reload()
 			if onChange != nil {
 				onChange()
@@ -506,6 +559,38 @@ func (r *Registry) Watch(ctx context.Context, onChange func()) {
 			}
 		}
 	}
+}
+
+// localDirSignature hashes relative paths, sizes, and mtimes of non-hidden files
+// under root so Windows can detect in-place theme file edits without holding
+// open directory handles on theme subdirectories.
+func localDirSignature(root string) string {
+	h := sha256.New()
+	_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if p != root && strings.HasPrefix(d.Name(), ".") {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if d.IsDir() {
+			return nil
+		}
+		rel, rErr := filepath.Rel(root, p)
+		if rErr != nil {
+			return nil
+		}
+		info, iErr := d.Info()
+		if iErr != nil {
+			return nil
+		}
+		fmt.Fprintf(h, "%s:%d:%d\n", filepath.ToSlash(rel), info.Size(), info.ModTime().UnixNano())
+		return nil
+	})
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func (r *Registry) resolveExtends(t *Theme) error {

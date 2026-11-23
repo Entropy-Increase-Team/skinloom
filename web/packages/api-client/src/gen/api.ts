@@ -46,6 +46,8 @@ import type {
   DeleteMeInputBody,
   ErrorModel,
   ExecuteRestoreInput,
+  ExternalAuthVerifyInputBody,
+  ExternalAuthVerifyResult,
   FavoriteInputBody,
   Favorited,
   ForgotInputBody,
@@ -2596,6 +2598,65 @@ return apiFetch<resetPasswordResponse>(getResetPasswordUrl(),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(resetInputBody)
+  }
+);}
+
+
+
+export type verifyExternalAuthResponse200 = {
+  data: ExternalAuthVerifyResult
+  status: 200
+}
+
+export type verifyExternalAuthResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type verifyExternalAuthResponseSuccess = (verifyExternalAuthResponse200) & {
+  headers: Headers;
+};
+export type verifyExternalAuthResponseError = (verifyExternalAuthResponseDefault) & {
+  headers: Headers;
+};
+
+export type verifyExternalAuthResponse = (verifyExternalAuthResponseSuccess | verifyExternalAuthResponseError)
+
+export const getVerifyExternalAuthUrl = (provider: string,) => {
+
+
+
+
+  return `/api/v1/auth/providers/${provider}/verify`
+}
+
+/**
+ * Verifies credentials or a callback payload through an active plugin registered via ctx.auth.registerProvider, then signs in (setting skinloom_session), links the current user, or opens a pending signup flow at /auth/social.
+ * @summary Verify a plugin authentication provider
+ */
+export const verifyExternalAuth = async (provider: string,
+    externalAuthVerifyInputBody: NonReadonly<ExternalAuthVerifyInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<verifyExternalAuthResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<verifyExternalAuthResponse>(getVerifyExternalAuthUrl(provider),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(externalAuthVerifyInputBody)
   }
 );}
 

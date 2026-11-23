@@ -157,6 +157,15 @@ type Bootstrap struct {
 	Messages map[string]string `json:"messages"`
 }
 
+// ExternalAuthProviderInfo describes a plugin-registered external login provider.
+type ExternalAuthProviderInfo struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Icon    string `json:"icon,omitempty"`
+	AuthURL string `json:"authUrl,omitempty"`
+	Mode    string `json:"mode" enum:"credentials,redirect"`
+}
+
 // AuthInfo tells the frontend which account forms to show.
 type AuthInfo struct {
 	Registration string      `json:"registration" enum:"open,closed"`
@@ -169,6 +178,8 @@ type AuthInfo struct {
 	RequireVerification bool `json:"requireVerification"`
 	// Social are the sign-in providers (none until site.url is set).
 	Social []SocialProviderInfo `json:"social"`
+	// Providers are external sign-in providers registered by active plugins.
+	Providers []ExternalAuthProviderInfo `json:"providers,omitempty"`
 }
 
 // CaptchaInfo is the public half of the captcha configuration.
@@ -318,11 +329,28 @@ func registerSite(api huma.API, d Deps) {
 			populatePluginBootstrap(&out.Body, d.Plugins.FrontendPlugins(locale), viewer)
 		}
 		cc := captcha.ConfigFrom(snap)
+		var extProviders []ExternalAuthProviderInfo
+		if d.Accounts != nil {
+			for _, ap := range d.Accounts.AuthProviders() {
+				mode := ap.Mode
+				if mode == "" {
+					mode = "credentials"
+				}
+				extProviders = append(extProviders, ExternalAuthProviderInfo{
+					ID:      ap.ID,
+					Name:    ap.Name,
+					Icon:    ap.Icon,
+					AuthURL: ap.AuthURL,
+					Mode:    mode,
+				})
+			}
+		}
 		out.Body.Auth = AuthInfo{
 			Registration: cmp.Or(snap.String("auth.registration"), account.RegistrationClosed),
 			Captcha:      CaptchaInfo{Provider: cmp.Or(cc.Provider, captcha.None), SiteKey: cc.SiteKey},
 			Mail:         mailReady(snap),
 			Social:       socialProviders(social.PolicyFrom(snap)),
+			Providers:    extProviders,
 
 			RequireVerification: account.VerificationRequired(snap),
 		}

@@ -20,6 +20,7 @@ import (
 	"sort"
 	"strings"
 	"testing/fstest"
+	"time"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/theme"
@@ -67,7 +68,34 @@ var (
 	ErrUnsignedNativeForbidden = errors.New("unsigned or untrusted native plugin is forbidden in production mode")
 
 	checksumLineRe = regexp.MustCompile(`^([0-9a-f]{64}) {2}(.+)$`)
+
+	packageUnsignedWarningEN  = "Package is unsigned (missing Ed25519 signature). Only install unsigned packages from trusted local development builds."
+	packageUnsignedWarningZH  = "安装包未签名（缺少 Ed25519 签名）。仅建议安装来自受信任本地开发构建的未签名扩展包。"
+	packageUntrustedWarningEN = "Package signature did not match any trusted Ed25519 public key (unknown signer or modified signature)."
+	packageUntrustedWarningZH = "安装包签名未匹配任何受信任的 Ed25519 公钥（签名者未知或签名内容已被篡改）。"
 )
+
+func localizePackageWarnings(warnings []string, locale string) []string {
+	if len(warnings) == 0 {
+		return nil
+	}
+	out := make([]string, len(warnings))
+	isZh := IsChineseLocale(locale)
+	for i, w := range warnings {
+		if isZh {
+			switch w {
+			case packageUnsignedWarningEN:
+				out[i] = packageUnsignedWarningZH
+				continue
+			case packageUntrustedWarningEN:
+				out[i] = packageUntrustedWarningZH
+				continue
+			}
+		}
+		out[i] = w
+	}
+	return out
+}
 
 // TrustedKey describes an Ed25519 public key trusted to verify .slp packages.
 type TrustedKey struct {
@@ -354,8 +382,7 @@ func ParsePackageForPlatform(pkgBytes []byte, extraTrustedKeys []string, hostPla
 
 	verification := PackageVerification{HasChecksums: true}
 	if len(bytes.TrimSpace(signatureRaw)) == 0 {
-		verification.Warnings = append(verification.Warnings,
-			"Package is unsigned (missing Ed25519 signature). Only install unsigned packages from trusted local development builds.")
+		verification.Warnings = append(verification.Warnings, packageUnsignedWarningEN)
 	} else {
 		verification.Signed = true
 		sigStr := strings.TrimSpace(string(signatureRaw))
@@ -375,8 +402,7 @@ func ParsePackageForPlatform(pkgBytes []byte, extraTrustedKeys []string, hostPla
 			}
 		}
 		if !verification.Trusted {
-			verification.Warnings = append(verification.Warnings,
-				"Package signature did not match any trusted Ed25519 public key (unknown signer or modified signature).")
+			verification.Warnings = append(verification.Warnings, packageUntrustedWarningEN)
 		}
 	}
 
@@ -719,14 +745,14 @@ func ExtractPackageFiles(pkg *ParsedPackage, destDir string) error {
 	var backupDir string
 	if _, statErr := os.Stat(destDir); statErr == nil {
 		candBackup := filepath.Join(parent, ".bak-"+filepath.Base(tmpDir))
-		if err := os.Rename(destDir, candBackup); err != nil {
+		if err := renameDirWithRetry(destDir, candBackup); err != nil {
 			return err
 		}
 		backupDir = candBackup
 	}
-	if err := os.Rename(tmpDir, destDir); err != nil {
+	if err := renameDirWithRetry(tmpDir, destDir); err != nil {
 		if backupDir != "" {
-			_ = os.Rename(backupDir, destDir)
+			_ = renameDirWithRetry(backupDir, destDir)
 		}
 		return err
 	}
@@ -735,6 +761,23 @@ func ExtractPackageFiles(pkg *ParsedPackage, destDir string) error {
 	}
 	cleanup = false
 	return nil
+}
+
+// renameDirWithRetry retries transient Windows ERROR_ACCESS_DENIED errors when
+// renaming newly written directories that antivirus or indexers may briefly scan.
+func renameDirWithRetry(oldpath, newpath string) error {
+	err := os.Rename(oldpath, newpath)
+	if err == nil || runtime.GOOS != "windows" {
+		return err
+	}
+	for attempt := 1; attempt <= 5 && errors.Is(err, fs.ErrPermission); attempt++ {
+		time.Sleep(time.Duration(attempt*20) * time.Millisecond)
+		err = os.Rename(oldpath, newpath)
+		if err == nil {
+			return nil
+		}
+	}
+	return err
 }
 
 func validateZipRawPath(raw string) error {

@@ -336,6 +336,9 @@ func (m *Manifest) Validate() error {
 	if err := m.validateHooks(); err != nil {
 		return err
 	}
+	if err := m.validatePublicRoutes(); err != nil {
+		return err
+	}
 	if err := m.validateCollections(); err != nil {
 		return err
 	}
@@ -375,6 +378,93 @@ func (m *Manifest) Validate() error {
 	for dep := range m.OptionalDependencies {
 		if dep == m.ID || !pluginIDRe.MatchString(dep) {
 			return fmt.Errorf("%w: invalid optionalDependency id %q", ErrBadManifest, dep)
+		}
+	}
+	return nil
+}
+
+var reservedPublicRouteHeads = map[string]bool{
+	"api":            true,
+	"oauth":          true,
+	".well-known":    true,
+	"csl":            true,
+	"usm":            true,
+	"skin":           true,
+	"cape":           true,
+	"textures":       true,
+	"raw":            true,
+	"avatar":         true,
+	"preview":        true,
+	"plugins-assets": true,
+	"themes-assets":  true,
+	"events":         true,
+	"healthz":        true,
+	"readyz":         true,
+	"_next":          true,
+	"auth":           true,
+	"user":           true,
+	"admin":          true,
+	"setup":          true,
+	"skinlib":        true,
+	"p":              true,
+	"favicon.ico":    true,
+	"robots.txt":     true,
+}
+
+func (m *Manifest) validatePublicRoutes() error {
+	if len(m.Routes.Public) == 0 {
+		return nil
+	}
+	if !slices.Contains(m.Permissions, PermRoutesPublic) {
+		return fmt.Errorf("%w: routes.public requires %q permission", ErrBadManifest, PermRoutesPublic)
+	}
+	seen := make(map[string]struct{}, len(m.Routes.Public))
+	for _, raw := range m.Routes.Public {
+		if err := validatePublicRoutePattern(raw); err != nil {
+			return err
+		}
+		norm := normalizeRoutePattern(raw)
+		if _, dup := seen[norm]; dup {
+			return fmt.Errorf("%w: duplicate routes.public pattern %q", ErrBadManifest, raw)
+		}
+		seen[norm] = struct{}{}
+	}
+	return nil
+}
+
+func normalizeRoutePattern(p string) string {
+	trimmed := strings.TrimSpace(p)
+	if trimmed != "/" {
+		trimmed = strings.TrimRight(trimmed, "/")
+	}
+	return trimmed
+}
+
+func validatePublicRoutePattern(raw string) error {
+	p := strings.TrimSpace(raw)
+	if p == "" || !strings.HasPrefix(p, "/") {
+		return fmt.Errorf("%w: routes.public pattern %q must start with '/'", ErrBadManifest, raw)
+	}
+	if strings.ContainsAny(p, "\\?# \t\r\n") || strings.Contains(p, "//") || strings.Contains(p, "..") {
+		return fmt.Errorf("%w: invalid routes.public pattern %q", ErrBadManifest, raw)
+	}
+	segs := splitPathSegments(p)
+	if len(segs) == 0 {
+		return fmt.Errorf("%w: routes.public pattern %q cannot claim site root '/'", ErrBadManifest, raw)
+	}
+	head := segs[0]
+	if head == "*" || strings.HasPrefix(head, ":") || strings.ContainsAny(head, "{}") {
+		return fmt.Errorf("%w: routes.public pattern %q must begin with a literal path segment", ErrBadManifest, raw)
+	}
+	if reservedPublicRouteHeads[strings.ToLower(head)] {
+		return fmt.Errorf("%w: routes.public pattern %q conflicts with host reserved path '/%s'", ErrBadManifest, raw, head)
+	}
+	if len(segs) == 1 && strings.HasSuffix(strings.ToLower(head), ".json") {
+		return fmt.Errorf("%w: routes.public pattern %q conflicts with CSL root profile route '/{player}.json'", ErrBadManifest, raw)
+	}
+	for i, seg := range segs {
+		if seg == "*" && i != len(segs)-1 {
+			return fmt.Errorf("%w: wildcard '*' in routes.public pattern %q must be the final segment", ErrBadManifest, raw)
 		}
 	}
 	return nil

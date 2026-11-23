@@ -3,7 +3,10 @@ package backup
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -57,14 +60,25 @@ func TestBackupRestoreIncludesPluginDataAndSQLiteSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	pkgStore, err := storage.NewLocal(filepath.Join(srcDir, "plugin-packages"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkgBytes := []byte("PK\x03\x04fake-slp-archive-bytes")
+	pkgSum := sha256.Sum256(pkgBytes)
+	pkgSHA := hex.EncodeToString(pkgSum[:])
+	if err := pkgStore.Put(ctx, pkgSHA, pkgBytes); err != nil {
+		t.Fatal(err)
+	}
 	var buf bytes.Buffer
 	m, err := Write(ctx, &buf, Sources{
-		DB:         d,
-		Store:      store,
-		DataDir:    srcDir,
-		ConfigPath: filepath.Join(srcDir, "config.toml"),
-		Version:    "1.0.0",
-		Now:        time.Now(),
+		DB:                 d,
+		Store:              store,
+		PluginPackageStore: pkgStore,
+		DataDir:            srcDir,
+		ConfigPath:         filepath.Join(srcDir, "config.toml"),
+		Version:            "1.0.0",
+		Now:                time.Now(),
 	})
 	if err != nil {
 		t.Fatalf("backup.Write: %v", err)
@@ -72,8 +86,11 @@ func TestBackupRestoreIncludesPluginDataAndSQLiteSnapshot(t *testing.T) {
 	if m.PluginDataFiles != 2 {
 		t.Fatalf("PluginDataFiles = %d, want 2 (plugin.db + exports/report.txt)", m.PluginDataFiles)
 	}
+	if m.PluginPackages != 1 {
+		t.Fatalf("PluginPackages = %d, want 1", m.PluginPackages)
+	}
 
-	// Restore into a brand new data directory and verify both plugin.db and report.txt.
+	// Restore into a brand new data directory and verify plugin.db, report.txt, and plugin-packages/<sha>.
 	dstDir := t.TempDir()
 	res, err := Restore(ctx, &buf, Target{
 		DataDir:    dstDir,
@@ -81,12 +98,31 @@ func TestBackupRestoreIncludesPluginDataAndSQLiteSnapshot(t *testing.T) {
 		OpenStore: func(_ context.Context, c config.Config) (storage.Store, error) {
 			return storage.NewLocal(c.Storage.Dir(dstDir))
 		},
+		OpenPluginPackageStore: func(_ context.Context, _ config.Config) (storage.Store, error) {
+			return storage.NewLocal(filepath.Join(dstDir, "plugin-packages"))
+		},
 	})
 	if err != nil {
 		t.Fatalf("backup.Restore: %v", err)
 	}
 	if res.PluginDataFiles != 2 {
 		t.Fatalf("restored PluginDataFiles = %d, want 2", res.PluginDataFiles)
+	}
+	if res.PluginPackages != 1 {
+		t.Fatalf("restored PluginPackages = %d, want 1", res.PluginPackages)
+	}
+	restoredPkgStore, err := storage.NewLocal(filepath.Join(dstDir, "plugin-packages"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pf, err := restoredPkgStore.Open(ctx, pkgSHA)
+	if err != nil {
+		t.Fatalf("open restored plugin package: %v", err)
+	}
+	gotPkg, _ := io.ReadAll(pf)
+	_ = pf.Close()
+	if !bytes.Equal(gotPkg, pkgBytes) {
+		t.Fatalf("restored plugin package mismatch: got %q", gotPkg)
 	}
 
 	gotReport, err := os.ReadFile(filepath.Join(dstDir, "plugins-data", "bs-importer", "exports", "report.txt"))

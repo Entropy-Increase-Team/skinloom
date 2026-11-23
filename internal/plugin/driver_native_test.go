@@ -1169,7 +1169,6 @@ func TestNativeDriverWithOfficialGoSDK(t *testing.T) {
 		"settings": map[string]any{
 			"label": map[string]any{"type": "string", "default": "initial-label"},
 		},
-		"routes": map[string]any{"public": []string{"/notes", "/sdk-verify", "/handler-err", "/stream/hello/:who"}},
 	})
 	if err := os.MkdirAll(filepath.Join(dir, "locales"), 0o755); err != nil {
 		t.Fatal(err)

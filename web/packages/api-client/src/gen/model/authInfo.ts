@@ -7,11 +7,13 @@
  */
 import type { AuthInfoRegistration } from './authInfoRegistration';
 import type { CaptchaInfo } from './captchaInfo';
+import type { ExternalAuthProviderInfo } from './externalAuthProviderInfo';
 import type { SocialProviderInfo } from './socialProviderInfo';
 
 export interface AuthInfo {
   captcha: CaptchaInfo;
   mail: boolean;
+  providers?: ExternalAuthProviderInfo[];
   registration: AuthInfoRegistration;
   requireVerification: boolean;
   social: SocialProviderInfo[];

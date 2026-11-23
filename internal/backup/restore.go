@@ -33,6 +33,9 @@ type Target struct {
 	Force bool
 	// OpenStore opens the texture store of the restored config.
 	OpenStore func(ctx context.Context, c config.Config) (storage.Store, error)
+	// OpenPluginPackageStore opens the private .slp plugin package store of the restored config.
+	// When nil, local <DataDir>/plugin-packages is used.
+	OpenPluginPackageStore func(ctx context.Context, c config.Config) (storage.Store, error)
 }
 
 // Result is what Restore wrote.
@@ -41,6 +44,7 @@ type Result struct {
 	Database        string // the SQLite file written, or "" when the archive has none
 	Textures        int
 	PluginDataFiles int
+	PluginPackages  int
 }
 
 // Entry size caps: the object store holds both textures (<= 8 MiB) and cached .slp
@@ -84,10 +88,11 @@ func Restore(ctx context.Context, r io.Reader, t Target) (Result, error) {
 	}
 
 	var (
-		configData []byte // the archive's config.toml; nil when it has none
-		secrets    = map[string][]byte{}
-		cfg        *config.Config // the restored config, set by commit
-		store      storage.Store
+		configData     []byte // the archive's config.toml; nil when it has none
+		secrets        = map[string][]byte{}
+		cfg            *config.Config // the restored config, set by commit
+		store          storage.Store
+		pluginPkgStore storage.Store
 	)
 	staged := t.ConfigPath + ".restoring"
 	defer os.Remove(staged)
@@ -164,7 +169,7 @@ func Restore(ctx context.Context, r io.Reader, t Target) (Result, error) {
 			return res, fmt.Errorf("unexpected entry %q", hdr.Name)
 		}
 		name := hdr.Name
-		if cfg == nil && (name == databaseName || textureName.MatchString(name) || isSafePluginDataEntry(name)) {
+		if cfg == nil && (name == databaseName || textureName.MatchString(name) || pluginPackageName.MatchString(name) || isSafePluginDataEntry(name)) {
 			if err := commit(); err != nil {
 				return res, err
 			}
@@ -224,6 +229,40 @@ func Restore(ctx context.Context, r io.Reader, t Target) (Result, error) {
 				return res, fmt.Errorf("texture %s: %w", name, err)
 			}
 			res.Textures++
+		case pluginPackageName.MatchString(name):
+			if hdr.Size < 0 || hdr.Size > maxTexture {
+				return res, fmt.Errorf("plugin package %s is too large", name)
+			}
+			if pluginPkgStore == nil {
+				if t.OpenPluginPackageStore != nil {
+					if pluginPkgStore, err = t.OpenPluginPackageStore(ctx, *cfg); err != nil {
+						return res, fmt.Errorf("open plugin package storage: %w", err)
+					}
+				} else {
+					dir := filepath.Join(t.DataDir, "plugin-packages")
+					if err := os.MkdirAll(dir, 0o750); err != nil {
+						return res, fmt.Errorf("create plugin package storage: %w", err)
+					}
+					if pluginPkgStore, err = storage.NewLocal(dir); err != nil {
+						return res, fmt.Errorf("open plugin package storage: %w", err)
+					}
+				}
+			}
+			data, err := io.ReadAll(io.LimitReader(tr, maxTexture+1))
+			if err != nil {
+				return res, err
+			}
+			if int64(len(data)) > maxTexture {
+				return res, fmt.Errorf("plugin package %s is too large", name)
+			}
+			key := strings.TrimPrefix(name, "plugin-packages/")
+			if sum := sha256.Sum256(data); hex.EncodeToString(sum[:]) != key {
+				return res, fmt.Errorf("plugin package %s: the content does not match its name", name)
+			}
+			if err := pluginPkgStore.Put(ctx, key, data); err != nil {
+				return res, fmt.Errorf("plugin package %s: %w", name, err)
+			}
+			res.PluginPackages++
 		case isSafePluginDataEntry(name):
 			if hdr.Size < 0 || hdr.Size > maxPluginData {
 				return res, fmt.Errorf("plugin data %s is too large", name)

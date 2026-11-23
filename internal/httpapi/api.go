@@ -203,6 +203,13 @@ func New(d Deps) (http.Handler, huma.API) {
 		r.HandleFunc("/api/plugins/{id}", servePlug)
 		r.HandleFunc("/api/plugins/{id}/*", servePlug)
 		r.Handle("/plugins-assets/*", d.Plugins.AssetHandler())
+		r.NotFound(func(w http.ResponseWriter, req *http.Request) {
+			ri := requestInfo(req.Context())
+			if d.Plugins.ServePublicRoute(w, req, pluginViewerFromReq(req, d), ri.locale) {
+				return
+			}
+			http.NotFound(w, req)
+		})
 	}
 	return r, api
 }

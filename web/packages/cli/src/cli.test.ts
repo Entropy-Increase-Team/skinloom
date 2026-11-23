@@ -617,4 +617,60 @@ describe('@skinloom/cli', () => {
       else process.env.GOCACHE = origGoCache
     }
   })
+
+  it('validates routes.public permission and reserved path collisions in lintPlugin', () => {
+    const dir = makeTempDir('sl-cli-routes-')
+    writeFileSync(path.join(dir, 'src-unused.txt'), '')
+    mkdirSync(path.join(dir, 'src'), { recursive: true })
+    writeFileSync(path.join(dir, 'src', 'server.ts'), `export default { setup() {} }\n`)
+
+    // Missing routes.public permission
+    writeFileSync(
+      path.join(dir, 'plugin.json'),
+      JSON.stringify({
+        id: 'pub-route-test',
+        kind: 'plugin',
+        version: '1.0.0',
+        name: 'Pub Route',
+        apiVersion: 1,
+        server: 'server.js',
+        routes: { public: ['/mcskin/{name}.json'] },
+      }),
+    )
+    expect(lintPlugin(dir).errors.some((e) => e.code === 'manifest.routes.public')).toBe(true)
+
+    // Reserved host path collision
+    writeFileSync(
+      path.join(dir, 'plugin.json'),
+      JSON.stringify({
+        id: 'pub-route-test',
+        kind: 'plugin',
+        version: '1.0.0',
+        name: 'Pub Route',
+        apiVersion: 1,
+        server: 'server.js',
+        permissions: ['routes.public'],
+        routes: { public: ['/oauth/start', '/api/hijack', '/steve.json'] },
+      }),
+    )
+    const badRes = lintPlugin(dir)
+    expect(badRes.ok).toBe(false)
+    expect(badRes.errors.filter((e) => e.code === 'manifest.routes.public')).toHaveLength(3)
+
+    // Valid routes.public with permission passes cleanly
+    writeFileSync(
+      path.join(dir, 'plugin.json'),
+      JSON.stringify({
+        id: 'pub-route-test',
+        kind: 'plugin',
+        version: '1.0.0',
+        name: 'Pub Route',
+        apiVersion: 1,
+        server: 'server.js',
+        permissions: ['routes.public'],
+        routes: { public: ['/mcskin/{name}.json'] },
+      }),
+    )
+    expect(lintPlugin(dir).ok).toBe(true)
+  })
 })

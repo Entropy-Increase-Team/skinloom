@@ -1,6 +1,6 @@
 'use client'
 
-import { type SocialProviderInfo, type SocialRedirect, startSocialLogin } from '@skinloom/api-client'
+import { type ExternalAuthProviderInfo, type SocialProviderInfo, type SocialRedirect, startSocialLogin } from '@skinloom/api-client'
 import { Button } from '@skinloom/ui'
 import { KeyRound } from 'lucide-react'
 import { useTranslations } from 'next-intl'
@@ -32,12 +32,44 @@ export function ProviderIcon({ type, className = 'size-4' }: { type: string; cla
   return <KeyRound aria-hidden="true" className={className} />
 }
 
+function isSafeAuthUrl(raw: string): boolean {
+  const trimmed = raw.trim()
+  if (!trimmed) return false
+  if (/^\/(?![/\\])/.test(trimmed)) return true
+  try {
+    const u = new URL(trimmed)
+    return u.protocol === 'https:' || u.protocol === 'http:'
+  } catch {
+    return false
+  }
+}
+
+function buildExternalAuthHref(authUrl: string, next: string, remember: boolean): string {
+  const sep = authUrl.includes('?') ? '&' : '?'
+  const qs = new URLSearchParams()
+  if (next) qs.set('next', next)
+  if (remember) qs.set('remember', '1')
+  const encoded = qs.toString()
+  return encoded ? `${authUrl}${sep}${encoded}` : authUrl
+}
+
 /** "Continue with …" buttons: each sends the browser to the provider's sign-in page. */
-export function SocialButtons({ providers, next, remember }: { providers: SocialProviderInfo[]; next: string; remember?: () => boolean }) {
+export function SocialButtons({
+  providers,
+  externalProviders = [],
+  next,
+  remember,
+}: {
+  providers: SocialProviderInfo[]
+  externalProviders?: ExternalAuthProviderInfo[]
+  next: string
+  remember?: () => boolean
+}) {
   const t = useTranslations('social')
   const [pending, setPending] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  if (providers.length === 0) return null
+  const redirectPlugins = externalProviders.filter((p) => p.mode === 'redirect' && p.authUrl && isSafeAuthUrl(p.authUrl))
+  if (providers.length === 0 && redirectPlugins.length === 0) return null
 
   async function go(id: string) {
     setPending(id)
@@ -52,6 +84,13 @@ export function SocialButtons({ providers, next, remember }: { providers: Social
     }
   }
 
+  function goExternal(p: ExternalAuthProviderInfo) {
+    if (!p.authUrl || !isSafeAuthUrl(p.authUrl)) return
+    setPending(`plugin:${p.id}`)
+    setError(null)
+    window.location.assign(buildExternalAuthHref(p.authUrl, next, remember?.() ?? false))
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -63,6 +102,19 @@ export function SocialButtons({ providers, next, remember }: { providers: Social
       {providers.map((p) => (
         <Button key={p.id} type="button" variant="outline" loading={pending === p.id} disabled={pending !== null} onClick={() => void go(p.id)}>
           <ProviderIcon type={p.type} />
+          {t('continueWith', { name: p.name })}
+        </Button>
+      ))}
+      {redirectPlugins.map((p) => (
+        <Button
+          key={`plugin:${p.id}`}
+          type="button"
+          variant="outline"
+          loading={pending === `plugin:${p.id}`}
+          disabled={pending !== null}
+          onClick={() => goExternal(p)}
+        >
+          <ProviderIcon type={p.icon || 'oidc'} />
           {t('continueWith', { name: p.name })}
         </Button>
       ))}

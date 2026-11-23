@@ -256,6 +256,51 @@ function lintManifest(manifest: ManifestJson, issues: LintIssue[]): void {
     if (err) pushIssue(issues, 'error', 'manifest.http.allow', err, 'plugin.json')
   }
 
+  const publicRoutes = manifest.routes?.public ?? []
+  if (publicRoutes.length > 0) {
+    const permSet = new Set(manifest.permissions ?? [])
+    if (!permSet.has('routes.public')) {
+      pushIssue(issues, 'error', 'manifest.routes.public', 'routes.public requires declaring "routes.public" permission', 'plugin.json')
+    }
+    const reservedHeads = new Set([
+      'api', 'oauth', '.well-known', 'csl', 'usm', 'skin', 'cape', 'textures', 'raw',
+      'avatar', 'preview', 'plugins-assets', 'themes-assets', 'events', 'healthz', 'readyz',
+      '_next', 'auth', 'user', 'admin', 'setup', 'skinlib', 'p', 'favicon.ico', 'robots.txt',
+    ])
+    const seenRoutes = new Set<string>()
+    for (const raw of publicRoutes) {
+      const p = String(raw ?? '').trim()
+      if (!p.startsWith('/') || /[\\?# \t\r\n]/.test(p) || p.includes('//') || p.includes('..')) {
+        pushIssue(issues, 'error', 'manifest.routes.public', `Invalid routes.public pattern "${raw}"`, 'plugin.json')
+        continue
+      }
+      const segs = p.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean)
+      if (segs.length === 0) {
+        pushIssue(issues, 'error', 'manifest.routes.public', `routes.public pattern "${raw}" cannot claim site root "/"`, 'plugin.json')
+        continue
+      }
+      const head = segs[0]!
+      if (head === '*' || head.startsWith(':') || head.includes('{') || head.includes('}')) {
+        pushIssue(issues, 'error', 'manifest.routes.public', `routes.public pattern "${raw}" must begin with a literal path segment`, 'plugin.json')
+        continue
+      }
+      if (reservedHeads.has(head.toLowerCase()) || (segs.length === 1 && head.toLowerCase().endsWith('.json'))) {
+        pushIssue(issues, 'error', 'manifest.routes.public', `routes.public pattern "${raw}" conflicts with a reserved SkinLoom route`, 'plugin.json')
+        continue
+      }
+      if (segs.some((s, idx) => s === '*' && idx !== segs.length - 1)) {
+        pushIssue(issues, 'error', 'manifest.routes.public', `Wildcard "*" in routes.public pattern "${raw}" must be the final segment`, 'plugin.json')
+        continue
+      }
+      const norm = p === '/' ? '/' : p.replace(/\/+$/, '')
+      if (seenRoutes.has(norm)) {
+        pushIssue(issues, 'error', 'manifest.routes.public', `Duplicate routes.public pattern "${raw}"`, 'plugin.json')
+      } else {
+        seenRoutes.add(norm)
+      }
+    }
+  }
+
   for (const g of manifest.hooks?.guard ?? []) {
     if (!VALID_GUARD_HOOKS.has(g)) {
       pushIssue(issues, 'error', 'manifest.hooks.guard', `Unknown guard hook "${g}"`, 'plugin.json')

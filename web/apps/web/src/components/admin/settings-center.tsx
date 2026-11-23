@@ -42,7 +42,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { type ComponentType, type FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react'
+import { type ComponentType, type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 
 import { FormError } from '@/components/auth/field'
 import { problemOf } from '@/lib/problem'
@@ -76,6 +76,8 @@ const SECTION_ICONS: Partial<Record<SectionId, ComponentType<{ className?: strin
 /** Every runtime setting, organised by category with instant search and conditional sub-fields. */
 export function SettingsCenter({ superadmin }: { superadmin: boolean }) {
   const t = useTranslations('adminSettings')
+  const tRef = useRef(t)
+  tRef.current = t
   const tk = useTranslations('settingKeys')
   const [list, setList] = useState<SettingsList | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -83,10 +85,18 @@ export function SettingsCenter({ superadmin }: { superadmin: boolean }) {
   const [query, setQuery] = useState('')
 
   useEffect(() => {
+    let active = true
     listSettings()
-      .then((res) => setList(res.data as SettingsList))
-      .catch(() => setError(t('errors.load')))
-  }, [t])
+      .then((res) => {
+        if (active) setList(res.data as SettingsList)
+      })
+      .catch(() => {
+        if (active) setError(tRef.current('errors.load'))
+      })
+    return () => {
+      active = false
+    }
+  }, [])
 
   const groups = useMemo(() => (list ? groupSettings(list.settings, 'settings') : []), [list])
   const q = query.trim().toLowerCase()

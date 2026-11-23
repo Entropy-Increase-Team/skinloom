@@ -182,3 +182,47 @@ func TestDBAllocatorMySQLAndPostgresConfigFormatting(t *testing.T) {
 		t.Fatalf("appendPostgresSearchPath = (%q, %v)", dsnWithSP, err)
 	}
 }
+
+func TestDBAllocatorSharingCredentialsAndRequireDedicated(t *testing.T) {
+	ctx := context.Background()
+
+	sqliteAlloc := NewDBAllocator(DBAllocatorOptions{
+		MainDriver: "sqlite",
+		MainDSN:    "skinloom.db",
+		DataDir:    t.TempDir(),
+		Override:   config.PluginDatabase{RequireDedicated: true},
+	})
+	if sqliteAlloc.IsSharingMainCredentials() {
+		t.Fatal("SQLite allocator must not report sharing main credentials")
+	}
+	if _, err := sqliteAlloc.Allocate(ctx, "sq-plugin"); err != nil {
+		t.Fatalf("SQLite Allocate with RequireDedicated failed: %v", err)
+	}
+
+	sharedMySQL := NewDBAllocator(DBAllocatorOptions{
+		MainDriver: "mysql",
+		MainDSN:    "root:secret@tcp(127.0.0.1:3306)/skinloom",
+		Override:   config.PluginDatabase{RequireDedicated: true},
+	})
+	if !sharedMySQL.IsSharingMainCredentials() {
+		t.Fatal("MySQL allocator without override DSN must report sharing main credentials")
+	}
+	if _, err := sharedMySQL.Allocate(ctx, "my-plugin"); err == nil || !strings.Contains(err.Error(), ErrDedicatedPluginDBRequired.Error()) {
+		t.Fatalf("expected ErrDedicatedPluginDBRequired, got %v", err)
+	}
+
+	dedicatedPG := NewDBAllocator(DBAllocatorOptions{
+		MainDriver: "postgres",
+		MainDSN:    "postgres://admin:secret@127.0.0.1:5432/skinloom?sslmode=disable",
+		Override: config.PluginDatabase{
+			DSN:              "postgres://plguser:pass@127.0.0.1:5432/skinloom_plugins?sslmode=disable",
+			RequireDedicated: true,
+		},
+	})
+	if dedicatedPG.IsSharingMainCredentials() {
+		t.Fatal("dedicated PG allocator must not report sharing main credentials")
+	}
+	if cfg, err := dedicatedPG.Allocate(ctx, "pg-plugin"); err != nil || !strings.Contains(cfg.DSN, "skinloom_plugins") {
+		t.Fatalf("dedicated PG Allocate = (%+v, %v)", cfg, err)
+	}
+}

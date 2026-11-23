@@ -55,7 +55,7 @@ var PluginSettingTypes = []string{
 	"choice", // compatibility alias used by built-in theme manifests
 }
 
-// Slots is the canonical catalog of the 20 frontend extension slots.
+// Slots is the canonical catalog of the 21 frontend extension slots.
 var Slots = []SlotDef{
 	// Site-wide
 	{
@@ -98,6 +98,17 @@ var Slots = []SlotDef{
 		Description: "External identity provider sign-up buttons rendered on the registration page.",
 		Props: []SlotProp{
 			{Name: "next", TypeScript: "string", Optional: true, Description: "Post-registration redirect path."},
+		},
+	},
+	{
+		Name:        "auth.captcha.widget",
+		Area:        "auth",
+		Description: "Custom CAPTCHA widget rendered on auth forms when captcha.provider is set to a plugin-registered provider.",
+		Props: []SlotProp{
+			{Name: "provider", TypeScript: "string", Description: "Active captcha.provider ID."},
+			{Name: "siteKey", TypeScript: "string", Optional: true, Description: "Configured captcha site key if any."},
+			{Name: "resetKey", TypeScript: "number", Description: "Incremented whenever the host resets the captcha challenge."},
+			{Name: "onChange", TypeScript: "(answer: { id?: string; value: string } | null) => void", Description: "Reports the solved captcha answer (or null when cleared/expired) to the host form."},
 		},
 	},
 	// User Center

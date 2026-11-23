@@ -6,12 +6,14 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
+	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/account"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/captcha"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/social"
@@ -95,7 +97,31 @@ type socialStartInput struct {
 }
 
 type socialProviderInput struct {
-	Provider string `path:"provider" maxLength:"32"`
+	Provider string `path:"provider" maxLength:"64"`
+}
+
+type externalAuthVerifyInput struct {
+	UserAgent string `header:"User-Agent"`
+	Session   string `cookie:"skinloom_session"`
+	Provider  string `path:"provider" maxLength:"40"`
+	Body      struct {
+		Input    map[string]any `json:"input,omitempty" doc:"Provider-specific credentials or callback payload passed to the plugin verifier"`
+		Next     string         `json:"next,omitempty" maxLength:"512" doc:"Optional post-login redirect path on this site"`
+		Remember bool           `json:"remember,omitempty" doc:"Keep the session for 30 days"`
+		Link     bool           `json:"link,omitempty" doc:"Link the verified external identity to the currently signed-in account"`
+	}
+}
+
+// ExternalAuthVerifyResult reports the outcome of verifying a plugin auth provider payload.
+type ExternalAuthVerifyResult struct {
+	Status string    `json:"status" enum:"signed_in,signup_required,linked"`
+	User   *UserView `json:"user,omitempty"`
+	Next   string    `json:"next"`
+}
+
+type externalAuthVerifyOutput struct {
+	SetCookies []http.Cookie `header:"Set-Cookie"`
+	Body       ExternalAuthVerifyResult
 }
 
 type socialPendingInput struct {
@@ -191,10 +217,7 @@ func registerSocial(api huma.API, d Deps) {
 				return nil, socialError(err)
 			}
 			snap := d.Settings.Current()
-			name, typ := "", ""
-			if c, ok := social.PolicyFrom(snap).Provider(f.Provider); ok {
-				name, typ = c.DisplayName(), c.Type
-			}
+			name, typ := resolveProviderLabel(d, social.PolicyFrom(snap), f.Provider)
 			return &struct{ Body SocialPending }{SocialPending{Provider: f.Provider, ProviderName: name, ProviderType: typ, Name: f.Name,
 				Email: f.Email, EmailVerified: f.EmailVerified, Nickname: f.Nickname,
 				Registration: snap.String("auth.registration"), Next: f.Next, ExpiresAt: f.ExpiresAt}}, nil
@@ -257,6 +280,108 @@ func registerSocial(api huma.API, d Deps) {
 			}
 			return nil, socialError(d.Social.Unlink(ctx, social.PolicyFrom(d.Settings.Current()), v.User, in.Provider, requestInfo(ctx).meta("")))
 		})
+
+	huma.Register(api, op("verifyExternalAuth", http.MethodPost, "/api/v1/auth/providers/{provider}/verify", "Verify a plugin authentication provider",
+		"Verifies credentials or a callback payload through an active plugin registered via ctx.auth.registerProvider, "+
+			"then signs in (setting skinloom_session), links the current user, or opens a pending signup flow at /auth/social.", 0, "auth"),
+		func(ctx context.Context, in *externalAuthVerifyInput) (*externalAuthVerifyOutput, error) {
+			ri := requestInfo(ctx)
+			if wait, blocked := socialStarts.Take(account.ClientKey(ri.client.ClientIP)); blocked {
+				return nil, rateLimitError(&account.RateLimitError{RetryAfter: wait}, "too many sign-in attempts, try again later")
+			}
+			if d.Accounts == nil || d.Social == nil {
+				return nil, huma.Error404NotFound("no such sign-in provider")
+			}
+			ap, ok := d.Accounts.LookupAuthProvider(in.Provider)
+			if !ok || ap.Verify == nil {
+				return nil, huma.Error404NotFound("no such sign-in provider")
+			}
+			var linkUID *int64
+			if in.Body.Link {
+				v, err := signedIn(ctx)
+				if err != nil {
+					return nil, err
+				}
+				linkUID = &v.User.ID
+			}
+			payload := in.Body.Input
+			if payload == nil {
+				payload = map[string]any{}
+			}
+			info, err := ap.Verify(ctx, payload)
+			if err != nil {
+				if rej, ok := hook.AsRejection(err); ok {
+					return nil, huma.Error422UnprocessableEntity(rej.Reason)
+				}
+				return nil, huma.Error401Unauthorized("external authentication failed")
+			}
+			res, err := d.Social.CompleteExternal(ctx, social.ExternalAuthInput{
+				Provider: ap.ID,
+				Identity: social.Identity{
+					Subject:       info.Subject,
+					Email:         info.Email,
+					EmailVerified: info.EmailVerified,
+					Name:          cmp.Or(info.Nickname, info.Email),
+					Nickname:      info.Nickname,
+				},
+				LinkUserID: linkUID,
+				Next:       cmp.Or(info.Next, in.Body.Next),
+				Remember:   in.Body.Remember,
+				Meta:       ri.meta(in.UserAgent),
+			})
+			if err != nil {
+				var fe *social.FlowError
+				if errors.As(err, &fe) {
+					switch fe.Code {
+					case social.CodeDisabled:
+						return nil, huma.Error403Forbidden("account is disabled")
+					case social.CodeGone:
+						return nil, huma.Error403Forbidden("account is deleted")
+					case social.CodeTaken:
+						return nil, huma.Error409Conflict("this provider account is linked to another user")
+					case social.CodeAlready:
+						return nil, huma.Error409Conflict("an account of this provider is already linked; unlink it first")
+					}
+				}
+				return nil, socialError(err)
+			}
+			out := &externalAuthVerifyOutput{}
+			switch {
+			case res.Linked:
+				out.Body = ExternalAuthVerifyResult{
+					Status: "linked",
+					Next:   cmp.Or(res.Next, "/user/profile"),
+				}
+			case res.Session != nil:
+				replaceSession(context.WithoutCancel(ctx), d, in.Session)
+				uv := userViewWithBadges(ctx, d, res.User)
+				out.SetCookies = []http.Cookie{sessionCookie(res.Session, ri)}
+				out.Body = ExternalAuthVerifyResult{
+					Status: "signed_in",
+					User:   &uv,
+					Next:   cmp.Or(res.Next, "/user"),
+				}
+			default:
+				out.SetCookies = []http.Cookie{socialFlowCookie(res.Signup, social.SignupTTL, ri)}
+				out.Body = ExternalAuthVerifyResult{
+					Status: "signup_required",
+					Next:   "/auth/social",
+				}
+			}
+			return out, nil
+		})
+}
+
+func resolveProviderLabel(d Deps, p social.Policy, provider string) (name, typ string) {
+	if c, ok := p.Provider(provider); ok {
+		return c.DisplayName(), c.Type
+	}
+	if rest, ok := strings.CutPrefix(provider, social.PluginProviderPrefix); ok && d.Accounts != nil {
+		if ap, exists := d.Accounts.LookupAuthProvider(rest); exists {
+			return ap.Name, "plugin"
+		}
+	}
+	return "", ""
 }
 
 func socialLinks(ctx context.Context, d Deps, userID int64) (*struct{ Body SocialLinks }, error) {
@@ -267,16 +392,14 @@ func socialLinks(ctx context.Context, d Deps, userID int64) (*struct{ Body Socia
 	p := social.PolicyFrom(d.Settings.Current())
 	out := SocialLinks{Links: make([]SocialLinkView, 0, len(links)), Providers: socialProviders(p)}
 	for _, l := range links {
-		out.Links = append(out.Links, socialLinkView(l, p))
+		out.Links = append(out.Links, socialLinkView(d, l, p))
 	}
 	return &struct{ Body SocialLinks }{out}, nil
 }
 
-func socialLinkView(l *ent.SocialAccount, p social.Policy) SocialLinkView {
+func socialLinkView(d Deps, l *ent.SocialAccount, p social.Policy) SocialLinkView {
 	v := SocialLinkView{Provider: l.Provider, Name: cmp.Or(l.Name, l.Email), CreatedAt: l.CreatedAt, LastUsedAt: l.LastUsedAt}
-	if c, ok := p.Provider(l.Provider); ok {
-		v.ProviderName, v.ProviderType = c.DisplayName(), c.Type
-	}
+	v.ProviderName, v.ProviderType = resolveProviderLabel(d, p, l.Provider)
 	return v
 }
 
@@ -325,6 +448,80 @@ func mountSocial(r chi.Router, d Deps) {
 			cookie := socialFlowCookie("", 0, ri)
 			http.SetCookie(w, &cookie)
 			go302("/user/profile?social_linked=" + url.QueryEscape(in.Provider))
+		default:
+			cookie := socialFlowCookie(res.Signup, social.SignupTTL, ri)
+			http.SetCookie(w, &cookie)
+			go302("/auth/social")
+		}
+	})
+
+	// Browser redirect callback for plugin-registered external auth providers
+	// (ctx.auth.registerProvider with mode="redirect").
+	r.Get("/api/v1/auth/providers/{provider}/callback", func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
+		ri := requestInfo(ctx)
+		w.Header().Set("Cache-Control", "no-store")
+		go302 := func(target string) { http.Redirect(w, req, target, http.StatusFound) }
+
+		if _, blocked := socialStarts.Take(account.ClientKey(ri.client.ClientIP)); blocked {
+			go302("/auth/login?social_error=" + social.CodeFailed)
+			return
+		}
+		if d.Accounts == nil || d.Social == nil {
+			go302("/auth/login?social_error=" + social.CodeFailed)
+			return
+		}
+		provider := chi.URLParam(req, "provider")
+		ap, ok := d.Accounts.LookupAuthProvider(provider)
+		if !ok || ap.Verify == nil {
+			go302("/auth/login?social_error=" + social.CodeFailed)
+			return
+		}
+		q := req.URL.Query()
+		if q.Get("error") == "access_denied" {
+			go302("/auth/login?social_error=" + social.CodeDenied)
+			return
+		}
+		input := make(map[string]any, len(q))
+		for k, vals := range q {
+			if len(vals) > 0 {
+				input[k] = vals[0]
+			}
+		}
+		info, err := ap.Verify(ctx, input)
+		if err != nil {
+			d.Log.Warn("plugin auth provider verify failed", "provider", provider, "err", err)
+			go302("/auth/login?social_error=" + social.CodeFailed)
+			return
+		}
+		remember := q.Get("remember") == "1" || q.Get("remember") == "true"
+		res, err := d.Social.CompleteExternal(ctx, social.ExternalAuthInput{
+			Provider: ap.ID,
+			Identity: social.Identity{
+				Subject:       info.Subject,
+				Email:         info.Email,
+				EmailVerified: info.EmailVerified,
+				Name:          cmp.Or(info.Nickname, info.Email),
+				Nickname:      info.Nickname,
+			},
+			Next:     cmp.Or(info.Next, q.Get("next")),
+			Remember: remember,
+			Meta:     ri.meta(req.UserAgent()),
+		})
+		var fe *social.FlowError
+		switch {
+		case errors.As(err, &fe):
+			go302("/auth/login?social_error=" + url.QueryEscape(fe.Code))
+		case err != nil:
+			d.Log.Error("plugin auth callback completion failed", "provider", provider, "err", err)
+			go302("/auth/login?social_error=" + social.CodeFailed)
+		case res.Session != nil:
+			if old, err := req.Cookie(SessionCookie); err == nil {
+				replaceSession(context.WithoutCancel(ctx), d, old.Value)
+			}
+			sess := sessionCookie(res.Session, ri)
+			http.SetCookie(w, &sess)
+			go302(cmp.Or(res.Next, "/user"))
 		default:
 			cookie := socialFlowCookie(res.Signup, social.SignupTTL, ri)
 			http.SetCookie(w, &cookie)

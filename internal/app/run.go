@@ -219,6 +219,11 @@ func Run(ctx context.Context, o RunOptions) error {
 				h.Set("X-Authlib-Injector-API-Location", httpapi.YggdrasilPrefix) // relative: the same site
 			}
 		})
+		if core.Plugins != nil {
+			gw.SetPublicRouteMatcher(core.Plugins.HasPublicRoute)
+		} else {
+			gw.SetPublicRouteMatcher(nil)
+		}
 		gw.SetAPI(fullAPI)
 
 		coreMu.Lock()

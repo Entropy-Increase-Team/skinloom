@@ -329,10 +329,8 @@ describe('${id}', () => {
             engines: { skinloom: '>=1.0.0' },
             server: 'server.js',
             web: 'web/index.js',
-            permissions: ['auth.provider', 'http.fetch', 'routes.public', 'storage.kv'],
+            permissions: ['auth.provider', 'http.fetch', 'storage.kv'],
             http: { allow: ['accounts.example.com'] },
-            routes: { public: ['/oauth/start', '/oauth/callback'] },
-            slots: ['auth.login.providers', 'auth.register.providers'],
             settings: {
               clientId: {
                 type: 'string',
@@ -362,9 +360,16 @@ export default definePlugin({
       },
       async (input) => {
         const code = typeof input.code === 'string' ? input.code : ''
-        if (!code) {
-          throw new Error('Missing authorization code')
+        const state = typeof input.state === 'string' ? input.state : ''
+        if (!code || !state) {
+          throw new Error('Missing OAuth code or state')
         }
+        const storedNext = await ctx.kv.get<string>(\`state:\${state}\`)
+        if (!storedNext) {
+          throw new Error('Invalid or expired OAuth state')
+        }
+        await ctx.kv.delete(\`state:\${state}\`)
+
         const res = await ctx.fetch(\`https://accounts.example.com/userinfo?code=\${encodeURIComponent(code)}\`)
         if (!res.ok) {
           throw new Error(\`Upstream auth failed (\${res.status})\`)
@@ -375,6 +380,7 @@ export default definePlugin({
           email: user.email,
           emailVerified: Boolean(user.email),
           nickname: user.name ?? 'Player',
+          next: storedNext,
         }
       },
     )
@@ -385,60 +391,66 @@ export default definePlugin({
       const rawNext = req.query.next ?? '/user'
       const safeNext = /^\\/(?![/\\\\])/.test(rawNext) ? rawNext : '/user'
       await ctx.kv.set(\`state:\${state}\`, safeNext, 600)
-      const url = \`https://accounts.example.com/authorize?client_id=\${encodeURIComponent(clientId)}&state=\${state}\`
+      const siteUrl = (await ctx.site.url()).replace(/\\/+$/, '')
+      const redirectUri = \`\${siteUrl}/api/v1/auth/providers/${id}/callback\`
+      const url =
+        \`https://accounts.example.com/authorize?client_id=\${encodeURIComponent(clientId)}\` +
+        \`&redirect_uri=\${encodeURIComponent(redirectUri)}&state=\${encodeURIComponent(state)}\`
       return { status: 302, headers: { Location: url } }
-    })
-
-    ctx.http.get('/oauth/callback', { auth: 'public' }, async (req) => {
-      const state = req.query.state ?? ''
-      const storedNext = state ? await ctx.kv.get<string>(\`state:\${state}\`) : null
-      if (!storedNext) {
-        return { status: 400, body: { ok: false, detail: 'Invalid or expired OAuth state' } }
-      }
-      await ctx.kv.delete(\`state:\${state}\`)
-      return { status: 200, body: { ok: Boolean(req.query.code), next: storedNext } }
     })
   },
 })
 `,
-        'src/web/index.tsx': `import { ButtonLink } from '@skinloom/ui'
-import { defineWebPlugin } from '@skinloom/plugin-sdk/web'
+        'src/web/index.tsx': `import { defineWebPlugin } from '@skinloom/plugin-sdk/web'
 
-function OAuthSignInButton(props: { next?: string }) {
-  const href = \`/api/plugins/${id}/oauth/start\${props.next ? \`?next=\${encodeURIComponent(props.next)}\` : ''}\`
-  return (
-    <ButtonLink href={href} variant="outline" className="w-full">
-      Continue with {${displayLiteral}}
-    </ButtonLink>
-  )
-}
-
-export default defineWebPlugin({
-  slots: {
-    'auth.login.providers': OAuthSignInButton,
-    'auth.register.providers': OAuthSignInButton,
-  },
-})
+// SkinLoom automatically renders a sign-in button on /auth/login and /auth/register
+// for redirect providers registered with authUrl. Use auth.login.providers only when
+// you need bespoke UI (such as a custom credentials form or QR login widget).
+export default defineWebPlugin({})
 `,
         'src/server.test.ts': `import { describe, expect, it } from 'vitest'
 import { createTestHost } from '@skinloom/plugin-sdk/testing'
 import plugin from './server.js'
 
 describe('${id}', () => {
-  it('redirects on /oauth/start and clears state on /oauth/callback', async () => {
+  it('redirects on /oauth/start and verifies state/code through auth provider callback', async () => {
     const host = createTestHost({
       manifest: {
         id: '${id}',
         kind: 'plugin',
         version: '0.1.0',
-        permissions: ['auth.provider', 'http.fetch', 'routes.public', 'storage.kv'],
+        permissions: ['auth.provider', 'http.fetch', 'storage.kv'],
+        http: { allow: ['accounts.example.com'] },
       },
       settings: { clientId: 'demo-client' },
+      site: { url: 'https://skins.example.com' },
+    })
+    host.fetchMock.mockJson('https://accounts.example.com/userinfo', {
+      sub: 'ext-42',
+      email: 'player@example.com',
+      name: 'Steve',
     })
     await host.setup(plugin)
     const start = await host.request('GET', '/oauth/start', { query: { next: '/user/closet' } })
     expect(start.status).toBe(302)
-    expect(start.headers?.Location).toContain('accounts.example.com/authorize')
+    const loc = new URL(String(start.headers?.Location ?? ''))
+    expect(loc.origin + loc.pathname).toBe('https://accounts.example.com/authorize')
+    expect(loc.searchParams.get('redirect_uri')).toBe('https://skins.example.com/api/v1/auth/providers/${id}/callback')
+    const state = loc.searchParams.get('state')
+    expect(state).toBeTruthy()
+
+    const registered = host.authProviders.get('${id}') as
+      | { verify?: (input: Record<string, unknown>) => Promise<Record<string, unknown>> }
+      | undefined
+    expect(registered?.verify).toBeTypeOf('function')
+    const profile = await registered!.verify!({ code: 'abc123', state })
+    expect(profile).toMatchObject({
+      subject: 'ext-42',
+      email: 'player@example.com',
+      emailVerified: true,
+      nickname: 'Steve',
+      next: '/user/closet',
+    })
   })
 })
 `,
@@ -652,9 +664,6 @@ describe('${id} theme manifest', () => {
               database: { required: true },
             },
             permissions: ['storage.sql', 'http.stream', 'users.read'],
-            routes: {
-              public: ['/entries', '/stream/events'],
-            },
             menus: [
               {
                 area: 'user',

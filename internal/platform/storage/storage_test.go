@@ -68,4 +68,23 @@ func TestLocal(t *testing.T) {
 			t.Fatalf("Open(%q): %v", bad, err)
 		}
 	}
+
+	// Self-heal if the storage directory is removed at runtime (e.g. empty temp dir pruned).
+	if err := os.RemoveAll(dir); err != nil {
+		t.Fatalf("RemoveAll(%s): %v", dir, err)
+	}
+	healed := []byte("healed after dir removal")
+	healedKey := key(healed)
+	if err := s.Put(ctx, healedKey, healed); err != nil {
+		t.Fatalf("Put after storage dir removed: %v", err)
+	}
+	hf, err := s.Open(ctx, healedKey)
+	if err != nil {
+		t.Fatalf("Open healed key: %v", err)
+	}
+	healedGot, _ := io.ReadAll(hf)
+	hf.Close()
+	if string(healedGot) != string(healed) {
+		t.Fatalf("read back healed %q, want %q", healedGot, healed)
+	}
 }

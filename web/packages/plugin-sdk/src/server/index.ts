@@ -188,6 +188,7 @@ export interface ExternalUserInfo {
   email?: string
   emailVerified?: boolean
   nickname?: string
+  next?: string
 }
 
 export interface PluginContext {

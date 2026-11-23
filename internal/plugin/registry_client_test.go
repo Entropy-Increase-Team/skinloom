@@ -362,7 +362,6 @@ func TestPhaseD5_InfrastructureEndToEndSmoke(t *testing.T) {
 			"version": "1.0.0",
 			"apiVersion": 1,
 			"server": "server.js",
-			"routes": {"public": ["/ping"]},
 			"permissions": ["storage.kv"]
 		}`),
 		"server.js": []byte(`
@@ -399,7 +398,6 @@ func TestPhaseD5_InfrastructureEndToEndSmoke(t *testing.T) {
 					"httpProxy": true,
 					"database": {"required": true}
 				},
-				"routes": {"public": ["/stream/sse"]},
 				"permissions": ["native.exec", "storage.sql", "http.stream"]
 			}`),
 			binPath: []byte("stub-native-binary-" + osName + "-" + archName),

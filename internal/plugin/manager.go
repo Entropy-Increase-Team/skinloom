@@ -81,6 +81,7 @@ type ManagerDeps struct {
 	CDN                    *cdn.Service
 	Yggdrasil              *yggdrasil.Service
 	Store                  storage.Store
+	LegacyStore            storage.Store // optional v1.1 texture store fallback for one-time .slp migration
 	StorageHook            *storage.SwappableStore
 	Themes                 *theme.Registry
 	Engine                 jsrt.Engine
@@ -134,6 +135,7 @@ type Manager struct {
 	cdn                  *cdn.Service
 	yggdrasil            *yggdrasil.Service
 	store                storage.Store
+	legacyStore          storage.Store
 	storageHook          *storage.SwappableStore
 	themes               *theme.Registry
 	dbAllocator          *DBAllocator
@@ -204,6 +206,7 @@ func NewManager(deps ManagerDeps) (*Manager, error) {
 		cdn:                  deps.CDN,
 		yggdrasil:            deps.Yggdrasil,
 		store:                deps.Store,
+		legacyStore:          deps.LegacyStore,
 		storageHook:          deps.StorageHook,
 		themes:               deps.Themes,
 		dbAllocator:          deps.DBAllocator,
@@ -252,6 +255,7 @@ func (m *Manager) hostPlatform() string {
 // Start scans DB-registered plugins and themes, pulls missing packages from Store,
 // and activates enabled items in dependency order.
 func (m *Manager) Start(ctx context.Context) error {
+	m.migrateLegacyPackageBlobs(ctx)
 	if err := m.startWithSync(ctx); err != nil {
 		return err
 	}
@@ -756,6 +760,15 @@ func (m *Manager) activateBundle(
 		}
 		return err
 	}
+	if candidate.perms.Has(PermRoutesPublic) && len(sb.manifest.Routes.Public) > 0 {
+		if err := m.checkPublicRouteConflicts(sb.manifest.ID, sb.manifest.Routes.Public); err != nil {
+			candidate.close(2 * time.Second)
+			if markFailedOnErr {
+				m.markFailed(ctx, sb.manifest.ID, err)
+			}
+			return err
+		}
+	}
 
 	// Phase 2: atomic swap into Bus and active route table.
 	if m.bus != nil {
@@ -1126,6 +1139,97 @@ func (m *Manager) List(ctx context.Context) ([]PluginInfo, error) {
 	return out, nil
 }
 
+func (m *Manager) checkPublicRouteConflicts(pluginID string, patterns []string) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	for otherID, other := range m.active {
+		if otherID == pluginID || other == nil || other.closed.Load() || !other.perms.Has(PermRoutesPublic) {
+			continue
+		}
+		for _, want := range patterns {
+			wantSegs := splitPathSegments(want)
+			for _, have := range other.manifest.Routes.Public {
+				if patternsOverlap(wantSegs, splitPathSegments(have)) {
+					return fmt.Errorf("routes.public pattern %q conflicts with active plugin %q (%q)", want, otherID, have)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func patternsOverlap(a, b []string) bool {
+	i := 0
+	for i < len(a) && i < len(b) {
+		if a[i] == "*" || b[i] == "*" {
+			return true
+		}
+		if !segmentsOverlap(a[i], b[i]) {
+			return false
+		}
+		i++
+	}
+	return len(a) == len(b)
+}
+
+func segmentsOverlap(a, b string) bool {
+	if a == b || isDynamicSegment(a) || isDynamicSegment(b) {
+		return true
+	}
+	return false
+}
+
+func isDynamicSegment(seg string) bool {
+	return seg == "*" || strings.HasPrefix(seg, ":") || (strings.Contains(seg, "{") && strings.Contains(seg, "}"))
+}
+
+// HasPublicRoute reports whether any active plugin with the routes.public permission
+// claims the given root URL path in its manifest routes.public patterns.
+func (m *Manager) HasPublicRoute(p string) bool {
+	if m == nil {
+		return false
+	}
+	return m.matchPublicRouteRuntime(p) != nil
+}
+
+func (m *Manager) matchPublicRouteRuntime(p string) *pluginRuntime {
+	actualSegs := splitPathSegments(p)
+	if len(actualSegs) == 0 {
+		return nil
+	}
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var matched *pluginRuntime
+	for id, rt := range m.active {
+		if rt == nil || rt.closed.Load() || !rt.perms.Has(PermRoutesPublic) || len(rt.manifest.Routes.Public) == 0 {
+			continue
+		}
+		for _, pat := range rt.manifest.Routes.Public {
+			if _, ok := matchSegments(splitPathSegments(pat), actualSegs); ok {
+				if matched == nil || id < matched.id {
+					matched = rt
+				}
+				break
+			}
+		}
+	}
+	return matched
+}
+
+// ServePublicRoute dispatches a root-level request claimed via manifest routes.public.
+// Returns true if an active plugin owns the path (even if the plugin returns 404/405).
+func (m *Manager) ServePublicRoute(w http.ResponseWriter, r *http.Request, viewer Viewer, locale string) bool {
+	if m == nil {
+		return false
+	}
+	rt := m.matchPublicRouteRuntime(r.URL.Path)
+	if rt == nil {
+		return false
+	}
+	m.serveRuntimeRoute(w, r, rt, r.URL.Path, viewer, locale)
+	return true
+}
+
 // ServePluginAPI dispatches HTTP requests arriving under /api/plugins/{id}/*.
 func (m *Manager) ServePluginAPI(w http.ResponseWriter, r *http.Request, id, subpath string, viewer Viewer, locale string) {
 	m.mu.RLock()
@@ -1135,6 +1239,10 @@ func (m *Manager) ServePluginAPI(w http.ResponseWriter, r *http.Request, id, sub
 		writePluginProblem(w, http.StatusNotFound, "plugin not active")
 		return
 	}
+	m.serveRuntimeRoute(w, r, rt, subpath, viewer, locale)
+}
+
+func (m *Manager) serveRuntimeRoute(w http.ResponseWriter, r *http.Request, rt *pluginRuntime, subpath string, viewer Viewer, locale string) {
 	if !strings.HasPrefix(subpath, "/") {
 		subpath = "/" + subpath
 	}
@@ -1413,10 +1521,38 @@ func matchSegments(pat, actual []string) (map[string]string, bool) {
 			params[seg[1:len(seg)-1]] = actual[i]
 		case seg == actual[i]:
 		default:
-			return nil, false
+			if name, val, ok := matchInlineParamSegment(seg, actual[i]); ok {
+				params[name] = val
+			} else {
+				return nil, false
+			}
 		}
 	}
 	return params, true
+}
+
+// matchInlineParamSegment matches segments containing a single "{param}" placeholder
+// with optional literal prefix/suffix, e.g. "{name}.json" against "Steve.json".
+func matchInlineParamSegment(pat, actual string) (string, string, bool) {
+	open := strings.IndexByte(pat, '{')
+	closeIdx := strings.IndexByte(pat, '}')
+	if open < 0 || closeIdx <= open+1 {
+		return "", "", false
+	}
+	prefix := pat[:open]
+	name := pat[open+1 : closeIdx]
+	suffix := pat[closeIdx+1:]
+	if strings.ContainsAny(name, "{}") || strings.ContainsAny(suffix, "{}") {
+		return "", "", false
+	}
+	if !strings.HasPrefix(actual, prefix) || !strings.HasSuffix(actual, suffix) {
+		return "", "", false
+	}
+	if len(actual) <= len(prefix)+len(suffix) {
+		return "", "", false
+	}
+	val := actual[len(prefix) : len(actual)-len(suffix)]
+	return name, val, true
 }
 
 func isPluginResponseEnvelope(m map[string]any) bool {
@@ -1929,11 +2065,13 @@ func (m *Manager) registerHostExtensions(rt *pluginRuntime) {
 					email, _ := resMap["email"].(string)
 					verified, _ := resMap["emailVerified"].(bool)
 					nick, _ := resMap["nickname"].(string)
+					next, _ := resMap["next"].(string)
 					return &account.ExternalUserInfo{
 						Subject:       subj,
 						Email:         email,
 						EmailVerified: verified,
 						Nickname:      nick,
+						Next:          next,
 					}, nil
 				}
 			}

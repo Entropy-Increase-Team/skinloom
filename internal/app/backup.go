@@ -52,6 +52,16 @@ func Backup(ctx context.Context, p Paths, o BackupOptions) (string, backup.Manif
 			return "", m, err
 		}
 	}
+	var pluginPkgStore storage.Store
+	if cfg.Storage.Driver == "s3" {
+		if pluginPkgStore, err = openPluginPackageStore(ctx, cfg.Storage, p.DataDir); err != nil {
+			return "", m, err
+		}
+	} else if _, statErr := os.Stat(filepath.Join(p.DataDir, "plugin-packages")); statErr == nil {
+		if pluginPkgStore, err = openPluginPackageStore(ctx, cfg.Storage, p.DataDir); err != nil {
+			return "", m, err
+		}
+	}
 	dir := o.OutDir
 	if dir == "" {
 		dir = filepath.Join(p.DataDir, "backups")
@@ -72,7 +82,7 @@ func Backup(ctx context.Context, p Paths, o BackupOptions) (string, backup.Manif
 		os.Remove(tmp)
 		return "", m, err
 	}
-	m, err = backup.Write(ctx, f, backup.Sources{DB: database, Store: store, DataDir: p.DataDir, ConfigPath: p.ConfigPath,
+	m, err = backup.Write(ctx, f, backup.Sources{DB: database, Store: store, PluginPackageStore: pluginPkgStore, DataDir: p.DataDir, ConfigPath: p.ConfigPath,
 		Version: buildinfo.Version, Now: now})
 	if cerr := f.Close(); err == nil {
 		err = cerr
@@ -137,6 +147,9 @@ func Restore(ctx context.Context, p Paths, file string, force bool) (backup.Resu
 	return backup.Restore(ctx, f, backup.Target{DataDir: p.DataDir, ConfigPath: p.ConfigPath, Force: force,
 		OpenStore: func(ctx context.Context, c config.Config) (storage.Store, error) {
 			return openStore(ctx, c.Storage, p.DataDir)
+		},
+		OpenPluginPackageStore: func(ctx context.Context, c config.Config) (storage.Store, error) {
+			return openPluginPackageStore(ctx, c.Storage, p.DataDir)
 		}})
 }
 

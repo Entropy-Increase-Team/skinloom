@@ -1,6 +1,6 @@
 'use client'
 
-import { type Answer, type CaptchaInfo, linkSocialPending, login, type SocialProviderInfo } from '@skinloom/api-client'
+import { type Answer, type CaptchaInfo, type ExternalAuthProviderInfo, linkSocialPending, login, type SocialProviderInfo } from '@skinloom/api-client'
 import { Button, Checkbox, Label } from '@skinloom/ui'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -24,11 +24,13 @@ export function LoginForm({
   next,
   captcha,
   providers = [],
+  externalProviders = [],
   linkPending = false,
 }: {
   next: string
   captcha: CaptchaInfo
   providers?: SocialProviderInfo[]
+  externalProviders?: ExternalAuthProviderInfo[]
   linkPending?: boolean
 }) {
   const t = useTranslations('auth')
@@ -121,7 +123,7 @@ export function LoginForm({
       <Slot name="auth.login.below" />
       {!linkPending && (
         <>
-          <SocialButtons providers={providers} next={next} remember={() => remember} />
+          <SocialButtons providers={providers} externalProviders={externalProviders} next={next} remember={() => remember} />
           <Slot name="auth.login.providers" props={{ next }} />
         </>
       )}

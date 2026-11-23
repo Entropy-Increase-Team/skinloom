@@ -55,11 +55,23 @@ type Gateway struct {
 	real  atomic.Pointer[realip.Resolver]
 	// headers adds response headers to every answer, pages included (see SetHeaders).
 	headers atomic.Pointer[func(http.Header)]
+	// publicRoute matches root-level paths owned by active plugins via routes.public.
+	publicRoute atomic.Pointer[func(string) bool]
 }
 
 // SetHeaders sets a function that adds headers to every response, such as
 // X-Authlib-Injector-API-Location, which launchers look for on the site's front page.
 func (g *Gateway) SetHeaders(f func(http.Header)) { g.headers.Store(&f) }
+
+// SetPublicRouteMatcher installs a matcher for plugin-owned root paths (routes.public).
+// Paths matched here are forwarded to the backend handler after built-in Reserved paths.
+func (g *Gateway) SetPublicRouteMatcher(f func(string) bool) {
+	if f == nil {
+		g.publicRoute.Store(nil)
+		return
+	}
+	g.publicRoute.Store(&f)
+}
 
 // SetAPI atomically replaces the backend API handler (used to transition from Setup Mode
 // to Running Mode without restarting the process).
@@ -172,6 +184,10 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if Reserved(p) {
+		(*g.api.Load()).ServeHTTP(w, r)
+		return
+	}
+	if match := g.publicRoute.Load(); match != nil && (*match)(p) {
 		(*g.api.Load()).ServeHTTP(w, r)
 		return
 	}

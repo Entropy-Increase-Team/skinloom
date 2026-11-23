@@ -27,14 +27,21 @@ type S3Options struct {
 	// PublicURL is a base URL serving the bucket, e.g. a CDN in front of it. When set,
 	// texture files are redirected there instead of passing through the server.
 	PublicURL string
+	// ContentType and CacheControl override the default texture object headers
+	// ("image/png" and "public, max-age=31536000, immutable") for non-texture stores
+	// such as private plugin package archives.
+	ContentType  string
+	CacheControl string
 }
 
 // S3 stores files in an S3-compatible bucket, under Prefix + key.
 type S3 struct {
-	c      *minio.Client
-	bucket string
-	prefix string
-	public string
+	c            *minio.Client
+	bucket       string
+	prefix       string
+	public       string
+	contentType  string
+	cacheControl string
 }
 
 // NewS3 connects to a bucket. It checks the bucket exists, so a wrong endpoint or
@@ -60,7 +67,22 @@ func NewS3(ctx context.Context, o S3Options) (*S3, error) {
 	if !ok {
 		return nil, fmt.Errorf("s3 storage: bucket %q does not exist", o.Bucket)
 	}
-	return &S3{c: c, bucket: o.Bucket, prefix: o.Prefix, public: strings.TrimRight(o.PublicURL, "/")}, nil
+	ctype := o.ContentType
+	if ctype == "" {
+		ctype = s3ContentType
+	}
+	cc := o.CacheControl
+	if cc == "" {
+		cc = s3CacheControl
+	}
+	return &S3{
+		c:            c,
+		bucket:       o.Bucket,
+		prefix:       o.Prefix,
+		public:       strings.TrimRight(o.PublicURL, "/"),
+		contentType:  ctype,
+		cacheControl: cc,
+	}, nil
 }
 
 func notFound(err error) bool {
@@ -94,14 +116,14 @@ func (s *S3) Put(ctx context.Context, key string, data []byte) error {
 		_, err = s.c.CopyObject(ctx,
 			minio.CopyDestOptions{Bucket: s.bucket, Object: name, ReplaceMetadata: true,
 				UserMetadata: map[string]string{"Touched": strconv.FormatInt(time.Now().UnixNano(), 10)},
-				ContentType:  s3ContentType, CacheControl: s3CacheControl},
+				ContentType:  s.contentType, CacheControl: s.cacheControl},
 			minio.CopySrcOptions{Bucket: s.bucket, Object: name})
 		return err
 	} else if !notFound(err) {
 		return err
 	}
 	_, err = s.c.PutObject(ctx, s.bucket, name, bytes.NewReader(data), int64(len(data)),
-		minio.PutObjectOptions{ContentType: s3ContentType, CacheControl: s3CacheControl})
+		minio.PutObjectOptions{ContentType: s.contentType, CacheControl: s.cacheControl})
 	return err
 }
 

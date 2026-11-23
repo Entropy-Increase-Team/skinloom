@@ -740,6 +740,7 @@
           "auth.login.providers",
           "auth.register.below",
           "auth.register.providers",
+          "auth.captcha.widget",
           "user.dashboard.widgets",
           "user.profile.sections",
           "user.player.actions",

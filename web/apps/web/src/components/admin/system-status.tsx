@@ -4,7 +4,7 @@ import { type AdminPluginView, getSystemStatus, listPlugins, rescanMissingBlobs,
 import { Button, PageHeader, Skeleton, type Status, StatusDot, toast } from '@skinloom/ui'
 import { RefreshCw } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
-import { type ReactNode, useCallback, useEffect, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 
 import { FormError } from '@/components/auth/field'
 import { Slot } from '@/components/slot'
@@ -24,6 +24,8 @@ export function formatBytes(n: number, locale: string): string {
 /** System status of the node answering (02 F40): findings first, then the figures. */
 export function SystemStatusView() {
   const t = useTranslations('adminStatus')
+  const tRef = useRef(t)
+  tRef.current = t
   const locale = useLocale()
   const [status, setStatus] = useState<SystemStatus | null>(null)
   const [pluginCounts, setPluginCounts] = useState<{ enabled: number; total: number } | null>(null)
@@ -49,11 +51,11 @@ export function SystemStatusView() {
         })
       }
     } catch {
-      setError(t('errors.load'))
+      setError(tRef.current('errors.load'))
     } finally {
       setLoading(false)
     }
-  }, [t])
+  }, [])
   useEffect(() => {
     void load()
   }, [load])
@@ -64,14 +66,14 @@ export function SystemStatusView() {
     try {
       const r = (await rescanMissingBlobs()).data as RescanResult
       setRescanResult(r)
-      toast.success(t('storage.rescanDone', { checked: r.checked, updated: r.updated, missing: r.missing }))
+      toast.success(tRef.current('storage.rescanDone', { checked: r.checked, updated: r.updated, missing: r.missing }))
       await load()
     } catch {
-      setError(t('storage.rescanFailed'))
+      setError(tRef.current('storage.rescanFailed'))
     } finally {
       setRescanning(false)
     }
-  }, [load, t])
+  }, [load])
 
   const ta = useTranslations('admin')
   const header = (

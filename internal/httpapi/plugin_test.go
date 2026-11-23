@@ -1,18 +1,24 @@
 package httpapi
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/Entropy-Increase-Team/skinloom/internal/gateway"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/jobs"
+	"github.com/Entropy-Increase-Team/skinloom/internal/platform/storage"
 	"github.com/Entropy-Increase-Team/skinloom/internal/plugin"
 )
 
@@ -533,5 +539,333 @@ func TestPluginGuardPropagatesRequestLocale(t *testing.T) {
 	h.ServeHTTP(recEn, reqEn)
 	if recEn.Code != http.StatusUnprocessableEntity || !strings.Contains(recEn.Body.String(), "Valid invitation code required") {
 		t.Fatalf("expected English guard rejection, got %d: %s", recEn.Code, recEn.Body.String())
+	}
+}
+
+func buildTestSLP(t *testing.T, files map[string]string) ([]byte, string) {
+	t.Helper()
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	var checksums strings.Builder
+	for name, content := range files {
+		w, err := zw.Create(name)
+		if err != nil {
+			t.Fatalf("zip create %s: %v", name, err)
+		}
+		if _, err := w.Write([]byte(content)); err != nil {
+			t.Fatalf("zip write %s: %v", name, err)
+		}
+		fsum := sha256.Sum256([]byte(content))
+		checksums.WriteString(hex.EncodeToString(fsum[:]) + "  " + name + "\n")
+	}
+	cw, err := zw.Create("checksums.txt")
+	if err != nil {
+		t.Fatalf("zip create checksums.txt: %v", err)
+	}
+	if _, err := cw.Write([]byte(checksums.String())); err != nil {
+		t.Fatalf("zip write checksums.txt: %v", err)
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatalf("zip close: %v", err)
+	}
+	sum := sha256.Sum256(buf.Bytes())
+	return buf.Bytes(), hex.EncodeToString(sum[:])
+}
+
+func TestPluginPackageNotExposedViaTexturesEndpoint(t *testing.T) {
+	ctx := context.Background()
+	d, dir := newTestDepsDir(t)
+	d.Bus = hook.NewBus(d.Log, 2)
+	t.Cleanup(func() { d.Bus.Close(context.Background()) })
+
+	texStore, err := storage.NewLocal(filepath.Join(dir, "textures"))
+	if err != nil {
+		t.Fatalf("texStore: %v", err)
+	}
+	pkgStore, err := storage.NewLocal(filepath.Join(dir, "plugin-packages"))
+	if err != nil {
+		t.Fatalf("pkgStore: %v", err)
+	}
+
+	slpBytes, slpSHA := buildTestSLP(t, map[string]string{
+		"plugin.json": `{"id":"priv-pkg","kind":"plugin","version":"1.0.0","name":"Priv","apiVersion":1,"server":"server.js"}`,
+		"server.js":   `export default { setup() {} };`,
+	})
+	// Simulate an unmigrated v1.1 .slp blob left in the public texture directory.
+	if err := texStore.Put(ctx, slpSHA, slpBytes); err != nil {
+		t.Fatalf("seed legacy texStore: %v", err)
+	}
+
+	h, _ := New(d)
+	// Defense-in-depth: /textures/{hash} must refuse non-PNG blobs (such as ZIP .slp archives).
+	if rec := get(t, h, nil, "/textures/"+slpSHA); rec.Code != http.StatusNotFound {
+		t.Fatalf("GET /textures/%s = %d, want 404 for non-PNG .slp archive", slpSHA, rec.Code)
+	}
+
+	mgr, err := plugin.NewManager(plugin.ManagerDeps{
+		DB:          d.DB.Ent,
+		Bus:         d.Bus,
+		Settings:    d.Settings,
+		Store:       pkgStore,
+		LegacyStore: texStore,
+		DataDir:     dir,
+		Log:         d.Log,
+	})
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	t.Cleanup(func() { _ = mgr.Shutdown(context.Background()) })
+
+	// InstallPackage must write into private pkgStore and NOT into public texStore.
+	slp2Bytes, slp2SHA := buildTestSLP(t, map[string]string{
+		"plugin.json": `{"id":"fresh-pkg","kind":"plugin","version":"1.0.0","name":"Fresh","apiVersion":1,"server":"server.js"}`,
+		"server.js":   `export default { setup() {} };`,
+	})
+	if _, err := mgr.InstallPackage(ctx, slp2Bytes, plugin.InstallOptions{Enable: true, Source: "upload", AllowUnsigned: true}); err != nil {
+		t.Fatalf("InstallPackage: %v", err)
+	}
+	if _, err := pkgStore.Stat(ctx, slp2SHA); err != nil {
+		t.Fatalf("expected %s in private pkgStore: %v", slp2SHA, err)
+	}
+	if _, err := texStore.Stat(ctx, slp2SHA); err == nil {
+		t.Fatalf("plugin archive %s leaked into public texStore", slp2SHA)
+	}
+
+	// Simulate a DB plugin row pointing to legacy slpSHA and verify Start() migrates it out of texStore.
+	if _, err := d.DB.Ent.Plugin.Create().
+		SetID("priv-pkg").
+		SetKind("plugin").
+		SetVersion("1.0.0").
+		SetStatus("disabled").
+		SetSource("upload").
+		SetPackageSha256(slpSHA).
+		Save(ctx); err != nil {
+		t.Fatalf("seed legacy plugin row: %v", err)
+	}
+	if err := mgr.Start(ctx); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if _, err := pkgStore.Stat(ctx, slpSHA); err != nil {
+		t.Fatalf("expected legacy archive migrated to pkgStore: %v", err)
+	}
+	if _, err := texStore.Stat(ctx, slpSHA); err == nil {
+		t.Fatalf("expected legacy archive removed from public texStore after migration")
+	}
+}
+
+func TestPluginPublicRoutesEndToEnd(t *testing.T) {
+	d, dir := newTestDepsDir(t)
+	d.Bus = hook.NewBus(d.Log, 2)
+	t.Cleanup(func() { d.Bus.Close(context.Background()) })
+
+	mgr, err := plugin.NewManager(plugin.ManagerDeps{
+		DB:       d.DB.Ent,
+		Bus:      d.Bus,
+		Settings: d.Settings,
+		DataDir:  dir,
+		Log:      d.Log,
+	})
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	t.Cleanup(func() { _ = mgr.Shutdown(context.Background()) })
+	d.Plugins = mgr
+
+	// Manifest validation must reject missing permission and reserved host routes.
+	for _, bad := range []string{
+		`{"id":"bad-perm","kind":"plugin","version":"1.0.0","name":"Bad","apiVersion":1,"routes":{"public":["/mcskin/{name}.json"]}}`,
+		`{"id":"bad-api","kind":"plugin","version":"1.0.0","name":"Bad","apiVersion":1,"permissions":["routes.public"],"routes":{"public":["/api/hijack"]}}`,
+		`{"id":"bad-oauth","kind":"plugin","version":"1.0.0","name":"Bad","apiVersion":1,"permissions":["routes.public"],"routes":{"public":["/oauth/start"]}}`,
+		`{"id":"bad-csl","kind":"plugin","version":"1.0.0","name":"Bad","apiVersion":1,"permissions":["routes.public"],"routes":{"public":["/steve.json"]}}`,
+		`{"id":"bad-root","kind":"plugin","version":"1.0.0","name":"Bad","apiVersion":1,"permissions":["routes.public"],"routes":{"public":["/"]}}`,
+	} {
+		if _, err := plugin.ParseManifest([]byte(bad)); err == nil {
+			t.Errorf("expected ParseManifest to reject %s", bad)
+		}
+	}
+
+	h, _ := New(d)
+	gw := gateway.New(h, d.Log, nil)
+	gw.SetPublicRouteMatcher(mgr.HasPublicRoute)
+	setupSite(t, d, &browser{t: t, h: h})
+
+	payload, _ := json.Marshal(map[string]any{
+		"manifest": map[string]any{
+			"id":          "alt-proto",
+			"kind":        "plugin",
+			"version":     "1.0.0",
+			"name":        "Alt Protocol",
+			"apiVersion":  1,
+			"server":      "server.js",
+			"permissions": []string{"routes.public"},
+			"routes":      map[string]any{"public": []string{"/mcskin/{name}.json"}},
+		},
+		"serverJs": `export default {
+			setup(ctx) {
+				ctx.http.get("/mcskin/{name}.json", { auth: "public" }, (req) => ({
+					player: req.params.name,
+					protocol: "alt"
+				}));
+			}
+		};`,
+	})
+	if rec := do(t, h, http.MethodPost, "/api/v1/admin/plugins/dev-reload", "Bearer "+testToken, string(payload)); rec.Code != http.StatusOK {
+		t.Fatalf("dev-reload alt-proto: %d %s", rec.Code, rec.Body.String())
+	}
+
+	// Routed cleanly through Gateway (proving non-Reserved root paths reach plugin routes).
+	rec := httptest.NewRecorder()
+	gw.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/mcskin/Steve.json", nil))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"player":"Steve"`) {
+		t.Fatalf("GET /mcskin/Steve.json via Gateway = %d %s", rec.Code, rec.Body.String())
+	}
+
+	// Second plugin attempting to claim an overlapping public route must fail activation.
+	conflictPayload, _ := json.Marshal(map[string]any{
+		"manifest": map[string]any{
+			"id":          "alt-proto-dup",
+			"kind":        "plugin",
+			"version":     "1.0.0",
+			"name":        "Dup",
+			"apiVersion":  1,
+			"server":      "server.js",
+			"permissions": []string{"routes.public"},
+			"routes":      map[string]any{"public": []string{"/mcskin/*"}},
+		},
+		"serverJs": `export default { setup() {} };`,
+	})
+	if recConf := do(t, h, http.MethodPost, "/api/v1/admin/plugins/dev-reload", "Bearer "+testToken, string(conflictPayload)); recConf.Code == http.StatusOK {
+		t.Fatalf("expected conflicting routes.public activation to fail, got 200")
+	}
+}
+
+func TestPluginAuthProviderEndToEnd(t *testing.T) {
+	d, dir := newTestDepsDir(t)
+	d.Bus = hook.NewBus(d.Log, 2)
+	t.Cleanup(func() { d.Bus.Close(context.Background()) })
+	setSettings(t, d, `{"captcha.provider": "none", "auth.registration": "open"}`)
+
+	mgr, err := plugin.NewManager(plugin.ManagerDeps{
+		DB:       d.DB.Ent,
+		Bus:      d.Bus,
+		Settings: d.Settings,
+		Accounts: d.Accounts,
+		DataDir:  dir,
+		Log:      d.Log,
+	})
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	t.Cleanup(func() { _ = mgr.Shutdown(context.Background()) })
+	d.Plugins = mgr
+
+	h, _ := New(d)
+	setupSite(t, d, &browser{t: t, h: h})
+
+	payload, _ := json.Marshal(map[string]any{
+		"manifest": map[string]any{
+			"id":          "forum-sso",
+			"kind":        "plugin",
+			"version":     "1.0.0",
+			"name":        "Forum SSO",
+			"apiVersion":  1,
+			"server":      "server.js",
+			"permissions": []string{"auth.provider"},
+		},
+		"serverJs": `export default {
+			setup(ctx) {
+				ctx.auth.registerProvider(
+					{ id: "forum", name: "Community Forum", authUrl: "/api/plugins/forum-sso/start", mode: "redirect" },
+					async (input) => {
+						if (input.code !== "valid-code") {
+							throw new Error("bad code");
+						}
+						return {
+							subject: "forum-uid-99",
+							email: "forum99@example.com",
+							emailVerified: false,
+							nickname: "ForumHero",
+							next: input.next || "/user/closet"
+						};
+					}
+				);
+			}
+		};`,
+	})
+	if rec := do(t, h, http.MethodPost, "/api/v1/admin/plugins/dev-reload", "Bearer "+testToken, string(payload)); rec.Code != http.StatusOK {
+		t.Fatalf("dev-reload forum-sso: %d %s", rec.Code, rec.Body.String())
+	}
+
+	// 1. Bootstrap must expose registered plugin auth provider.
+	recBoot := get(t, h, nil, "/api/v1/site/bootstrap")
+	if recBoot.Code != http.StatusOK {
+		t.Fatalf("bootstrap = %d %s", recBoot.Code, recBoot.Body.String())
+	}
+	var boot Bootstrap
+	if err := json.Unmarshal(recBoot.Body.Bytes(), &boot); err != nil {
+		t.Fatalf("decode bootstrap: %v", err)
+	}
+	if len(boot.Auth.Providers) != 1 || boot.Auth.Providers[0].ID != "forum" || boot.Auth.Providers[0].Name != "Community Forum" {
+		t.Fatalf("unexpected bootstrap auth.providers: %+v", boot.Auth.Providers)
+	}
+
+	// 2. POST /api/v1/auth/providers/forum/verify without CSRF header must be rejected (403).
+	reqNoCSRF := httptest.NewRequest(http.MethodPost, "/api/v1/auth/providers/forum/verify", strings.NewReader(`{"input":{"code":"valid-code"}}`))
+	reqNoCSRF.Header.Set("Content-Type", "application/json")
+	recNoCSRF := httptest.NewRecorder()
+	h.ServeHTTP(recNoCSRF, reqNoCSRF)
+	if recNoCSRF.Code != http.StatusForbidden {
+		t.Fatalf("POST verify without CSRF = %d, want 403", recNoCSRF.Code)
+	}
+
+	// 3. First-time user via POST verify opens pending signup flow with skinloom_social cookie.
+	userBrowser := &browser{t: t, h: h}
+	recVerify := userBrowser.do(http.MethodPost, "/api/v1/auth/providers/forum/verify", `{"input":{"code":"valid-code"}}`)
+	if recVerify.Code != http.StatusOK || !strings.Contains(recVerify.Body.String(), `"signup_required"`) {
+		t.Fatalf("first verify = %d %s", recVerify.Code, recVerify.Body.String())
+	}
+	var socialCookie *http.Cookie
+	for _, c := range recVerify.Result().Cookies() {
+		if c.Name == SocialCookie {
+			socialCookie = c
+		}
+	}
+	if socialCookie == nil || socialCookie.Value == "" {
+		t.Fatalf("expected %s cookie from verify, got %+v", SocialCookie, recVerify.Result().Cookies())
+	}
+	// GET /api/v1/auth/social/pending resolves plugin provider display name & type.
+	reqPending := httptest.NewRequest(http.MethodGet, "/api/v1/auth/social/pending", nil)
+	reqPending.AddCookie(socialCookie)
+	recPending := httptest.NewRecorder()
+	h.ServeHTTP(recPending, reqPending)
+	if recPending.Code != http.StatusOK || !strings.Contains(recPending.Body.String(), `"Community Forum"`) || !strings.Contains(recPending.Body.String(), `"plugin"`) {
+		t.Fatalf("social pending = %d %s", recPending.Code, recPending.Body.String())
+	}
+	// Complete registration via /api/v1/auth/social/pending/register.
+	reqReg := httptest.NewRequest(http.MethodPost, "/api/v1/auth/social/pending/register", strings.NewReader(`{"email":"forum99@example.com","nickname":"ForumHero"}`))
+	reqReg.Header.Set("Content-Type", "application/json")
+	reqReg.Header.Set(CSRFHeader, "1")
+	reqReg.AddCookie(socialCookie)
+	recReg := httptest.NewRecorder()
+	h.ServeHTTP(recReg, reqReg)
+	if recReg.Code != http.StatusOK {
+		t.Fatalf("social register = %d %s", recReg.Code, recReg.Body.String())
+	}
+
+	// 4. Returning user via browser redirect GET /api/v1/auth/providers/forum/callback receives session cookie and redirect.
+	cbBrowser := &browser{t: t, h: h}
+	recCB := cbBrowser.do(http.MethodGet, "/api/v1/auth/providers/forum/callback?code=valid-code&next=/user/closet", "")
+	if recCB.Code != http.StatusFound || recCB.Header().Get("Location") != "/user/closet" {
+		t.Fatalf("GET callback = %d loc=%q", recCB.Code, recCB.Header().Get("Location"))
+	}
+	recMe := cbBrowser.do(http.MethodGet, "/api/v1/auth/me", "")
+	if recMe.Code != http.StatusOK || !strings.Contains(recMe.Body.String(), `"ForumHero"`) {
+		t.Fatalf("GET /api/v1/auth/me after callback = %d %s", recMe.Code, recMe.Body.String())
+	}
+
+	// 5. Failed callback redirects cleanly to /auth/login?social_error=failed.
+	recFail := (&browser{t: t, h: h}).do(http.MethodGet, "/api/v1/auth/providers/forum/callback?code=wrong", "")
+	if recFail.Code != http.StatusFound || recFail.Header().Get("Location") != "/auth/login?social_error=failed" {
+		t.Fatalf("GET failed callback = %d loc=%q", recFail.Code, recFail.Header().Get("Location"))
 	}
 }

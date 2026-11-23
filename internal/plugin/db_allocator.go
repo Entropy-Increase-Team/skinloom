@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -61,6 +62,10 @@ func SafeSQLSchema(pluginID string) (string, error) {
 	return schema, nil
 }
 
+// ErrDedicatedPluginDBRequired is returned when plugins.database.require_dedicated
+// is enabled on MySQL/PostgreSQL without configuring a dedicated plugins.database.dsn.
+var ErrDedicatedPluginDBRequired = errors.New("dedicated [plugins.database].dsn is required for native SQL plugins on MySQL/PostgreSQL")
+
 // DBAllocatorOptions configures the three-dialect native plugin database allocator.
 type DBAllocatorOptions struct {
 	MainDriver string
@@ -68,6 +73,7 @@ type DBAllocatorOptions struct {
 	MainSQL    *sql.DB
 	Override   config.PluginDatabase
 	DataDir    string
+	Log        *slog.Logger
 }
 
 // DBAllocator provisions isolated SQL storage spaces for native plugins across
@@ -80,6 +86,7 @@ type DBAllocator struct {
 	mainSQL    *sql.DB
 	override   config.PluginDatabase
 	dataDir    string
+	log        *slog.Logger
 }
 
 // NewDBAllocator creates a PluginDBAllocator.
@@ -90,7 +97,22 @@ func NewDBAllocator(opts DBAllocatorOptions) *DBAllocator {
 		mainSQL:    opts.MainSQL,
 		override:   opts.Override,
 		dataDir:    opts.DataDir,
+		log:        opts.Log,
 	}
+}
+
+// IsSharingMainCredentials reports whether allocating SQL storage for a native
+// plugin would hand out the main MySQL/PostgreSQL DSN instead of a dedicated
+// least-privilege [plugins.database].dsn override.
+func (a *DBAllocator) IsSharingMainCredentials() bool {
+	if a == nil {
+		return false
+	}
+	dialect, err := a.effectiveDialect()
+	if err != nil || dialect == db.SQLite {
+		return false
+	}
+	return strings.TrimSpace(a.override.DSN) == ""
 }
 
 func (a *DBAllocator) effectiveDialect() (db.Dialect, error) {
@@ -148,9 +170,19 @@ func (a *DBAllocator) Allocate(ctx context.Context, pluginID string) (*PluginDBC
 	switch dialect {
 	case db.SQLite:
 		return a.allocateSQLite(ctx, pluginID, prefix)
-	case db.MySQL:
-		return a.allocateMySQL(prefix)
-	case db.Postgres:
+	case db.MySQL, db.Postgres:
+		if a.IsSharingMainCredentials() {
+			if a.override.RequireDedicated {
+				return nil, fmt.Errorf("%w (plugin %q)", ErrDedicatedPluginDBRequired, pluginID)
+			}
+			if a.log != nil {
+				a.log.Warn("native plugin SQL storage is reusing the main database credentials; configure [plugins.database] dsn with a least-privilege account for strong isolation",
+					"plugin", pluginID, "dialect", dialect, "postgres_schema", a.override.PostgresSchema)
+			}
+		}
+		if dialect == db.MySQL {
+			return a.allocateMySQL(prefix)
+		}
 		return a.allocatePostgres(ctx, pluginID, prefix)
 	default:
 		return nil, fmt.Errorf("unsupported dialect %q", dialect)

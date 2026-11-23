@@ -46,10 +46,11 @@ const (
 )
 
 var (
-	secretName   = regexp.MustCompile(`^secrets/[A-Za-z0-9_-][A-Za-z0-9._-]{0,99}$`) // not "." or ".."
-	textureName  = regexp.MustCompile(`^textures/[0-9a-f]{64}$`)
-	pluginIDSeg  = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)
-	sqliteHeader = []byte("SQLite format 3\x00")
+	secretName        = regexp.MustCompile(`^secrets/[A-Za-z0-9_-][A-Za-z0-9._-]{0,99}$`) // not "." or ".."
+	textureName       = regexp.MustCompile(`^textures/[0-9a-f]{64}$`)
+	pluginPackageName = regexp.MustCompile(`^plugin-packages/[0-9a-f]{64}$`)
+	pluginIDSeg       = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)
+	sqliteHeader      = []byte("SQLite format 3\x00")
 )
 
 // isSafePluginDataEntry checks that name is a clean relative path under plugins-data/<id>/...
@@ -92,16 +93,18 @@ type Manifest struct {
 	Textures        int   `json:"textures"`
 	TextureBytes    int64 `json:"textureBytes"`
 	PluginDataFiles int   `json:"pluginDataFiles,omitempty"`
+	PluginPackages  int   `json:"pluginPackages,omitempty"`
 }
 
 // Sources is what Write reads.
 type Sources struct {
-	DB         *db.DB
-	Store      storage.Store // nil leaves the textures out
-	DataDir    string
-	ConfigPath string
-	Version    string
-	Now        time.Time
+	DB                 *db.DB
+	Store              storage.Store // nil leaves the textures out
+	PluginPackageStore storage.Store // optional private .slp archive store
+	DataDir            string
+	ConfigPath         string
+	Version            string
+	Now                time.Time
 }
 
 // Write streams the archive to w.
@@ -136,6 +139,20 @@ func Write(ctx context.Context, w io.Writer, src Sources) (Manifest, error) {
 		}
 	}
 	m.Textures = len(keys)
+
+	var pkgKeys []string
+	if src.PluginPackageStore != nil {
+		if err := src.PluginPackageStore.Walk(ctx, func(key string, _ time.Time) error {
+			if storage.ValidKey(key) {
+				pkgKeys = append(pkgKeys, key)
+			}
+			return nil
+		}); err != nil {
+			return m, fmt.Errorf("list plugin packages: %w", err)
+		}
+		sort.Strings(pkgKeys)
+	}
+	m.PluginPackages = len(pkgKeys)
 
 	type pluginDataItem struct {
 		archiveName string
@@ -242,6 +259,20 @@ func Write(ctx context.Context, w io.Writer, src Sources) (Manifest, error) {
 	for _, item := range pluginItems {
 		if err := putFile(item.archiveName, item.diskPath); err != nil {
 			return m, fmt.Errorf("%s: %w", item.archiveName, err)
+		}
+	}
+	for _, key := range pkgKeys {
+		f, err := src.PluginPackageStore.Open(ctx, key)
+		if errors.Is(err, storage.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return m, fmt.Errorf("plugin package %s: %w", key, err)
+		}
+		err = put("plugin-packages/"+key, f.Size(), f)
+		f.Close()
+		if err != nil {
+			return m, fmt.Errorf("plugin package %s: %w", key, err)
 		}
 	}
 	for _, key := range keys {

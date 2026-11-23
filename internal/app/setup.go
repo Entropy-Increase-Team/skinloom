@@ -1347,6 +1347,13 @@ func (sc *setupController) runRestoreJob(job *setupJob, archivePath string, cfg 
 			}
 			return openStore(ctx, st, sc.paths.DataDir)
 		},
+		OpenPluginPackageStore: func(ctx context.Context, archiveCfg config.Config) (storage.Store, error) {
+			st := cfg.Storage
+			if applyArchiveConfig {
+				st = archiveCfg.Storage
+			}
+			return openPluginPackageStore(ctx, st, sc.paths.DataDir)
+		},
 	})
 	if err != nil {
 		sc.failJob(job, nil, err)

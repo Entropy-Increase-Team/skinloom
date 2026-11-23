@@ -198,10 +198,11 @@ func (m *Manager) stopCronLoop() {
 
 func (m *Manager) runCronTick(cronCtx context.Context, wg *sync.WaitGroup, minute time.Time) {
 	if m.db != nil && minute.Minute() == 0 {
-		// Hourly best-effort sweep of expired cron cluster leases so plugin_kv does not grow unboundedly.
+		// Hourly best-effort sweep of expired plugin_kv rows (including cron leases
+		// and plugin TTL keys) so plugin_kv does not grow unboundedly.
 		sweepCtx, cancel := context.WithTimeout(cronCtx, 5*time.Second)
 		_, _ = m.db.PluginKV.Delete().
-			Where(pluginkv.Plugin(cronKVPlugin), pluginkv.ExpiresAtLT(time.Now().UTC())).
+			Where(pluginkv.ExpiresAtNotNil(), pluginkv.ExpiresAtLT(time.Now().UTC())).
 			Exec(sweepCtx)
 		cancel()
 	}

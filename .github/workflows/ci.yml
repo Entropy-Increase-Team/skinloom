@@ -117,6 +117,10 @@ jobs:
           fi
       - name: OpenAPI document
         run: go generate ./api && git diff --exit-code -- api/
+      - name: Plugin schema & TS catalog (plugingen)
+        run: go run ./internal/tools/plugingen -check
+      - name: Native plugin gRPC proto stubs (protogen)
+        run: go run ./internal/tools/protogen -check
 
   web:
     name: Web (bun)

@@ -235,6 +235,10 @@ func OpenCoreWithOptions(ctx context.Context, p Paths, opts CoreOptions) (*Core,
 	if err != nil {
 		return nil, err
 	}
+	pluginPkgStore, err := openPluginPackageStore(ctx, cfg.Storage, p.DataDir)
+	if err != nil {
+		return nil, err
+	}
 	store := storage.NewSwappable(baseStore)
 	c.Settings = settings.NewService(opts.SettingsReg, client, c.Broker, c.Bus, log.With("component", "settings"))
 	c.Settings.SetOnReload(func() {
@@ -299,6 +303,7 @@ func OpenCoreWithOptions(ctx context.Context, p Paths, opts CoreOptions) (*Core,
 		MainSQL:    c.DB.SQL,
 		Override:   cfg.Plugins.Database,
 		DataDir:    p.DataDir,
+		Log:        log.With("component", "plugin.db"),
 	})
 	c.Plugins, err = plugin.NewManager(plugin.ManagerDeps{
 		DB:                  client,
@@ -313,7 +318,8 @@ func OpenCoreWithOptions(ctx context.Context, p Paths, opts CoreOptions) (*Core,
 		Captcha:             c.Captcha,
 		CDN:                 c.CDN,
 		Yggdrasil:           c.Yggdrasil,
-		Store:               baseStore,
+		Store:               pluginPkgStore,
+		LegacyStore:         baseStore,
 		StorageHook:         store,
 		Themes:              c.Themes,
 		DBAllocator:         pluginDBAlloc,
@@ -418,4 +424,32 @@ func openStore(ctx context.Context, c config.Storage, dataDir string) (storage.S
 			PathStyle: c.PathStyle, PublicURL: c.PublicURL})
 	}
 	return storage.NewLocal(c.Dir(dataDir))
+}
+
+// openPluginPackageStore opens a dedicated private store for .slp plugin archives,
+// isolated from the public texture store (no /textures/{hash} or public CDN exposure).
+func openPluginPackageStore(ctx context.Context, c config.Storage, dataDir string) (storage.Store, error) {
+	if c.Driver == "s3" {
+		prefix := "plugin-packages/"
+		if base := strings.TrimRight(c.Prefix, "/"); base != "" {
+			prefix = base + "/plugin-packages/"
+		}
+		return storage.NewS3(ctx, storage.S3Options{
+			Endpoint:     c.Endpoint,
+			Bucket:       c.Bucket,
+			Region:       c.Region,
+			AccessKey:    c.AccessKey,
+			SecretKey:    c.SecretKey,
+			Prefix:       prefix,
+			Insecure:     c.Insecure,
+			PathStyle:    c.PathStyle,
+			ContentType:  "application/octet-stream",
+			CacheControl: "private, no-store",
+		})
+	}
+	dir := filepath.Join(dataDir, "plugin-packages")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return nil, fmt.Errorf("plugin package store directory: %w", err)
+	}
+	return storage.NewLocal(dir)
 }

@@ -250,21 +250,26 @@ export function PluginsMarket({
   )
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-5">
       {/* Server environment capsule, compatibleOnly toggle, and refresh button */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-3.5">
-        <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-3.5">
+        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2.5">
           {market?.hostEnv ? (
-            <Badge variant="secondary" className="gap-1.5 px-2.5 py-1 font-mono text-xs">
-              <Server className="size-3.5 text-primary" />
-              {tm('hostCapsule', {
-                platform: market.hostEnv.platform,
-                skinloom: market.hostEnv.skinloomVersion,
-                go: market.hostEnv.goVersion,
-              })}
+            <Badge
+              variant="secondary"
+              className="h-auto max-w-full gap-1.5 whitespace-normal break-words px-2.5 py-1 font-mono text-xs"
+            >
+              <Server className="size-3.5 shrink-0 text-primary" />
+              <span className="min-w-0 break-all">
+                {tm('hostCapsule', {
+                  platform: market.hostEnv.platform,
+                  skinloom: market.hostEnv.skinloomVersion,
+                  go: market.hostEnv.goVersion,
+                })}
+              </span>
             </Badge>
           ) : (
-            <Skeleton className="h-6 w-56 rounded-md" />
+            <Skeleton className="h-6 w-56 max-w-full rounded-md" />
           )}
         </div>
 
@@ -296,8 +301,8 @@ export function PluginsMarket({
       </div>
 
       {/* Category pills and search box */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="no-scrollbar flex max-w-full items-center gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <div className="no-scrollbar flex min-w-0 max-w-full items-center gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
           {CATEGORIES.map((cat) => (
             <Button
               key={cat}
@@ -376,8 +381,8 @@ export function PluginsMarket({
                 className={`flex flex-col justify-between ${!isCompat ? 'opacity-75' : ''}`}
               >
                 <CardHeader className="gap-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 space-y-1.5">
+                  <div className="flex flex-wrap items-start justify-between gap-2 sm:flex-nowrap sm:gap-3">
+                    <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2">
                         <CardTitle className="min-w-0 max-w-full truncate">{pkg.name}</CardTitle>
                         <Badge variant="outline" className="h-auto min-w-0 max-w-full whitespace-normal break-all font-mono text-xs">

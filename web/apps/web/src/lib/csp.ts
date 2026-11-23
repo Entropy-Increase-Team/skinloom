@@ -38,7 +38,7 @@ export function contentSecurityPolicy({ nonce, dev = false, https = false }: Pol
     // hCaptcha talks to its servers from the page. Pictures may already go anywhere, so
     // this lets nothing out that img-src does not.
     ['connect-src', "'self'", 'https:'],
-    ['frame-src', ...CAPTCHA_FRAMES],
+    ['frame-src', "'self'", ...CAPTCHA_FRAMES],
     ['object-src', "'none'"],
     ['base-uri', "'self'"],
     // Forms post only here. The OAuth consent and social sign-in leave the site with

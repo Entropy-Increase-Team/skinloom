@@ -32,7 +32,7 @@ export default async function RegisterPage() {
         {open && (
           <CardContent className="flex flex-col gap-4">
             <RegisterForm captcha={boot.auth.captcha} />
-            <SocialButtons providers={boot.auth.social} next="/user" />
+            <SocialButtons providers={boot.auth.social} externalProviders={boot.auth.providers} next="/user" />
             <Slot name="auth.register.providers" props={{ next: '/user' }} />
           </CardContent>
         )}

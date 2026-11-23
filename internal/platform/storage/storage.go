@@ -78,6 +78,12 @@ func (l *Local) Put(_ context.Context, key string, data []byte) error {
 		return os.Chtimes(p, now, now)
 	}
 	tmp, err := os.CreateTemp(l.dir, ".put-*")
+	if errors.Is(err, fs.ErrNotExist) {
+		if mkErr := os.MkdirAll(l.dir, 0o755); mkErr != nil {
+			return mkErr
+		}
+		tmp, err = os.CreateTemp(l.dir, ".put-*")
+	}
 	if err != nil {
 		return err
 	}

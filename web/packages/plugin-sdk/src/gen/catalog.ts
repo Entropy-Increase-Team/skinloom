@@ -477,6 +477,13 @@ export interface PluginSlotProps {
   'auth.register.providers': {
     next?: string
   }
+  /** Custom CAPTCHA widget rendered on auth forms when captcha.provider is set to a plugin-registered provider. */
+  'auth.captcha.widget': {
+    provider: string
+    siteKey?: string
+    resetKey: number
+    onChange: (answer: { id?: string; value: string } | null) => void
+  }
   /** Dashboard cards displayed on the signed-in user overview page. */
   'user.dashboard.widgets': Record<string, never>
   /** Additional profile or security sections appended in user settings. */
@@ -550,6 +557,7 @@ export const PLUGIN_SLOTS: readonly PluginSlotName[] = [
   'auth.login.providers',
   'auth.register.below',
   'auth.register.providers',
+  'auth.captcha.widget',
   'user.dashboard.widgets',
   'user.profile.sections',
   'user.player.actions',

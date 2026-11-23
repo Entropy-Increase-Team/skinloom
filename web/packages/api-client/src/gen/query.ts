@@ -65,6 +65,8 @@ import type {
   DeleteMeInputBody,
   ErrorModel,
   ExecuteRestoreInput,
+  ExternalAuthVerifyInputBody,
+  ExternalAuthVerifyResult,
   FavoriteInputBody,
   Favorited,
   ForgotInputBody,
@@ -5476,6 +5478,115 @@ export const useResetPassword = <TError = ErrorModel,
         TContext
       > => {
       return useMutation(getResetPasswordMutationOptions(options), queryClient);
+    }
+
+export type verifyExternalAuthResponse200 = {
+  data: ExternalAuthVerifyResult
+  status: 200
+}
+
+export type verifyExternalAuthResponseDefault = {
+  data: ErrorModel
+  status: Exclude<HTTPStatusCodes, 200>
+}
+
+export type verifyExternalAuthResponseSuccess = (verifyExternalAuthResponse200) & {
+  headers: Headers;
+};
+export type verifyExternalAuthResponseError = (verifyExternalAuthResponseDefault) & {
+  headers: Headers;
+};
+
+export type verifyExternalAuthResponse = (verifyExternalAuthResponseSuccess | verifyExternalAuthResponseError)
+
+export const getVerifyExternalAuthUrl = (provider: string,) => {
+
+
+
+
+  return `/api/v1/auth/providers/${provider}/verify`
+}
+
+/**
+ * Verifies credentials or a callback payload through an active plugin registered via ctx.auth.registerProvider, then signs in (setting skinloom_session), links the current user, or opens a pending signup flow at /auth/social.
+ * @summary Verify a plugin authentication provider
+ */
+export const verifyExternalAuth = async (provider: string,
+    externalAuthVerifyInputBody: NonReadonly<ExternalAuthVerifyInputBody>, options?: Parameters<typeof apiFetch>[1]): Promise<verifyExternalAuthResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<verifyExternalAuthResponse>(getVerifyExternalAuthUrl(provider),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(externalAuthVerifyInputBody)
+  }
+);}
+
+
+
+
+
+export const getVerifyExternalAuthMutationKey = () => ['verifyExternalAuth'] as const;
+
+export const getVerifyExternalAuthMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyExternalAuth>>, TError,VerifyExternalAuthMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyExternalAuth>>, TError,VerifyExternalAuthMutationVariables, TContext> => {
+
+const mutationKey = getVerifyExternalAuthMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyExternalAuth>>, VerifyExternalAuthMutationVariables> = (props) => {
+          const {provider,data} = props ?? {};
+
+          return  verifyExternalAuth(provider,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyExternalAuthMutationResult = NonNullable<Awaited<ReturnType<typeof verifyExternalAuth>>>
+    export type VerifyExternalAuthMutationBody = NonReadonly<ExternalAuthVerifyInputBody>
+    export type VerifyExternalAuthMutationError = ErrorModel
+    export type VerifyExternalAuthMutationVariables = {provider: string;data: NonReadonly<ExternalAuthVerifyInputBody>}
+
+    /**
+ * @summary Verify a plugin authentication provider
+ */
+export const useVerifyExternalAuth = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyExternalAuth>>, TError,VerifyExternalAuthMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof verifyExternalAuth>>,
+        TError,
+        VerifyExternalAuthMutationVariables,
+        TContext
+      > => {
+      return useMutation(getVerifyExternalAuthMutationOptions(options), queryClient);
     }
 
 export type registerResponse200 = {

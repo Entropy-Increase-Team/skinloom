@@ -6,6 +6,8 @@ import { RefreshCw } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { Slot } from '@/components/slot'
+
 /** Widget providers: script URL (explicit rendering, onload callback) and global name. */
 const widgets = {
   turnstile: { src: 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit', global: 'turnstile' },
@@ -61,6 +63,7 @@ export function Captcha({
   resetKey: number
   error?: string
 }) {
+  const t = useTranslations('captcha')
   if (config.provider === 'none') return null
   const isWidget = config.provider in widgets
   return (
@@ -69,7 +72,21 @@ export function Captcha({
         <ImageCaptcha onChange={onChange} resetKey={resetKey} />
       ) : isWidget ? (
         <WidgetCaptcha name={config.provider as WidgetName} siteKey={config.siteKey ?? ''} onChange={onChange} resetKey={resetKey} />
-      ) : null}
+      ) : (
+        <Slot
+          name="auth.captcha.widget"
+          props={{
+            provider: config.provider,
+            siteKey: config.siteKey,
+            resetKey,
+            onChange,
+          }}
+        >
+          <p role="alert" className="text-xs text-destructive">
+            {t('loadFailed')}
+          </p>
+        </Slot>
+      )}
       {error && (
         <p role="alert" className="text-xs text-destructive">
           {error}

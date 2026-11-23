@@ -21,7 +21,7 @@ const config: Config = {
   // Design docs and ADRs contain literal {placeholders} and <tags>; parse plain .md files
   // as CommonMark instead of MDX so they render as written.
   markdown: { format: 'detect' },
-  onBrokenLinks: 'warn',
+  onBrokenLinks: 'throw',
 
   i18n: { defaultLocale: 'zh-Hans', locales: ['zh-Hans'] },
 

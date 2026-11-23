@@ -25,7 +25,7 @@ describe('contentSecurityPolicy', () => {
   it('lets the captcha providers frame their widgets', () => {
     const d = directives(contentSecurityPolicy({ nonce: 'abc' }))
     expect(d.get('frame-src')).toEqual(
-      expect.arrayContaining(['https://challenges.cloudflare.com', 'https://www.recaptcha.net', 'https://*.hcaptcha.com']),
+      expect.arrayContaining(["'self'", 'https://challenges.cloudflare.com', 'https://www.recaptcha.net', 'https://*.hcaptcha.com']),
     )
   })
 

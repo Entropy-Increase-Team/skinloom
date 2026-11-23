@@ -78,7 +78,7 @@ describe('P2-3 frontend plugin runtime & mount coverage', () => {
   const srcRoot = path.resolve(import.meta.dirname, '..')
   const tsxContents = collectTsxFiles(srcRoot).map((f) => readFileSync(f, 'utf8'))
 
-  it('mounts every canonical UI <Slot> from the SDK catalog (20/20)', () => {
+  it('mounts every canonical UI <Slot> from the SDK catalog (21/21)', () => {
     const found = new Set<string>()
     for (const content of tsxContents) {
       for (const match of content.matchAll(/<Slot\b[^>]*\bname="([^"]+)"/g)) {

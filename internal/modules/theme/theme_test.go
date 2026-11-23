@@ -1,6 +1,7 @@
 package theme
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
 	"github.com/Entropy-Increase-Team/skinloom/themes"
@@ -600,5 +602,99 @@ func TestAssetHandlerCustomWebAndPluginBlockNormalization(t *testing.T) {
 	}
 	if err := ValidateBlocks([]Block{{Type: "custom-widget", Props: map[string]any{"x": strings.Repeat("a", maxPluginBlockBytes+1)}}}); err == nil {
 		t.Fatal("expected error when schema-less plugin block exceeds size cap")
+	}
+}
+
+func TestRegistryWatchAllowsStagingRenameAndDelete(t *testing.T) {
+	dir := t.TempDir()
+	r := builtin(t)
+	r.SetLocalDir(dir, nil)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	changed := make(chan struct{}, 16)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		r.Watch(ctx, func() {
+			select {
+			case changed <- struct{}{}:
+			default:
+			}
+		})
+	}()
+	t.Cleanup(func() {
+		cancel()
+		<-done
+	})
+
+	// Give fsnotify watcher time to arm on the root directory.
+	time.Sleep(100 * time.Millisecond)
+
+	// Simulate ExtractPackageFiles: create hidden .extract-* staging dir, write manifest,
+	// sleep briefly so any faulty watcher would have grabbed a handle, then rename to final theme dir.
+	stage1, err := os.MkdirTemp(dir, ".extract-demo-theme-*")
+	if err != nil {
+		t.Fatalf("MkdirTemp stage1: %v", err)
+	}
+	writeFile(t, filepath.Join(stage1, "plugin.json"), `{
+		"id": "demo-theme",
+		"kind": "theme",
+		"version": "1.0.0",
+		"extends": "default"
+	}`)
+	time.Sleep(80 * time.Millisecond)
+
+	dest := filepath.Join(dir, "demo-theme")
+	if err := os.Rename(stage1, dest); err != nil {
+		t.Fatalf("Rename staging dir while Watch active (Windows lock regression): %v", err)
+	}
+
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		if th, ok := r.Get("demo-theme"); ok && th.Version == "1.0.0" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("Watch did not reload demo-theme v1.0.0 in time")
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	// Simulate upgrade swap (rename existing watched theme to .bak-*, rename new staging dir into place, remove backup).
+	stage2, err := os.MkdirTemp(dir, ".extract-demo-theme-*")
+	if err != nil {
+		t.Fatalf("MkdirTemp stage2: %v", err)
+	}
+	writeFile(t, filepath.Join(stage2, "plugin.json"), `{
+		"id": "demo-theme",
+		"kind": "theme",
+		"version": "1.0.1",
+		"extends": "default"
+	}`)
+	bak := filepath.Join(dir, ".bak-demo-theme")
+	if err := os.Rename(dest, bak); err != nil {
+		t.Fatalf("Rename active theme to backup while Watch active: %v", err)
+	}
+	if err := os.Rename(stage2, dest); err != nil {
+		t.Fatalf("Rename upgraded theme into place while Watch active: %v", err)
+	}
+	if err := os.RemoveAll(bak); err != nil {
+		t.Fatalf("RemoveAll backup dir while Watch active: %v", err)
+	}
+
+	deadline = time.Now().Add(3 * time.Second)
+	for {
+		if th, ok := r.Get("demo-theme"); ok && th.Version == "1.0.1" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("Watch did not reload upgraded demo-theme v1.0.1 in time")
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	// Simulate uninstall removal.
+	if err := os.RemoveAll(dest); err != nil {
+		t.Fatalf("RemoveAll theme dir while Watch active: %v", err)
 	}
 }

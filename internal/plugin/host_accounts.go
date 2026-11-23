@@ -218,7 +218,7 @@ func (r *pluginRuntime) hostAuth(_ context.Context, args []any) (any, error) {
 		authURL := ""
 		if rawURL, has := spec["authUrl"].(string); has && strings.TrimSpace(rawURL) != "" {
 			cleaned := strings.TrimSpace(rawURL)
-			if !(strings.HasPrefix(cleaned, "/") && !strings.HasPrefix(cleaned, "//")) &&
+			if !(strings.HasPrefix(cleaned, "/") && !strings.HasPrefix(cleaned, "//") && !strings.HasPrefix(cleaned, "/\\")) &&
 				!strings.HasPrefix(cleaned, "https://") && !strings.HasPrefix(cleaned, "http://") {
 				return nil, errors.New("auth provider authUrl must be a site path or http(s) URL")
 			}

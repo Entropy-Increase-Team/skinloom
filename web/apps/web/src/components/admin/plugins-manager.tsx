@@ -192,7 +192,7 @@ export function PluginsManager({
     : null
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-w-0 flex-col gap-6">
       <PageHeader
         title={t('title')}
         description={t('intro')}
@@ -411,7 +411,7 @@ export function PluginsManager({
       )}
         </TabsContent>
 
-        <TabsContent value="market">
+        <TabsContent value="market" className="min-w-0">
           <PluginsMarket
             superadmin={superadmin}
             initialCategory={initialMarketCategory}

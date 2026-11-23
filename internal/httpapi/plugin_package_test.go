@@ -42,7 +42,7 @@ func buildHTTPTestSLP(t *testing.T, priv ed25519.PrivateKey) []byte {
 			"name": {"en": "HTTP Pkg"},
 			"apiVersion": 1,
 			"server": "server.js",
-			"permissions": ["storage.kv", "users.ban"],
+			"permissions": ["storage.kv", "users.ban", "routes.public"],
 			"routes": { "public": ["/ping"] },
 			"settings": {
 				"banner": { "type": "string", "default": "welcome" },
@@ -477,7 +477,7 @@ func TestAdminMarketEndpointsAndRBAC(t *testing.T) {
 						{
 							Version:     "1.0.0",
 							APIVersion:  1,
-							Permissions: []string{"storage.kv", "users.ban"},
+							Permissions: []string{"storage.kv", "users.ban", "routes.public"},
 							Artifacts: map[string]plugin.RegistryArtifact{
 								"any": {
 									URLs:   []string{"/packages/http-pkg-1.0.0.slp"},

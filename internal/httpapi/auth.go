@@ -72,7 +72,7 @@ func withRequestInfo(d Deps) func(http.Handler) http.Handler {
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !backendRequest(r.URL.Path) {
+			if !backendRequest(r.URL.Path) && (d.Plugins == nil || !d.Plugins.HasPublicRoute(r.URL.Path)) {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -157,10 +157,10 @@ func csrfGuard(d Deps) func(http.Handler) http.Handler {
 			// happens to send there does not make a request riskier.
 			// Social sign-in endpoints act on the flow cookie, or start one.
 			// Setup endpoints act on the one-time setup token or skinloom_setup cookie.
-			flow := strings.HasPrefix(r.URL.Path, "/api/v1/auth/social/")
+			flow := strings.HasPrefix(r.URL.Path, "/api/v1/auth/social/") || strings.HasPrefix(r.URL.Path, "/api/v1/auth/providers/")
 			setupRoute := r.URL.Path == "/api/v1/setup" || strings.HasPrefix(r.URL.Path, "/api/v1/setup/")
 			isAPIv1 := strings.HasPrefix(r.URL.Path, "/api/v1/")
-			isPluginAPI := strings.HasPrefix(r.URL.Path, "/api/plugins/")
+			isPluginAPI := strings.HasPrefix(r.URL.Path, "/api/plugins/") || (d.Plugins != nil && d.Plugins.HasPublicRoute(r.URL.Path))
 			if (!isAPIv1 && !isPluginAPI) || (cookieErr != nil && setupErr != nil && !sessionEndpoints[r.URL.Path] && !flow && !setupRoute) {
 				next.ServeHTTP(w, r)
 				return

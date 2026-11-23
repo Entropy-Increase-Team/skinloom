@@ -13,12 +13,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/ent/notification"
 	entplugin "github.com/Entropy-Increase-Team/skinloom/ent/plugin"
+	"github.com/Entropy-Increase-Team/skinloom/ent/pluginkv"
 	"github.com/Entropy-Increase-Team/skinloom/ent/user"
 	"github.com/Entropy-Increase-Team/skinloom/internal/hook"
 	"github.com/Entropy-Increase-Team/skinloom/internal/jsrt"
@@ -940,7 +942,6 @@ func TestJSDriverBroadcastSettingsAcrossWarmPool(t *testing.T) {
 		"name": "Pool Cfg",
 		"apiVersion": 1,
 		"server": "server.js",
-		"routes": {"public": ["/cfg"]},
 		"settings": {
 			"greeting": {"type": "string", "default": "v1"},
 			"optionalText": {"type": "string"}
@@ -997,5 +998,43 @@ func TestLoadFromDirUnsignedNativeBlockedInProduction(t *testing.T) {
 	}
 	if _, err := env.mgr.LoadFromDir(ctx, natDir, true); !errors.Is(err, ErrUnsignedNativeForbidden) {
 		t.Fatalf("expected ErrUnsignedNativeForbidden when AllowUnsignedNative=false, got %v", err)
+	}
+}
+
+func TestCronHourlySweepsAllExpiredPluginKV(t *testing.T) {
+	env := newTestEnv(t)
+	ctx := context.Background()
+	perms := NewPermissionSet([]string{PermStorageKV}, []string{PermStorageKV})
+	kv := NewKVStore("ttl-demo", env.db.Ent, 10, perms)
+
+	if err := kv.Set(ctx, "expired-key", "bye", 0.05); err != nil {
+		t.Fatalf("Set expired-key: %v", err)
+	}
+	if err := kv.Set(ctx, "live-key", "stay", 3600); err != nil {
+		t.Fatalf("Set live-key: %v", err)
+	}
+	if err := kv.Set(ctx, "perm-key", "forever", 0); err != nil {
+		t.Fatalf("Set perm-key: %v", err)
+	}
+	time.Sleep(80 * time.Millisecond)
+
+	var wg sync.WaitGroup
+	topOfHour := time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC)
+	env.mgr.runCronTick(ctx, &wg, topOfHour)
+	wg.Wait()
+
+	rows, err := env.db.Ent.PluginKV.Query().Where(pluginkv.Plugin("ttl-demo")).All(ctx)
+	if err != nil {
+		t.Fatalf("query plugin_kv: %v", err)
+	}
+	got := map[string]bool{}
+	for _, r := range rows {
+		got[r.Key] = true
+	}
+	if got["expired-key"] {
+		t.Fatalf("expected hourly sweep to delete expired-key, remaining: %v", got)
+	}
+	if !got["live-key"] || !got["perm-key"] {
+		t.Fatalf("expected live-key and perm-key to survive sweep, remaining: %v", got)
 	}
 }

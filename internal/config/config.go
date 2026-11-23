@@ -59,9 +59,10 @@ type Plugins struct {
 // PluginDatabase overrides the database connection handed to native plugins with
 // the "storage.sql" permission. Empty fields reuse the main [database] settings.
 type PluginDatabase struct {
-	Driver         string `koanf:"driver"`          // optional: sqlite | mysql | postgres
-	DSN            string `koanf:"dsn"`             // optional dedicated DSN (e.g. least-privilege plg_% user)
-	PostgresSchema bool   `koanf:"postgres_schema"` // optional: isolate each plugin in PostgreSQL schema plg_<safe_id>
+	Driver           string `koanf:"driver"`            // optional: sqlite | mysql | postgres
+	DSN              string `koanf:"dsn"`               // optional dedicated DSN (e.g. least-privilege plg_% user)
+	PostgresSchema   bool   `koanf:"postgres_schema"`   // optional: isolate each plugin in PostgreSQL schema plg_<safe_id>
+	RequireDedicated bool   `koanf:"require_dedicated"` // optional: refuse sharing main MySQL/PostgreSQL DSN with native plugins
 }
 
 // Storage is where texture files live.
@@ -263,18 +264,19 @@ func UnknownKeys(path string) ([]string, error) {
 
 // coldKeys need a restart to take effect.
 var coldKeys = map[string]bool{
-	"server.listen":                    true,
-	"server.role":                      true,
-	"database.driver":                  true,
-	"database.dsn":                     true,
-	"database.max_open_conns":          true,
-	"storage.driver":                   true,
-	"storage.path":                     true,
-	"log.file":                         true,
-	"plugins.allow_unsigned_native":    true,
-	"plugins.database.driver":          true,
-	"plugins.database.dsn":             true,
-	"plugins.database.postgres_schema": true,
+	"server.listen":                      true,
+	"server.role":                        true,
+	"database.driver":                    true,
+	"database.dsn":                       true,
+	"database.max_open_conns":            true,
+	"storage.driver":                     true,
+	"storage.path":                       true,
+	"log.file":                           true,
+	"plugins.allow_unsigned_native":      true,
+	"plugins.database.driver":            true,
+	"plugins.database.dsn":               true,
+	"plugins.database.postgres_schema":   true,
+	"plugins.database.require_dedicated": true,
 }
 
 // Diff lists the dotted keys whose values differ between a and b.
@@ -525,8 +527,8 @@ func Write(path string, c Config, omitKeys map[string]bool) error {
 			return err
 		}
 	}
-	if c.Plugins.Database.Driver != "" || c.Plugins.Database.DSN != "" || c.Plugins.Database.PostgresSchema ||
-		omitKeys["plugins.database.driver"] || omitKeys["plugins.database.dsn"] || omitKeys["plugins.database.postgres_schema"] {
+	if c.Plugins.Database.Driver != "" || c.Plugins.Database.DSN != "" || c.Plugins.Database.PostgresSchema || c.Plugins.Database.RequireDedicated ||
+		omitKeys["plugins.database.driver"] || omitKeys["plugins.database.dsn"] || omitKeys["plugins.database.postgres_schema"] || omitKeys["plugins.database.require_dedicated"] {
 		b.WriteString("\n[plugins.database]\n")
 		if c.Plugins.Database.Driver != "" || omitKeys["plugins.database.driver"] {
 			if err := writeKV("plugins.database.driver", "driver", c.Plugins.Database.Driver, "[cold] optional dedicated SQL dialect for native plugins"); err != nil {
@@ -540,6 +542,11 @@ func Write(path string, c Config, omitKeys map[string]bool) error {
 		}
 		if c.Plugins.Database.PostgresSchema || omitKeys["plugins.database.postgres_schema"] {
 			if err := writeKV("plugins.database.postgres_schema", "postgres_schema", c.Plugins.Database.PostgresSchema, "[cold] create dedicated plg_<id> schema on PostgreSQL"); err != nil {
+				return err
+			}
+		}
+		if c.Plugins.Database.RequireDedicated || omitKeys["plugins.database.require_dedicated"] {
+			if err := writeKV("plugins.database.require_dedicated", "require_dedicated", c.Plugins.Database.RequireDedicated, "[cold] refuse sharing main MySQL/PostgreSQL credentials with native plugins"); err != nil {
 				return err
 			}
 		}

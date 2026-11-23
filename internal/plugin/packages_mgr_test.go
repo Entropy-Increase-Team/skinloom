@@ -37,7 +37,6 @@ func buildPackageBundle(t *testing.T, id, version string, perms []string, priv e
 			"name": {"en": "Cluster Demo"},
 			"apiVersion": 1,
 			"server": "server.js",
-			"routes": { "public": ["/info", "/kv"] },
 			"permissions": ` + string(permsJSON) + `,
 			"settings": {
 				"greeting": { "type": "string", "default": "hello", "order": 1 },
@@ -425,7 +424,6 @@ func TestPackagesManagerSecurityAndLifecycleRegressions(t *testing.T) {
 			"name": {"en": "Long Plugin"},
 			"apiVersion": 1,
 			"server": "server.js",
-			"routes": { "public": ["/ok"] },
 			"settings": {
 				"mode": { "type": "select", "options": ["fast", "safe"], "default": "fast", "required": true },
 				"oauth": {
