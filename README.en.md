@@ -4,6 +4,24 @@
 
 <p align="center">Open-source, self-hosted Minecraft skin site</p>
 
+<p align="center">
+  <a href="https://github.com/Entropy-Increase-Team/skinloom/releases"><img src="https://img.shields.io/github/v/release/Entropy-Increase-Team/skinloom?style=flat-square&logo=github" alt="Release"></a>
+  <a href="https://github.com/Entropy-Increase-Team/skinloom/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Entropy-Increase-Team/skinloom/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI" alt="CI"></a>
+  <a href="https://github.com/Entropy-Increase-Team/skinloom/pkgs/container/skinloom"><img src="https://img.shields.io/badge/GHCR-skinloom-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker GHCR"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Entropy-Increase-Team/skinloom?style=flat-square" alt="License"></a>
+  <a href="https://github.com/Entropy-Increase-Team/skinloom/stargazers"><img src="https://img.shields.io/github/stars/Entropy-Increase-Team/skinloom?style=flat-square&logo=github" alt="GitHub Stars"></a>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@skinloom/plugin-sdk"><img src="https://img.shields.io/npm/v/@skinloom/plugin-sdk?style=flat-square&logo=npm&label=%40skinloom%2Fplugin-sdk&color=CB3837" alt="@skinloom/plugin-sdk"></a>
+  <a href="https://www.npmjs.com/package/@skinloom/cli"><img src="https://img.shields.io/npm/v/@skinloom/cli?style=flat-square&logo=npm&label=%40skinloom%2Fcli&color=CB3837" alt="@skinloom/cli"></a>
+  <img src="https://img.shields.io/github/go-mod/go-version/Entropy-Increase-Team/skinloom?style=flat-square&logo=go&logoColor=white" alt="Go Version">
+  <img src="https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=nextdotjs&logoColor=white" alt="Next.js 16">
+  <img src="https://img.shields.io/badge/React-19-149ECA?style=flat-square&logo=react&logoColor=white" alt="React 19">
+  <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS 4">
+</p>
+
 <p align="center"><a href="https://docs.skinloom.cn">Docs (Chinese)</a> · <a href="https://github.com/Entropy-Increase-Team/skinloom/releases">Download</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="README.md">中文</a></p>
 
 ---

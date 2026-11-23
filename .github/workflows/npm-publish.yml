@@ -1,0 +1,114 @@
+name: Publish npm Packages
+
+# Publishes @skinloom/ui, @skinloom/plugin-sdk, @skinloom/cli, and create-skinloom-plugin
+# to npmjs.com using npm Trusted Publishing (GitHub Actions OIDC + SLSA Provenance).
+#
+# - Pushing a v* release tag automatically publishes all 4 packages at that exact version
+#   (prerelease tags containing "-" use the "next" dist-tag; stable tags use "latest").
+# - workflow_dispatch allows on-demand dry-run validation or publishing a specific version.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semver version to publish (without leading v, e.g. 1.1.3; blank uses package.json)"
+        required: false
+        default: ""
+        type: string
+      dist_tag:
+        description: "Optional npm dist-tag override (blank = auto: latest for stable, next for prerelease)"
+        required: false
+        default: ""
+        type: string
+      dry_run:
+        description: "Build, validate, and run npm pack --dry-run without publishing"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build, Verify & Publish npm Packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Ensure npm >= 11.5.1 for OIDC Trusted Publishing
+        run: |
+          npm install -g npm@latest
+          npm --version
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install workspace dependencies
+        working-directory: web
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck & test publishable packages and publish script
+        working-directory: web
+        run: |
+          node --test scripts/npm-publish.test.mjs
+          for pkg in @skinloom/ui @skinloom/plugin-sdk @skinloom/cli create-skinloom-plugin; do
+            node scripts/ws.mjs typecheck --only "$pkg"
+            node scripts/ws.mjs test --only "$pkg"
+          done
+
+      - name: Resolve target version and dist-tag
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+            DIST_TAG="${{ github.event.inputs.dist_tag }}"
+            DRY_RUN="${{ github.event.inputs.dry_run }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+            DIST_TAG=""
+            DRY_RUN="false"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "dist_tag=$DIST_TAG" >> "$GITHUB_OUTPUT"
+          echo "dry_run=$DRY_RUN" >> "$GITHUB_OUTPUT"
+
+      - name: Stage & dry-run or publish to npm (OIDC Trusted Publishing + Provenance)
+        working-directory: web
+        env:
+          # Optional fallback: leave NPM_TOKEN unset to use npm Trusted Publishing (OIDC via id-token: write).
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -n "${NPM_TOKEN:-}" ]; then
+            TMP_NPMRC="$(mktemp)"
+            chmod 600 "$TMP_NPMRC"
+            trap 'rm -f "$TMP_NPMRC"' EXIT
+            printf '//registry.npmjs.org/:_authToken=%s\n' "$NPM_TOKEN" > "$TMP_NPMRC"
+            export NPM_CONFIG_USERCONFIG="$TMP_NPMRC"
+          fi
+          ARGS=()
+          if [ "${{ steps.meta.outputs.dry_run }}" = "true" ]; then
+            ARGS+=(--dry-run)
+          else
+            ARGS+=(--publish --provenance --skip-existing)
+          fi
+          if [ -n "${{ steps.meta.outputs.version }}" ]; then
+            ARGS+=(--version "${{ steps.meta.outputs.version }}")
+          fi
+          if [ -n "${{ steps.meta.outputs.dist_tag }}" ]; then
+            ARGS+=(--tag "${{ steps.meta.outputs.dist_tag }}")
+          fi
+          node scripts/npm-publish.mjs "${ARGS[@]}"
