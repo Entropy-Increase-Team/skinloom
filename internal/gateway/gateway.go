@@ -4,7 +4,6 @@
 package gateway
 
 import (
-	"html/template"
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
@@ -57,6 +56,8 @@ type Gateway struct {
 	headers atomic.Pointer[func(http.Header)]
 	// publicRoute matches root-level paths owned by active plugins via routes.public.
 	publicRoute atomic.Pointer[func(string) bool]
+	// webStatus reports the supervised frontend's startup state for the waiting page.
+	webStatus atomic.Pointer[func() WebStatus]
 }
 
 // SetHeaders sets a function that adds headers to every response, such as
@@ -148,7 +149,7 @@ func (g *Gateway) SetWeb(upstream *url.URL, serverDir string) {
 			},
 			ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
 				g.log.Debug("frontend unreachable", "path", r.URL.Path, "err", err)
-				placeholder(w, http.StatusBadGateway, "前端正在启动，请稍后刷新 / The web frontend is starting, refresh in a moment.")
+				g.servePlaceholder(w, r, http.StatusBadGateway, "前端正在启动，请稍后刷新 / The web frontend is starting, refresh in a moment.", true)
 			},
 		}
 	}
@@ -207,7 +208,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if st.proxy == nil {
-		placeholder(w, http.StatusServiceUnavailable, st.reason)
+		g.servePlaceholder(w, r, http.StatusServiceUnavailable, st.reason, false)
 		return
 	}
 	st.proxy.ServeHTTP(w, r)
@@ -251,21 +252,4 @@ func safeJoin(root, urlPath string) string {
 		return ""
 	}
 	return full
-}
-
-var placeholderTmpl = template.Must(template.New("p").Parse(`<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="refresh" content="5"><title>SkinLoom</title>
-<style>body{font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;background:#f5f7fb;color:#1f2937}
-main{max-width:32rem;padding:2rem;text-align:center}h1{font-size:1.25rem}p{color:#4b5563;line-height:1.6}code{background:#e5e7eb;padding:.1rem .3rem;border-radius:.25rem}</style>
-</head><body><main><h1>云织 SkinLoom</h1><p>{{.}}</p><p>后端运行正常：<code>/healthz</code>。本页每 5 秒自动刷新。</p></main></body></html>`))
-
-func placeholder(w http.ResponseWriter, status int, reason string) {
-	h := w.Header()
-	h.Set("Content-Type", "text/html; charset=utf-8")
-	h.Set("Cache-Control", "no-store")
-	h.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'self'")
-	httpx.SecurityHeaders(h)
-	w.WriteHeader(status)
-	_ = placeholderTmpl.Execute(w, reason)
 }

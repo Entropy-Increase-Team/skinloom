@@ -32,8 +32,8 @@ export function HeaderNav({ links, className }: { links: NavLink[]; className?: 
             href={l.href}
             aria-current={current ? 'page' : undefined}
             className={cn(
-              'rounded-md px-2.5 py-1.5 text-sm transition-colors hover:text-foreground',
-              current ? 'font-medium text-foreground' : 'text-muted-foreground',
+              'rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-muted/70 hover:text-foreground',
+              current ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground',
             )}
           >
             {l.label}

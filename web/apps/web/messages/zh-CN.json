@@ -19,10 +19,17 @@
   },
   "offline": "暂时无法连接后端服务，页面显示的是默认内容",
   "hero": {
+    "badge": "Minecraft 皮肤与披风站",
     "browse": "浏览皮肤库",
+    "upload": "上传材质",
     "join": "注册账号",
     "showcase": "本站最新上传",
-    "showcasePopular": "最受欢迎"
+    "showcasePopular": "最受欢迎",
+    "demoLabel": "3D 实时预览",
+    "demoHint": "拖拽旋转角色 · 站点尚无公开皮肤",
+    "demoClassic": "蓝染织工",
+    "demoSlim": "金线织工",
+    "demoUpload": "上传第一个皮肤"
   },
   "features": {
     "title": "为玩家和站长而做",

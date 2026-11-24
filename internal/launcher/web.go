@@ -61,6 +61,20 @@ func ResolvePort(port int) (got int, changed bool, err error) {
 	return ln.Addr().(*net.TCPAddr).Port, true, nil
 }
 
+// WebStatus describes the current lifecycle state of the supervised frontend.
+type WebStatus struct {
+	Mode       string        // managed | dev | custom | ""
+	State      string        // idle | starting | restarting | stopped
+	Attempts   int           // number of launches in the current Start session
+	Failures   int           // consecutive failures since Start or last healthy run
+	StartedAt  time.Time     // when Start was called
+	LastErr    string        // last unexpected exit or launch error, if restarting
+	LastExitAt time.Time     // when the most recent failure occurred
+	NextRetry  time.Time     // scheduled next restart time while waiting in backoff
+	Backoff    time.Duration // backoff duration for the current retry wait
+	Output     []string      // recent stdout/stderr lines from the last failed run
+}
+
 // Web supervises one frontend process at a time; Start replaces the running one.
 type Web struct {
 	log    *slog.Logger // supervisor messages
@@ -68,11 +82,25 @@ type Web struct {
 	mu     sync.Mutex
 	cancel context.CancelFunc
 	done   chan struct{}
+	status WebStatus
 }
 
 // NewWeb returns an idle supervisor. log receives supervisor messages, out receives the
 // frontend's own output line by line.
-func NewWeb(log, out *slog.Logger) *Web { return &Web{log: log, out: out} }
+func NewWeb(log, out *slog.Logger) *Web {
+	return &Web{log: log, out: out, status: WebStatus{State: "idle"}}
+}
+
+// Status returns a snapshot of the supervisor's current state.
+func (w *Web) Status() WebStatus {
+	w.mu.Lock()
+	st := w.status
+	if len(st.Output) > 0 {
+		st.Output = append([]string(nil), st.Output...)
+	}
+	w.mu.Unlock()
+	return st
+}
 
 // Start (re)starts the frontend with spec, stopping a previous instance first.
 func (w *Web) Start(parent context.Context, spec Spec) {
@@ -81,6 +109,12 @@ func (w *Web) Start(parent context.Context, spec Spec) {
 	done := make(chan struct{})
 	w.mu.Lock()
 	w.cancel, w.done = cancel, done
+	w.status = WebStatus{
+		Mode:      spec.Mode,
+		State:     "starting",
+		Attempts:  1,
+		StartedAt: time.Now(),
+	}
 	w.mu.Unlock()
 	go func() {
 		defer close(done)
@@ -93,6 +127,9 @@ func (w *Web) Stop() {
 	w.mu.Lock()
 	cancel, done := w.cancel, w.done
 	w.cancel, w.done = nil, nil
+	if cancel != nil {
+		w.status.State = "stopped"
+	}
 	w.mu.Unlock()
 	if cancel == nil {
 		return
@@ -107,15 +144,38 @@ func (w *Web) Stop() {
 
 func (w *Web) supervise(ctx context.Context, spec Spec) {
 	backoff := time.Second
+	failures := 0
 	for {
+		if failures > 0 {
+			w.mu.Lock()
+			w.status.NextRetry = time.Time{}
+			w.mu.Unlock()
+		}
 		started := time.Now()
-		err := w.runOnce(ctx, spec)
+		output, err := w.runOnce(ctx, spec)
 		if ctx.Err() != nil {
 			return
 		}
 		if time.Since(started) > time.Minute {
 			backoff = time.Second
+			failures = 0
 		}
+		failures++
+		errMsg := "process exited unexpectedly (exit status 0)"
+		if err != nil {
+			errMsg = err.Error()
+		}
+		now := time.Now()
+		w.mu.Lock()
+		w.status.State = "restarting"
+		w.status.Attempts++
+		w.status.Failures = failures
+		w.status.LastErr = errMsg
+		w.status.LastExitAt = now
+		w.status.NextRetry = now.Add(backoff)
+		w.status.Backoff = backoff
+		w.status.Output = output
+		w.mu.Unlock()
 		w.log.Error("frontend exited; restarting", "err", err, "in", backoff)
 		select {
 		case <-ctx.Done():
@@ -131,10 +191,10 @@ func (w *Web) supervise(ctx context.Context, spec Spec) {
 // forever, so a crashed frontend was never restarted.
 const pipeGrace = 3 * time.Second
 
-func (w *Web) runOnce(ctx context.Context, spec Spec) error {
+func (w *Web) runOnce(ctx context.Context, spec Spec) ([]string, error) {
 	cmd, err := command(spec)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	cmd.Env = append(os.Environ(),
 		"PORT="+strconv.Itoa(spec.Port),
@@ -146,14 +206,19 @@ func (w *Web) runOnce(ctx context.Context, spec Spec) error {
 		cmd.Env = append(cmd.Env, "NODE_ENV=production")
 	}
 	cmd.Env = append(cmd.Env, spec.env...)
+	tail := newTailBuffer(maxTailLines, maxTailBytes)
 	stdout, stderr := newLineWriter(w.out, false), newLineWriter(w.out, true)
-	defer stdout.Close()
-	defer stderr.Close()
+	stdout.tail, stderr.tail = tail, tail
+	closePipes := func() {
+		_ = stdout.Close()
+		_ = stderr.Close()
+	}
 	cmd.Stdout, cmd.Stderr = stdout, stderr
 	cmd.WaitDelay = pipeGrace
 	prepare(cmd)
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("start frontend: %w", err)
+		closePipes()
+		return nil, fmt.Errorf("start frontend: %w", err)
 	}
 	adopt(cmd, w.log)
 	w.log.Info("frontend started", "mode", spec.Mode, "program", filepath.Base(cmd.Path), "pid", cmd.Process.Pid, "port", spec.Port)
@@ -162,10 +227,11 @@ func (w *Web) runOnce(ctx context.Context, spec Spec) error {
 	go func() { exited <- cmd.Wait() }()
 	select {
 	case err := <-exited:
+		closePipes()
 		if errors.Is(err, exec.ErrWaitDelay) {
-			return errors.New("exited, but a child process kept its output open")
+			return tail.Lines(), errors.New("exited, but a child process kept its output open")
 		}
-		return err
+		return tail.Lines(), err
 	case <-ctx.Done():
 		terminate(cmd)
 		select {
@@ -174,8 +240,9 @@ func (w *Web) runOnce(ctx context.Context, spec Spec) error {
 			_ = cmd.Process.Kill()
 			<-exited // returns within pipeGrace after the kill
 		}
+		closePipes()
 		w.log.Info("frontend stopped")
-		return ctx.Err()
+		return nil, ctx.Err()
 	}
 }
 
@@ -201,14 +268,56 @@ func command(spec Spec) (*exec.Cmd, error) {
 type lineWriter struct {
 	log    *slog.Logger
 	stderr bool
+	tail   *tailBuffer
 	mu     sync.Mutex
 	buf    []byte
 }
 
-const maxLine = 64 * 1024
+const (
+	maxLine      = 64 * 1024
+	maxTailLines = 20
+	maxTailBytes = 4096
+)
 
 func newLineWriter(log *slog.Logger, stderr bool) *lineWriter {
 	return &lineWriter{log: log, stderr: stderr}
+}
+
+type tailBuffer struct {
+	mu       sync.Mutex
+	maxLines int
+	maxBytes int
+	lines    []string
+	bytes    int
+}
+
+func newTailBuffer(maxLines, maxBytes int) *tailBuffer {
+	return &tailBuffer{maxLines: maxLines, maxBytes: maxBytes}
+}
+
+func (t *tailBuffer) Add(line string) {
+	if len(line) > 512 {
+		line = line[:512] + "…"
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.lines = append(t.lines, line)
+	t.bytes += len(line)
+	for len(t.lines) > t.maxLines || (t.bytes > t.maxBytes && len(t.lines) > 1) {
+		t.bytes -= len(t.lines[0])
+		t.lines = t.lines[1:]
+	}
+}
+
+func (t *tailBuffer) Lines() []string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if len(t.lines) == 0 {
+		return nil
+	}
+	out := make([]string, len(t.lines))
+	copy(out, t.lines)
+	return out
 }
 
 func (l *lineWriter) Write(p []byte) (int, error) {
@@ -244,6 +353,9 @@ func (l *lineWriter) Close() error {
 func (l *lineWriter) emit(b []byte) {
 	if level, msg, keep := frontendLine(string(b), l.stderr); keep {
 		l.log.Log(context.Background(), level, msg)
+		if l.tail != nil {
+			l.tail.Add(msg)
+		}
 	}
 }
 

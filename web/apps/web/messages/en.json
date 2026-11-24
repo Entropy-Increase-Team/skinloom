@@ -19,10 +19,17 @@
   },
   "offline": "The backend is unreachable right now; showing default content",
   "hero": {
+    "badge": "Minecraft Skin & Cape Platform",
     "browse": "Browse skins",
+    "upload": "Upload texture",
     "join": "Create an account",
     "showcase": "Latest uploads",
-    "showcasePopular": "Most favourited"
+    "showcasePopular": "Most favourited",
+    "demoLabel": "Live 3D preview",
+    "demoHint": "Drag to orbit · No public skins yet",
+    "demoClassic": "Indigo Weaver",
+    "demoSlim": "Gold Thread",
+    "demoUpload": "Upload first skin"
   },
   "features": {
     "title": "Built for players and site owners",

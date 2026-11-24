@@ -72,12 +72,12 @@ export async function SiteHeader({ variant = 'public' }: { variant?: 'public' | 
   )
 
   const headerElement = (
-    <header className="sl-header sticky top-0 z-40 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
+    <header className="sl-header sticky top-0 z-40 border-b border-border/80 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
       <div className={cn('flex h-14 items-center gap-2 md:gap-6', app ? 'px-3 md:px-5' : 'mx-auto max-w-[75rem] px-4 sm:px-6 lg:px-8')}>
         {app && <AppSidebarTrigger />}
-        <Link href="/" className="flex min-w-0 items-center gap-2.5 rounded-md">
+        <Link href="/" className="group flex min-w-0 items-center gap-2.5 rounded-md transition-opacity hover:opacity-90">
           <ThemeOverride name="site.logo" props={{ siteName: boot.site.name, logoUrl: logo ?? '' }} fallback={logoMark} />
-          <span className="truncate text-body font-medium">{boot.site.name}</span>
+          <span className="truncate text-body font-semibold tracking-tight">{boot.site.name}</span>
         </Link>
         <HeaderNav links={links} className="max-md:hidden" />
         <div className="ml-auto flex shrink-0 items-center gap-1">

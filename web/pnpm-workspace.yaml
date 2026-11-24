@@ -1,5 +1,9 @@
 packages:
   - apps/*
   - packages/*
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  esbuild: true
 linkWorkspacePackages: true
 preferWorkspacePackages: true

@@ -181,6 +181,70 @@ func TestPlaceholderWhenNoFrontend(t *testing.T) {
 	if rec.Header().Get("X-Content-Type-Options") != "nosniff" {
 		t.Fatal("placeholder missing security headers")
 	}
+	if strings.Contains(rec.Body.String(), "/readyz") {
+		t.Fatal("503 detached placeholder must not poll /readyz")
+	}
+}
+
+func TestStartingPlaceholderModesAndAcceptNegotiation(t *testing.T) {
+	// Point gateway at a closed upstream so the reverse proxy triggers ErrorHandler (502).
+	closed := httptest.NewServer(http.NotFoundHandler())
+	u, _ := url.Parse(closed.URL)
+	closed.Close()
+
+	res, _ := realip.New(nil)
+	gw := New(http.NotFoundHandler(), slog.New(slog.NewTextHandler(io.Discard, nil)), res)
+	gw.SetWeb(u, "")
+
+	// Dev mode (Chinese default)
+	gw.SetWebStatus(func() WebStatus { return WebStatus{Mode: "dev", State: "starting", Attempts: 1} })
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Accept", "text/html,application/xhtml+xml")
+	gw.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadGateway {
+		t.Fatalf("status = %d, want 502", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "/readyz") || !strings.Contains(body, "开发模式") {
+		t.Fatalf("expected dev waiting page with /readyz polling, got: %s", body)
+	}
+	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "script-src 'nonce-") || !strings.Contains(csp, "connect-src 'self'") {
+		t.Fatalf("unexpected CSP: %q", csp)
+	}
+	if rec.Header().Get("Retry-After") == "" {
+		t.Fatal("expected Retry-After header on 502 waiting page")
+	}
+
+	// Restarting mode (English Accept-Language)
+	gw.SetWebStatus(func() WebStatus { return WebStatus{Mode: "managed", State: "restarting", Attempts: 2} })
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/skinlib", nil)
+	req.Header.Set("Accept", "text/html")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+	gw.ServeHTTP(rec, req)
+	if !strings.Contains(rec.Body.String(), "Restarting Web Frontend") {
+		t.Fatalf("expected English restarting copy, got: %s", rec.Body.String())
+	}
+
+	// JSON client gets JSON 502, not HTML
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/some-page", nil)
+	req.Header.Set("Accept", "application/json")
+	gw.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadGateway || !strings.Contains(rec.Header().Get("Content-Type"), "application/json") {
+		t.Fatalf("json 502: code=%d ct=%q body=%q", rec.Code, rec.Header().Get("Content-Type"), rec.Body.String())
+	}
+
+	// Subresource (script) gets plain text 502, not HTML
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/_next/static/chunks/app.js", nil)
+	req.Header.Set("Accept", "*/*")
+	req.Header.Set("Sec-Fetch-Dest", "script")
+	gw.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadGateway || !strings.Contains(rec.Header().Get("Content-Type"), "text/plain") {
+		t.Fatalf("script 502: code=%d ct=%q", rec.Code, rec.Header().Get("Content-Type"))
+	}
 }
 
 func TestStaticAssetsServedFromDisk(t *testing.T) {
