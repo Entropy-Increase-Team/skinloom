@@ -169,8 +169,8 @@ function Nothing({ icon, title, body, action }: { icon: ReactNode; title: string
 export function Developer({ admin, origin }: { admin: boolean; origin: string }) {
   const t = useTranslations('oauth')
   return (
-    <Tabs defaultValue="apps" className="gap-5">
-      <TabsList>
+    <Tabs defaultValue="apps" className="min-w-0 gap-5">
+      <TabsList className="no-scrollbar max-w-full justify-start overflow-x-auto">
         <TabsTrigger value="apps">{t('apps.title')}</TabsTrigger>
         <TabsTrigger value="grants">{t('grants.title')}</TabsTrigger>
         <TabsTrigger value="tokens">{t('tokens.title')}</TabsTrigger>
@@ -242,7 +242,7 @@ function AppsSection({ origin }: { origin: string }) {
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <p className="text-sm text-muted-foreground">{t('apps.hint')}</p>
           <p className="font-mono text-caption break-all text-faint-foreground">
-            {origin}/oauth/authorize · {origin}/oauth/token · {origin}/api
+            {origin}/oauth/.well-known/openid-configuration · {origin}/oauth/authorize · {origin}/oauth/token · {origin}/api
           </p>
         </div>
         {apps && apps.length > 0 && create}
@@ -357,44 +357,46 @@ function AppDialog({
         f.clear()
       }}
     >
-      <DialogContent className="sm:max-w-md">
-        <form key={editing === null ? 'closed' : (app?.id ?? 'new')} onSubmit={(e) => void submit(e)} className="flex flex-col gap-5">
+      <DialogContent className="flex max-h-[90dvh] flex-col overflow-hidden sm:max-w-md">
+        <form key={editing === null ? 'closed' : (app?.id ?? 'new')} onSubmit={(e) => void submit(e)} className="flex min-h-0 flex-1 flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{app ? t('apps.editTitle', { name: app.name }) : t('apps.new')}</DialogTitle>
             {!app && <DialogDescription>{t('apps.newBody')}</DialogDescription>}
           </DialogHeader>
-          <FormError message={f.error} />
-          <Field id="app-name" name="name" label={t('apps.name')} defaultValue={app?.name} required maxLength={64} error={f.fields.name} />
-          <UiField data-invalid={f.fields.redirectUris ? true : undefined}>
-            <FieldLabel htmlFor="app-uris">{t('apps.redirectUris')}</FieldLabel>
-            <Textarea
-              id="app-uris"
-              name="redirectUris"
-              rows={3}
-              required
-              defaultValue={app?.redirectUris.join('\n')}
-              placeholder="https://example.com/callback"
-              className="font-mono text-caption"
-              aria-invalid={f.fields.redirectUris ? true : undefined}
-            />
-            {f.fields.redirectUris ? <FieldError>{f.fields.redirectUris}</FieldError> : <FieldDescription>{t('apps.redirectHint')}</FieldDescription>}
-          </UiField>
-          {!app && (
-            <FieldSet>
-              <FieldLegend variant="label">{t('apps.kind')}</FieldLegend>
-              <RadioGroup value={kind} onValueChange={(v) => setKind(String(v))}>
-                {(['confidential', 'public'] as const).map((k) => (
-                  <UiField key={k} orientation="horizontal">
-                    <RadioGroupItem value={k} id={`kind-${k}`} />
-                    <FieldContent>
-                      <FieldLabel htmlFor={`kind-${k}`}>{t(`apps.${k}`)}</FieldLabel>
-                      <FieldDescription>{t(`apps.${k}Hint`)}</FieldDescription>
-                    </FieldContent>
-                  </UiField>
-                ))}
-              </RadioGroup>
-            </FieldSet>
-          )}
+          <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-1">
+            <FormError message={f.error} />
+            <Field id="app-name" name="name" label={t('apps.name')} defaultValue={app?.name} required maxLength={64} error={f.fields.name} />
+            <UiField data-invalid={f.fields.redirectUris ? true : undefined}>
+              <FieldLabel htmlFor="app-uris">{t('apps.redirectUris')}</FieldLabel>
+              <Textarea
+                id="app-uris"
+                name="redirectUris"
+                rows={3}
+                required
+                defaultValue={app?.redirectUris.join('\n')}
+                placeholder="https://example.com/callback"
+                className="font-mono text-caption"
+                aria-invalid={f.fields.redirectUris ? true : undefined}
+              />
+              {f.fields.redirectUris ? <FieldError>{f.fields.redirectUris}</FieldError> : <FieldDescription>{t('apps.redirectHint')}</FieldDescription>}
+            </UiField>
+            {!app && (
+              <FieldSet>
+                <FieldLegend variant="label">{t('apps.kind')}</FieldLegend>
+                <RadioGroup value={kind} onValueChange={(v) => setKind(String(v))}>
+                  {(['confidential', 'public'] as const).map((k) => (
+                    <UiField key={k} orientation="horizontal">
+                      <RadioGroupItem value={k} id={`kind-${k}`} />
+                      <FieldContent>
+                        <FieldLabel htmlFor={`kind-${k}`}>{t(`apps.${k}`)}</FieldLabel>
+                        <FieldDescription>{t(`apps.${k}Hint`)}</FieldDescription>
+                      </FieldContent>
+                    </UiField>
+                  ))}
+                </RadioGroup>
+              </FieldSet>
+            )}
+          </div>
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</DialogClose>
             <Button type="submit" loading={pending}>

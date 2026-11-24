@@ -63,6 +63,8 @@ server {
 }
 ```
 
+> **宝塔面板 Docker 网站提示**：宝塔 v11 的「Docker → 网站 → 反代容器」会锁定主配置文件，如需调大上传限制或延长市场大包下载超时，在 **设置 → 配置文件 → 自定义配置文件（`server块`）** 中添加 `client_max_body_size 160m;` 与 `proxy_read_timeout 600s;` 保存即可。SkinLoom 的 OIDC / Yggdrasil Connect 发现端点位于 `/oauth/.well-known/openid-configuration`，不会被宝塔默认的 `location /.well-known` 证书验证规则拦截，无需额外修改反代配置。
+
 ## CDN
 
 放在 CDN 后面时，把 CDN 回源节点的网段加入 `trusted_proxies`（多数 CDN 会公布回源 IP 列表），并确认 CDN 不缓存 `/api/*` 与 `/events`。

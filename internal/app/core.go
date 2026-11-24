@@ -259,7 +259,7 @@ func OpenCoreWithOptions(ctx context.Context, p Paths, opts CoreOptions) (*Core,
 				if c.bgCtx.Err() != nil {
 					return
 				}
-				syncCtx, cancel := context.WithTimeout(c.bgCtx, 30*time.Second)
+				syncCtx, cancel := context.WithTimeout(c.bgCtx, 5*time.Minute)
 				defer cancel()
 				if err := c.Plugins.SyncCluster(syncCtx); err != nil && !errors.Is(err, context.Canceled) {
 					log.Warn("plugin cluster sync failed", "err", err)

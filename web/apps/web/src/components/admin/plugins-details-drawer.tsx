@@ -84,7 +84,7 @@ export function PluginDetailsDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex w-full flex-col overflow-hidden sm:max-w-xl">
+      <SheetContent className="flex w-full flex-col overflow-hidden data-[side=right]:w-full sm:max-w-xl">
         <SheetHeader>
           <SheetTitle>{detail ? t('title', { name: detail.name }) : ''}</SheetTitle>
           <SheetDescription className="flex flex-wrap items-center gap-2 font-mono">
@@ -186,7 +186,7 @@ export function PluginDetailsDrawer({
                 {detail.usage ? (
                   <div className="space-y-2 rounded-lg border border-border p-3">
                     <p className="text-xs font-medium text-muted-foreground">{t('usageTitle')}</p>
-                    <div className="grid grid-cols-3 gap-3 text-sm">
+                    <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
                       <Metric label={t('usageKv')} value={String(detail.usage.kvKeys)} />
                       <Metric label={t('usageDocs')} value={String(detail.usage.docs)} />
                       <Metric label={t('usageFiles')} value={formatBytes(detail.usage.filesBytes)} />

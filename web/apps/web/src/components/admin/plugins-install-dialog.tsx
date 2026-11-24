@@ -85,9 +85,19 @@ export function PluginInstallDialog({
   const [allowUnsigned, setAllowUnsigned] = useState(false)
   const [confirmId, setConfirmId] = useState('')
   const inspectSeqRef = useRef(0)
+  const inspectAbortRef = useRef<AbortController | null>(null)
+  const errorBoxRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    return () => {
+      inspectAbortRef.current?.abort()
+    }
+  }, [])
 
   function resetState() {
     inspectSeqRef.current += 1
+    inspectAbortRef.current?.abort()
+    inspectAbortRef.current = null
     setFile(null)
     setInspect(null)
     setInspecting(false)
@@ -113,11 +123,14 @@ export function PluginInstallDialog({
       return
     }
     const seq = ++inspectSeqRef.current
+    inspectAbortRef.current?.abort()
+    const ctl = new AbortController()
+    inspectAbortRef.current = ctl
     setFile(nextFile)
     setInspecting(true)
     try {
-      const res = await inspectPluginFile(nextFile)
-      if (seq !== inspectSeqRef.current) return
+      const res = await inspectPluginFile(nextFile, ctl.signal)
+      if (seq !== inspectSeqRef.current || ctl.signal.aborted) return
       setInspect(res)
       const initGranted = collectInitialGrantedPermissions(res.permissions)
       if (res.runtime === 'native' && !initGranted.includes('native.exec')) {
@@ -125,10 +138,12 @@ export function PluginInstallDialog({
       }
       setGranted(initGranted)
     } catch (err) {
-      if (seq !== inspectSeqRef.current) return
+      if (seq !== inspectSeqRef.current || ctl.signal.aborted || (err instanceof DOMException && err.name === 'AbortError')) {
+        return
+      }
       setError(apiProblemMessage(problemOf(err).detail, err, te('errors.inspect')))
     } finally {
-      if (seq === inspectSeqRef.current) setInspecting(false)
+      if (seq === inspectSeqRef.current && !ctl.signal.aborted) setInspecting(false)
     }
   }
 
@@ -147,7 +162,10 @@ export function PluginInstallDialog({
       onInstalled(installed)
       onOpenChange(false)
     } catch (err) {
-      setError(apiProblemMessage(problemOf(err).detail, err, te('errors.install')))
+      const msg = apiProblemMessage(problemOf(err).detail, err, te('errors.install'))
+      setError(msg)
+      toast.error(msg)
+      requestAnimationFrame(() => errorBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
     } finally {
       setInstalling(false)
     }
@@ -192,7 +210,9 @@ export function PluginInstallDialog({
         </Alert>
       ) : null}
 
-      <FormError message={error} />
+      <div ref={errorBoxRef}>
+        <FormError message={error} />
+      </div>
 
       {!inspect ? (
         <Dropzone
@@ -296,7 +316,7 @@ export function PluginInstallDialog({
               <AlertDescription className="space-y-3 pt-1">
                 <p>{t('sigUntrustedWarning')}</p>
                 <label className="flex min-h-8 cursor-pointer items-start gap-2 text-xs text-foreground pointer-coarse:min-h-10">
-                  <Checkbox checked={allowUnsigned} onCheckedChange={(c) => setAllowUnsigned(Boolean(c))} />
+                  <Checkbox checked={allowUnsigned} disabled={installing} onCheckedChange={(c) => setAllowUnsigned(Boolean(c))} />
                   <span>{t('allowUnsignedToggle')}</span>
                 </label>
               </AlertDescription>
@@ -327,7 +347,9 @@ export function PluginInstallDialog({
           {warnings.length > 0 ? (
             <div className="space-y-1 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-foreground">
               {warnings.map((w, i) => (
-                <p key={i}>{w}</p>
+                <p key={i} className="break-words">
+                  {w}
+                </p>
               ))}
             </div>
           ) : null}
@@ -356,6 +378,7 @@ export function PluginInstallDialog({
                 items={inspect.permissions.normal}
                 granted={granted}
                 lockedNames={[]}
+                disabled={installing}
                 newBadge={t('newPermission')}
                 requiredBadge={t('requiredPermission')}
                 onToggle={togglePermission}
@@ -366,6 +389,7 @@ export function PluginInstallDialog({
                 items={inspect.permissions.sensitive}
                 granted={granted}
                 lockedNames={[]}
+                disabled={installing}
                 newBadge={t('newPermission')}
                 requiredBadge={t('requiredPermission')}
                 onToggle={togglePermission}
@@ -376,6 +400,7 @@ export function PluginInstallDialog({
                 items={inspect.permissions.high_risk}
                 granted={granted}
                 lockedNames={isNative ? ['native.exec'] : []}
+                disabled={installing}
                 newBadge={t('newPermission')}
                 requiredBadge={t('requiredPermission')}
                 onToggle={togglePermission}
@@ -385,13 +410,14 @@ export function PluginInstallDialog({
 
           {needsTypedId ? (
             <div className="space-y-1.5 rounded-lg border border-destructive/40 bg-destructive/10 p-3">
-              <Label htmlFor="confirm-plugin-id" className="text-xs font-medium text-destructive">
+              <Label htmlFor="confirm-plugin-id" className="text-xs leading-snug font-medium break-words text-destructive">
                 {t('confirmIdLabel', { id: inspect.id })}
               </Label>
               <Input
                 id="confirm-plugin-id"
                 className="font-mono"
                 autoComplete="off"
+                disabled={installing}
                 value={confirmId}
                 placeholder={inspect.id}
                 onChange={(e) => setConfirmId(e.target.value)}
@@ -408,8 +434,7 @@ export function PluginInstallDialog({
       <Button type="button" variant="outline" className="pointer-coarse:h-10" onClick={() => handleOpenChange(false)} disabled={installing}>
         {t('cancel')}
       </Button>
-      <Button type="button" className="pointer-coarse:h-10" onClick={handleInstall} disabled={!canInstall || installing}>
-        {installing ? <Spinner /> : null}
+      <Button type="button" className="pointer-coarse:h-10" loading={installing} onClick={handleInstall} disabled={!canInstall}>
         {t('confirmInstall')}
       </Button>
     </>
@@ -432,12 +457,12 @@ export function PluginInstallDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent showCloseButton={!installing} className="flex max-h-[90dvh] flex-col overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>{t('dropHint')}</DialogDescription>
         </DialogHeader>
-        {body}
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">{body}</div>
         <DialogFooter>{footer}</DialogFooter>
       </DialogContent>
     </Dialog>
@@ -450,6 +475,7 @@ function PermissionTierSection({
   items,
   granted,
   lockedNames,
+  disabled,
   newBadge,
   requiredBadge,
   onToggle,
@@ -459,6 +485,7 @@ function PermissionTierSection({
   items: PermissionItem[]
   granted: string[]
   lockedNames: string[]
+  disabled?: boolean
   newBadge: string
   requiredBadge: string
   onToggle: (name: string, enabled: boolean) => void
@@ -474,16 +501,17 @@ function PermissionTierSection({
       <div className="space-y-2">
         {items.map((item) => {
           const locked = lockedNames.includes(item.name)
+          const itemDisabled = locked || Boolean(disabled)
           const permKey = `permissionDescriptions.${permissionMessageKey(item.name)}`
           const desc = te.has(permKey) ? te(permKey) : item.description
           return (
             <label
               key={item.name}
-              className={`flex items-start gap-2.5 text-sm pointer-coarse:min-h-10 ${locked ? 'cursor-default' : 'cursor-pointer'}`}
+              className={`flex items-start gap-2.5 text-sm pointer-coarse:min-h-10 ${itemDisabled ? 'cursor-default' : 'cursor-pointer'}`}
             >
               <Checkbox
                 checked={locked || granted.includes(item.name)}
-                disabled={locked}
+                disabled={itemDisabled}
                 onCheckedChange={(c) => onToggle(item.name, Boolean(c))}
               />
               <div className="min-w-0 flex-1 space-y-0.5">

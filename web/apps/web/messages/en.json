@@ -1539,7 +1539,7 @@
       },
       "enable_oidc": {
         "label": "Enable built-in OIDC / Yggdrasil Connect",
-        "help": "Serve OpenID Connect, Yggdrasil Connect character selection, and Device Authorization Grant natively (zero Janus) and advertise it in /api/yggdrasil metadata."
+        "help": "Serve OpenID Connect, Yggdrasil Connect character selection, and Device Authorization Grant natively at /oauth/.well-known/openid-configuration (issuer path: /oauth, zero Janus) and advertise it in /api/yggdrasil metadata."
       },
       "enable_dcr": {
         "label": "Allow launcher dynamic client registration (DCR)",
@@ -2308,7 +2308,10 @@
       "changelogDrawerDescription": "Select a compatible release to inspect and install, or review release notes.",
       "noChangelog": "No release notes provided for this version.",
       "yankedBadge": "Yanked",
-      "installVersion": "Install v{version}"
+      "installVersion": "Install v{version}",
+      "downloading": "Downloading & verifying package from registry… Large native packages may take a few minutes.",
+      "installing": "Downloading & installing…",
+      "retryInspect": "Retry download"
     }
   },
   "adminNav": {

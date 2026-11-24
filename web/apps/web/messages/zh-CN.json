@@ -1601,7 +1601,7 @@
       },
       "enable_oidc": {
         "label": "启用内置 OIDC / Yggdrasil Connect",
-        "help": "开启标准 OpenID Connect 与 Yggdrasil Connect（含设备码授权与启动器选角登录，无需外部 Janus 服务），并在 /api/yggdrasil 元数据中自动通告。"
+        "help": "在 /oauth/.well-known/openid-configuration（发行者路径 /oauth，无需外部 Janus 服务）提供标准 OpenID Connect 与 Yggdrasil Connect（含设备码授权与启动器选角登录），并在 /api/yggdrasil 元数据中自动通告。"
       },
       "enable_dcr": {
         "label": "允许启动器动态客户端注册（DCR）",
@@ -2382,7 +2382,10 @@
       "changelogDrawerDescription": "查看各版本兼容性状态、构建平台与更新说明，或选择特定版本安装。",
       "noChangelog": "该版本未提供详细更新说明。",
       "yankedBadge": "已撤回",
-      "installVersion": "安装 v{version}"
+      "installVersion": "安装 v{version}",
+      "downloading": "正在从镜像源下载并校验安装包… 体积较大的原生插件可能需要数分钟。",
+      "installing": "正在下载并安装…",
+      "retryInspect": "重试下载"
     }
   },
   "adminNav": {

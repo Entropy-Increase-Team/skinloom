@@ -21,7 +21,7 @@ resources:
 images:
   - name: docker.io/dnyo666/skinloom-server
     # newName: ghcr.io/entropy-increase-team/server # uncomment to pull from GHCR instead of Docker Hub
-    newTag: latest # pin a release, e.g. 1.1.3 (keep server and web on the same version)
+    newTag: latest # pin a release, e.g. 1.1.4 (keep server and web on the same version)
   - name: docker.io/dnyo666/skinloom-web
     # newName: ghcr.io/entropy-increase-team/web # uncomment to pull from GHCR instead of Docker Hub
     newTag: latest

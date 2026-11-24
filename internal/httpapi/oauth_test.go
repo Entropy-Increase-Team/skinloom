@@ -230,8 +230,17 @@ func TestOAuthFlowAndResourceAPI(t *testing.T) {
 	if rec := app(t, h, "POST", "/oauth/token", form, values.Encode()); rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "invalid_grant") {
 		t.Fatalf("refresh after revoke: %d %s", rec.Code, rec.Body)
 	}
-	if rec := app(t, h, "GET", "/.well-known/oauth-authorization-server", "", ""); !strings.Contains(rec.Body.String(), `"token_endpoint":"https://skins.example.com/oauth/token"`) {
-		t.Fatalf("metadata: %s", rec.Body)
+	for _, metaPath := range []string{
+		"/oauth/.well-known/oauth-authorization-server",
+		"/.well-known/oauth-authorization-server/oauth",
+		"/.well-known/oauth-authorization-server",
+	} {
+		rec := app(t, h, "GET", metaPath, "", "")
+		if rec.Code != http.StatusOK ||
+			!strings.Contains(rec.Body.String(), `"issuer":"https://skins.example.com/oauth"`) ||
+			!strings.Contains(rec.Body.String(), `"token_endpoint":"https://skins.example.com/oauth/token"`) {
+			t.Fatalf("metadata %s: %d %s", metaPath, rec.Code, rec.Body)
+		}
 	}
 	if rec := app(t, h, "GET", "/api", "", ""); !strings.Contains(rec.Body.String(), `"blessing_skin":"`+BSCompatVersion+`"`) {
 		t.Fatalf("api root: %s", rec.Body)

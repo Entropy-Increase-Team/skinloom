@@ -325,6 +325,7 @@ export function PluginsMarket({
             type="search"
             value={query}
             placeholder={tm('searchPlaceholder')}
+            aria-label={tm('searchPlaceholder')}
             onChange={(e) => setQuery(e.target.value)}
           />
         </InputGroup>
@@ -467,12 +468,12 @@ export function PluginsMarket({
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     {isCompat ? (
                       <span className="inline-flex items-center gap-1 font-medium text-success">
-                        <CheckCircle2 className="size-3.5" />
+                        <CheckCircle2 className="size-3.5 shrink-0" />
                         {tm('compatOk', { version: recVer })}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 font-medium text-destructive">
-                        <ShieldAlert className="size-3.5" />
+                        <ShieldAlert className="size-3.5 shrink-0" />
                         {tm('compatIncompatible', { reason: firstIssue })}
                       </span>
                     )}
@@ -589,11 +590,11 @@ function MarketChangelogDrawer({
   const isPhone = useIsPhoneViewport()
 
   const versionsList = pkg ? (
-    <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-6">
+    <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       {pkg.versions.map((ver) => (
         <div key={ver.version} className="space-y-2 rounded-xl border border-border bg-card p-3.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <span className="font-mono text-sm font-semibold text-foreground">v{ver.version}</span>
               {ver.yanked ? <Badge variant="destructive">{tm('yankedBadge')}</Badge> : null}
               {ver.compatible ? (
@@ -601,7 +602,10 @@ function MarketChangelogDrawer({
                   {tm('compatOk', { version: ver.version })}
                 </Badge>
               ) : (
-                <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive">
+                <Badge
+                  variant="outline"
+                  className="h-auto max-w-full whitespace-normal break-words border-destructive/40 bg-destructive/10 text-left text-destructive"
+                >
                   {ver.issues?.[0]?.message || ver.status}
                 </Badge>
               )}
@@ -630,7 +634,7 @@ function MarketChangelogDrawer({
             </div>
           ) : null}
 
-          <p className="whitespace-pre-wrap text-xs text-muted-foreground">
+          <p className="whitespace-pre-wrap [overflow-wrap:anywhere] text-xs text-muted-foreground">
             {ver.changelog || tm('noChangelog')}
           </p>
         </div>
@@ -691,7 +695,9 @@ function MarketInstallDialog({
   const [granted, setGranted] = useState<string[]>([])
   const [allowUnsigned, setAllowUnsigned] = useState(false)
   const [confirmId, setConfirmId] = useState('')
+  const [retryNonce, setRetryNonce] = useState(0)
   const seqRef = useRef(0)
+  const errorBoxRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (!target) {
@@ -705,6 +711,7 @@ function MarketInstallDialog({
       return
     }
     const seq = ++seqRef.current
+    const ctl = new AbortController()
     setInspecting(true)
     setError(null)
     setInspect(null)
@@ -712,13 +719,16 @@ function MarketInstallDialog({
     setConfirmId('')
 
     void locale
-    inspectMarketPackage({
-      registryId: target.pkg.registryId,
-      id: target.pkg.id,
-      version: target.version,
-    })
+    inspectMarketPackage(
+      {
+        registryId: target.pkg.registryId,
+        id: target.pkg.id,
+        version: target.version,
+      },
+      { signal: ctl.signal },
+    )
       .then((res) => {
-        if (seq !== seqRef.current) return
+        if (seq !== seqRef.current || ctl.signal.aborted) return
         const data = res.data as MarketInspectResult
         setInspect(data)
         const initGranted = collectInitialGrantedPermissions(data.permissions)
@@ -728,13 +738,18 @@ function MarketInstallDialog({
         setGranted(initGranted)
       })
       .catch((err) => {
-        if (seq !== seqRef.current) return
+        if (seq !== seqRef.current || ctl.signal.aborted || (err instanceof DOMException && err.name === 'AbortError')) {
+          return
+        }
         setError(apiProblemMessage(problemOf(err).detail, err, inspectErrRef.current))
       })
       .finally(() => {
-        if (seq === seqRef.current) setInspecting(false)
+        if (seq === seqRef.current && !ctl.signal.aborted) setInspecting(false)
       })
-  }, [target, locale])
+    return () => {
+      ctl.abort()
+    }
+  }, [target, locale, retryNonce])
 
   async function handleConfirmInstall() {
     if (!target || !inspect) return
@@ -755,7 +770,10 @@ function MarketInstallDialog({
       onInstalled(allInstalled)
       onOpenChange(false)
     } catch (err) {
-      setError(apiProblemMessage(problemOf(err).detail, err, te('errors.install')))
+      const msg = apiProblemMessage(problemOf(err).detail, err, te('errors.install'))
+      setError(msg)
+      toast.error(msg)
+      requestAnimationFrame(() => errorBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
     } finally {
       setInstalling(false)
     }
@@ -794,12 +812,14 @@ function MarketInstallDialog({
 
   const body = (
     <div className="space-y-4">
-      <FormError message={error} />
+      <div ref={errorBoxRef}>
+        <FormError message={error} />
+      </div>
 
       {inspecting ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center text-sm text-muted-foreground">
           <Spinner />
-          <span>{t('verifying')}</span>
+          <span>{tm('downloading')}</span>
         </div>
       ) : inspect ? (
         <div className="space-y-4">
@@ -897,12 +917,25 @@ function MarketInstallDialog({
               <AlertDescription className="space-y-3 pt-1">
                 <p>{t('sigUntrustedWarning')}</p>
                 <label className="flex min-h-8 cursor-pointer items-start gap-2 text-xs text-foreground pointer-coarse:min-h-10">
-                  <Checkbox checked={allowUnsigned} onCheckedChange={(c) => setAllowUnsigned(Boolean(c))} />
+                  <Checkbox checked={allowUnsigned} disabled={installing} onCheckedChange={(c) => setAllowUnsigned(Boolean(c))} />
                   <span>{t('allowUnsignedToggle')}</span>
                 </label>
               </AlertDescription>
             </Alert>
           )}
+
+          {platformIncompatible ? (
+            <Alert variant="destructive">
+              <ShieldAlert />
+              <AlertTitle>{t('platformIncompatibleTitle', { platform: inspect.hostPlatform })}</AlertTitle>
+              <AlertDescription className="pt-1">
+                {t('platformIncompatibleDescription', {
+                  platform: inspect.hostPlatform,
+                  supported: (inspect.supportedPlatforms ?? []).join(', ') || '—',
+                })}
+              </AlertDescription>
+            </Alert>
+          ) : null}
 
           {isNative && !nativeBlocked ? (
             <Alert variant="destructive">
@@ -915,7 +948,9 @@ function MarketInstallDialog({
           {warnings.length > 0 ? (
             <div className="space-y-1 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-foreground">
               {warnings.map((w, i) => (
-                <p key={i}>{w}</p>
+                <p key={i} className="break-words">
+                  {w}
+                </p>
               ))}
             </div>
           ) : null}
@@ -932,6 +967,7 @@ function MarketInstallDialog({
                 items={inspect.permissions.normal}
                 granted={granted}
                 lockedNames={[]}
+                disabled={installing}
                 newBadge={t('newPermission')}
                 requiredBadge={t('requiredPermission')}
                 onToggle={togglePermission}
@@ -942,6 +978,7 @@ function MarketInstallDialog({
                 items={inspect.permissions.sensitive}
                 granted={granted}
                 lockedNames={[]}
+                disabled={installing}
                 newBadge={t('newPermission')}
                 requiredBadge={t('requiredPermission')}
                 onToggle={togglePermission}
@@ -952,6 +989,7 @@ function MarketInstallDialog({
                 items={inspect.permissions.high_risk}
                 granted={granted}
                 lockedNames={isNative ? ['native.exec'] : []}
+                disabled={installing}
                 newBadge={t('newPermission')}
                 requiredBadge={t('requiredPermission')}
                 onToggle={togglePermission}
@@ -961,13 +999,14 @@ function MarketInstallDialog({
 
           {needsTypedId ? (
             <div className="space-y-1.5 rounded-lg border border-destructive/40 bg-destructive/10 p-3">
-              <Label htmlFor="market-confirm-plugin-id" className="text-xs font-medium text-destructive">
+              <Label htmlFor="market-confirm-plugin-id" className="text-xs leading-snug font-medium break-words text-destructive">
                 {t('confirmIdLabel', { id: inspect.id })}
               </Label>
               <Input
                 id="market-confirm-plugin-id"
                 className="font-mono"
                 autoComplete="off"
+                disabled={installing}
                 value={confirmId}
                 placeholder={inspect.id}
                 onChange={(e) => setConfirmId(e.target.value)}
@@ -979,6 +1018,7 @@ function MarketInstallDialog({
     </div>
   )
 
+  const inspectFailed = Boolean(!inspecting && !inspect && error)
   const footer = (
     <>
       <Button
@@ -990,15 +1030,26 @@ function MarketInstallDialog({
       >
         {t('cancel')}
       </Button>
-      <Button
-        type="button"
-        className="pointer-coarse:h-10"
-        onClick={() => void handleConfirmInstall()}
-        disabled={!canInstall || installing || inspecting}
-      >
-        {installing ? <Spinner /> : null}
-        {t('confirmInstall')}
-      </Button>
+      {inspectFailed ? (
+        <Button
+          type="button"
+          className="pointer-coarse:h-10"
+          onClick={() => setRetryNonce((n) => n + 1)}
+        >
+          <RefreshCw />
+          {tm('retryInspect')}
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          className="pointer-coarse:h-10"
+          loading={installing}
+          onClick={() => void handleConfirmInstall()}
+          disabled={!canInstall || inspecting}
+        >
+          {installing ? tm('installing') : t('confirmInstall')}
+        </Button>
+      )}
     </>
   )
 
@@ -1020,12 +1071,12 @@ function MarketInstallDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !installing && onOpenChange(next)}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent showCloseButton={!installing} className="flex max-h-[90dvh] flex-col overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>{target?.pkg.name}</DialogDescription>
         </DialogHeader>
-        {body}
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">{body}</div>
         <DialogFooter>{footer}</DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1038,6 +1089,7 @@ function MarketPermissionTierSection({
   items,
   granted,
   lockedNames,
+  disabled,
   newBadge,
   requiredBadge,
   onToggle,
@@ -1047,6 +1099,7 @@ function MarketPermissionTierSection({
   items: PermissionItem[]
   granted: string[]
   lockedNames: string[]
+  disabled?: boolean
   newBadge: string
   requiredBadge: string
   onToggle: (name: string, enabled: boolean) => void
@@ -1066,16 +1119,17 @@ function MarketPermissionTierSection({
       <div className="space-y-2">
         {items.map((item) => {
           const locked = lockedNames.includes(item.name)
+          const itemDisabled = locked || Boolean(disabled)
           const permKey = `permissionDescriptions.${permissionMessageKey(item.name)}`
           const desc = te.has(permKey) ? te(permKey) : item.description
           return (
             <label
               key={item.name}
-              className={`flex items-start gap-2.5 text-sm pointer-coarse:min-h-10 ${locked ? 'cursor-default' : 'cursor-pointer'}`}
+              className={`flex items-start gap-2.5 text-sm pointer-coarse:min-h-10 ${itemDisabled ? 'cursor-default' : 'cursor-pointer'}`}
             >
               <Checkbox
                 checked={locked || granted.includes(item.name)}
-                disabled={locked}
+                disabled={itemDisabled}
                 onCheckedChange={(c) => onToggle(item.name, Boolean(c))}
               />
               <div className="min-w-0 flex-1 space-y-0.5">

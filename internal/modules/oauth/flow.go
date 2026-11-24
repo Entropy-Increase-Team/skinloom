@@ -352,7 +352,7 @@ type TokenRequest struct {
 	Scope        string
 	ClientID     string
 	ClientSecret string
-	Issuer       string // site URL used as iss claim in OIDC id_token
+	Issuer       string // canonical OIDC issuer URL (<siteBase>/oauth) used as iss claim in id_token
 }
 
 // TokenResponse is a successful token response (RFC 6749 §5.1 + OIDC Core §3.1.3.3).

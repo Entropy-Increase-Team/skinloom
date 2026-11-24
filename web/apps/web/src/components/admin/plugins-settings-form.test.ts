@@ -186,9 +186,12 @@ describe('plugins-settings-form', () => {
     const cleared = buildPluginSettingsPatch(schema, initialDraft, new Set(['nested.apiSecret']), initialDraft)
     expect(cleared.patch).toEqual({ nested: { apiSecret: null } })
 
-    // Problem message falls back cleanly without leaking raw English Error text.
+    // Problem message falls back cleanly without leaking raw English Error text,
+    // while preserving HTTP status codes from proxy/gateway ApiErrors (e.g. 504/524/413).
     expect(apiProblemMessage('Server reason', new Error('Request failed 500'), 'Fallback')).toBe('Server reason')
     expect(apiProblemMessage(undefined, new Error('Request failed 500'), 'Fallback')).toBe('Fallback')
+    expect(apiProblemMessage(undefined, { status: 504 }, 'Fallback')).toBe('Fallback (HTTP 504)')
+    expect(apiProblemMessage(undefined, { status: 524 }, 'Fallback')).toBe('Fallback (HTTP 524)')
 
     // Platform family summarization for market cards
     expect(summarizePlatformFamilies(undefined)).toEqual(['any'])

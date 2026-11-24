@@ -176,7 +176,7 @@ export function PluginSettingsDrawer({
         onOpenChange(next)
       }}
     >
-      <SheetContent className="flex w-full flex-col overflow-hidden sm:max-w-lg">
+      <SheetContent className="flex w-full flex-col overflow-hidden data-[side=right]:w-full sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>{t('title', { name: pluginName })}</SheetTitle>
           <SheetDescription>{t('description')}</SheetDescription>
@@ -259,8 +259,7 @@ export function PluginSettingsDrawer({
           <Button type="button" variant="outline" className="pointer-coarse:h-10" onClick={() => onOpenChange(false)} disabled={saving}>
             {t('cancel')}
           </Button>
-          <Button type="button" className="pointer-coarse:h-10" onClick={handleSave} disabled={!dirty || saving || loading || !schema || schema.fields.length === 0}>
-            {saving ? <Spinner /> : null}
+          <Button type="button" className="pointer-coarse:h-10" loading={saving} onClick={handleSave} disabled={!dirty || loading || !schema || schema.fields.length === 0}>
             {t('save')}
           </Button>
         </SheetFooter>

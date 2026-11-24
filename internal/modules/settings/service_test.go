@@ -132,6 +132,17 @@ func testValidationRejectsWholeUpdate(t *testing.T, database *db.DB) {
 	if svc.Current().IsSet("site.description") || svc.Current().Version != 0 {
 		t.Fatal("a rejected update must not write anything")
 	}
+
+	// site.url must reject query strings, fragments, and userinfo so OIDC issuer URLs stay valid.
+	for _, bad := range []string{
+		`"https://skin.example.com?a=1"`,
+		`"https://skin.example.com#frag"`,
+		`"https://user@skin.example.com"`,
+	} {
+		if _, err := svc.Set(context.Background(), nil, map[string]json.RawMessage{"site.url": json.RawMessage(bad)}, nil); err == nil {
+			t.Fatalf("expected site.url=%s to be rejected", bad)
+		}
+	}
 }
 
 func TestWatchPicksUpOtherWriters(t *testing.T) { forEachDB(t, testWatchPicksUpOtherWriters) }

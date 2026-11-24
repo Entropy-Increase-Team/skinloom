@@ -115,6 +115,8 @@ skinloom settings set site.name null                     # 恢复默认
 | `yggdrasil.search_profile_max` | `5` | 按名字批量查角色时一次最多几个 |
 | `yggdrasil.skin_domains` | 空 | 另外允许游戏加载皮肤的域名（逗号分隔）；站点和 `storage.public_url` 的域名自动包含 |
 | `yggdrasil.enable_ali` | `true` | 页面带 `X-Authlib-Injector-API-Location` 头，启动器只填站点地址就能找到接口 |
+| `yggdrasil.disable_authserver` | `false` | 禁用旧版 `/api/yggdrasil/authserver/*` 账号密码接口，强制启动器走 OIDC / Yggdrasil Connect |
+| `player.keep_uuid_on_rename` | `false` | `v3` 算法下角色改名时保持原 UUID 不变（适合 MUA 联合认证或防丢档服务器） |
 
 ### 开放平台
 
@@ -122,6 +124,8 @@ skinloom settings set site.name null                     # 恢复默认
 |---|---|---|
 | `oauth.access_token_ttl_seconds` | `86400` | 应用的访问令牌有效期（1 天） |
 | `oauth.refresh_token_ttl_seconds` | `2592000` | 刷新令牌多久不用就失效（30 天） |
+| `oauth.enable_oidc` | `true` | 开启内置 OIDC / Yggdrasil Connect 提供方（Issuer 为 `https://<域名>/oauth`，发现端点为 `/oauth/.well-known/openid-configuration`） |
+| `oauth.enable_dcr` | `true` | 允许本地启动器通过 `POST /oauth/register`（RFC 7591）动态注册公开 PKCE 客户端（仅限环回地址或原生应用协议） |
 
 ### 外观与插件市场
 

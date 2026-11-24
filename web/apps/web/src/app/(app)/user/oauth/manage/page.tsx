@@ -24,7 +24,7 @@ export default async function OAuthManagePage() {
     origin = `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost'}`
   }
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+    <div className="mx-auto flex w-full min-w-0 max-w-4xl flex-col gap-6">
       <PageHeader title={t('manageTitle')} description={t('manageHint')} />
       <Developer admin={viewer.role === 'admin' || viewer.role === 'superadmin'} origin={origin} />
     </div>

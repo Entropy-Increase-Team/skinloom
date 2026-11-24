@@ -421,6 +421,11 @@ export function formatDuration(seconds: number): string {
   return `${secs}s`
 }
 
-export function apiProblemMessage(problemDetail: string | undefined, _err: unknown, fallback: string): string {
-  return problemDetail || fallback
+export function apiProblemMessage(problemDetail: string | undefined, err: unknown, fallback: string): string {
+  if (problemDetail) return problemDetail
+  if (err && typeof err === 'object' && 'status' in err && typeof (err as { status?: unknown }).status === 'number') {
+    const status = (err as { status: number }).status
+    if (status >= 400) return `${fallback} (HTTP ${status})`
+  }
+  return fallback
 }

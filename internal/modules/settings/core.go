@@ -36,7 +36,7 @@ func coreDefs() []Def {
 		{
 			Key: "site.url", Type: TypeString, Public: true, Default: "",
 			Doc:      "Canonical public URL, e.g. https://skin.example.com. Mail links are built only from it (verification and password reset are off without it).",
-			Validate: validURLOrEmpty,
+			Validate: validSiteURLOrEmpty,
 		},
 		{
 			Key: "site.timezone", Type: TypeString, Default: "Asia/Shanghai",
@@ -228,6 +228,21 @@ func validImageOrEmpty(v any) error {
 		return nil
 	}
 	return validURLOrEmpty(v)
+}
+
+func validSiteURLOrEmpty(v any) error {
+	if err := validURLOrEmpty(v); err != nil {
+		return err
+	}
+	s := v.(string)
+	if s == "" {
+		return nil
+	}
+	u, err := url.Parse(s)
+	if err != nil || u.RawQuery != "" || u.Fragment != "" || u.User != nil {
+		return fmt.Errorf("want a clean base http(s) URL without query, fragment, or userinfo, e.g. https://skin.example.com")
+	}
+	return nil
 }
 
 func validURLOrEmpty(v any) error {

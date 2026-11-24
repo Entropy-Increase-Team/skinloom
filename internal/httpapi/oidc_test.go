@@ -71,19 +71,36 @@ func TestOIDCAndYggdrasilConnectEndToEnd(t *testing.T) {
 		_ = json.Unmarshal(rec.Body.Bytes(), &pResp)
 	}
 
-	// 1. Discovery + JWKS + Yggdrasil root meta advertisement.
-	rec := launcher(t, h, "GET", "/.well-known/openid-configuration", "")
+	// 1. Discovery (/oauth/.well-known/openid-configuration + root alias) + JWKS + Yggdrasil root meta advertisement.
+	yggMetaRec := launcher(t, h, "GET", YggdrasilPrefix+"/", "")
+	if yggMetaRec.Code != http.StatusOK {
+		t.Fatalf("yggdrasil meta: %d %s", yggMetaRec.Code, yggMetaRec.Body)
+	}
+	var yggMeta struct {
+		Meta map[string]any `json:"meta"`
+	}
+	_ = json.Unmarshal(yggMetaRec.Body.Bytes(), &yggMeta)
+	if got := yggMeta.Meta["feature.openid_configuration_url"]; got != "https://skins.example.com/oauth/.well-known/openid-configuration" {
+		t.Fatalf("unexpected feature.openid_configuration_url: %v", got)
+	}
+
+	rec := launcher(t, h, "GET", "/oauth/.well-known/openid-configuration", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("openid-configuration: %d %s", rec.Code, rec.Body)
 	}
 	var disc map[string]any
 	_ = json.Unmarshal(rec.Body.Bytes(), &disc)
-	if disc["issuer"] != "https://skins.example.com" ||
+	if disc["issuer"] != "https://skins.example.com/oauth" ||
 		disc["jwks_uri"] != "https://skins.example.com/oauth/jwks" ||
 		disc["userinfo_endpoint"] != "https://skins.example.com/oauth/userinfo" ||
 		disc["device_authorization_endpoint"] != "https://skins.example.com/oauth/device_authorization" ||
 		disc["registration_endpoint"] != "https://skins.example.com/oauth/register" {
 		t.Fatalf("unexpected discovery doc: %#v", disc)
+	}
+	// Root alias remains reachable with the same canonical issuer when not intercepted by a reverse proxy.
+	if aliasRec := launcher(t, h, "GET", "/.well-known/openid-configuration", ""); aliasRec.Code != http.StatusOK ||
+		!strings.Contains(aliasRec.Body.String(), `"issuer":"https://skins.example.com/oauth"`) {
+		t.Fatalf("root openid-configuration alias: %d %s", aliasRec.Code, aliasRec.Body)
 	}
 
 	jwksRec := launcher(t, h, "GET", "/oauth/jwks", "")
@@ -196,7 +213,7 @@ func TestOIDCAndYggdrasilConnectEndToEnd(t *testing.T) {
 
 	// Verify RS256 id_token claims against /oauth/jwks.
 	claims := verifyRS256JWT(t, tok.IDToken, jwks.Keys[0])
-	if claims["iss"] != "https://skins.example.com" || claims["aud"] != dcr.ClientID || claims["nonce"] != "n-999" {
+	if claims["iss"] != "https://skins.example.com/oauth" || claims["aud"] != dcr.ClientID || claims["nonce"] != "n-999" {
 		t.Fatalf("unexpected id_token claims: %#v", claims)
 	}
 
@@ -209,6 +226,10 @@ func TestOIDCAndYggdrasilConnectEndToEnd(t *testing.T) {
 	_ = json.Unmarshal(uiRec.Body.Bytes(), &ui)
 	if ui["email"] != "alice@example.com" || ui["email_verified"] != false {
 		t.Fatalf("expected real email_verified=false, got %#v", ui)
+	}
+	// Verify non-doubling of /oauth on userinfo picture URL.
+	if pic, _ := ui["picture"].(string); !strings.HasPrefix(pic, "https://skins.example.com/avatar/user/") {
+		t.Fatalf("unexpected userinfo picture URL: %q", pic)
 	}
 	selProf := ui["selectedProfile"].(map[string]any)
 	if selProf["id"] != pResp.Player.UUID || selProf["name"] != "AliceHero" {
@@ -260,6 +281,13 @@ func TestOIDCAndYggdrasilConnectEndToEnd(t *testing.T) {
 	}
 	var refTok oauth.TokenResponse
 	_ = json.Unmarshal(refRec.Body.Bytes(), &refTok)
+	if refTok.IDToken == "" {
+		t.Fatalf("expected id_token on refresh_token grant, got %+v", refTok)
+	}
+	refClaims := verifyRS256JWT(t, refTok.IDToken, jwks.Keys[0])
+	if refClaims["iss"] != "https://skins.example.com/oauth" || refClaims["aud"] != dcr.ClientID {
+		t.Fatalf("unexpected refreshed id_token claims: %#v", refClaims)
+	}
 	uiRec3 := launcher(t, h, "GET", "/oauth/userinfo", "", "Authorization", "Bearer "+refTok.AccessToken)
 	if uiRec3.Code != http.StatusOK || !strings.Contains(uiRec3.Body.String(), `"name":"AliceRenamed"`) {
 		t.Fatalf("userinfo after refresh: %d %s", uiRec3.Code, uiRec3.Body)
@@ -294,6 +322,9 @@ func TestOIDCAndYggdrasilConnectEndToEnd(t *testing.T) {
 	_ = json.Unmarshal(devRec.Body.Bytes(), &devResp)
 	if devResp.DeviceCode == "" || devResp.UserCode == "" {
 		t.Fatalf("unexpected device_authorization response: %+v", devResp)
+	}
+	if devResp.VerificationURI != "https://skins.example.com/user/oauth/device" {
+		t.Fatalf("unexpected device verification_uri (must not double /oauth): %q", devResp.VerificationURI)
 	}
 
 	// First poll: authorization_pending; immediate second poll: slow_down.
@@ -334,6 +365,10 @@ func TestOIDCAndYggdrasilConnectEndToEnd(t *testing.T) {
 	if !strings.HasPrefix(devTok.AccessToken, "slo_") || devTok.IDToken == "" {
 		t.Fatalf("unexpected device token response: %+v", devTok)
 	}
+	devClaims := verifyRS256JWT(t, devTok.IDToken, jwks.Keys[0])
+	if devClaims["iss"] != "https://skins.example.com/oauth" || devClaims["aud"] != dcr.ClientID {
+		t.Fatalf("unexpected device id_token claims: %#v", devClaims)
+	}
 
 	// Deleting the bound player immediately revokes its OIDC token.
 	if r := alice.do("DELETE", fmt.Sprintf("/api/v1/me/players/%d", pResp.Player.ID), ""); r.Code != http.StatusOK && r.Code != http.StatusNoContent {
@@ -353,7 +388,7 @@ func TestOIDCSecurityRegressions(t *testing.T) {
 	alice := registerUser(t, h, "alice-sec@example.com")
 
 	// H6: Discovery document with blank site.url must not be cached by shared CDNs.
-	discRec := launcher(t, h, "GET", "/.well-known/openid-configuration", "")
+	discRec := launcher(t, h, "GET", "/oauth/.well-known/openid-configuration", "")
 	if discRec.Code != http.StatusOK {
 		t.Fatalf("discovery: %d %s", discRec.Code, discRec.Body)
 	}
@@ -450,5 +485,60 @@ func TestOIDCSecurityRegressions(t *testing.T) {
 	}
 	if r := launcher(t, h, "DELETE", "/api/yggdrasil/api/user/profile/"+p2.Player.UUID+"/skin", "", "Authorization", "Bearer "+tok.AccessToken); r.Code != http.StatusForbidden {
 		t.Fatalf("C1 regression: expected 403 on DELETE another player's skin with Join-only OAuth token, got %d %s", r.Code, r.Body)
+	}
+}
+
+func TestOIDCDisabledAndDiscoveryEdgeCases(t *testing.T) {
+	d := newTestDeps(t)
+	setSettings(t, d, `{"captcha.provider":"none","site.url":"https://skins.example.com/","oauth.enable_oidc":true,"oauth.enable_dcr":true}`)
+	h, _ := New(d)
+	setupSite(t, d, &browser{t: t, h: h})
+
+	// Trailing slash on site.url must never produce //oauth; OPTIONS preflight must advertise GET, OPTIONS.
+	for _, p := range []string{
+		"/oauth/.well-known/openid-configuration",
+		"/.well-known/openid-configuration/oauth",
+		"/.well-known/openid-configuration",
+		"/oauth/.well-known/oauth-authorization-server",
+		"/.well-known/oauth-authorization-server/oauth",
+		"/.well-known/oauth-authorization-server",
+	} {
+		rec := launcher(t, h, "GET", p, "")
+		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"issuer":"https://skins.example.com/oauth"`) {
+			t.Fatalf("GET %s: %d %s", p, rec.Code, rec.Body)
+		}
+		opt := launcher(t, h, "OPTIONS", p, "", "Origin", "https://launcher.example", "Access-Control-Request-Method", "GET")
+		if opt.Code != http.StatusNoContent || opt.Header().Get("Access-Control-Allow-Origin") != "*" || opt.Header().Get("Access-Control-Allow-Methods") != "GET, OPTIONS" {
+			t.Fatalf("OPTIONS %s: %d ACAO=%q ACAM=%q", p, opt.Code, opt.Header().Get("Access-Control-Allow-Origin"), opt.Header().Get("Access-Control-Allow-Methods"))
+		}
+	}
+
+	// Blank site.url must set Cache-Control: no-store + Vary across discovery aliases.
+	setSettings(t, d, `{"captcha.provider":"none","site.url":"","oauth.enable_oidc":true,"oauth.enable_dcr":true}`)
+	for _, p := range []string{"/oauth/.well-known/openid-configuration", "/.well-known/openid-configuration/oauth", "/oauth/.well-known/oauth-authorization-server"} {
+		rec := launcher(t, h, "GET", p, "")
+		if rec.Code != http.StatusOK || !strings.Contains(rec.Header().Get("Cache-Control"), "no-store") || !strings.Contains(rec.Header().Get("Vary"), "Host") {
+			t.Fatalf("blank site.url %s: %d CC=%q Vary=%q", p, rec.Code, rec.Header().Get("Cache-Control"), rec.Header().Get("Vary"))
+		}
+	}
+
+	// Disabling OIDC must return 404 on both GET and OPTIONS of OIDC discovery, omit feature.openid_configuration_url,
+	// and keep OAuth 2.0 metadata active without OIDC endpoints/grants.
+	setSettings(t, d, `{"captcha.provider":"none","site.url":"https://skins.example.com","oauth.enable_oidc":false,"oauth.enable_dcr":true}`)
+	for _, p := range []string{"/oauth/.well-known/openid-configuration", "/.well-known/openid-configuration/oauth", "/.well-known/openid-configuration"} {
+		if r := launcher(t, h, "GET", p, ""); r.Code != http.StatusNotFound {
+			t.Fatalf("expected 404 on GET %s with OIDC disabled, got %d", p, r.Code)
+		}
+		if r := launcher(t, h, "OPTIONS", p, "", "Origin", "https://launcher.example"); r.Code != http.StatusNotFound {
+			t.Fatalf("expected 404 on OPTIONS %s with OIDC disabled, got %d", p, r.Code)
+		}
+	}
+	yggRec := launcher(t, h, "GET", YggdrasilPrefix+"/", "")
+	if yggRec.Code != http.StatusOK || strings.Contains(yggRec.Body.String(), "feature.openid_configuration_url") {
+		t.Fatalf("expected feature.openid_configuration_url omitted when OIDC disabled, got %d %s", yggRec.Code, yggRec.Body)
+	}
+	oaRec := launcher(t, h, "GET", "/oauth/.well-known/oauth-authorization-server", "")
+	if oaRec.Code != http.StatusOK || strings.Contains(oaRec.Body.String(), "jwks_uri") || strings.Contains(oaRec.Body.String(), "device_authorization_endpoint") {
+		t.Fatalf("expected OAuth metadata without OIDC fields when disabled, got %d %s", oaRec.Code, oaRec.Body)
 	}
 }

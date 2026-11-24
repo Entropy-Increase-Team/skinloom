@@ -17,6 +17,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/ent"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/oauth"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
 )
 
 // The OAuth 2.0 endpoints (/oauth/*) follow RFC 6749 rather than the /api/v1
@@ -43,6 +44,35 @@ func openCORS(next http.Handler) http.Handler {
 	})
 }
 
+// discoveryCORS allows read-only cross-origin discovery/metadata fetches (GET, OPTIONS).
+func discoveryCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("Access-Control-Allow-Origin", "*")
+		h.Set("Access-Control-Allow-Headers", "Accept, Content-Type")
+		h.Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		h.Set("Access-Control-Max-Age", "86400")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// oidcIssuerFromBase builds the canonical OIDC / OAuth 2.0 issuer URL (<siteBase>/oauth)
+// from a pre-resolved siteBase. Hosting the issuer under /oauth places OIDC discovery at
+// /oauth/.well-known/openid-configuration (OpenID Connect Discovery 1.0 §4), keeping it clear
+// of panel-locked root `location /.well-known` ACME intercepts (e.g. BT Panel Docker sites)
+// while preserving strict issuer equality.
+func oidcIssuerFromBase(base string) string {
+	b := strings.TrimRight(base, "/")
+	if b == "" {
+		return ""
+	}
+	return b + "/oauth"
+}
+
 func mountOAuth(r chi.Router, d Deps) {
 	// The consent screen is a page of the frontend.
 	r.Get("/oauth/authorize", func(w http.ResponseWriter, req *http.Request) {
@@ -58,6 +88,7 @@ func mountOAuth(r chi.Router, d Deps) {
 			oauthAnswer(w, d, nil, err, basic)
 			return
 		}
+		snap := d.Settings.Current()
 		in := oauth.TokenRequest{
 			GrantType:    form.Get("grant_type"),
 			Code:         form.Get("code"),
@@ -68,9 +99,9 @@ func mountOAuth(r chi.Router, d Deps) {
 			Scope:        form.Get("scope"),
 			ClientID:     form.Get("client_id"),
 			ClientSecret: form.Get("client_secret"),
-			Issuer:       siteBase(req, d),
+			Issuer:       oidcIssuerFromBase(siteBaseFrom(req, snap)),
 		}
-		out, err := d.OAuth.Token(req.Context(), in, oauth.PolicyFrom(d.Settings.Current()))
+		out, err := d.OAuth.Token(req.Context(), in, oauth.PolicyFrom(snap))
 		oauthAnswer(w, d, out, err, basic)
 	})
 	r.With(openCORS).Options("/oauth/token", func(http.ResponseWriter, *http.Request) {})
@@ -180,9 +211,9 @@ func mountOAuth(r chi.Router, d Deps) {
 	})
 	r.With(openCORS).Options("/oauth/register", func(http.ResponseWriter, *http.Request) {})
 
-	discoveryDoc := func(req *http.Request, oidc bool) map[string]any {
-		pol := oauth.PolicyFrom(d.Settings.Current())
-		base := siteBase(req, d)
+	discoveryDoc := func(req *http.Request, snap *settings.Snapshot, oidc bool) map[string]any {
+		pol := oauth.PolicyFrom(snap)
+		base := siteBaseFrom(req, snap)
 		names := make([]string, 0, len(oauth.Scopes))
 		for _, s := range oauth.Scopes {
 			if !pol.EnableOIDC && s.OIDC {
@@ -195,7 +226,7 @@ func mountOAuth(r chi.Router, d Deps) {
 			grants = append(grants, oauth.DeviceGrantType)
 		}
 		doc := map[string]any{
-			"issuer":                                base,
+			"issuer":                                oidcIssuerFromBase(base),
 			"authorization_endpoint":                base + "/oauth/authorize",
 			"token_endpoint":                        base + "/oauth/token",
 			"revocation_endpoint":                   base + "/oauth/revoke",
@@ -224,28 +255,61 @@ func mountOAuth(r chi.Router, d Deps) {
 		}
 		return doc
 	}
-	setDiscoveryCache := func(w http.ResponseWriter) {
-		if strings.TrimSpace(d.Settings.Current().String("site.url")) != "" {
+	setDiscoveryCache := func(w http.ResponseWriter, snap *settings.Snapshot) {
+		if strings.TrimSpace(snap.String("site.url")) != "" {
 			w.Header().Set("Cache-Control", "public, max-age=3600")
 		} else {
 			w.Header().Set("Cache-Control", "no-store")
-			w.Header().Set("Vary", "Host")
+			w.Header().Set("Vary", "Host, X-Forwarded-Host, X-Forwarded-Proto")
 		}
 	}
-	r.With(openCORS).Get("/.well-known/oauth-authorization-server", func(w http.ResponseWriter, req *http.Request) {
+	requireOIDC := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if !oauth.PolicyFrom(d.Settings.Current()).EnableOIDC {
+				http.NotFound(w, req)
+				return
+			}
+			next.ServeHTTP(w, req)
+		})
+	}
+	serveOAuthMeta := func(w http.ResponseWriter, req *http.Request) {
+		snap := d.Settings.Current()
 		w.Header().Set("Content-Type", "application/json")
-		setDiscoveryCache(w)
-		_ = json.NewEncoder(w).Encode(discoveryDoc(req, false))
-	})
-	r.With(openCORS).Get("/.well-known/openid-configuration", func(w http.ResponseWriter, req *http.Request) {
-		if !oauth.PolicyFrom(d.Settings.Current()).EnableOIDC {
+		setDiscoveryCache(w, snap)
+		_ = json.NewEncoder(w).Encode(discoveryDoc(req, snap, false))
+	}
+	serveOIDCConfig := func(w http.ResponseWriter, req *http.Request) {
+		snap := d.Settings.Current()
+		if !oauth.PolicyFrom(snap).EnableOIDC {
 			http.NotFound(w, req)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		setDiscoveryCache(w)
-		_ = json.NewEncoder(w).Encode(discoveryDoc(req, true))
-	})
+		setDiscoveryCache(w, snap)
+		_ = json.NewEncoder(w).Encode(discoveryDoc(req, snap, true))
+	}
+	// Canonical discovery endpoints for issuer <siteBase>/oauth:
+	//   - OIDC Discovery 1.0 §4: /oauth/.well-known/openid-configuration
+	//   - RFC 8414 §3 path-insertion: /.well-known/oauth-authorization-server/oauth (+ /.well-known/openid-configuration/oauth)
+	//   - /oauth/.well-known/oauth-authorization-server (co-located path-scoped metadata)
+	// Root /.well-known/* aliases are kept as best-effort fallbacks for non-strict clients;
+	// strict OIDC / RFC 8414 §3.3 clients MUST configure <siteBase>/oauth as their issuer.
+	for _, p := range []string{
+		"/oauth/.well-known/oauth-authorization-server",
+		"/.well-known/oauth-authorization-server/oauth",
+		"/.well-known/oauth-authorization-server",
+	} {
+		r.With(discoveryCORS).Get(p, serveOAuthMeta)
+		r.With(discoveryCORS).Options(p, func(http.ResponseWriter, *http.Request) {})
+	}
+	for _, p := range []string{
+		"/oauth/.well-known/openid-configuration",
+		"/.well-known/openid-configuration/oauth",
+		"/.well-known/openid-configuration",
+	} {
+		r.With(requireOIDC, discoveryCORS).Get(p, serveOIDCConfig)
+		r.With(requireOIDC, discoveryCORS).Options(p, func(http.ResponseWriter, *http.Request) {})
+	}
 }
 
 // oauthForm reads a token or revocation request: a form (RFC 6749) or, as Laravel

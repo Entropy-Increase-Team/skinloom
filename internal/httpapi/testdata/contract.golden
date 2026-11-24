@@ -5,7 +5,7 @@ Cache-Control: no-store
 {
   "meta": {
     "feature.non_email_login": true,
-    "feature.openid_configuration_url": "https://skins.example.com/.well-known/openid-configuration",
+    "feature.openid_configuration_url": "https://skins.example.com/oauth/.well-known/openid-configuration",
     "implementationName": "SkinLoom",
     "implementationVersion": "<version>",
     "links": {

@@ -72,7 +72,7 @@ func SettingDefs() []settings.Def {
 		{Key: "oauth.refresh_token_ttl_seconds", Type: settings.TypeInt, Default: 2592000, Range: settings.Between(3600, 31536000),
 			Doc: "How long an unused refresh token stays valid (30 days); each refresh starts a new one."},
 		{Key: "oauth.enable_oidc", Type: settings.TypeBool, Public: true, Default: true,
-			Doc: "Enable built-in OpenID Connect & Yggdrasil Connect provider (/.well-known/openid-configuration, /oauth/userinfo, /oauth/device_authorization)."},
+			Doc: "Enable built-in OpenID Connect & Yggdrasil Connect provider (/oauth/.well-known/openid-configuration, /oauth/userinfo, /oauth/device_authorization)."},
 		{Key: "oauth.enable_dcr", Type: settings.TypeBool, Public: true, Default: true,
 			Doc: "Allow native launchers to dynamically register temporary public PKCE clients via RFC 7591 (POST /oauth/register, restricted to loopback or custom app schemes)."},
 	}

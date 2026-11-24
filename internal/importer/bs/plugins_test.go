@@ -66,7 +66,7 @@ func TestPlanYggdrasilConnectOptions(t *testing.T) {
 		if strings.Contains(e.Message, "bs-importer") && strings.Contains(e.Message, "yggdrasil-connect") {
 			sawPluginHint = true
 		}
-		if strings.Contains(e.Message, "ygg_connect_server_url") && strings.Contains(e.Message, "/.well-known/openid-configuration") {
+		if strings.Contains(e.Message, "ygg_connect_server_url") && strings.Contains(e.Message, "/oauth/.well-known/openid-configuration") {
 			sawJanus = true
 		}
 	}

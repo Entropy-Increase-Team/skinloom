@@ -61,7 +61,7 @@ SkinLoom 对外提供四组接口：
 
    可以带 `scope` 缩小权限，不能扩大。
 
-退出登录时可以吊销令牌：`POST /oauth/revoke`，带 `token` 和客户端凭据（RFC 7009）。服务器元数据在 `/.well-known/oauth-authorization-server`。
+退出登录时可以吊销令牌：`POST /oauth/revoke`，带 `token` 和客户端凭据（RFC 7009）。OAuth 2.0 / OpenID Connect 的规范发行者（`issuer`）为 `https://<站点域名>/oauth`，标准发现端点为 `/oauth/.well-known/openid-configuration`（OIDC Discovery 1.0 §4）与 `/.well-known/oauth-authorization-server/oauth` / `/oauth/.well-known/oauth-authorization-server`（RFC 8414 §3）。请务必在第三方 OIDC 客户端中将 Issuer 配置为 `https://<站点域名>/oauth`（根路径 `/.well-known/openid-configuration` 与 `/.well-known/oauth-authorization-server` 仅作非严格客户端的兜底别名，严格校验 §4.3 发行者一致性的客户端需使用 `/oauth` 发行者地址）。
 
 错误是 OAuth 的格式，例如 `{"error": "invalid_grant", "error_description": "…", "message": "…"}`。
 

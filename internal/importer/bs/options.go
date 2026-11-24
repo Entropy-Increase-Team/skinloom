@@ -336,7 +336,7 @@ func planSettings(d *sourceData, o planOptions, r *Report) map[string]json.RawMe
 		m.set("ygg_disable_authserver", "yggdrasil.disable_authserver", m.bool("ygg_disable_authserver"))
 	}
 	if s := m.str("ygg_connect_server_url"); s != "" {
-		r.add(Fixed, "options", 0, "ygg_connect_server_url = %s: SkinLoom serves OIDC / Yggdrasil Connect natively at /.well-known/openid-configuration; the legacy external Janus server is no longer required", short(s))
+		r.add(Fixed, "options", 0, "ygg_connect_server_url = %s: SkinLoom serves OIDC / Yggdrasil Connect natively at /oauth/.well-known/openid-configuration; the legacy external Janus server is no longer required", short(s))
 	}
 	if pluginEnabled(d.Options["plugins_enabled"], "yggdrasil-connect") {
 		m.set("yggdrasil-connect", "player.keep_uuid_on_rename", true)

@@ -16,6 +16,7 @@ import (
 
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/oauth"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/score"
+	"github.com/Entropy-Increase-Team/skinloom/internal/modules/settings"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/texture"
 	"github.com/Entropy-Increase-Team/skinloom/internal/modules/yggdrasil"
 	"github.com/Entropy-Increase-Team/skinloom/internal/platform/buildinfo"
@@ -149,14 +150,29 @@ func bearer(r *http.Request) string {
 	return strings.TrimSpace(hdr[7:])
 }
 
+// siteBaseFrom derives the public site base URL from a single settings snapshot,
+// falling back to the resolved request proto/host when site.url is blank.
+func siteBaseFrom(r *http.Request, snap *settings.Snapshot) string {
+	if snap != nil {
+		if u := strings.TrimRight(snap.String("site.url"), "/"); u != "" {
+			return u
+		}
+	}
+	c := requestInfo(r.Context()).client
+	if c.Host == "" {
+		return ""
+	}
+	proto := c.Proto
+	if proto == "" {
+		proto = "http"
+	}
+	return proto + "://" + c.Host
+}
+
 // siteBase is the URL textures are served under: site.url, or the address the
 // request came to (hasJoined is called by game servers, which use that address).
 func siteBase(r *http.Request, d Deps) string {
-	if u := strings.TrimRight(d.Settings.Current().String("site.url"), "/"); u != "" {
-		return u
-	}
-	c := requestInfo(r.Context()).client
-	return c.Proto + "://" + c.Host
+	return siteBaseFrom(r, d.Settings.Current())
 }
 
 func yggJSON(d Deps, fn func(ctx context.Context, w http.ResponseWriter, r *http.Request, body []byte) (any, error)) http.HandlerFunc {
@@ -225,7 +241,7 @@ func isNil(out any) bool {
 func yggMeta(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		snap := d.Settings.Current()
-		base := siteBase(r, d)
+		base := siteBaseFrom(r, snap)
 		pemText, _, err := d.Yggdrasil.PublicKey(r.Context())
 		if err != nil {
 			yggAnswer(w, d, nil, err)
@@ -266,7 +282,9 @@ func yggMeta(d Deps) http.HandlerFunc {
 			meta["feature.non_email_login"] = true
 		}
 		if oauth.PolicyFrom(snap).EnableOIDC {
-			meta["feature.openid_configuration_url"] = base + "/.well-known/openid-configuration"
+			if issuer := oidcIssuerFromBase(base); issuer != "" {
+				meta["feature.openid_configuration_url"] = issuer + "/.well-known/openid-configuration"
+			}
 		}
 		extraDomains, extraMeta := d.Yggdrasil.MetaExtensions(r.Context())
 		for _, dom := range extraDomains {

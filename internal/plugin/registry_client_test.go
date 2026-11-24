@@ -990,3 +990,142 @@ func TestMatchesMarketFilter_UtilityGroup(t *testing.T) {
 		}
 	}
 }
+
+func TestRegistryClient_PerRequestTimeouts(t *testing.T) {
+	rc := NewRegistryClient(nil)
+	if rc.httpClient == nil {
+		t.Fatal("expected default httpClient")
+	}
+	if rc.httpClient.Timeout != 0 {
+		t.Fatalf("expected client-wide Timeout=0 so large .slp downloads are not truncated at 15s, got %v", rc.httpClient.Timeout)
+	}
+	tr, ok := rc.httpClient.Transport.(*http.Transport)
+	if !ok || tr.ResponseHeaderTimeout != DefaultRegistryIndexTimeout {
+		t.Fatalf("expected ResponseHeaderTimeout=%v for fast mirror failover, got %+v", DefaultRegistryIndexTimeout, rc.httpClient.Transport)
+	}
+
+	// Simulate a slow body stream: short per-call timeout must abort, longer per-call timeout must complete.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("chunk1-"))
+		if fl, ok := w.(http.Flusher); ok {
+			fl.Flush()
+		}
+		select {
+		case <-time.After(120 * time.Millisecond):
+			_, _ = w.Write([]byte("chunk2"))
+		case <-r.Context().Done():
+		}
+	}))
+	defer srv.Close()
+
+	if _, err := rc.httpGetBytes(context.Background(), srv.URL, 1024, 30*time.Millisecond); err == nil {
+		t.Fatal("expected short per-call timeout to fail on slow body stream")
+	}
+	body, err := rc.httpGetBytes(context.Background(), srv.URL, 1024, 2*time.Second)
+	if err != nil {
+		t.Fatalf("expected sufficient per-call timeout to complete slow body stream, got %v", err)
+	}
+	if string(body) != "chunk1-chunk2" {
+		t.Fatalf("unexpected body %q", string(body))
+	}
+}
+
+type stubRoundTripper struct{}
+
+func (stubRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {
+	return nil, errors.New("stub")
+}
+
+func TestRegistryClient_ResilienceAndSecurity(t *testing.T) {
+	// 1. Swapping http.DefaultTransport to a non-*http.Transport must not panic in NewRegistryClient.
+	origDT := http.DefaultTransport
+	http.DefaultTransport = stubRoundTripper{}
+	rcFallback := NewRegistryClient(nil)
+	http.DefaultTransport = origDT
+	if rcFallback == nil || rcFallback.httpClient == nil {
+		t.Fatal("expected NewRegistryClient to handle custom http.DefaultTransport safely")
+	}
+	rcFallback.Close()
+
+	// 2. Slow body streaming longer than ResponseHeaderTimeout succeeds when headers arrive promptly.
+	rc := NewRegistryClient(nil)
+	defer rc.Close()
+	tr := rc.httpClient.Transport.(*http.Transport)
+	tr.ResponseHeaderTimeout = 80 * time.Millisecond
+	rc.bodyIdleTimeout = 200 * time.Millisecond
+
+	slowBodySrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fl, _ := w.(http.Flusher)
+		for range 4 {
+			_, _ = w.Write([]byte("ok-"))
+			if fl != nil {
+				fl.Flush()
+			}
+			select {
+			case <-time.After(35 * time.Millisecond):
+			case <-r.Context().Done():
+				return
+			}
+		}
+	}))
+	defer slowBodySrv.Close()
+	got, err := rc.httpGetBytes(context.Background(), slowBodySrv.URL, 1024, 2*time.Second)
+	if err != nil || string(got) != "ok-ok-ok-ok-" {
+		t.Fatalf("slow streaming body > ResponseHeaderTimeout failed: err=%v got=%q", err, string(got))
+	}
+
+	// 3. Mid-body stall watchdog cancels stalled primary mirror and relative artifact URL fails over to secondary mirror.
+	payload := []byte("verified-slp-payload")
+	payloadSHA := sha256Hex(payload)
+	stalledSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("partial"))
+		if fl, ok := w.(http.Flusher); ok {
+			fl.Flush()
+		}
+		<-r.Context().Done()
+	}))
+	defer stalledSrv.Close()
+	healthySrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(payload)
+	}))
+	defer healthySrv.Close()
+
+	rc.bodyIdleTimeout = 60 * time.Millisecond
+	entry := &CachedRegistryIndex{
+		Source: settings.RegistrySource{
+			ID:   "custom",
+			URLs: []string{stalledSrv.URL, healthySrv.URL},
+		},
+		ActiveMirror: stalledSrv.URL,
+	}
+	art := RegistryArtifact{
+		URLs:   []string{"/packages/demo/1.0.0/demo-1.0.0.slp"},
+		SHA256: payloadSHA,
+		Size:   int64(len(payload)),
+	}
+	dl, err := rc.downloadAndVerifyArtifact(context.Background(), entry, art)
+	if err != nil || string(dl) != string(payload) {
+		t.Fatalf("expected stalled relative mirror to fail over to healthy secondary mirror, err=%v got=%q", err, string(dl))
+	}
+
+	// 4. Oversized Content-Length fast-fails before reading body.
+	bigHeaderSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", "999999")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer bigHeaderSrv.Close()
+	if _, err := rc.httpGetBytes(context.Background(), bigHeaderSrv.URL, 64, time.Second); err == nil || !strings.Contains(err.Error(), "exceeding") {
+		t.Fatalf("expected Content-Length pre-check rejection, got %v", err)
+	}
+
+	// 5. HTTPS -> HTTP redirect downgrade must be rejected by CheckRedirect.
+	httpsReq, _ := http.NewRequest(http.MethodGet, "https://registry.example.com/index.v1.json", nil)
+	httpTarget, _ := http.NewRequest(http.MethodGet, "http://insecure.example.com/index.v1.json", nil)
+	if err := rc.httpClient.CheckRedirect(httpTarget, []*http.Request{httpsReq}); err == nil || !strings.Contains(err.Error(), "downgrade") {
+		t.Fatalf("expected HTTPS->HTTP redirect downgrade rejection, got %v", err)
+	}
+}

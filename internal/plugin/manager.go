@@ -2116,7 +2116,7 @@ func safeAssetContentType(rel string, sample []byte, allowScript bool) string {
 func (m *Manager) Shutdown(ctx context.Context) error {
 	m.stopCronLoop()
 	if m.registry != nil {
-		m.registry.StopPatrolLoop()
+		m.registry.Close()
 	}
 
 	m.lifecycleMu.Lock()

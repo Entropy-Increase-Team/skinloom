@@ -101,7 +101,7 @@ export function DeviceConsent({ initialCode }: { initialCode: string }) {
           <CardTitle as="h1" className="text-xl">{t('device.pageTitle')}</CardTitle>
           <CardDescription>{t('device.enterCodeHint')}</CardDescription>
         </CardHeader>
-        <form onSubmit={onSubmitCode}>
+        <form onSubmit={onSubmitCode} className="flex flex-col gap-(--card-spacing)">
           <CardContent className="flex flex-col gap-4">
             <Input
               value={code}

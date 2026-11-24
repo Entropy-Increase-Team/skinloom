@@ -13,7 +13,9 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -37,6 +39,12 @@ const (
 	DefaultRegistryCacheTTL = 15 * time.Minute
 	// DefaultRegistryPatrolInterval is the background check interval for blocked plugins.
 	DefaultRegistryPatrolInterval = 6 * time.Hour
+	// DefaultRegistryIndexTimeout caps fetching index.v1.json and .sig so dead mirrors fail over quickly.
+	DefaultRegistryIndexTimeout = 15 * time.Second
+	// DefaultRegistryArtifactTimeout caps downloading a .slp package archive (up to 150 MiB) from one mirror.
+	DefaultRegistryArtifactTimeout = 3 * time.Minute
+	// DefaultRegistryBodyIdleTimeout aborts a stalled body stream if zero bytes arrive within this window.
+	DefaultRegistryBodyIdleTimeout = 30 * time.Second
 	// MaxRegistryIndexBytes caps index.v1.json payload size (16 MiB).
 	MaxRegistryIndexBytes = 16 * 1024 * 1024
 	// MaxRegistrySigBytes caps index.v1.json.sig payload size (4 KiB).
@@ -242,10 +250,11 @@ type MarketInstallResult struct {
 // 15-minute memory/disk caching, 5-dimensional compatibility filtering, blocked-plugin
 // enforcement, and failover artifact downloading.
 type RegistryClient struct {
-	mgr        *Manager
-	httpClient *http.Client
-	cacheTTL   time.Duration
-	patrolInt  time.Duration
+	mgr             *Manager
+	httpClient      *http.Client
+	cacheTTL        time.Duration
+	patrolInt       time.Duration
+	bodyIdleTimeout time.Duration
 
 	mu                      sync.RWMutex
 	memCache                map[string]*CachedRegistryIndex
@@ -259,10 +268,63 @@ type RegistryClient struct {
 
 // NewRegistryClient creates a RegistryClient bound to mgr.
 func NewRegistryClient(mgr *Manager) *RegistryClient {
+	var transport *http.Transport
+	if base, ok := http.DefaultTransport.(*http.Transport); ok && base != nil {
+		transport = base.Clone()
+	} else {
+		transport = &http.Transport{
+			Proxy:                 http.ProxyFromEnvironment,
+			ForceAttemptHTTP2:     true,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		}
+	}
+	dialer := &net.Dialer{
+		Timeout:   10 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+	transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, err
+		}
+		ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+		if err != nil {
+			return nil, err
+		}
+		var lastErr error
+		for _, ip := range ips {
+			if addrIP, ok := netip.AddrFromSlice(ip.IP); ok {
+				addrIP = addrIP.Unmap()
+				// Block cloud metadata / link-local, multicast, and unspecified addresses while
+				// keeping loopback (for tests) and RFC 1918 LANs (for private self-hosted registries).
+				if addrIP.IsLinkLocalUnicast() || addrIP.IsLinkLocalMulticast() || addrIP.IsMulticast() || addrIP.IsUnspecified() {
+					lastErr = fmt.Errorf("registry refused restricted address %s for host %s", addrIP, host)
+					continue
+				}
+			}
+			conn, dialErr := dialer.DialContext(ctx, network, net.JoinHostPort(ip.IP.String(), port))
+			if dialErr == nil {
+				return conn, nil
+			}
+			lastErr = dialErr
+		}
+		if lastErr != nil {
+			return nil, lastErr
+		}
+		return nil, fmt.Errorf("no dialable addresses for host %s", host)
+	}
+	transport.TLSHandshakeTimeout = 10 * time.Second
+	transport.ResponseHeaderTimeout = DefaultRegistryIndexTimeout
+
 	return &RegistryClient{
 		mgr: mgr,
 		httpClient: &http.Client{
-			Timeout: 15 * time.Second,
+			// Leave client-wide Timeout unset so large native .slp downloads (10-150 MiB)
+			// are not aborted mid-body after 15s; dead mirrors still fail over quickly via
+			// DialContext / ResponseHeaderTimeout, idle-read watchdog, and per-call context deadlines.
+			Transport: transport,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				if len(via) >= 5 {
 					return errors.New("stopped after 5 redirects")
@@ -270,11 +332,15 @@ func NewRegistryClient(mgr *Manager) *RegistryClient {
 				if req.URL == nil || (req.URL.Scheme != "http" && req.URL.Scheme != "https") || req.URL.Host == "" {
 					return fmt.Errorf("disallowed redirect URL scheme in %v", req.URL)
 				}
+				if len(via) > 0 && strings.EqualFold(via[0].URL.Scheme, "https") && !strings.EqualFold(req.URL.Scheme, "https") {
+					return errors.New("refusing HTTPS to HTTP redirect downgrade")
+				}
 				return nil
 			},
 		},
 		cacheTTL:           DefaultRegistryCacheTTL,
 		patrolInt:          DefaultRegistryPatrolInterval,
+		bodyIdleTimeout:    DefaultRegistryBodyIdleTimeout,
 		memCache:           make(map[string]*CachedRegistryIndex),
 		officialPubKeySpec: OfficialPublicKeyPEM,
 	}
@@ -291,13 +357,29 @@ func (m *Manager) Registry() *RegistryClient {
 }
 
 // SetHTTPClient overrides the HTTP client used for registry and artifact requests.
+// Callers relying on per-request deadlines (15s index / 3m artifact) should leave hc.Timeout == 0.
 func (c *RegistryClient) SetHTTPClient(hc *http.Client) {
 	if hc == nil {
 		return
 	}
 	c.mu.Lock()
+	old := c.httpClient
 	c.httpClient = hc
 	c.mu.Unlock()
+	if old != nil && old != hc {
+		old.CloseIdleConnections()
+	}
+}
+
+// Close stops background patrols and releases idle HTTP connections.
+func (c *RegistryClient) Close() {
+	c.StopPatrolLoop()
+	c.mu.RLock()
+	hc := c.httpClient
+	c.mu.RUnlock()
+	if hc != nil {
+		hc.CloseIdleConnections()
+	}
 }
 
 // SetCacheTTL overrides the index cache TTL (default 15 minutes).
@@ -466,6 +548,10 @@ func (c *RegistryClient) FetchSourceIndex(ctx context.Context, src settings.Regi
 
 	var errs []string
 	for _, mirror := range src.URLs {
+		if ctx.Err() != nil {
+			errs = append(errs, ctx.Err().Error())
+			break
+		}
 		baseURL := strings.TrimRight(strings.TrimSpace(mirror), "/")
 		if baseURL == "" {
 			continue
@@ -493,7 +579,7 @@ func (c *RegistryClient) fetchAndVerifyFromMirror(ctx context.Context, src setti
 	}
 	sigURL := indexURL + ".sig"
 
-	rawIndex, err := c.httpGetBytes(ctx, indexURL, MaxRegistryIndexBytes)
+	rawIndex, err := c.httpGetBytes(ctx, indexURL, MaxRegistryIndexBytes, DefaultRegistryIndexTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("fetch index.v1.json: %w", err)
 	}
@@ -502,7 +588,7 @@ func (c *RegistryClient) fetchAndVerifyFromMirror(ctx context.Context, src setti
 	requiresSig := isOfficial || strings.TrimSpace(src.PublicKey) != ""
 
 	var sigText string
-	rawSig, sigErr := c.httpGetBytes(ctx, sigURL, MaxRegistrySigBytes)
+	rawSig, sigErr := c.httpGetBytes(ctx, sigURL, MaxRegistrySigBytes, DefaultRegistryIndexTimeout)
 	if sigErr != nil {
 		if requiresSig {
 			return nil, fmt.Errorf("%w: fetch index.v1.json.sig: %v", ErrRegistrySignatureInvalid, sigErr)
@@ -648,13 +734,63 @@ func (c *RegistryClient) trustedKeysForVerification(extraKey string) []TrustedKe
 	return keys
 }
 
-func (c *RegistryClient) httpGetBytes(ctx context.Context, targetURL string, maxBytes int64) ([]byte, error) {
+type idleTimeoutReader struct {
+	r       io.ReadCloser
+	timeout time.Duration
+	onIdle  func()
+	mu      sync.Mutex
+	timer   *time.Timer
+	closed  bool
+}
+
+func newIdleTimeoutReader(r io.ReadCloser, timeout time.Duration, onIdle func()) *idleTimeoutReader {
+	ir := &idleTimeoutReader{r: r, timeout: timeout, onIdle: onIdle}
+	if timeout > 0 && onIdle != nil {
+		ir.timer = time.AfterFunc(timeout, onIdle)
+	}
+	return ir
+}
+
+func (ir *idleTimeoutReader) Read(p []byte) (int, error) {
+	n, err := ir.r.Read(p)
+	ir.mu.Lock()
+	if ir.timer != nil && !ir.closed {
+		if err != nil {
+			ir.timer.Stop()
+		} else if n > 0 {
+			ir.timer.Reset(ir.timeout)
+		}
+	}
+	ir.mu.Unlock()
+	return n, err
+}
+
+func (ir *idleTimeoutReader) Close() error {
+	ir.mu.Lock()
+	ir.closed = true
+	if ir.timer != nil {
+		ir.timer.Stop()
+	}
+	ir.mu.Unlock()
+	return ir.r.Close()
+}
+
+func (c *RegistryClient) httpGetBytes(ctx context.Context, targetURL string, maxBytes int64, timeout time.Duration) ([]byte, error) {
 	parsedURL, err := url.Parse(targetURL)
 	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Host == "" {
 		return nil, fmt.Errorf("invalid registry http(s) URL %q", targetURL)
 	}
+	var cancel context.CancelFunc
+	if timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+	} else {
+		ctx, cancel = context.WithCancel(ctx)
+	}
+	defer cancel()
+
 	c.mu.RLock()
 	hc := c.httpClient
+	idleTimeout := c.bodyIdleTimeout
 	c.mu.RUnlock()
 	if hc == nil {
 		hc = http.DefaultClient
@@ -671,12 +807,16 @@ func (c *RegistryClient) httpGetBytes(ctx context.Context, targetURL string, max
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	body := newIdleTimeoutReader(resp.Body, idleTimeout, cancel)
+	defer body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HTTP %d from %s", resp.StatusCode, targetURL)
 	}
-	data, err := io.ReadAll(io.LimitReader(resp.Body, maxBytes+1))
+	if resp.ContentLength > maxBytes {
+		return nil, fmt.Errorf("response from %s declares %d bytes exceeding %d byte limit", targetURL, resp.ContentLength, maxBytes)
+	}
+	data, err := io.ReadAll(io.LimitReader(body, maxBytes+1))
 	if err != nil {
 		return nil, err
 	}
@@ -1312,11 +1452,15 @@ func (c *RegistryClient) StartPatrolLoop() {
 			case <-stop:
 				return
 			case <-ticker.C:
-				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				fetchCtx, fetchCancel := context.WithTimeout(context.Background(), 2*time.Minute)
 				// Force refresh verified registry index during scheduled security patrol.
-				_, _, _, _, _ = c.FetchAllIndexes(ctx, true)
-				_, _ = c.EnforceBlockedPlugins(ctx)
-				cancel()
+				_, _, _, _, _ = c.FetchAllIndexes(fetchCtx, true)
+				fetchCancel()
+
+				// Always enforce blocklist with a dedicated timeout so slow mirrors never starve enforcement.
+				enforceCtx, enforceCancel := context.WithTimeout(context.Background(), 30*time.Second)
+				_, _ = c.EnforceBlockedPlugins(enforceCtx)
+				enforceCancel()
 			}
 		}
 	}()
@@ -1434,18 +1578,65 @@ func (c *RegistryClient) downloadAndVerifyArtifact(
 		return nil, fmt.Errorf("%w: artifact is missing valid 64-hex sha256", ErrBadPackage)
 	}
 
-	var baseMirror string
+	if art.Size > MaxNativeFatPackageBytes {
+		return nil, fmt.Errorf("%w: artifact size %d exceeds %d byte limit", ErrBadPackage, art.Size, MaxNativeFatPackageBytes)
+	}
+	maxBytes := int64(MaxNativeFatPackageBytes)
+	if art.Size > 0 && art.Size < maxBytes {
+		maxBytes = art.Size
+	}
+
+	var mirrorBases []string
+	seenBase := make(map[string]struct{})
+	addBase := func(raw string) {
+		b := strings.TrimRight(strings.TrimSpace(raw), "/")
+		b = strings.TrimSuffix(b, "/index.v1.json")
+		if b == "" {
+			return
+		}
+		if _, dup := seenBase[b]; dup {
+			return
+		}
+		seenBase[b] = struct{}{}
+		mirrorBases = append(mirrorBases, b)
+	}
 	if entry != nil {
-		baseMirror = strings.TrimRight(entry.ActiveMirror, "/")
+		addBase(entry.ActiveMirror)
+		for _, u := range entry.Source.URLs {
+			addBase(u)
+		}
+	}
+
+	var candidates []string
+	seenURL := make(map[string]struct{})
+	addURL := func(u string) {
+		if u == "" {
+			return
+		}
+		if _, dup := seenURL[u]; dup {
+			return
+		}
+		seenURL[u] = struct{}{}
+		candidates = append(candidates, u)
+	}
+	for _, rawU := range art.URLs {
+		trimmed := strings.TrimSpace(rawU)
+		if strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") {
+			addURL(resolveArtifactURL("", trimmed))
+			continue
+		}
+		for _, base := range mirrorBases {
+			addURL(resolveArtifactURL(base, trimmed))
+		}
 	}
 
 	var errs []string
-	for _, rawU := range art.URLs {
-		dlURL := resolveArtifactURL(baseMirror, rawU)
-		if dlURL == "" {
-			continue
+	for _, dlURL := range candidates {
+		if ctx.Err() != nil {
+			errs = append(errs, ctx.Err().Error())
+			break
 		}
-		data, err := c.httpGetBytes(ctx, dlURL, MaxNativeFatPackageBytes)
+		data, err := c.httpGetBytes(ctx, dlURL, maxBytes, DefaultRegistryArtifactTimeout)
 		if err != nil {
 			errs = append(errs, fmt.Sprintf("%s: %v", dlURL, err))
 			continue
