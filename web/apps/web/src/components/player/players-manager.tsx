@@ -14,14 +14,10 @@ import {
 } from '@skinloom/api-client'
 import { getListPlayersQueryKey, useListCloset, useListPlayers } from '@skinloom/api-client/query'
 import {
+  Alert,
+  AlertAction,
+  AlertDescription,
   Button,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -40,15 +36,24 @@ import {
   Input,
   PageHeader,
   PlayerCard,
+  ResponsiveDialog,
+  ResponsiveDialogClose,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
   Skeleton,
   TexturePicker,
   toast,
   useConfirm,
 } from '@skinloom/ui'
 import { useQueryClient } from '@tanstack/react-query'
-import { Copy, FileJson, MoreHorizontal, Pencil, Plus, Shirt, Trash2, Users, X } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { CircleAlert, Copy, FileJson, MoreHorizontal, Pencil, PersonStanding, Plus, Shirt, Trash2, X } from 'lucide-react'
+import { useFormatter, useTranslations } from 'next-intl'
 import { type FormEvent, useState } from 'react'
+
+import { FormError } from '@/components/auth/field'
 
 import { findMissingPluginFormErrors, PluginForms } from '@/components/plugin-forms'
 import { useBootstrap } from '@/components/providers'
@@ -122,14 +127,26 @@ export function PlayersManager({ rules, initialScore }: { rules: PlayerRules; in
         title={t('title')}
         description={t('intro')}
         actions={
-          <Button onClick={() => setEditing({ kind: 'create' })}>
-            <Plus />
-            {t('create')}
-          </Button>
+          list?.length !== 0 && (
+            <Button onClick={() => setEditing({ kind: 'create' })}>
+              <Plus />
+              {t('create')}
+            </Button>
+          )
         }
       />
 
-      {players.isError && <p className="text-sm text-destructive">{t('loadFailed')}</p>}
+      {players.isError && (
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertDescription>{t('loadFailed')}</AlertDescription>
+          <AlertAction>
+            <Button type="button" variant="outline" size="sm" onClick={() => void players.refetch()}>
+              {tc('retry')}
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
       {players.isPending && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[0, 1].map((i) => (
@@ -141,7 +158,7 @@ export function PlayersManager({ rules, initialScore }: { rules: PlayerRules; in
         <Empty className="border border-dashed py-16">
           <EmptyHeader>
             <EmptyMedia variant="icon">
-              <Users />
+              <PersonStanding />
             </EmptyMedia>
             <EmptyTitle>{t('none')}</EmptyTitle>
             <EmptyDescription>{t('noneBody')}</EmptyDescription>
@@ -255,7 +272,7 @@ export function PlayersManager({ rules, initialScore }: { rules: PlayerRules; in
         open={picking !== null}
         onOpenChange={(open) => !open && setPicking(null)}
         title={picking ? t(picking.kind === 'skin' ? 'pickSkinTitle' : 'pickCapeTitle', { name: picking.player.name }) : ''}
-        description={closet.data?.length === 0 ? t('closetEmpty') : closet.isPending ? tc('loading') : undefined}
+        description={closet.isError ? t('loadFailed') : closet.data?.length === 0 ? t('closetEmpty') : closet.isPending ? tc('loading') : undefined}
         kind={picking?.kind}
         items={(closet.data ?? []).map((it) => ({ id: it.texture.id, name: it.name, type: it.texture.type }))}
         selectedId={picking ? (picking.kind === 'skin' ? picking.player.skin?.id : picking.player.cape?.id) : null}
@@ -287,9 +304,11 @@ function NameDialog({
   const t = useTranslations('player')
   const tc = useTranslations('common')
   const tf = useTranslations('fieldErrors')
+  const format = useFormatter()
   const boot = useBootstrap()
   const [pending, setPending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [nameError, setNameError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [extraForm, setExtraForm] = useState<Record<string, unknown>>({})
   const hint = t(`rules.${rules.nameRule}`, { min: rules.minLength, max: rules.maxLength })
@@ -298,7 +317,17 @@ function NameDialog({
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const name = String(new FormData(e.currentTarget).get('name') ?? '').trim()
-    if (renaming && name === renaming.name) return onClose()
+    if (!name) {
+      setNameError(tf('required'))
+      return
+    }
+    if (renaming && name === renaming.name) {
+      setFormError(null)
+      setNameError(null)
+      setFieldErrors({})
+      onClose()
+      return
+    }
     if (!renaming) {
       const missingExtra = findMissingPluginFormErrors(boot.forms, 'player.create', extraForm, tf('required'))
       if (Object.keys(missingExtra).length > 0) {
@@ -307,7 +336,8 @@ function NameDialog({
       }
     }
     setPending(true)
-    setError(null)
+    setFormError(null)
+    setNameError(null)
     setFieldErrors({})
     try {
       if (renaming) onRenamed((await renamePlayer(renaming.id, { name })).data as PlayerView)
@@ -318,28 +348,24 @@ function NameDialog({
     } catch (err) {
       const p = problemOf(err)
       setFieldErrors(p.fields)
-      setError(
-        p.unverified
-          ? tc('verifyFirst')
-          : p.status === 402
-            ? t('errors.score')
-            : p.fields.name === 'already taken'
-              ? t('errors.taken')
-              : p.fields.name
-                ? t('errors.name')
-                : p.status === 422 && p.detail && Object.keys(p.fields).length === 0
-                  ? p.detail
-                  : Object.keys(p.fields).some((k) => k !== 'name')
-                    ? null
-                    : t('errors.failed'),
-      )
+      if (p.fields.name) {
+        setNameError(p.fields.name === 'already taken' ? t('errors.taken') : t('errors.name'))
+      } else if (p.unverified) {
+        setFormError(tc('verifyFirst'))
+      } else if (p.status === 402) {
+        setFormError(t('errors.score'))
+      } else if (p.status === 422 && p.detail && Object.keys(p.fields).length === 0) {
+        setFormError(p.detail)
+      } else if (!Object.keys(p.fields).some((k) => k !== 'name')) {
+        setFormError(t('errors.failed'))
+      }
     } finally {
       setPending(false)
     }
   }
 
   return (
-    <Dialog
+    <ResponsiveDialog
       open={editing !== null}
       onOpenChange={(open) => {
         if (!open) {
@@ -347,16 +373,18 @@ function NameDialog({
           setFieldErrors({})
           onClose()
         }
-        setError(null)
+        setFormError(null)
+        setNameError(null)
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-sm">
-        <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-5">
-          <DialogHeader>
-            <DialogTitle>{renaming ? t('renameTitle', { name: renaming.name }) : t('createTitle')}</DialogTitle>
-            <DialogDescription>{renaming ? t('renameBody') : t('createBody')}</DialogDescription>
-          </DialogHeader>
-          <Field data-invalid={error ? true : undefined}>
+      <ResponsiveDialogContent className="max-h-[90vh] overflow-y-auto md:max-w-sm">
+        <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-5" noValidate>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>{renaming ? t('renameTitle', { name: renaming.name }) : t('createTitle')}</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>{renaming ? t('renameBody') : t('createBody')}</ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <FormError message={formError} />
+          <Field data-invalid={nameError ? true : undefined}>
             <FieldLabel htmlFor="player-name">{t('name')}</FieldLabel>
             <Input
               key={renaming?.id ?? 'new'}
@@ -367,25 +395,25 @@ function NameDialog({
               maxLength={rules.maxLength}
               autoFocus
               autoComplete="off"
-              aria-invalid={error ? true : undefined}
+              aria-invalid={nameError ? true : undefined}
             />
-            {error ? <FieldError>{error}</FieldError> : <FieldDescription>{hint}</FieldDescription>}
+            {nameError ? <FieldError>{nameError}</FieldError> : <FieldDescription>{hint}</FieldDescription>}
           </Field>
           {!renaming && <PluginForms scope="player.create" values={extraForm} onChange={setExtraForm} errors={fieldErrors} />}
           {!renaming && rules.cost > 0 && (
-            <p className="text-caption text-muted-foreground">
-              {t('cost', { cost: rules.cost, score })}
+            <p className="text-caption text-muted-foreground tabular-nums">
+              {t('cost', { cost: format.number(rules.cost), score: format.number(score) })}
               {rules.refund ? ` ${t('refundHint')}` : ''}
             </p>
           )}
-          <DialogFooter>
-            <DialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</DialogClose>
+          <ResponsiveDialogFooter>
+            <ResponsiveDialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</ResponsiveDialogClose>
             <Button type="submit" loading={pending}>
               {renaming ? tc('save') : t('create')}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

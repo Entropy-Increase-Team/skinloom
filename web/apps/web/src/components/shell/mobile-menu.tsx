@@ -69,7 +69,7 @@ export function MobileMenu({
             ) : (
               <Logo className="size-6 shrink-0" />
             )}
-            <DrawerTitle className="truncate text-[0.9375rem] font-medium">{siteName || t('menu')}</DrawerTitle>
+            <DrawerTitle className="truncate text-body font-medium">{siteName || t('menu')}</DrawerTitle>
           </Link>
           <DrawerClose render={<Button variant="ghost" size="icon-sm" aria-label={ui('close')} />}>
             <X />
@@ -89,7 +89,7 @@ export function MobileMenu({
                       href={l.href}
                       aria-current={current ? 'page' : undefined}
                       className={cn(
-                        'flex min-h-11 items-center gap-3 rounded-lg px-2.5 text-[0.9375rem] transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                        'flex min-h-11 items-center gap-3 rounded-lg px-2.5 text-body transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
                         current
                           ? 'bg-primary/10 font-medium text-primary'
                           : 'text-foreground hover:bg-muted',

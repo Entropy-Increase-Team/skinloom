@@ -55,8 +55,11 @@ const PAIRS: [string, string, number][] = [
   ['primary-foreground', 'primary', 4.5],
   ['primary', 'card', 4.5],
   ['highlight-foreground', 'highlight', 4.5],
+  ['warning-foreground', 'warning', 4.5],
   ['success-foreground', 'success', 4.5],
+  ['success', 'card', 4.5],
   ['destructive-foreground', 'destructive', 4.5],
+  ['destructive', 'card', 4.5],
   ['ring', 'background', 3],
 ]
 

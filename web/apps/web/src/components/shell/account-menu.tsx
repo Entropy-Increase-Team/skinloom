@@ -62,7 +62,7 @@ export function AccountMenu({ viewer }: { viewer: Viewer }) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={t('account')}
-        className="flex h-9 max-w-48 items-center gap-2 rounded-md pr-2 pl-1 text-sm font-medium outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 data-popup-open:bg-muted"
+        className="flex h-9 pointer-coarse:h-10 max-w-48 items-center gap-2 rounded-md pr-2 pl-1 text-sm font-medium outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 data-popup-open:bg-muted"
       >
         <UserAvatar of={{ user: viewer.id, version: viewer.avatarTextureId ?? undefined }} size={24} />
         <span className="truncate max-sm:hidden">{viewer.nickname}</span>

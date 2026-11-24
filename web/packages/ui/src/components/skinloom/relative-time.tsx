@@ -28,12 +28,21 @@ export function formatRelative(date: Date, now: Date, locale: string): string {
  */
 export function RelativeTime({ date, className }: { date: string | Date; className?: string }) {
   const d = typeof date === 'string' ? new Date(date) : date
+  const valid = !Number.isNaN(d.getTime())
   const [now, setNow] = useState<Date | null>(null)
   useEffect(() => {
+    if (!valid) return
     setNow(new Date())
     const id = setInterval(() => setNow(new Date()), 60_000)
     return () => clearInterval(id)
-  }, [])
+  }, [valid])
+  if (!valid) {
+    return (
+      <span data-slot="relative-time" className={className}>
+        —
+      </span>
+    )
+  }
   const locale = typeof document !== 'undefined' ? document.documentElement.lang || undefined : undefined
   const full = d.toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' })
   return (

@@ -67,17 +67,34 @@ describe('layoutOf', () => {
 })
 
 describe('cascade layer contract (ADR 0043)', () => {
+  function stripTopLevelAtBlocks(css: string): string {
+    const allowed = /^@(?:layer|theme|utility|custom-variant|keyframes)\b/
+    let out = ''
+    let i = 0
+    while (i < css.length) {
+      if (css[i] === '@' && allowed.test(css.slice(i))) {
+        const open = css.indexOf('{', i)
+        if (open === -1) break
+        let depth = 1
+        let j = open + 1
+        while (j < css.length && depth > 0) {
+          if (css[j] === '{') depth++
+          else if (css[j] === '}') depth--
+          j++
+        }
+        i = j
+        continue
+      }
+      out += css[i]
+      i++
+    }
+    return out.replace(/@(?:import|source|plugin)\b[^;]*;/g, '').trim()
+  }
+
   it('keeps all host selector rules inside @layer so unlayered theme CSS always wins', () => {
     for (const rel of ['web/packages/ui/src/styles/globals.css', 'web/apps/web/src/app/globals.css']) {
       const src = readFileSync(path.join(repo, rel), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
-      // Strip top-level @layer, @theme, @utility, @custom-variant, @keyframes blocks and @import/@source/@plugin statements.
-      let rest = src
-      let prev = ''
-      while (rest !== prev) {
-        prev = rest
-        rest = rest.replace(/@(?:layer|theme|utility|custom-variant|keyframes)\b[^{]*\{(?:[^{}]|\{[^{}]*\})*\}/g, '')
-      }
-      rest = rest.replace(/@(?:import|source|plugin)\b[^;]*;/g, '').trim()
+      const rest = stripTopLevelAtBlocks(src)
       expect(rest, `${rel} has unlayered rules: ${rest}`).toBe('')
     }
   })

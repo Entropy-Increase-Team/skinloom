@@ -186,6 +186,13 @@ describe('plugins-settings-form', () => {
     const cleared = buildPluginSettingsPatch(schema, initialDraft, new Set(['nested.apiSecret']), initialDraft)
     expect(cleared.patch).toEqual({ nested: { apiSecret: null } })
 
+    // Typing placeholder ******** into a secret keeps form clean (matching patch omission).
+    const maskedNested = {
+      ...initialDraft,
+      nested: { ...(initialDraft.nested as Record<string, unknown>), apiSecret: '********' },
+    }
+    expect(isPluginSettingsDirty(schema, maskedNested, new Set(), initialDraft)).toBe(false)
+
     // Problem message falls back cleanly without leaking raw English Error text,
     // while preserving HTTP status codes from proxy/gateway ApiErrors (e.g. 504/524/413).
     expect(apiProblemMessage('Server reason', new Error('Request failed 500'), 'Fallback')).toBe('Server reason')

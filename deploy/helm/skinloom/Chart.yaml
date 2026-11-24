@@ -2,8 +2,8 @@ apiVersion: v2
 name: skinloom
 description: SkinLoom (云织), an open-source, self-hosted Minecraft skin site
 type: application
-version: 1.1.4
-appVersion: "1.1.4"
+version: 1.1.5
+appVersion: "1.1.5"
 home: https://skinloom.cn
 sources:
   - https://github.com/Entropy-Increase-Team/skinloom

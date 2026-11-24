@@ -10,6 +10,7 @@ import {
 } from '@skinloom/api-client'
 import {
   Alert,
+  AlertAction,
   AlertDescription,
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +36,9 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
+  Field,
+  FieldLabel,
+  Input,
   PageHeader,
   Skeleton,
   Spinner,
@@ -46,12 +50,11 @@ import {
   TabsTrigger,
   toast,
 } from '@skinloom/ui'
-import { Box, Cpu, FileText, Puzzle, RefreshCw, Settings, ShieldAlert, Store, Trash2, Upload } from 'lucide-react'
+import { Box, CircleAlert, Cpu, FileText, Puzzle, RefreshCw, Settings, ShieldAlert, Store, Trash2, Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { FormError } from '@/components/auth/field'
 import { problemOf } from '@/lib/problem'
 
 import { PluginDetailsDrawer } from './plugins-details-drawer'
@@ -59,6 +62,10 @@ import { PluginInstallDialog } from './plugins-install-dialog'
 import { type MarketCategory, PluginsMarket } from './plugins-market'
 import { PluginSettingsDrawer } from './plugins-settings-drawer'
 import { apiProblemMessage, permissionMessageKey } from './plugins-settings-form'
+
+function isNativePlugin(plugin: AdminPluginView): boolean {
+  return plugin.runtime === 'native' || plugin.grantedPermissions.includes('native.exec')
+}
 
 export function PluginsManager({
   superadmin,
@@ -70,6 +77,7 @@ export function PluginsManager({
   initialMarketCategory?: MarketCategory
 }) {
   const t = useTranslations('adminPlugins')
+  const tc = useTranslations('common')
   const locale = useLocale()
   const router = useRouter()
   const loadErrRef = useRef(t('errors.load'))
@@ -82,12 +90,15 @@ export function PluginsManager({
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [busyIds, setBusyIds] = useState<Set<string>>(() => new Set())
+  const latestRef = useRef(0)
+  const abortRef = useRef<AbortController | null>(null)
 
   const [installOpen, setInstallOpen] = useState(false)
   const [settingsTarget, setSettingsTarget] = useState<AdminPluginView | null>(null)
   const [detailsTarget, setDetailsTarget] = useState<AdminPluginView | null>(null)
   const [uninstallTarget, setUninstallTarget] = useState<AdminPluginView | null>(null)
   const [purgeData, setPurgeData] = useState(false)
+  const [purgeConfirmId, setPurgeConfirmId] = useState('')
 
   const addBusy = (id: string) =>
     setBusyIds((prev) => {
@@ -104,21 +115,28 @@ export function PluginsManager({
     })
 
   const refresh = useCallback(async () => {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+    const seq = ++latestRef.current
     setRefreshing(true)
     setError(null)
     try {
-      const res = await listPlugins()
+      const res = await listPlugins({ signal: controller.signal })
+      if (latestRef.current !== seq) return
       setPlugins((res.data as AdminPluginView[]) ?? [])
     } catch (err) {
+      if (controller.signal.aborted || latestRef.current !== seq) return
       setError(apiProblemMessage(problemOf(err).detail, err, loadErrRef.current))
     } finally {
-      setRefreshing(false)
+      if (latestRef.current === seq) setRefreshing(false)
     }
   }, [])
 
   useEffect(() => {
     void locale
     void refresh()
+    return () => abortRef.current?.abort()
   }, [refresh, locale])
 
   function replacePlugin(updated: AdminPluginView) {
@@ -133,6 +151,7 @@ export function PluginsManager({
   }
 
   async function handleToggle(plugin: AdminPluginView, enable: boolean) {
+    if (isNativePlugin(plugin) && !superadmin) return
     addBusy(plugin.id)
     try {
       const res = enable ? await enablePlugin(plugin.id) : await disablePlugin(plugin.id)
@@ -147,6 +166,7 @@ export function PluginsManager({
   }
 
   async function handleReload(plugin: AdminPluginView) {
+    if (isNativePlugin(plugin) && !superadmin) return
     addBusy(plugin.id)
     try {
       const res = await reloadPlugin(plugin.id)
@@ -161,7 +181,8 @@ export function PluginsManager({
   }
 
   async function handleUninstallConfirm() {
-    if (!uninstallTarget) return
+    if (!superadmin || !uninstallTarget) return
+    if (purgeData && purgeConfirmId.trim() !== uninstallTarget.id) return
     const id = uninstallTarget.id
     addBusy(id)
     try {
@@ -170,6 +191,7 @@ export function PluginsManager({
       toast.success(t('toasts.uninstalled', { id }))
       setUninstallTarget(null)
       setPurgeData(false)
+      setPurgeConfirmId('')
       router.refresh()
     } catch (err) {
       toast.error(apiProblemMessage(problemOf(err).detail, err, t('errors.action')))
@@ -219,7 +241,7 @@ export function PluginsManager({
       >
         <TabsList variant="line" className="no-scrollbar h-auto w-full justify-start overflow-x-auto overflow-y-hidden pb-1.5">
           <TabsTrigger value="installed">
-            <Puzzle className="size-4" />
+            <Puzzle className="size-4" aria-hidden />
             {t('tabs.installed')}
             {plugins !== null ? (
               <Badge variant="secondary" className="ml-1 tabular-nums">
@@ -228,13 +250,23 @@ export function PluginsManager({
             ) : null}
           </TabsTrigger>
           <TabsTrigger value="market">
-            <Store className="size-4" />
+            <Store className="size-4" aria-hidden />
             {t('tabs.market')}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="installed" className="space-y-6">
-          <FormError message={error} />
+          {error ? (
+            <Alert variant="destructive" role="alert">
+              <CircleAlert />
+              <AlertDescription>{error}</AlertDescription>
+              <AlertAction>
+                <Button type="button" variant="outline" size="sm" onClick={() => void refresh()}>
+                  {tc('retry')}
+                </Button>
+              </AlertAction>
+            </Alert>
+          ) : null}
 
           {plugins === null && !error ? (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -252,12 +284,12 @@ export function PluginsManager({
               </EmptyHeader>
               <EmptyContent className="flex flex-wrap items-center justify-center gap-2">
                 <Button type="button" variant="outline" onClick={() => setActiveTab('market')}>
-                  <Store />
+                  <Store aria-hidden />
                   {t('tabs.market')}
                 </Button>
                 {superadmin ? (
                   <Button type="button" onClick={() => setInstallOpen(true)}>
-                    <Upload />
+                    <Upload aria-hidden />
                     {t('uploadButton')}
                   </Button>
                 ) : null}
@@ -268,7 +300,9 @@ export function PluginsManager({
           {plugins.map((plugin) => {
             const busy = busyIds.has(plugin.id)
             const statusDot = plugin.status === 'enabled' ? 'ok' : plugin.status === 'failed' ? 'error' : 'off'
-            const isNative = plugin.runtime === 'native'
+            const isNative = isNativePlugin(plugin)
+            // Backend pluginRequiresSuperadmin guards enable/disable/reload/settings on native plugins.
+            const nativeLocked = isNative && !superadmin
             return (
               <Card key={plugin.id} className="flex flex-col justify-between">
                 <CardHeader className="gap-3">
@@ -291,7 +325,7 @@ export function PluginsManager({
                                 : 'gap-1 text-muted-foreground'
                             }
                           >
-                            {isNative ? <Cpu className="size-3" /> : <Box className="size-3" />}
+                            {isNative ? <Cpu className="size-3" aria-hidden /> : <Box className="size-3" aria-hidden />}
                             {t(`runtimes.${isNative ? 'native' : 'js'}`)}
                           </Badge>
                         ) : null}
@@ -301,12 +335,12 @@ export function PluginsManager({
                       </div>
                       {plugin.description ? <CardDescription>{plugin.description}</CardDescription> : null}
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex shrink-0 items-center gap-2" title={nativeLocked ? t('nativeSuperadminOnly') : undefined}>
                       {busy ? <Spinner className="size-4" /> : null}
                       <Switch
                         aria-label={plugin.name}
                         checked={plugin.status === 'enabled'}
-                        disabled={busy}
+                        disabled={busy || nativeLocked}
                         onCheckedChange={(checked) => void handleToggle(plugin, Boolean(checked))}
                       />
                     </div>
@@ -318,6 +352,11 @@ export function PluginsManager({
                     <StatusDot status={statusDot}>
                       {t.has(`statuses.${plugin.status}`) ? t(`statuses.${plugin.status}`) : plugin.status}
                     </StatusDot>
+                    {nativeLocked ? (
+                      <Badge variant="outline" className="text-muted-foreground">
+                        {t('nativeSuperadminOnly')}
+                      </Badge>
+                    ) : null}
                     {isNative && plugin.nativeStats?.running && plugin.nativeStats.pid > 0 ? (
                       <Badge variant="outline" className="font-mono text-xs tabular-nums">
                         {t('nativeRunningPid', { pid: plugin.nativeStats.pid })}
@@ -374,32 +413,41 @@ export function PluginsManager({
                   <div className="flex flex-wrap gap-2">
                     {plugin.hasSettings ? (
                       <Button type="button" variant="outline" size="sm" className="pointer-coarse:h-10" onClick={() => setSettingsTarget(plugin)}>
-                        <Settings className="size-4" />
+                        <Settings className="size-4" aria-hidden />
                         {t('actions.configure')}
                       </Button>
                     ) : null}
                     <Button type="button" variant="outline" size="sm" className="pointer-coarse:h-10" onClick={() => setDetailsTarget(plugin)}>
-                      <FileText className="size-4" />
+                      <FileText className="size-4" aria-hidden />
                       {t('actions.details')}
                     </Button>
-                    <Button type="button" variant="ghost" size="sm" className="pointer-coarse:h-10" disabled={busy} onClick={() => void handleReload(plugin)}>
-                      <RefreshCw className="size-4" />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="pointer-coarse:h-10"
+                      disabled={busy || nativeLocked}
+                      title={nativeLocked ? t('nativeSuperadminOnly') : undefined}
+                      onClick={() => void handleReload(plugin)}
+                    >
+                      <RefreshCw className="size-4" aria-hidden />
                       {t('actions.reload')}
                     </Button>
                   </div>
                   {superadmin ? (
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="destructive-soft"
                       size="sm"
-                      className="text-destructive hover:text-destructive pointer-coarse:h-10"
+                      className="pointer-coarse:h-10"
                       disabled={busy}
                       onClick={() => {
                         setPurgeData(false)
+                        setPurgeConfirmId('')
                         setUninstallTarget(plugin)
                       }}
                     >
-                      <Trash2 className="size-4" />
+                      <Trash2 className="size-4" aria-hidden />
                       {t('actions.uninstall')}
                     </Button>
                   ) : null}
@@ -440,6 +488,7 @@ export function PluginsManager({
         pluginId={activeSettingsTarget?.id ?? null}
         pluginName={activeSettingsTarget?.name ?? ''}
         open={activeSettingsTarget !== null}
+        readOnly={activeSettingsTarget ? isNativePlugin(activeSettingsTarget) && !superadmin : false}
         onOpenChange={(next) => {
           if (!next) setSettingsTarget(null)
         }}
@@ -460,7 +509,11 @@ export function PluginsManager({
       <AlertDialog
         open={activeUninstallTarget !== null}
         onOpenChange={(next) => {
-          if (!next && !uninstalling) setUninstallTarget(null)
+          if (!next && !uninstalling) {
+            setUninstallTarget(null)
+            setPurgeData(false)
+            setPurgeConfirmId('')
+          }
         }}
       >
         <AlertDialogContent>
@@ -468,14 +521,47 @@ export function PluginsManager({
             <AlertDialogTitle>{t('uninstallDialog.title', { name: activeUninstallTarget?.name ?? '' })}</AlertDialogTitle>
             <AlertDialogDescription>{t('uninstallDialog.description')}</AlertDialogDescription>
           </AlertDialogHeader>
-          <label className="flex min-h-8 cursor-pointer items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-foreground pointer-coarse:min-h-10">
-            <Checkbox checked={purgeData} disabled={uninstalling} onCheckedChange={(c) => setPurgeData(Boolean(c))} />
-            <span>{t('uninstallDialog.purgeLabel')}</span>
-          </label>
+          <div className="space-y-3">
+            <label className="flex min-h-8 cursor-pointer items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-foreground pointer-coarse:min-h-10">
+              <Checkbox
+                checked={purgeData}
+                disabled={uninstalling}
+                onCheckedChange={(c) => {
+                  const checked = Boolean(c)
+                  setPurgeData(checked)
+                  if (!checked) setPurgeConfirmId('')
+                }}
+              />
+              <span>{t('uninstallDialog.purgeLabel')}</span>
+            </label>
+            {purgeData && activeUninstallTarget ? (
+              <Field>
+                <FieldLabel htmlFor="uninstall-confirm-id">
+                  {t('uninstallDialog.confirmIdLabel', { id: activeUninstallTarget.id })}
+                </FieldLabel>
+                <Input
+                  id="uninstall-confirm-id"
+                  value={purgeConfirmId}
+                  disabled={uninstalling}
+                  onChange={(e) => setPurgeConfirmId(e.target.value)}
+                  placeholder={activeUninstallTarget.id}
+                  autoComplete="off"
+                  className="font-mono"
+                />
+              </Field>
+            ) : null}
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={uninstalling}>{t('uninstallDialog.cancel')}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" disabled={uninstalling} onClick={() => void handleUninstallConfirm()}>
-              {uninstalling ? <Spinner /> : null}
+            <AlertDialogAction
+              variant="destructive"
+              loading={uninstalling}
+              disabled={
+                uninstalling ||
+                (purgeData && activeUninstallTarget !== null && purgeConfirmId.trim() !== activeUninstallTarget.id)
+              }
+              onClick={() => void handleUninstallConfirm()}
+            >
               {t('uninstallDialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>

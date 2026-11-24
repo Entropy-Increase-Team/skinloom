@@ -23,8 +23,8 @@ export async function AuthShell({ children }: { children: React.ReactNode }) {
     return <ThemeOverride name="auth.background" props={{ layout: authLayout, siteName: boot.site.name }} fallback={content} />
   }
   // The latest public skins, the same for every visitor (no session forwarded).
-  const skins = await listTextures({ sort: 'time', category: 'skin' }).then(
-    (r) => (r.data as TexturePage).textures.slice(0, 3),
+  const skins = await listTextures({ sort: 'time', category: 'skin', limit: 3 }).then(
+    (r) => (r.data as TexturePage).textures,
     () => [],
   )
   const content = (

@@ -1,6 +1,6 @@
 import { type Dashboard, getDashboard, listPlayers, type PlayerView } from '@skinloom/api-client'
-import { ButtonLink, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Markdown, PageHeader, PlayerCard, StatCard } from '@skinloom/ui'
-import { ArrowRight, Coins, Megaphone, Plus, Upload, Users } from 'lucide-react'
+import { Alert, AlertAction, AlertDescription, ButtonLink, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Markdown, PageHeader, PlayerCard, StatCard } from '@skinloom/ui'
+import { ArrowRight, CircleAlert, Coins, PersonStanding, Plus, Upload } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -28,14 +28,30 @@ export default async function DashboardPage() {
   const viewer = await getViewer()
   if (!viewer) redirect('/auth/login?next=/user')
   const visitor = await asVisitor()
-  const [t, tp, format, dash, players] = await Promise.all([
+  const [t, tp, tc, format, dash, players] = await Promise.all([
     getTranslations('dashboard'),
     getTranslations('player'),
+    getTranslations('common'),
     getFormatter(),
     getDashboard(visitor).then((r) => r.data as Dashboard, () => null),
-    listPlayers(visitor).then((r) => r.data as PlayerView[], () => [] as PlayerView[]),
+    listPlayers(visitor).then((r) => r.data as PlayerView[], () => null),
   ])
-  if (!dash) return <p className="px-4 py-24 text-center text-sm text-destructive">{t('loadFailed')}</p>
+  if (!dash) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader title={t('title')} description={t('welcome', { name: viewer.nickname })} />
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertDescription>{t('loadFailed')}</AlertDescription>
+          <AlertAction>
+            <ButtonLink variant="outline" size="sm" render={<a href="/user" />}>
+              {tc('retry')}
+            </ButtonLink>
+          </AlertAction>
+        </Alert>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -45,7 +61,8 @@ export default async function DashboardPage() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <UserBadges badges={viewer.badges} />
-            <ButtonLink render={<Link href="/skinlib/upload" />}>
+            {/* Keep one primary button above the fold: daily check-in leads while available. */}
+            <ButtonLink variant={dash.sign.nextAt ? 'default' : 'outline'} render={<Link href="/skinlib/upload" />}>
               <Upload />
               {t('links.upload')}
             </ButtonLink>
@@ -64,18 +81,28 @@ export default async function DashboardPage() {
         <section className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
             <h2 className="flex-1 text-lg font-medium">{t('myPlayers')}</h2>
-            {players.length > 0 && (
+            {players && players.length > 0 && (
               <ButtonLink variant="ghost" size="sm" className="pointer-coarse:h-10" render={<Link href="/user/player" />}>
                 {t('links.players')}
                 <ArrowRight aria-hidden />
               </ButtonLink>
             )}
           </div>
-          {players.length === 0 ? (
+          {players === null ? (
+            <Alert variant="destructive" role="alert">
+              <CircleAlert />
+              <AlertDescription>{tp('loadFailed')}</AlertDescription>
+              <AlertAction>
+                <ButtonLink variant="outline" size="sm" render={<a href="/user" />}>
+                  {tc('retry')}
+                </ButtonLink>
+              </AlertAction>
+            </Alert>
+          ) : players.length === 0 ? (
             <Empty className="border border-dashed">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
-                  <Users />
+                  <PersonStanding />
                 </EmptyMedia>
                 <EmptyTitle>{t('noPlayers')}</EmptyTitle>
                 <EmptyDescription>{t('noPlayersBody')}</EmptyDescription>
@@ -119,10 +146,7 @@ export default async function DashboardPage() {
           <Slot name="user.dashboard.widgets" />
           {dash.announcement?.trim() && (
             <section className="flex flex-col gap-2 rounded-xl border bg-card p-5" aria-label={t('announcement')}>
-              <h2 className="flex items-center gap-2 text-sm font-medium">
-                <Megaphone className="size-4 text-muted-foreground" aria-hidden />
-                {t('announcement')}
-              </h2>
+              <h2 className="text-sm font-medium">{t('announcement')}</h2>
               <Markdown html={dash.announcementHtml ?? ''} className="text-sm" />
             </section>
           )}

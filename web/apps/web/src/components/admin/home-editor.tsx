@@ -10,6 +10,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  FieldLabel,
   Input,
   SaveBar,
   Select,
@@ -19,10 +24,11 @@ import {
   SelectValue,
   Textarea,
   toast,
+  useConfirm,
 } from '@skinloom/ui'
-import { ArrowDown, ArrowUp, ChevronRight, Plus, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronRight, LayoutGrid, Plus, Trash2 } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
-import { useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 
 import { FormError } from '@/components/auth/field'
 import { problemOf } from '@/lib/problem'
@@ -54,13 +60,33 @@ export function HomeEditor({
   const t = useTranslations('appearance.home')
   const tb = useTranslations('appearance.blockTypes')
   const locale = useLocale()
-  const initial = editBlocks(stored ?? theme.home)
+  const confirm = useConfirm()
+  const initial = useMemo(() => editBlocks(stored ?? theme.home), [stored, theme.home])
   const [blocks, setBlocks] = useState(initial)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const dirty = !equal(savedBlocks(blocks, types), savedBlocks(initial, types))
 
+  useEffect(() => {
+    if (!dirty) return
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirty])
+
   async function save(value: Block[] | null) {
+    if (value === null) {
+      const ok = await confirm({
+        title: t('useThemeTitle'),
+        description: t('useThemeConfirm'),
+        confirmLabel: t('useTheme'),
+        destructive: false,
+      })
+      if (!ok) return
+    }
     setPending(true)
     setError(null)
     try {
@@ -113,7 +139,18 @@ export function HomeEditor({
     >
       <div className="flex flex-col">
         <ol className="flex flex-col divide-y rounded-xl border bg-card">
-          {blocks.length === 0 && <li className="p-5 text-sm text-muted-foreground">{t('empty')}</li>}
+          {blocks.length === 0 && (
+            <li className="p-4">
+              <Empty className="py-8">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <LayoutGrid />
+                  </EmptyMedia>
+                  <EmptyTitle>{t('empty')}</EmptyTitle>
+                </EmptyHeader>
+              </Empty>
+            </li>
+          )}
           {blocks.map((b, i) => {
             const bareType = b.type.includes(':') ? b.type.split(':', 2)[1]! : b.type
             return (
@@ -209,8 +246,10 @@ function BlockCard({
 /** One property, edited by its kind (internal/modules/theme PropType). */
 function PropField({ prop: p, value, onChange }: { prop: Prop; value: unknown; onChange: (v: unknown) => void }) {
   const t = useTranslations('appearance')
+  const fieldId = useId()
   const label = t.has(`props.${p.name}`) ? t(`props.${p.name}`) : p.name
   const option = (v: string) => (t.has(`options.${v}`) ? t(`options.${v}`) : v)
+  const hasSingleControl = p.type === 'link' || p.type === 'image' || p.type === 'number' || p.type === 'choice'
 
   let control: React.ReactNode
   switch (p.type) {
@@ -221,19 +260,20 @@ function PropField({ prop: p, value, onChange }: { prop: Prop; value: unknown; o
     case 'link':
     case 'image':
       control = (
-        <Input value={typeof value === 'string' ? value : ''} placeholder={t('home.linkHint')} onChange={(e) => onChange(e.target.value)} />
+        <Input id={fieldId} value={typeof value === 'string' ? value : ''} placeholder={t('home.linkHint')} onChange={(e) => onChange(e.target.value)} />
       )
       break
     case 'number':
       control = (
         <Input
+          id={fieldId}
           type="number"
           min={p.min}
           max={p.max}
           value={typeof value === 'number' ? String(value) : ''}
           placeholder={t('home.default')}
           onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
-          className="w-32"
+          className="w-32 tabular-nums"
         />
       )
       break
@@ -241,7 +281,7 @@ function PropField({ prop: p, value, onChange }: { prop: Prop; value: unknown; o
       const items = [{ value: DEFAULT, label: t('home.default') }, ...(p.options ?? []).map((o) => ({ value: o, label: option(o) }))]
       control = (
         <Select items={items} value={typeof value === 'string' && value ? value : DEFAULT} onValueChange={(v) => onChange(!v || v === DEFAULT ? undefined : String(v))}>
-          <SelectTrigger aria-label={label} className="w-full sm:w-56">
+          <SelectTrigger id={fieldId} aria-label={label} className="w-full sm:w-56">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -261,10 +301,14 @@ function PropField({ prop: p, value, onChange }: { prop: Prop; value: unknown; o
   }
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-caption font-medium">
-        {label}
-        {p.type === 'number' && <span className="font-normal text-muted-foreground">{` (${p.min}–${p.max})`}</span>}
-      </span>
+      {hasSingleControl ? (
+        <FieldLabel htmlFor={fieldId} className="text-caption">
+          {label}
+          {p.type === 'number' && <span className="font-normal text-muted-foreground">{` (${p.min}–${p.max})`}</span>}
+        </FieldLabel>
+      ) : (
+        <span className="text-caption font-medium">{label}</span>
+      )}
       {control}
     </div>
   )

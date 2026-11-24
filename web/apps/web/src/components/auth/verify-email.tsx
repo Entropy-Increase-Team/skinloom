@@ -74,7 +74,7 @@ export function VerifyBanner({ email, required, canResend }: { email: string; re
       ) : state === 'sent' ? (
         <span className="text-muted-foreground">{t('resent')}</span>
       ) : (
-        <Button variant="link" size="sm" className="h-auto p-0" onClick={resend} disabled={state === 'pending'}>
+        <Button variant="link" size="sm" className="h-auto p-0 pointer-coarse:min-h-10 pointer-coarse:px-2" onClick={resend} disabled={state === 'pending'}>
           {state === 'wait' ? t('wait') : state === 'failed' ? t('resendFailed') : t('resend')}
         </Button>
       )}

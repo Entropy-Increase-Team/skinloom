@@ -15,9 +15,17 @@ import {
   updateSettings,
 } from '@skinloom/api-client'
 import {
+  Alert,
+  AlertAction,
+  AlertDescription,
   Badge,
   Button,
+  ButtonLink,
   cn,
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
   Input,
   SaveBar,
   Select,
@@ -33,13 +41,15 @@ import {
   TabsTrigger,
   toast,
 } from '@skinloom/ui'
-import { AlertCircle, Check, Download, RefreshCw, Store } from 'lucide-react'
+import { AlertCircle, Check, CircleAlert, Download, Palette, RefreshCw, SlidersHorizontal, Store } from 'lucide-react'
+import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { FormError } from '@/components/auth/field'
+import { useBootstrap } from '@/components/providers'
 import { safeImageUrl } from '@/lib/safe-url'
 
 import {
@@ -64,25 +74,88 @@ import { equal, groupSettings } from './settings-form'
  */
 export function Appearance({ superadmin }: { superadmin: boolean }) {
   const t = useTranslations('appearance')
+  const tc = useTranslations('common')
+  const tRef = useRef(t)
+  tRef.current = t
+  const boot = useBootstrap()
   const router = useRouter()
   const [themes, setThemes] = useState<ThemeView[] | null>(null)
   const [list, setList] = useState<SettingsList | null>(null)
   const [types, setTypes] = useState<BlockType[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [dirtySections, setDirtySections] = useState<Set<string>>(() => new Set())
+  const themesRef = useRef<ThemeView[] | null>(null)
+  themesRef.current = themes
+  const prevBootThemeRef = useRef<{ id: string; previewing: boolean }>({
+    id: boot.theme.id,
+    previewing: Boolean(boot.theme.previewing),
+  })
 
   const loadThemes = useCallback(async () => setThemes((await listThemes()).data as ThemeView[]), [])
-  // Once: a save refreshes the page, which hands out a new t, and loading again then
-  // would replace edits made since.
-  useEffect(() => {
+  const loadAll = useCallback(() => {
+    setError(null)
     Promise.all([loadThemes(), listSettings(), listBlockTypes()])
       .then(([, s, b]) => {
         setList(s.data as SettingsList)
         setTypes(b.data as BlockType[])
       })
-      .catch(() => setError(t('errors.load')))
+      .catch(() => setError(tRef.current('errors.load')))
+  }, [loadThemes])
+
+  // Once: a save refreshes the page, which hands out a new t, and loading again then
+  // would replace edits made since.
+  useEffect(() => {
+    loadAll()
+  }, [loadAll])
+
+  // Keep ThemePicker in sync when ThemePreviewBar applies a theme and calls router.refresh().
+  useEffect(() => {
+    const prev = prevBootThemeRef.current
+    const curPreviewing = Boolean(boot.theme.previewing)
+    prevBootThemeRef.current = { id: boot.theme.id, previewing: curPreviewing }
+    if (prev.id === boot.theme.id && prev.previewing === curPreviewing) return
+    if (!themesRef.current || !boot.theme.id || curPreviewing) return
+    if (!themesRef.current.some((th) => th.id === boot.theme.id && !th.error && th.active)) {
+      void loadThemes().catch(() => undefined)
+    }
+  }, [boot.theme.id, boot.theme.previewing, loadThemes])
+
+  useEffect(() => {
+    if (dirtySections.size === 0) return
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirtySections.size])
+
+  const handleSectionDirty = useCallback((sectionId: string, isDirty: boolean) => {
+    setDirtySections((prev) => {
+      const has = prev.has(sectionId)
+      if (has === isDirty) return prev
+      const next = new Set(prev)
+      if (isDirty) next.add(sectionId)
+      else next.delete(sectionId)
+      return next
+    })
   }, [])
 
-  if (!themes || !list || !types) return error ? <FormError message={error} /> : <Skeleton className="h-96 rounded-xl" />
+  if (!themes || !list || !types) {
+    return error ? (
+      <Alert variant="destructive" role="alert">
+        <CircleAlert />
+        <AlertDescription>{error}</AlertDescription>
+        <AlertAction>
+          <Button type="button" variant="outline" size="sm" onClick={loadAll}>
+            {tc('retry')}
+          </Button>
+        </AlertAction>
+      </Alert>
+    ) : (
+      <Skeleton className="h-96 rounded-xl" />
+    )
+  }
 
   function saved(next: SettingsList) {
     setList(next)
@@ -111,7 +184,7 @@ export function Appearance({ superadmin }: { superadmin: boolean }) {
         <TabsTrigger value="custom">{t('tabs.custom')}</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="themes">
+      <TabsContent value="themes" keepMounted>
         <ThemePicker
           themes={themes}
           superadmin={superadmin}
@@ -124,35 +197,68 @@ export function Appearance({ superadmin }: { superadmin: boolean }) {
         />
       </TabsContent>
 
-      <TabsContent value="settings">
-        <ThemeSettingsEditor
-          key={`${active.id}:${JSON.stringify(themeSettings)}`}
-          theme={active}
-          stored={themeSettings}
-          onSaved={saved}
-        />
+      <TabsContent value="settings" keepMounted>
+        {active ? (
+          <ThemeSettingsEditor
+            key={`${active.id}:${JSON.stringify(themeSettings)}`}
+            theme={active}
+            stored={themeSettings}
+            onSaved={saved}
+          />
+        ) : (
+          <Empty className="border border-dashed py-16">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Palette />
+              </EmptyMedia>
+              <EmptyTitle>{t('themeSettings.empty')}</EmptyTitle>
+            </EmptyHeader>
+          </Empty>
+        )}
       </TabsContent>
 
-      <TabsContent value="colors">
-        <ColorEditor key={`${active.id}:${JSON.stringify(overrides)}`} theme={active} overrides={overrides} onSaved={saved} />
+      <TabsContent value="colors" keepMounted>
+        {active ? (
+          <ColorEditor key={`${active.id}:${JSON.stringify(overrides)}`} theme={active} overrides={overrides} onSaved={saved} />
+        ) : (
+          <Empty className="border border-dashed py-16">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Palette />
+              </EmptyMedia>
+              <EmptyTitle>{t('errors.load')}</EmptyTitle>
+            </EmptyHeader>
+          </Empty>
+        )}
       </TabsContent>
 
-      <TabsContent value="home">
-        <HomeEditor key={`${active.id}:${JSON.stringify(home)}`} theme={active} types={types} stored={home} onSaved={saved} />
+      <TabsContent value="home" keepMounted>
+        {active ? (
+          <HomeEditor key={`${active.id}:${JSON.stringify(home)}`} theme={active} types={types} stored={home} onSaved={saved} />
+        ) : (
+          <Empty className="border border-dashed py-16">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Palette />
+              </EmptyMedia>
+              <EmptyTitle>{t('home.empty')}</EmptyTitle>
+            </EmptyHeader>
+          </Empty>
+        )}
       </TabsContent>
 
-      <TabsContent value="branding">
+      <TabsContent value="branding" keepMounted>
         <div className="flex flex-col gap-10">
           {branding.map((g) => (
-            <SettingsSection key={g.id} id={g.id} settings={g.settings} superadmin={superadmin} onSaved={saved} />
+            <SettingsSection key={g.id} id={g.id} settings={g.settings} superadmin={superadmin} onSaved={saved} onDirtyChange={handleSectionDirty} />
           ))}
         </div>
       </TabsContent>
 
-      <TabsContent value="custom">
+      <TabsContent value="custom" keepMounted>
         <div className="flex flex-col gap-10">
           {custom.map((g) => (
-            <SettingsSection key={g.id} id={g.id} settings={g.settings} superadmin={superadmin} onSaved={saved} />
+            <SettingsSection key={g.id} id={g.id} settings={g.settings} superadmin={superadmin} onSaved={saved} onDirtyChange={handleSectionDirty} />
           ))}
         </div>
       </TabsContent>
@@ -262,16 +368,15 @@ function ThemePicker({
       intro={t('intro')}
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
+          <ButtonLink
             variant="outline"
             size="sm"
             className="pointer-coarse:h-10"
-            onClick={() => router.push('/admin/plugins?tab=market&category=theme')}
+            render={<Link href="/admin/plugins?tab=market&category=theme" />}
           >
             <Store />
             {t('browseMarket')}
-          </Button>
+          </ButtonLink>
           <Button variant="outline" size="sm" className="pointer-coarse:h-10" loading={reloading} disabled={pending !== null} onClick={() => void rescan()}>
             <RefreshCw />
             {t('reload')}
@@ -408,19 +513,39 @@ function ThemeSettingsEditor({
   const [error, setError] = useState<string | null>(null)
 
   const entries = Object.entries(theme.settings ?? {})
+  const cur = draft[theme.id] ?? {}
+  const orig = stored[theme.id] ?? {}
+  const changedKeys = new Set([...Object.keys(cur), ...Object.keys(orig)])
+  const dirtyCount = Array.from(changedKeys).filter((k) => !equal(cur[k], orig[k])).length
+  const invalid = Object.entries(cur).some(([, v]) => typeof v === 'string' && !safeToken(v))
+
+  useEffect(() => {
+    if (dirtyCount === 0) return
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirtyCount])
+
   if (entries.length === 0) {
     return (
       <Group title={t('title')} intro={t('intro')}>
-        <div className="rounded-xl border bg-card px-5 py-8 text-center text-sm text-muted-foreground">{t('empty')}</div>
+        <Empty className="border border-dashed py-12">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <SlidersHorizontal />
+            </EmptyMedia>
+            <EmptyTitle>{t('empty')}</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       </Group>
     )
   }
 
-  const cur = draft[theme.id] ?? {}
-  const dirty = !equal(draft, stored)
-  const invalid = Object.entries(cur).some(([, v]) => typeof v === 'string' && !safeToken(v))
-
   async function save() {
+    if (invalid) return
     setPending(true)
     setError(null)
     try {
@@ -468,7 +593,7 @@ function ThemeSettingsEditor({
       </div>
       {invalid && <p className="text-caption text-destructive">{tc('unsafe')}</p>}
       <FormError message={error} />
-      <SaveBar count={dirty && !invalid ? 1 : 0} saving={pending} onSave={() => void save()} onDiscard={() => setDraft(stored)} />
+      <SaveBar count={dirtyCount} disabled={invalid} saving={pending} onSave={() => void save()} onDiscard={() => setDraft(stored)} />
     </Group>
   )
 }
@@ -559,10 +684,26 @@ function ColorEditor({ theme, overrides, onSaved }: { theme: ThemeView; override
   const [draft, setDraft] = useState<Overrides>(overrides)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const dirty = !equal(draft, overrides)
+  const dirtyCount = Array.from(new Set([...Object.keys(draft), ...Object.keys(overrides)])).reduce((sum, group) => {
+    const a = draft[group as keyof Overrides] ?? {}
+    const b = overrides[group as keyof Overrides] ?? {}
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)])
+    return sum + Array.from(keys).filter((k) => (a[k] ?? '') !== (b[k] ?? '')).length
+  }, 0)
   const invalid = Object.values(draft).some((g) => Object.values(g ?? {}).some((v) => !safeToken(v)))
 
+  useEffect(() => {
+    if (dirtyCount === 0) return
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirtyCount])
+
   async function save() {
+    if (invalid) return
     setPending(true)
     setError(null)
     try {
@@ -590,6 +731,7 @@ function ColorEditor({ theme, overrides, onSaved }: { theme: ThemeView; override
     <TokenInput
       key={mode}
       label={t(mode)}
+      ariaLabel={color ? `${t(`tokens.${name}`)} (${t(mode)})` : t(`tokens.${name}`)}
       showMobileLabel={showMobileLabel}
       value={draft[mode]?.[name] ?? ''}
       fallback={theme.tokens[mode]?.[name] ?? ''}
@@ -635,7 +777,7 @@ function ColorEditor({ theme, overrides, onSaved }: { theme: ThemeView; override
       </div>
       {invalid && <p className="text-caption text-destructive">{t('unsafe')}</p>}
       <FormError message={error} />
-      <SaveBar count={dirty && !invalid ? 1 : 0} saving={pending} onSave={() => void save()} onDiscard={() => setDraft(overrides)} />
+      <SaveBar count={dirtyCount} disabled={invalid} saving={pending} onSave={() => void save()} onDiscard={() => setDraft(overrides)} />
     </Group>
   )
 }
@@ -643,6 +785,7 @@ function ColorEditor({ theme, overrides, onSaved }: { theme: ThemeView; override
 /** One token: the value typed (empty = the theme's, shown as placeholder) and, for colours, a picker. */
 function TokenInput({
   label,
+  ariaLabel,
   showMobileLabel = false,
   value,
   fallback,
@@ -650,6 +793,7 @@ function TokenInput({
   onChange,
 }: {
   label: string
+  ariaLabel?: string
   showMobileLabel?: boolean
   value: string
   fallback: string
@@ -657,19 +801,20 @@ function TokenInput({
   onChange: (v: string) => void
 }) {
   const effective = value || fallback
+  const accessibleName = ariaLabel ?? label
   return (
     <div className="flex items-center gap-2">
       {showMobileLabel && <span className="min-w-10 shrink-0 text-caption text-muted-foreground sm:hidden">{label}</span>}
       {color && (
         <input
           type="color"
-          aria-label={label}
+          aria-label={accessibleName}
           value={hexOf(effective)}
           onChange={(e) => onChange(e.target.value)}
           className="h-9 w-10 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-1 pointer-coarse:h-10"
         />
       )}
-      <Input aria-label={label} value={value} placeholder={fallback} onChange={(e) => onChange(e.target.value)} className="font-mono text-xs" />
+      <Input aria-label={accessibleName} value={value} placeholder={fallback} onChange={(e) => onChange(e.target.value)} className="font-mono text-xs" />
     </div>
   )
 }

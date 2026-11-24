@@ -7,6 +7,9 @@ import {
   updatePluginSettings,
 } from '@skinloom/api-client'
 import {
+  Alert,
+  AlertAction,
+  AlertDescription,
   Badge,
   Button,
   Checkbox,
@@ -27,14 +30,15 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  Spinner,
+  Skeleton,
   Switch,
   Textarea,
   toast,
+  useConfirm,
 } from '@skinloom/ui'
-import { Plus, Trash2 } from 'lucide-react'
+import { CircleAlert, Info, Plus, Trash2 } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { FormError } from '@/components/auth/field'
 import { problemOf } from '@/lib/problem'
@@ -67,17 +71,21 @@ export function PluginSettingsDrawer({
   pluginId,
   pluginName,
   open,
+  readOnly = false,
   onOpenChange,
   onSaved,
 }: {
   pluginId: string | null
   pluginName: string
   open: boolean
+  readOnly?: boolean
   onOpenChange: (open: boolean) => void
   onSaved?: () => void
 }) {
   const t = useTranslations('adminPlugins.settingsDrawer')
   const te = useTranslations('adminPlugins')
+  const tc = useTranslations('common')
+  const confirm = useConfirm()
   const locale = useLocale()
   const loadErrRef = useRef(te('errors.load'))
   loadErrRef.current = te('errors.load')
@@ -90,12 +98,19 @@ export function PluginSettingsDrawer({
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(false)
   const activeSessionRef = useRef(0)
+  const abortRef = useRef<AbortController | null>(null)
+  const confirmingRef = useRef(false)
 
-  useEffect(() => {
-    void locale
+  const loadSettings = useCallback(() => {
+    abortRef.current?.abort()
     activeSessionRef.current += 1
-    if (!open || !pluginId) return
-    let active = true
+    const seq = activeSessionRef.current
+    if (!open || !pluginId) {
+      setLoading(false)
+      return
+    }
+    const controller = new AbortController()
+    abortRef.current = controller
     setSchema(null)
     setInitialDraft({})
     setDraft({})
@@ -103,9 +118,9 @@ export function PluginSettingsDrawer({
     setLoadError(null)
     setFieldErrors({})
     setClearedSecrets(new Set())
-    getPluginSettings(pluginId)
+    getPluginSettings(pluginId, { signal: controller.signal })
       .then((res) => {
-        if (!active) return
+        if (activeSessionRef.current !== seq) return
         const data = res.data as PluginSettingsResponse
         const nextDraft = buildPluginSettingsDraft(data.fields)
         setSchema(data)
@@ -113,22 +128,46 @@ export function PluginSettingsDrawer({
         setDraft(nextDraft)
       })
       .catch((err) => {
-        if (!active) return
+        if (controller.signal.aborted || activeSessionRef.current !== seq) return
         setSchema(null)
         setLoadError(apiProblemMessage(problemOf(err).detail, err, loadErrRef.current))
       })
       .finally(() => {
-        if (active) setLoading(false)
+        if (activeSessionRef.current === seq) setLoading(false)
       })
-    return () => {
-      active = false
-    }
-  }, [open, pluginId, locale])
+  }, [open, pluginId])
 
-  const dirty = Boolean(schema && isPluginSettingsDirty(schema.fields, draft, clearedSecrets, initialDraft))
+  useEffect(() => {
+    void locale
+    loadSettings()
+    return () => {
+      abortRef.current?.abort()
+    }
+  }, [loadSettings, locale])
+
+  const dirty = Boolean(!readOnly && schema && isPluginSettingsDirty(schema.fields, draft, clearedSecrets, initialDraft))
+
+  async function requestClose() {
+    if (saving || confirmingRef.current) return
+    if (dirty) {
+      confirmingRef.current = true
+      try {
+        const ok = await confirm({
+          title: t('discardTitle'),
+          description: t('discardBody'),
+          confirmLabel: t('discardConfirm'),
+          destructive: false,
+        })
+        if (!ok) return
+      } finally {
+        confirmingRef.current = false
+      }
+    }
+    onOpenChange(false)
+  }
 
   async function handleSave() {
-    if (!pluginId || !schema || saving) return
+    if (readOnly || !pluginId || !schema || saving) return
     const { patch, errors } = buildPluginSettingsPatch(schema.fields, draft, clearedSecrets, initialDraft)
     if (Object.keys(errors).length > 0) {
       const localized: Record<string, string> = {}
@@ -172,8 +211,8 @@ export function PluginSettingsDrawer({
     <Sheet
       open={open}
       onOpenChange={(next) => {
-        if (!next && saving) return
-        onOpenChange(next)
+        if (!next) void requestClose()
+        else onOpenChange(true)
       }}
     >
       <SheetContent className="flex w-full flex-col overflow-hidden data-[side=right]:w-full sm:max-w-lg">
@@ -183,85 +222,113 @@ export function PluginSettingsDrawer({
         </SheetHeader>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-4 py-3">
+          {readOnly ? (
+            <Alert variant="info">
+              <Info />
+              <AlertDescription>{t('readOnlyHint')}</AlertDescription>
+            </Alert>
+          ) : null}
           {loading ? (
-            <div className="flex items-center justify-center py-12 text-muted-foreground">
-              <Spinner />
+            <div className="space-y-4">
+              <Skeleton className="h-14 rounded-lg" />
+              <Skeleton className="h-14 rounded-lg" />
+              <Skeleton className="h-24 rounded-lg" />
             </div>
           ) : null}
-          <FormError message={loadError} />
+          {loadError && !schema ? (
+            <Alert variant="destructive" role="alert">
+              <CircleAlert />
+              <AlertDescription>{loadError}</AlertDescription>
+              <AlertAction>
+                <Button type="button" variant="outline" size="sm" onClick={loadSettings}>
+                  {tc('retry')}
+                </Button>
+              </AlertAction>
+            </Alert>
+          ) : (
+            <FormError message={loadError} />
+          )}
           {!loading && schema && schema.fields.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t('empty')}</p>
           ) : null}
 
-          {!loading &&
-            schema?.fields.map((field) => (
-              <PluginSettingControl
-                key={field.key}
-                field={field}
-                locale={locale}
-                value={draft[field.key]}
-                clearedSecrets={clearedSecrets}
-                fieldErrors={fieldErrors}
-                onChange={(nextVal) => {
-                  setDraft((prev) => ({ ...prev, [field.key]: nextVal }))
-                  setFieldErrors((prev) => {
-                    const next = { ...prev }
-                    let changed = false
-                    if (field.key in next) {
-                      delete next[field.key]
-                      changed = true
-                    }
-                    const prefix = `${field.key}.`
-                    for (const k of Object.keys(next)) {
-                      if (k.startsWith(prefix)) {
-                        delete next[k]
+          {!loading && schema && schema.fields.length > 0 ? (
+            <fieldset disabled={readOnly} className="space-y-5 disabled:opacity-75">
+              {schema.fields.map((field) => (
+                <PluginSettingControl
+                  key={field.key}
+                  field={field}
+                  locale={locale}
+                  readOnly={readOnly}
+                  value={draft[field.key]}
+                  clearedSecrets={clearedSecrets}
+                  fieldErrors={fieldErrors}
+                  onChange={(nextVal) => {
+                    if (readOnly) return
+                    setDraft((prev) => ({ ...prev, [field.key]: nextVal }))
+                    setFieldErrors((prev) => {
+                      const next = { ...prev }
+                      let changed = false
+                      if (field.key in next) {
+                        delete next[field.key]
                         changed = true
                       }
+                      const prefix = `${field.key}.`
+                      for (const k of Object.keys(next)) {
+                        if (k.startsWith(prefix)) {
+                          delete next[k]
+                          changed = true
+                        }
+                      }
+                      return changed ? next : prev
+                    })
+                    if (field.type === 'secret' && typeof nextVal === 'string' && nextVal.length > 0) {
+                      setClearedSecrets((prev) => {
+                        if (!prev.has(field.key)) return prev
+                        const nextSet = new Set(prev)
+                        nextSet.delete(field.key)
+                        return nextSet
+                      })
                     }
-                    return changed ? next : prev
-                  })
-                  if (field.type === 'secret' && typeof nextVal === 'string' && nextVal.length > 0) {
+                  }}
+                  onToggleClearSecret={(secretPath, cleared) => {
+                    if (readOnly) return
                     setClearedSecrets((prev) => {
-                      if (!prev.has(field.key)) return prev
                       const nextSet = new Set(prev)
-                      nextSet.delete(field.key)
+                      if (cleared) {
+                        nextSet.add(secretPath)
+                      } else {
+                        nextSet.delete(secretPath)
+                      }
                       return nextSet
                     })
-                  }
-                }}
-                onToggleClearSecret={(secretPath, cleared) => {
-                  setClearedSecrets((prev) => {
-                    const nextSet = new Set(prev)
                     if (cleared) {
-                      nextSet.add(secretPath)
-                    } else {
-                      nextSet.delete(secretPath)
+                      setDraft((d) => {
+                        if (secretPath === field.key) return { ...d, [field.key]: '' }
+                        const subKey = secretPath.slice(field.key.length + 1)
+                        const cur =
+                          typeof d[field.key] === 'object' && d[field.key] !== null
+                            ? (d[field.key] as Record<string, unknown>)
+                            : {}
+                        return { ...d, [field.key]: { ...cur, [subKey]: '' } }
+                      })
                     }
-                    return nextSet
-                  })
-                  if (cleared) {
-                    setDraft((d) => {
-                      if (secretPath === field.key) return { ...d, [field.key]: '' }
-                      const subKey = secretPath.slice(field.key.length + 1)
-                      const cur =
-                        typeof d[field.key] === 'object' && d[field.key] !== null
-                          ? (d[field.key] as Record<string, unknown>)
-                          : {}
-                      return { ...d, [field.key]: { ...cur, [subKey]: '' } }
-                    })
-                  }
-                }}
-              />
-            ))}
+                  }}
+                />
+              ))}
+            </fieldset>
+          ) : null}
         </div>
 
         <SheetFooter className="border-t border-border px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <Button type="button" variant="outline" className="pointer-coarse:h-10" onClick={() => onOpenChange(false)} disabled={saving}>
+          <Button type="button" variant="outline" className="pointer-coarse:h-10" onClick={() => void requestClose()} disabled={saving}>
             {t('cancel')}
           </Button>
-          <Button type="button" className="pointer-coarse:h-10" loading={saving} onClick={handleSave} disabled={!dirty || loading || !schema || schema.fields.length === 0}>
-            {t('save')}
-          </Button>
+          {!readOnly ? (
+            <Button type="button" className="pointer-coarse:h-10" loading={saving} onClick={handleSave} disabled={!dirty || loading || !schema || schema.fields.length === 0}>
+              {t('save')}
+            </Button>
+          ) : null}
         </SheetFooter>
       </SheetContent>
     </Sheet>
@@ -271,6 +338,7 @@ export function PluginSettingsDrawer({
 function PluginSettingControl({
   field,
   locale,
+  readOnly,
   value,
   clearedSecrets,
   fieldErrors,
@@ -279,6 +347,7 @@ function PluginSettingControl({
 }: {
   field: PluginSettingFieldView
   locale: string
+  readOnly?: boolean
   value: unknown
   clearedSecrets: Set<string>
   fieldErrors: Record<string, string>
@@ -299,7 +368,7 @@ function PluginSettingControl({
             <FieldLabel htmlFor={controlId}>{title}</FieldLabel>
             {field.description ? <FieldDescription>{field.description}</FieldDescription> : null}
           </div>
-          <Switch id={controlId} checked={value === true} onCheckedChange={(checked) => onChange(Boolean(checked))} />
+          <Switch id={controlId} checked={value === true} disabled={readOnly} onCheckedChange={(checked) => onChange(Boolean(checked))} />
         </div>
         {error ? <FieldError>{error}</FieldError> : null}
       </Field>
@@ -363,6 +432,7 @@ function PluginSettingControl({
         <Select
           items={selectItems}
           value={cur}
+          disabled={readOnly}
           onValueChange={(next) => {
             if (next != null) onChange(next === UNSET_SELECT ? '' : next)
           }}
@@ -389,9 +459,16 @@ function PluginSettingControl({
           {(field.options ?? []).map((opt) => {
             const checked = selected.includes(opt)
             return (
-              <label key={opt} className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 text-sm pointer-coarse:min-h-10">
+              <label
+                key={opt}
+                className={cn(
+                  'inline-flex min-h-8 items-center gap-1.5 text-sm pointer-coarse:min-h-10',
+                  readOnly ? 'cursor-default' : 'cursor-pointer',
+                )}
+              >
                 <Checkbox
                   checked={checked}
+                  disabled={readOnly}
                   onCheckedChange={(next) => {
                     const on = Boolean(next)
                     onChange(on ? [...selected, opt] : selected.filter((x) => x !== opt))
@@ -443,7 +520,7 @@ function PluginSettingControl({
               id={controlId}
               type="password"
               autoComplete="new-password"
-              disabled={secretCleared}
+              disabled={readOnly || secretCleared}
               value={String(value ?? '')}
               placeholder={field.isSet && !secretCleared ? t('secretSetPlaceholder') : t('secretUnsetPlaceholder')}
               onChange={(e) => {
@@ -461,8 +538,13 @@ function PluginSettingControl({
             ) : null}
           </div>
           {field.isSet ? (
-            <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-muted-foreground pointer-coarse:min-h-10">
-              <Checkbox checked={secretCleared} onCheckedChange={(c) => onToggleClearSecret(field.key, Boolean(c))} />
+            <label
+              className={cn(
+                'inline-flex items-center gap-2 text-xs text-muted-foreground pointer-coarse:min-h-10',
+                readOnly ? 'cursor-default' : 'cursor-pointer',
+              )}
+            >
+              <Checkbox checked={secretCleared} disabled={readOnly} onCheckedChange={(c) => onToggleClearSecret(field.key, Boolean(c))} />
               <span>{t('clearSecret')}</span>
             </label>
           ) : null}
@@ -519,6 +601,7 @@ function PluginSettingControl({
                   key={subKey}
                   field={subField}
                   locale={locale}
+                  readOnly={readOnly}
                   value={obj[subKey]}
                   clearedSecrets={clearedSecrets}
                   fieldErrors={fieldErrors}
@@ -549,9 +632,15 @@ function PluginSettingControl({
       break
   }
 
+  const hasSingleLabelableControl = field.type !== 'multiselect' && field.type !== 'list' && !(field.type === 'group' && field.fields)
+
   return (
     <Field data-invalid={error ? true : undefined}>
-      <FieldLabel htmlFor={controlId}>{title}</FieldLabel>
+      {hasSingleLabelableControl ? (
+        <FieldLabel htmlFor={controlId}>{title}</FieldLabel>
+      ) : (
+        <span className="text-sm font-medium">{title}</span>
+      )}
       {control}
       {field.description ? <FieldDescription>{field.description}</FieldDescription> : null}
       {error ? <FieldError>{error}</FieldError> : null}

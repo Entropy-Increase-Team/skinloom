@@ -3,18 +3,18 @@
 import { sendNotification, type SendNotificationInputBodyTo } from '@skinloom/api-client'
 import {
   Button,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
   Field,
   FieldDescription,
   FieldLabel,
   Input,
+  ResponsiveDialog,
+  ResponsiveDialogClose,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogTrigger,
   Select,
   SelectContent,
   SelectItem,
@@ -65,23 +65,23 @@ export function SendNotification() {
   }
 
   return (
-    <Dialog
+    <ResponsiveDialog
       open={open}
       onOpenChange={(next) => {
         setOpen(next)
         setError(null)
       }}
     >
-      <DialogTrigger render={<Button variant="outline" />}>
+      <ResponsiveDialogTrigger render={<Button variant="outline" />}>
         <Send />
         {t('title')}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
-        <form onSubmit={(e) => void onSubmit(e)} className="flex flex-col gap-5">
-          <DialogHeader>
-            <DialogTitle>{t('title')}</DialogTitle>
-            <DialogDescription>{t('intro')}</DialogDescription>
-          </DialogHeader>
+      </ResponsiveDialogTrigger>
+      <ResponsiveDialogContent className="md:max-w-lg">
+        <form onSubmit={(e) => void onSubmit(e)} className="flex flex-col gap-5" noValidate>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>{t('title')}</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>{t('intro')}</ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
           <FormError message={error} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[12rem_minmax(0,1fr)]">
             <Field>
@@ -115,15 +115,15 @@ export function SendNotification() {
             <Textarea id="notify-content" name="content" rows={5} maxLength={10000} />
             <FieldDescription>{t('contentHint')}</FieldDescription>
           </Field>
-          <DialogFooter>
-            <DialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</DialogClose>
+          <ResponsiveDialogFooter>
+            <ResponsiveDialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</ResponsiveDialogClose>
             <Button type="submit" loading={pending}>
               <Send />
               {t('send')}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

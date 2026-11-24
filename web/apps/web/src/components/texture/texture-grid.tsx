@@ -1,11 +1,11 @@
 'use client'
 
 import { listTextures, type TexturePage, type TextureView } from '@skinloom/api-client'
-import { Button, ButtonLink, Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle, TextureCard } from '@skinloom/ui'
-import { SearchX, Shirt } from 'lucide-react'
+import { Alert, AlertAction, AlertDescription, Button, ButtonLink, Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle, TextureCard } from '@skinloom/ui'
+import { CircleAlert, SearchX, Shirt, Upload } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Slot } from '@/components/slot'
 import { ThemeOverride } from '@/components/theme-override'
@@ -13,18 +13,33 @@ import { filterHref, type LibraryFilter } from '@/lib/library'
 import { textureGridClass } from '@/lib/theme'
 
 /**
- * The skin library grid: the first page comes from the server, later pages on demand.
- * density is the one the theme picked (layout `skinlib`).
+ * The skin library grid: the first page comes from the server, later pages load on scroll
+ * with a button fallback (design.md §10.3). density is the one the theme picked (layout `skinlib`).
  */
-export function TextureGrid({ initial, filter, density }: { initial: TexturePage; filter: LibraryFilter; density: 'comfortable' | 'compact' }) {
+export function TextureGrid({
+  initial,
+  filter,
+  density,
+  uploadHref,
+}: {
+  initial: TexturePage
+  filter: LibraryFilter
+  density: 'comfortable' | 'compact'
+  uploadHref?: string
+}) {
   const t = useTranslations('skinlib')
   const tt = useTranslations('texture')
+  const tc = useTranslations('common')
   const [items, setItems] = useState<TextureView[]>(initial.textures)
   const [next, setNext] = useState(initial.next)
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState(false)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const busyRef = useRef(false)
 
-  async function more() {
+  const more = useCallback(async () => {
+    if (!next || busyRef.current) return
+    busyRef.current = true
     setLoading(true)
     setFailed(false)
     try {
@@ -40,9 +55,24 @@ export function TextureGrid({ initial, filter, density }: { initial: TexturePage
     } catch {
       setFailed(true)
     } finally {
+      busyRef.current = false
       setLoading(false)
     }
-  }
+  }, [filter.category, filter.q, filter.sort, next])
+
+  useEffect(() => {
+    if (!next || loading || failed) return
+    const el = sentinelRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) void more()
+      },
+      { rootMargin: '300px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [next, loading, failed, more])
 
   if (items.length === 0) {
     const filtered = Boolean(filter.q || filter.category)
@@ -52,11 +82,20 @@ export function TextureGrid({ initial, filter, density }: { initial: TexturePage
           <EmptyMedia variant="icon">{filtered ? <SearchX /> : <Shirt />}</EmptyMedia>
           <EmptyTitle>{filtered ? t('noMatch') : t('empty')}</EmptyTitle>
         </EmptyHeader>
-        {filtered && (
+        {(filtered || uploadHref) && (
           <EmptyContent>
-            <ButtonLink variant="outline" size="sm" render={<Link href={filterHref({ category: '', q: '', sort: filter.sort })} />}>
-              {t('clearFilter')}
-            </ButtonLink>
+            {filtered ? (
+              <ButtonLink variant="outline" size="sm" render={<Link href={filterHref({ category: '', q: '', sort: filter.sort })} />}>
+                {t('clearFilter')}
+              </ButtonLink>
+            ) : (
+              uploadHref && (
+                <ButtonLink variant="outline" size="sm" render={<Link href={uploadHref} />}>
+                  <Upload />
+                  {t('upload')}
+                </ButtonLink>
+              )
+            )}
           </EmptyContent>
         )}
       </Empty>
@@ -87,11 +126,26 @@ export function TextureGrid({ initial, filter, density }: { initial: TexturePage
           )
         })}
       </div>
-      {failed && <p className="text-center text-sm text-destructive">{t('loadFailed')}</p>}
+      {failed && (
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertDescription>{t('loadFailed')}</AlertDescription>
+          {next && (
+            <AlertAction>
+              <Button type="button" variant="outline" size="sm" onClick={() => void more()}>
+                {tc('retry')}
+              </Button>
+            </AlertAction>
+          )}
+        </Alert>
+      )}
       {next && (
-        <Button variant="outline" className="self-center" loading={loading} onClick={() => void more()}>
-          {t('more')}
-        </Button>
+        <>
+          <div ref={sentinelRef} className="h-px" aria-hidden />
+          <Button type="button" variant="outline" className="self-center" loading={loading} onClick={() => void more()}>
+            {t('more')}
+          </Button>
+        </>
       )}
     </div>
   )

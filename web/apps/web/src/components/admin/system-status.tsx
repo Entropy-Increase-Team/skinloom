@@ -1,29 +1,22 @@
 'use client'
 
 import { type AdminPluginView, getSystemStatus, listPlugins, rescanMissingBlobs, type RescanResult, type StatusCheck, type SystemStatus } from '@skinloom/api-client'
-import { Button, PageHeader, Skeleton, type Status, StatusDot, toast } from '@skinloom/ui'
-import { RefreshCw } from 'lucide-react'
+import { Alert, AlertAction, AlertDescription, Button, ButtonLink, Card, CardContent, CardHeader, CardTitle, PageHeader, Skeleton, type Status, StatusDot, toast } from '@skinloom/ui'
+import { CircleAlert, RefreshCw } from 'lucide-react'
+import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 
 import { FormError } from '@/components/auth/field'
 import { Slot } from '@/components/slot'
+import { formatBytes } from '@/lib/bytes'
 
-/** Bytes as KB, MB, GB… with one decimal. */
-export function formatBytes(n: number, locale: string): string {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  let i = 0
-  let v = n
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024
-    i++
-  }
-  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: i === 0 ? 0 : 1 }).format(v)} ${units[i]}`
-}
+export { formatBytes }
 
 /** System status of the node answering (02 F40): findings first, then the figures. */
 export function SystemStatusView() {
   const t = useTranslations('adminStatus')
+  const tc = useTranslations('common')
   const tRef = useRef(t)
   tRef.current = t
   const locale = useLocale()
@@ -33,15 +26,22 @@ export function SystemStatusView() {
   const [loading, setLoading] = useState(false)
   const [rescanning, setRescanning] = useState(false)
   const [rescanResult, setRescanResult] = useState<RescanResult | null>(null)
+  const seqRef = useRef(0)
+  const abortRef = useRef<AbortController | null>(null)
 
   const load = useCallback(async () => {
+    abortRef.current?.abort()
+    const ctl = new AbortController()
+    abortRef.current = ctl
+    const seq = ++seqRef.current
     setLoading(true)
     setError(null)
     try {
       const [statusRes, pluginsRes] = await Promise.all([
-        getSystemStatus(),
-        listPlugins().catch(() => null),
+        getSystemStatus({ signal: ctl.signal }),
+        listPlugins({ signal: ctl.signal }).catch(() => null),
       ])
+      if (seq !== seqRef.current) return
       setStatus(statusRes.data as SystemStatus)
       if (pluginsRes && Array.isArray(pluginsRes.data)) {
         const list = pluginsRes.data as AdminPluginView[]
@@ -51,13 +51,14 @@ export function SystemStatusView() {
         })
       }
     } catch {
-      setError(tRef.current('errors.load'))
+      if (!ctl.signal.aborted && seq === seqRef.current) setError(tRef.current('errors.load'))
     } finally {
-      setLoading(false)
+      if (seq === seqRef.current) setLoading(false)
     }
   }, [])
   useEffect(() => {
     void load()
+    return () => abortRef.current?.abort()
   }, [load])
 
   const rescan = useCallback(async () => {
@@ -66,7 +67,9 @@ export function SystemStatusView() {
     try {
       const r = (await rescanMissingBlobs()).data as RescanResult
       setRescanResult(r)
-      toast.success(tRef.current('storage.rescanDone', { checked: r.checked, updated: r.updated, missing: r.missing }))
+      const baseMsg = tRef.current('storage.rescanDone', { checked: r.checked, updated: r.updated, missing: r.missing })
+      const msg = r.invalid > 0 ? `${baseMsg} ${tRef.current('storage.rescanInvalid', { invalid: r.invalid })}` : baseMsg
+      toast.success(msg)
       await load()
     } catch {
       setError(tRef.current('storage.rescanFailed'))
@@ -92,7 +95,19 @@ export function SystemStatusView() {
     return (
       <div className="flex flex-col gap-6">
         {header}
-        {error ? <FormError message={error} /> : <Skeleton className="h-96 rounded-xl" />}
+        {error ? (
+          <Alert variant="destructive" role="alert">
+            <CircleAlert />
+            <AlertDescription>{error}</AlertDescription>
+            <AlertAction>
+              <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
+                {tc('retry')}
+              </Button>
+            </AlertAction>
+          </Alert>
+        ) : (
+          <Skeleton className="h-96 rounded-xl" />
+        )}
       </div>
     )
 
@@ -144,7 +159,7 @@ export function SystemStatusView() {
           ]}
           footer={
             <div className="flex flex-col gap-2 pt-2">
-              <Button variant="outline" size="sm" className="pointer-coarse:h-10" loading={rescanning} onClick={() => void rescan()}>
+              <Button variant="outline" size="sm" className="self-start pointer-coarse:h-10" loading={rescanning} onClick={() => void rescan()}>
                 {t('storage.rescan')}
               </Button>
               {rescanResult && (
@@ -154,6 +169,7 @@ export function SystemStatusView() {
                     updated: rescanResult.updated,
                     missing: rescanResult.missing,
                   })}
+                  {rescanResult.invalid > 0 ? ` ${t('storage.rescanInvalid', { invalid: rescanResult.invalid })}` : ''}
                 </p>
               )}
             </div>
@@ -193,32 +209,45 @@ export function SystemStatusView() {
   )
 }
 
+const SETTINGS_CHECK_IDS = new Set(['mail', 'site_url'])
+
 function Check({ check }: { check: StatusCheck }) {
   const t = useTranslations('adminStatus.checks')
   const level: Status = check.level === 'ok' ? 'ok' : check.level === 'warn' ? 'warn' : 'error'
   const text = t.has(`${check.id}.ok`) ? t(`${check.id}.${check.level === 'ok' ? 'ok' : 'problem'}`) : check.id
   return (
-    <li className="px-4 py-3">
+    <li className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
       <StatusDot status={level} className={level === 'ok' ? 'text-sm' : 'text-sm text-foreground'}>
         {text}
       </StatusDot>
+      {level !== 'ok' && SETTINGS_CHECK_IDS.has(check.id) && (
+        <ButtonLink variant="link" size="xs" className="h-auto p-0" render={<Link href="/admin/settings" />}>
+          {t('goSettings')}
+        </ButtonLink>
+      )}
     </li>
   )
 }
 
 function Facts({ title, rows, footer }: { title: string; rows: [string, ReactNode][]; footer?: ReactNode }) {
   return (
-    <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
-      <h2 className="text-sm font-medium">{title}</h2>
-      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-sm">
-        {rows.map(([k, v]) => (
-          <div key={k} className="contents">
-            <dt className="text-muted-foreground">{k}</dt>
-            <dd className="min-w-0 break-words tabular-nums">{v}</dd>
-          </div>
-        ))}
-      </dl>
-      {footer}
-    </section>
+    <Card className="gap-3">
+      <CardHeader>
+        <CardTitle as="h2" className="text-sm">
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-1 flex-col gap-3">
+        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-sm">
+          {rows.map(([k, v]) => (
+            <div key={k} className="contents">
+              <dt className="text-muted-foreground">{k}</dt>
+              <dd className="min-w-0 break-words tabular-nums">{v}</dd>
+            </div>
+          ))}
+        </dl>
+        {footer}
+      </CardContent>
+    </Card>
   )
 }

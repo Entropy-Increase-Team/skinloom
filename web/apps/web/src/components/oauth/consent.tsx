@@ -8,10 +8,24 @@ import {
   getAuthorization,
   type PlayerOption,
 } from '@skinloom/api-client'
-import { Alert, AlertDescription, Button, ButtonLink, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, cn } from '@skinloom/ui'
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  ButtonLink,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  cn,
+  Skeleton,
+  UserAvatar,
+} from '@skinloom/ui'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { type KeyboardEvent, useEffect, useRef, useState } from 'react'
+import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react'
 
 import { FormError } from '@/components/auth/field'
 import { ScopeList } from '@/components/oauth/scopes'
@@ -81,13 +95,7 @@ export function PlayerPicker({
                 active ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border hover:bg-muted/60',
               )}
             >
-              <img
-                src={`/avatar/player/${encodeURIComponent(pl.name)}?size=96`}
-                alt=""
-                width={36}
-                height={36}
-                className="size-9 shrink-0 rounded-md bg-muted object-cover [image-rendering:pixelated]"
-              />
+              <UserAvatar of={{ player: pl.name }} size={36} />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{pl.name}</div>
                 <div className="truncate font-mono text-xs text-muted-foreground">{pl.uuid}</div>
@@ -107,39 +115,42 @@ export function PlayerPicker({
  */
 export function Consent({ params }: { params: GetAuthorizationParams }) {
   const t = useTranslations('oauth')
+  const tc = useTranslations('common')
   const [info, setInfo] = useState<AuthorizeInfo | null>(null)
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<'allow' | 'deny' | null>(null)
   const started = useRef(false)
 
-  const answer = async (allow: boolean, playerIdOverride?: number | null) => {
-    setPendingAction(allow ? 'allow' : 'deny')
-    setError(null)
-    try {
-      const pid = playerIdOverride ?? selectedPlayerId
-      const res = await authorize({
-        response_type: params.response_type ?? '',
-        client_id: params.client_id ?? '',
-        redirect_uri: params.redirect_uri,
-        scope: params.scope,
-        state: params.state,
-        nonce: params.nonce,
-        code_challenge: params.code_challenge,
-        code_challenge_method: params.code_challenge_method,
-        ...(allow && pid ? { playerId: pid } : {}),
-        allow,
-      })
-      window.location.assign((res.data as AuthorizeResult).redirect)
-    } catch (err) {
-      setError(problemOf(err)?.detail ?? t('failed'))
-      setPendingAction(null)
-    }
-  }
+  const answer = useCallback(
+    async (allow: boolean, playerIdOverride?: number | null) => {
+      setPendingAction(allow ? 'allow' : 'deny')
+      setError(null)
+      try {
+        const pid = playerIdOverride ?? selectedPlayerId
+        const res = await authorize({
+          response_type: params.response_type ?? '',
+          client_id: params.client_id ?? '',
+          redirect_uri: params.redirect_uri,
+          scope: params.scope,
+          state: params.state,
+          nonce: params.nonce,
+          code_challenge: params.code_challenge,
+          code_challenge_method: params.code_challenge_method,
+          ...(allow && pid ? { playerId: pid } : {}),
+          allow,
+        })
+        window.location.assign((res.data as AuthorizeResult).redirect)
+      } catch (err) {
+        setError(problemOf(err)?.detail ?? t('failed'))
+        setPendingAction(null)
+      }
+    },
+    [params, selectedPlayerId, t],
+  )
 
-  useEffect(() => {
-    if (started.current) return
-    started.current = true
+  const load = useCallback(() => {
+    setError(null)
     getAuthorization(params).then(
       (res) => {
         const data = res.data as AuthorizeInfo
@@ -155,7 +166,13 @@ export function Consent({ params }: { params: GetAuthorizationParams }) {
       },
       (err) => setError(problemOf(err)?.detail ?? t('failed')),
     )
-  }, [])
+  }, [answer, params, t])
+
+  useEffect(() => {
+    if (started.current) return
+    started.current = true
+    load()
+  }, [load])
 
   if (info?.error) {
     return (
@@ -173,8 +190,23 @@ export function Consent({ params }: { params: GetAuthorizationParams }) {
   if (!info?.client || (info.granted && !info.needsPlayerSelect)) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-sm text-muted-foreground">
-          {error ? <FormError message={error} /> : t('redirecting')}
+        <CardContent className="flex flex-col gap-3 py-6 text-sm text-muted-foreground">
+          {error ? (
+            <>
+              <FormError message={error} />
+              <Button type="button" variant="outline" size="sm" className="self-start" onClick={load}>
+                {tc('retry')}
+              </Button>
+            </>
+          ) : info?.granted ? (
+            <p className="py-2 text-center">{t('redirecting')}</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <Skeleton className="h-5 w-2/3" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          )}
         </CardContent>
       </Card>
     )

@@ -3,13 +3,7 @@
 import { addToCloset, deleteTexture, removeFromCloset, type ScoreRates, type TextureDetail, updateTexture } from '@skinloom/api-client'
 import {
   Button,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -21,23 +15,31 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
   Field,
-  FieldDescription,
+  FieldError,
   FieldLabel,
   Input,
+  ResponsiveDialog,
+  ResponsiveDialogClose,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
   toast,
   useConfirm,
 } from '@skinloom/ui'
-import { Eye, EyeOff, Heart, HeartOff, MoreHorizontal, Pencil, Shapes, Trash2 } from 'lucide-react'
+import { Globe, Heart, HeartOff, Lock, MoreHorizontal, Pencil, Shapes, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import { type FormEvent, useState } from 'react'
 
 import { problemOf } from '@/lib/problem'
 import { uploadCost } from '@/lib/skin'
 
 /** Add to / remove from the viewer's closet: the page's primary action. */
-export function FavoriteButton({ texture, rates }: { texture: TextureDetail; rates: ScoreRates }) {
+export function FavoriteButton({ texture, rates, className }: { texture: TextureDetail; rates: ScoreRates; className?: string }) {
   const t = useTranslations('texture')
+  const format = useFormatter()
   const router = useRouter()
   const [pending, setPending] = useState(false)
 
@@ -57,12 +59,14 @@ export function FavoriteButton({ texture, rates }: { texture: TextureDetail; rat
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className={cn('flex flex-col gap-1.5', className)}>
       <Button size="lg" variant={texture.inCloset ? 'outline' : 'default'} loading={pending} onClick={() => void toggle()}>
         {texture.inCloset ? <HeartOff /> : <Heart />}
         {texture.inCloset ? t('unfavorite') : t('favorite')}
       </Button>
-      {!texture.inCloset && rates.perClosetItem > 0 && <p className="text-caption text-muted-foreground">{t('favoriteCost', { cost: rates.perClosetItem })}</p>}
+      {!texture.inCloset && rates.perClosetItem > 0 && (
+        <p className="text-caption text-muted-foreground tabular-nums">{t('favoriteCost', { cost: format.number(rates.perClosetItem) })}</p>
+      )}
     </div>
   )
 }
@@ -76,6 +80,7 @@ const TYPES = ['steve', 'alex', 'cape'] as const
 export function OwnerMenu({ texture, rates, charged }: { texture: TextureDetail; rates: ScoreRates; charged: boolean }) {
   const t = useTranslations('texture')
   const tc = useTranslations('common')
+  const tf = useTranslations('fieldErrors')
   const router = useRouter()
   const confirm = useConfirm()
   const [pending, setPending] = useState(false)
@@ -114,7 +119,11 @@ export function OwnerMenu({ texture, rates, charged }: { texture: TextureDetail;
   async function rename(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const name = String(new FormData(e.currentTarget).get('name') ?? '').trim()
-    if (!name || name === texture.name) {
+    if (!name) {
+      setRenameError(tf('required'))
+      return
+    }
+    if (name === texture.name) {
       setRenaming(false)
       return
     }
@@ -199,7 +208,7 @@ export function OwnerMenu({ texture, rates, charged }: { texture: TextureDetail;
             </DropdownMenuSubContent>
           </DropdownMenuSub>
           <DropdownMenuItem onClick={() => void toggleVisibility()}>
-            {texture.public ? <EyeOff /> : <Eye />}
+            {texture.public ? <Lock /> : <Globe />}
             {texture.public ? t('makePrivate') : t('makePublic')}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -210,27 +219,27 @@ export function OwnerMenu({ texture, rates, charged }: { texture: TextureDetail;
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={renaming} onOpenChange={setRenaming}>
-        <DialogContent className="sm:max-w-sm">
-          <form onSubmit={(e) => void rename(e)} className="flex flex-col gap-5">
-            <DialogHeader>
-              <DialogTitle>{t('renameTitle')}</DialogTitle>
-              <DialogDescription>{t('renameBody')}</DialogDescription>
-            </DialogHeader>
+      <ResponsiveDialog open={renaming} onOpenChange={setRenaming}>
+        <ResponsiveDialogContent className="md:max-w-sm">
+          <form onSubmit={(e) => void rename(e)} className="flex flex-col gap-5" noValidate>
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle>{t('renameTitle')}</ResponsiveDialogTitle>
+              <ResponsiveDialogDescription>{t('renameBody')}</ResponsiveDialogDescription>
+            </ResponsiveDialogHeader>
             <Field data-invalid={renameError ? true : undefined}>
               <FieldLabel htmlFor="texture-name">{t('name')}</FieldLabel>
               <Input id="texture-name" name="name" defaultValue={texture.name} maxLength={50} required autoFocus aria-invalid={renameError ? true : undefined} />
-              {renameError && <FieldDescription className="text-destructive">{renameError}</FieldDescription>}
+              {renameError && <FieldError>{renameError}</FieldError>}
             </Field>
-            <DialogFooter>
-              <DialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</DialogClose>
+            <ResponsiveDialogFooter>
+              <ResponsiveDialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</ResponsiveDialogClose>
               <Button type="submit" loading={pending}>
                 {tc('save')}
               </Button>
-            </DialogFooter>
+            </ResponsiveDialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </>
   )
 }

@@ -1,11 +1,11 @@
 'use client'
 
 import { getSocialPending, linkSocialPending, registerSocial, type SocialPending } from '@skinloom/api-client'
-import { Button, ButtonLink } from '@skinloom/ui'
+import { Button, ButtonLink, Skeleton } from '@skinloom/ui'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 
 import { problemOf } from '@/lib/problem'
 import { safeNext } from '@/lib/safe-url'
@@ -20,26 +20,62 @@ import { ProviderIcon } from './social-buttons'
  */
 export function SocialSignup({ signedInAs, mail }: { signedInAs?: string; mail: boolean }) {
   const t = useTranslations('social')
+  const tc = useTranslations('common')
   const tf = useTranslations('fieldErrors')
   const router = useRouter()
   const [pending, setPending] = useState<SocialPending | null | undefined>(undefined)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fields, setFields] = useState<Record<string, string>>({})
   const [email, setEmail] = useState('')
+  const latestRef = useRef(0)
 
-  useEffect(() => {
+  const loadPending = useCallback(() => {
+    const seq = ++latestRef.current
+    setPending(undefined)
+    setLoadFailed(false)
     getSocialPending().then(
       (r) => {
+        if (seq !== latestRef.current) return
         const p = r.data as SocialPending
         setPending(p)
         setEmail(p.email)
       },
-      () => setPending(null),
+      (err) => {
+        if (seq !== latestRef.current) return
+        if (problemOf(err).status === 404) setPending(null)
+        else {
+          setPending(null)
+          setLoadFailed(true)
+        }
+      },
     )
   }, [])
 
-  if (pending === undefined) return <p className="text-sm text-muted-foreground">…</p>
+  useEffect(() => {
+    loadPending()
+    return () => {
+      latestRef.current += 1
+    }
+  }, [loadPending])
+
+  if (pending === undefined) return <Skeleton className="h-44 rounded-xl" />
+  if (loadFailed) {
+    return (
+      <div className="flex flex-col gap-4">
+        <FormError message={t('errors.failed')} />
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={loadPending}>
+            {tc('retry')}
+          </Button>
+          <ButtonLink variant="ghost" render={<Link href="/auth/login" />}>
+            {t('pending.again')}
+          </ButtonLink>
+        </div>
+      </div>
+    )
+  }
   if (pending === null) {
     return (
       <div className="flex flex-col gap-4">

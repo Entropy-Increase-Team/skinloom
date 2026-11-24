@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext } from 'react'
+import { createContext, useContext, useMemo } from 'react'
 import type * as React from 'react'
 
 /**
@@ -55,6 +55,15 @@ export interface UiLabels {
   bgGray: string
   bgBlack: string
   backEquipment: string
+  breadcrumb: string
+  pagination: string
+  clear: string
+  remove: string
+  openOptions: string
+  commandPalette: string
+  commandSearch: string
+  unsavedChanges: string
+  previewUnavailable: string
 }
 
 export const defaultLabels: UiLabels = {
@@ -73,7 +82,7 @@ export const defaultLabels: UiLabels = {
   next: 'Next',
   position: '{current} / {total}',
   private: 'Private',
-  likes: 'Favourites',
+  likes: 'Likes',
   search: 'Search',
   noMatch: 'Nothing matches',
   all: 'All',
@@ -101,12 +110,22 @@ export const defaultLabels: UiLabels = {
   bgGray: 'Gray background',
   bgBlack: 'Black background',
   backEquipment: 'Switch cape / elytra',
+  breadcrumb: 'Breadcrumb',
+  pagination: 'Pagination',
+  clear: 'Clear',
+  remove: 'Remove',
+  openOptions: 'Toggle options',
+  commandPalette: 'Command palette',
+  commandSearch: 'Search for a command',
+  unsavedChanges: 'Unsaved changes',
+  previewUnavailable: '3D preview unavailable',
 }
 
 const LabelsContext = createContext<UiLabels>(defaultLabels)
 
 export function UiLabelsProvider({ labels, children }: { labels: Partial<UiLabels>; children: React.ReactNode }) {
-  return <LabelsContext.Provider value={{ ...defaultLabels, ...labels }}>{children}</LabelsContext.Provider>
+  const value = useMemo(() => ({ ...defaultLabels, ...labels }), [labels])
+  return <LabelsContext.Provider value={value}>{children}</LabelsContext.Provider>
 }
 
 export function useUiLabels(): UiLabels {

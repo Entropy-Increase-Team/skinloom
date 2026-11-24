@@ -2,28 +2,34 @@
 
 import { type AdminPluginView, getPlugin } from '@skinloom/api-client'
 import {
+  Alert,
+  AlertAction,
+  AlertDescription,
   Badge,
+  Button,
+  CopyField,
   RelativeTime,
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  Spinner,
+  Skeleton,
   StatusDot,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from '@skinloom/ui'
-import { Box, Cpu } from 'lucide-react'
+import { Box, CircleAlert, Cpu, ExternalLink } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { FormError } from '@/components/auth/field'
+import { formatBytes } from '@/lib/bytes'
 import { problemOf } from '@/lib/problem'
+import { safeHref } from '@/lib/safe-url'
 
-import { apiProblemMessage, formatBytes, formatDuration, permissionMessageKey } from './plugins-settings-form'
+import { apiProblemMessage, formatDuration, permissionMessageKey } from './plugins-settings-form'
 
 export function PluginDetailsDrawer({
   plugin: initialPlugin,
@@ -37,6 +43,7 @@ export function PluginDetailsDrawer({
   const t = useTranslations('adminPlugins.detailsDrawer')
   const te = useTranslations('adminPlugins')
   const ti = useTranslations('adminPlugins.inspect')
+  const tc = useTranslations('common')
   const locale = useLocale()
   const loadErrRef = useRef(te('errors.load'))
   loadErrRef.current = te('errors.load')
@@ -44,31 +51,39 @@ export function PluginDetailsDrawer({
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const pluginId = initialPlugin?.id ?? null
+  const seqRef = useRef(0)
+  const abortRef = useRef<AbortController | null>(null)
 
-  useEffect(() => {
-    void locale
-    setDetail(initialPlugin)
+  const load = useCallback(() => {
+    abortRef.current?.abort()
+    const seq = ++seqRef.current
     setLoadError(null)
     if (!open || !pluginId) {
       setLoading(false)
       return
     }
-    let active = true
+    const ctl = new AbortController()
+    abortRef.current = ctl
     setLoading(true)
-    getPlugin(pluginId)
+    getPlugin(pluginId, { signal: ctl.signal })
       .then((res) => {
-        if (active && res.status === 200) setDetail(res.data as AdminPluginView)
+        if (seq === seqRef.current && res.status === 200) setDetail(res.data as AdminPluginView)
       })
       .catch((err) => {
-        if (active) setLoadError(apiProblemMessage(problemOf(err).detail, err, loadErrRef.current))
+        if (ctl.signal.aborted || seq !== seqRef.current) return
+        setLoadError(apiProblemMessage(problemOf(err).detail, err, loadErrRef.current))
       })
       .finally(() => {
-        if (active) setLoading(false)
+        if (seq === seqRef.current) setLoading(false)
       })
-    return () => {
-      active = false
-    }
-  }, [open, pluginId, locale])
+  }, [open, pluginId])
+
+  useEffect(() => {
+    void locale
+    setDetail(initialPlugin)
+    load()
+    return () => abortRef.current?.abort()
+  }, [initialPlugin, load, locale])
 
   const logs = detail?.recentLogs ?? []
   const routes = detail?.routes ?? []
@@ -81,6 +96,7 @@ export function PluginDetailsDrawer({
     ].map((item) => [item.name, item]),
   )
   const isNative = detail?.runtime === 'native'
+  const homepage = detail?.homepage ? safeHref(detail.homepage, '') : ''
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -98,7 +114,7 @@ export function PluginDetailsDrawer({
                     : 'gap-1 font-sans text-muted-foreground'
                 }
               >
-                {isNative ? <Cpu className="size-3" /> : <Box className="size-3" />}
+                {isNative ? <Cpu className="size-3" aria-hidden /> : <Box className="size-3" aria-hidden />}
                 {te(`runtimes.${isNative ? 'native' : 'js'}`)}
               </Badge>
             ) : null}
@@ -108,11 +124,22 @@ export function PluginDetailsDrawer({
         {detail ? (
           <div className="flex-1 overflow-y-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             {loading ? (
-              <div className="flex justify-center py-6 text-muted-foreground">
-                <Spinner />
+              <div className="mb-3 space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-20 rounded-lg" />
               </div>
             ) : null}
-            <FormError message={loadError} />
+            {loadError ? (
+              <Alert variant="destructive" role="alert" className="mb-3">
+                <CircleAlert />
+                <AlertDescription>{loadError}</AlertDescription>
+                <AlertAction>
+                  <Button type="button" variant="outline" size="sm" onClick={load}>
+                    {tc('retry')}
+                  </Button>
+                </AlertAction>
+              </Alert>
+            ) : null}
             <Tabs key={detail.id} defaultValue="overview" className="space-y-4">
               <TabsList variant="line" className="no-scrollbar h-auto w-full justify-start overflow-x-auto overflow-y-hidden pb-1.5">
                 <TabsTrigger value="overview">{t('tabs.overview')}</TabsTrigger>
@@ -128,6 +155,37 @@ export function PluginDetailsDrawer({
               </TabsList>
 
               <TabsContent value="overview" className="space-y-4">
+                {(detail.authors?.length || homepage || detail.packageSha256) ? (
+                  <div className="space-y-3 rounded-lg border border-border p-3">
+                    <p className="text-xs font-medium text-muted-foreground">{t('metaTitle')}</p>
+                    <div className="space-y-2.5 text-sm">
+                      {detail.authors && detail.authors.length > 0 ? (
+                        <Metric label={t('metaAuthors')} value={detail.authors.join(', ')} />
+                      ) : null}
+                      {homepage ? (
+                        <div className="min-w-0">
+                          <div className="text-xs text-muted-foreground">{t('metaHomepage')}</div>
+                          <a
+                            href={homepage}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex max-w-full items-center gap-1 break-all text-sm font-medium text-primary underline-offset-4 hover:underline"
+                          >
+                            <span className="truncate">{homepage}</span>
+                            <ExternalLink className="size-3.5 shrink-0" aria-hidden />
+                          </a>
+                        </div>
+                      ) : null}
+                      {detail.packageSha256 ? (
+                        <div className="space-y-1">
+                          <div className="text-xs text-muted-foreground">{t('metaSha256')}</div>
+                          <CopyField value={detail.packageSha256} label={t('metaSha256')} />
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+
                 {detail.nativeStats ? (
                   <div className="space-y-3 rounded-lg border border-border p-3">
                     <div className="flex items-center justify-between gap-2">
@@ -150,7 +208,7 @@ export function PluginDetailsDrawer({
                         label={t('nativeMemory')}
                         value={
                           detail.nativeStats.memoryRssBytes && detail.nativeStats.memoryRssBytes > 0
-                            ? formatBytes(detail.nativeStats.memoryRssBytes)
+                            ? formatBytes(detail.nativeStats.memoryRssBytes, locale)
                             : '—'
                         }
                       />
@@ -189,7 +247,7 @@ export function PluginDetailsDrawer({
                     <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
                       <Metric label={t('usageKv')} value={String(detail.usage.kvKeys)} />
                       <Metric label={t('usageDocs')} value={String(detail.usage.docs)} />
-                      <Metric label={t('usageFiles')} value={formatBytes(detail.usage.filesBytes)} />
+                      <Metric label={t('usageFiles')} value={formatBytes(detail.usage.filesBytes, locale)} />
                     </div>
                   </div>
                 ) : null}

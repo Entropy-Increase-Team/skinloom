@@ -1,12 +1,12 @@
 'use client'
 
 import { useFormatter, useTranslations } from 'next-intl'
-import { useState } from 'react'
+import { type KeyboardEvent, useState } from 'react'
 
 const W = 600
-const H = 150
-const LEFT = 32 // y-axis labels
-const BOTTOM = 20 // x-axis labels
+const H = 152
+const LEFT = 36 // y-axis labels
+const BOTTOM = 22 // x-axis labels
 const TOP = 8
 const PLOT_W = W - LEFT
 const PLOT_H = H - TOP - BOTTOM
@@ -28,7 +28,8 @@ function column(x: number, w: number, h: number): string {
 
 /**
  * One count per day as columns (a single series: the title names it, no legend).
- * Hovering or focusing a day shows its value; the table below has every value.
+ * Hover a day or focus the chart and use arrow keys to inspect values; the table below
+ * exposes every value for screen readers and keyboard-only users without 31 Tab stops.
  */
 export function DailyChart({ title, days }: { title: string; days: { date: string; value: number }[] }) {
   const t = useTranslations('adminOverview')
@@ -43,20 +44,47 @@ export function DailyChart({ title, days }: { title: string; days: { date: strin
   const shown = active === null ? null : days[active]
   const at = active === null ? 0 : ((LEFT + active * slot + slot / 2) / W) * 100 // tooltip anchor, % of the width
 
+  function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (days.length === 0) return
+    if (e.key === 'ArrowRight') {
+      e.preventDefault()
+      setActive((cur) => (cur === null ? 0 : Math.min(days.length - 1, cur + 1)))
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      setActive((cur) => (cur === null ? days.length - 1 : Math.max(0, cur - 1)))
+    } else if (e.key === 'Home') {
+      e.preventDefault()
+      setActive(0)
+    } else if (e.key === 'End') {
+      e.preventDefault()
+      setActive(days.length - 1)
+    } else if (e.key === 'Escape') {
+      setActive(null)
+    }
+  }
+
   return (
     <figure className="flex flex-col gap-2">
       <figcaption className="flex items-baseline justify-between gap-2">
         <span className="text-sm font-medium">{title}</span>
-        <span className="text-xs text-muted-foreground">{t('total', { count: total })}</span>
+        <span className="text-xs text-muted-foreground tabular-nums">{t('total', { count: format.number(total) })}</span>
       </figcaption>
-      <div className="relative">
-        <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label={`${title}: ${t('total', { count: total })}`}>
+      <div
+        className="relative rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        tabIndex={0}
+        role="group"
+        aria-label={`${title}: ${t('total', { count: format.number(total) })}`}
+        onKeyDown={onKeyDown}
+        onBlur={() => setActive(null)}
+        onPointerLeave={() => setActive(null)}
+      >
+        <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" aria-hidden="true">
           <line x1={LEFT} x2={W} y1={TOP} y2={TOP} stroke="var(--border)" strokeWidth={1} />
           <line x1={LEFT} x2={W} y1={TOP + PLOT_H} y2={TOP + PLOT_H} stroke="var(--border)" strokeWidth={1} />
-          <text x={LEFT - 6} y={TOP + 4} textAnchor="end" className="fill-muted-foreground text-[11px]">
+          <text x={LEFT - 6} y={TOP + 4} textAnchor="end" className="fill-muted-foreground text-xs">
             {format.number(max, { notation: 'compact' })}
           </text>
-          <text x={LEFT - 6} y={TOP + PLOT_H + 4} textAnchor="end" className="fill-muted-foreground text-[11px]">
+          <text x={LEFT - 6} y={TOP + PLOT_H + 4} textAnchor="end" className="fill-muted-foreground text-xs">
             0
           </text>
           {days.map((d, i) => {
@@ -65,20 +93,14 @@ export function DailyChart({ title, days }: { title: string; days: { date: strin
             return (
               <g key={d.date}>
                 {h > 0 && <path d={column(x, barW, h)} fill="var(--chart-1)" opacity={active === null || active === i ? 1 : 0.55} />}
-                {/* The whole slot is the hit target, taller and wider than the column. */}
+                {/* Pointer hit target covering the full column slot. */}
                 <rect
                   x={LEFT + i * slot}
                   y={TOP}
                   width={slot}
                   height={PLOT_H}
                   fill="transparent"
-                  tabIndex={0}
-                  aria-label={`${d.date}: ${d.value}`}
                   onPointerEnter={() => setActive(i)}
-                  onPointerLeave={() => setActive(null)}
-                  onFocus={() => setActive(i)}
-                  onBlur={() => setActive(null)}
-                  className="outline-none focus-visible:stroke-ring"
                 />
               </g>
             )
@@ -89,22 +111,25 @@ export function DailyChart({ title, days }: { title: string; days: { date: strin
               x={LEFT + i * slot + slot / 2}
               y={H - 4}
               textAnchor={i === 0 ? 'start' : i === days.length - 1 ? 'end' : 'middle'}
-              className="fill-muted-foreground text-[11px]"
+              className="fill-muted-foreground text-xs"
             >
               {label(days[i].date)}
             </text>
           ))}
         </svg>
+        <span role="status" className="sr-only">
+          {shown && active !== null ? `${shown.date}: ${format.number(shown.value)}` : ''}
+        </span>
         {shown && active !== null && (
           <div
-            role="status"
-            className={`pointer-events-none absolute top-0 rounded-md border bg-popover px-2 py-1 text-xs shadow-sm ${
+            aria-hidden="true"
+            className={`pointer-events-none absolute top-0 rounded-md border bg-popover px-2.5 py-1.5 text-xs shadow-(--shadow-popover) ${
               // Near an edge the tooltip opens inwards, so it never hangs off the card.
               at > 85 ? '-translate-x-full' : at < 15 ? '' : '-translate-x-1/2'
             }`}
             style={{ left: `${at}%` }}
           >
-            <strong className="block text-sm tabular-nums">{format.number(shown.value)}</strong>
+            <span className="block text-sm font-medium tabular-nums">{format.number(shown.value)}</span>
             <span className="text-muted-foreground">{shown.date}</span>
           </div>
         )}
@@ -116,7 +141,7 @@ export function DailyChart({ title, days }: { title: string; days: { date: strin
             {days.map((d) => (
               <tr key={d.date}>
                 <td className="py-1 text-muted-foreground">{d.date}</td>
-                <td className="py-1 text-right tabular-nums">{d.value}</td>
+                <td className="py-1 text-right tabular-nums">{format.number(d.value)}</td>
               </tr>
             ))}
           </tbody>

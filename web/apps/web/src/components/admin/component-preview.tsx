@@ -1,19 +1,22 @@
 'use client'
 
 import type { TextureView } from '@skinloom/api-client'
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, Alert, AlertDescription, AlertTitle, Badge, Button, ButtonGroup, ButtonLink, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Checkbox, CodeBlock, CopyField, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Dropzone, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Field, FieldDescription, FieldError, FieldGroup, FieldLabel, Input, InputGroup, InputGroupAddon, InputGroupInput, Kbd, KbdGroup, Label, MenuIcon, menuIcons, PageHeader, PixelBackdrop, PlayerCard, Popover, PopoverContent, PopoverDescription, PopoverHeader, PopoverTitle, PopoverTrigger, Progress, RadioGroup, RadioGroupItem, RelativeTime, SaveBar, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, Skeleton, SkinCarousel, SkinViewer, Slider, Spinner, StatCard, StatusDot, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, TabsContent, TabsList, TabsTrigger, Textarea, TextureCard, TexturePicker, TexturePreview, toast, ToggleGroup, ToggleGroupItem, Tooltip, TooltipContent, TooltipTrigger, UsageMeter, useConfirm, UserAvatar } from '@skinloom/ui'
-import { Coins, Ellipsis, Pencil, Plus, Search, Shirt, Trash2, Upload } from 'lucide-react'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, Alert, AlertDescription, AlertTitle, Avatar, AvatarFallback, Badge, Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator, Button, ButtonGroup, ButtonLink, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Checkbox, CodeBlock, Collapsible, CollapsibleContent, CollapsibleTrigger, CopyField, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Dropzone, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Field, FieldDescription, FieldError, FieldGroup, FieldLabel, Input, InputGroup, InputGroupAddon, InputGroupInput, Kbd, KbdGroup, Label, Markdown, MenuIcon, menuIcons, PageHeader, Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PixelBackdrop, PlayerCard, Popover, PopoverContent, PopoverDescription, PopoverHeader, PopoverTitle, PopoverTrigger, Progress, RadioGroup, RadioGroupItem, RelativeTime, SaveBar, ScrollArea, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, Skeleton, SkinCarousel, SkinViewer, Slider, Spinner, StatCard, StatusDot, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, TabsContent, TabsList, TabsTrigger, Textarea, TextureCard, TexturePicker, TexturePreview, toast, Toggle, ToggleGroup, ToggleGroupItem, Tooltip, TooltipContent, TooltipTrigger, UsageMeter, useConfirm, UserAvatar } from '@skinloom/ui'
+import { ChevronDown, Coins, Ellipsis, Pencil, Plus, Search, Shirt, Trash2, Upload } from 'lucide-react'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import { useTheme } from 'next-themes'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type * as React from 'react'
 
 /** Tokens a theme sets (web/design.md §2.2), shown as swatches. */
 const COLOR_TOKENS = [
   'background',
   'card',
+  'popover',
   'muted',
+  'secondary',
+  'accent',
   'foreground',
   'muted-foreground',
   'faint-foreground',
@@ -23,12 +26,17 @@ const COLOR_TOKENS = [
   'primary-foreground',
   'highlight',
   'highlight-foreground',
+  'warning',
+  'warning-foreground',
   'success',
   'success-foreground',
   'destructive',
   'destructive-foreground',
   'overlay',
   'ring',
+  'sidebar',
+  'sidebar-foreground',
+  'sidebar-border',
   'chart-1',
   'chart-2',
   'chart-3',
@@ -37,6 +45,10 @@ const COLOR_TOKENS = [
   'pixel-a',
   'pixel-b',
 ]
+
+// Fixed deterministic sample dates so SSR and hydration match identically.
+const SAMPLE_RECENT_ISO = '2026-06-15T12:00:00Z'
+const SAMPLE_EARLIER_ISO = '2026-06-14T08:00:00Z'
 
 const TYPE_SCALE: [string, string, string][] = [
   ['text-5xl font-semibold', '48 / 600', 'headline'],
@@ -73,8 +85,11 @@ function Demo({ name, children, className }: { name: string; children: React.Rea
 
 export function ComponentPreview({ textures }: { textures: TextureView[] }) {
   const t = useTranslations('componentPreview')
+  const format = useFormatter()
   const s = (k: string, v?: Record<string, string>) => t(`sample.${k}` as 'sample.headline', v)
   const { resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
   const confirm = useConfirm()
   const [picker, setPicker] = useState(false)
   const [picked, setPicked] = useState<number | null>(null)
@@ -83,6 +98,7 @@ export function ComponentPreview({ textures }: { textures: TextureView[] }) {
   const skins = textures.filter((x) => x.type !== 'cape')
   const first = skins[0]
   const modelLabel = (type: string) => (type === 'alex' ? s('slim') : s('classic'))
+  const activeMode = mounted && resolvedTheme === 'dark' ? 'dark' : 'light'
 
   return (
     <div className="flex flex-col gap-10">
@@ -93,7 +109,7 @@ export function ComponentPreview({ textures }: { textures: TextureView[] }) {
           <ToggleGroup
             aria-label={t('mode')}
             variant="outline"
-            value={[resolvedTheme === 'dark' ? 'dark' : 'light']}
+            value={[activeMode]}
             onValueChange={(v) => v[0] && setTheme(v[0])}
           >
             <ToggleGroupItem value="light">{t('light')}</ToggleGroupItem>
@@ -239,10 +255,15 @@ export function ComponentPreview({ textures }: { textures: TextureView[] }) {
               <FieldLabel>{s('volume')}</FieldLabel>
               <Slider defaultValue={[60]} max={100} className="max-w-60" />
             </Field>
-            <ToggleGroup defaultValue={['all']} variant="outline">
-              <ToggleGroupItem value="all">{s('skin')}</ToggleGroupItem>
-              <ToggleGroupItem value="cape">{s('cape')}</ToggleGroupItem>
-            </ToggleGroup>
+            <div className="flex flex-wrap items-center gap-3">
+              <ToggleGroup defaultValue={['all']} variant="outline">
+                <ToggleGroupItem value="all">{s('skin')}</ToggleGroupItem>
+                <ToggleGroupItem value="cape">{s('cape')}</ToggleGroupItem>
+              </ToggleGroup>
+              <Toggle variant="outline" defaultPressed>
+                {s('public')}
+              </Toggle>
+            </div>
           </div>
         </div>
       </Section>
@@ -251,6 +272,18 @@ export function ComponentPreview({ textures }: { textures: TextureView[] }) {
         <div className="grid gap-4 lg:grid-cols-2">
           <Alert>
             <AlertTitle>{s('alertTitle')}</AlertTitle>
+            <AlertDescription>{s('alertBody')}</AlertDescription>
+          </Alert>
+          <Alert variant="info">
+            <AlertTitle>{s('alertTitle')}</AlertTitle>
+            <AlertDescription>{s('alertBody')}</AlertDescription>
+          </Alert>
+          <Alert variant="success">
+            <AlertTitle>{s('ok')}</AlertTitle>
+            <AlertDescription>{s('alertBody')}</AlertDescription>
+          </Alert>
+          <Alert variant="warning">
+            <AlertTitle>{s('warn')}</AlertTitle>
             <AlertDescription>{s('alertBody')}</AlertDescription>
           </Alert>
           <Alert variant="destructive">
@@ -262,6 +295,7 @@ export function ComponentPreview({ textures }: { textures: TextureView[] }) {
           <Badge>{s('public')}</Badge>
           <Badge variant="secondary">{s('classic')}</Badge>
           <Badge variant="outline">{s('slim')}</Badge>
+          <Badge variant="highlight">{s('score')}</Badge>
           <Badge variant="success">{s('ok')}</Badge>
           <Badge variant="warning">{s('warn')}</Badge>
           <Badge variant="destructive">{s('error')}</Badge>
@@ -437,11 +471,85 @@ export function ComponentPreview({ textures }: { textures: TextureView[] }) {
                 <TableCell>
                   <StatusDot status={status as 'ok'}>{s(status as string)}</StatusDot>
                 </TableCell>
-                <TableCell className="text-right tabular-nums">{Number(score).toLocaleString()}</TableCell>
+                <TableCell className="text-right tabular-nums">{format.number(Number(score))}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Demo name="Tabs (line) · Breadcrumb · Pagination" className="flex flex-col gap-4">
+            <Tabs defaultValue="a">
+              <TabsList variant="line">
+                <TabsTrigger value="a">{s('tab1')}</TabsTrigger>
+                <TabsTrigger value="b">{s('tab2')}</TabsTrigger>
+              </TabsList>
+              <TabsContent value="a" className="pt-2 text-sm text-muted-foreground">
+                {s('body')}
+              </TabsContent>
+              <TabsContent value="b" className="pt-2 text-sm text-muted-foreground">
+                {s('answer')}
+              </TabsContent>
+            </Tabs>
+            <Separator />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink render={<Link href="/admin" />}>{t('title')}</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{t('sections.display')}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+            <Pagination className="justify-start">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious href="#display" />
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationLink href="#display" isActive>
+                    1
+                  </PaginationLink>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationLink href="#display">2</PaginationLink>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext href="#display" />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </Demo>
+          <Demo name="Avatar · Collapsible · Markdown · ScrollArea" className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <Avatar size="sm">
+                <AvatarFallback>SL</AvatarFallback>
+              </Avatar>
+              <Avatar>
+                <AvatarFallback>ST</AvatarFallback>
+              </Avatar>
+              <Avatar size="lg">
+                <AvatarFallback>AX</AvatarFallback>
+              </Avatar>
+            </div>
+            <Collapsible className="rounded-lg border p-3">
+              <CollapsibleTrigger className="flex w-full items-center justify-between text-sm font-medium">
+                <span>{s('question')}</span>
+                <ChevronDown className="size-4 text-muted-foreground" aria-hidden />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2 text-sm text-muted-foreground">
+                {s('answer')}
+              </CollapsibleContent>
+            </Collapsible>
+            <ScrollArea className="h-24 rounded-lg border p-3">
+              <Markdown html={`<p>${s('body')}</p><p><code>skinloom theme check</code> — ${s('answer')}</p>`} />
+            </ScrollArea>
+          </Demo>
+        </div>
       </Section>
 
       <Section id="skins" title={t('sections.skins')}>
@@ -567,6 +675,7 @@ export function ComponentPreview({ textures }: { textures: TextureView[] }) {
           <div className="col-span-2 flex flex-col justify-center gap-4 rounded-xl border bg-card p-5">
             <UsageMeter label={s('storage')} value={2.4} max={10} format={(n) => `${n} MB`} />
             <UsageMeter label={s('storage')} value={8.6} max={10} format={(n) => `${n} MB`} />
+            <UsageMeter label={s('storage')} value={10.5} max={10} format={(n) => `${n} MB`} />
           </div>
         </div>
         <Demo name="StatusDot · RelativeTime">
@@ -574,8 +683,8 @@ export function ComponentPreview({ textures }: { textures: TextureView[] }) {
           <StatusDot status="warn">{s('warn')}</StatusDot>
           <StatusDot status="error">{s('error')}</StatusDot>
           <StatusDot status="off">{s('off')}</StatusDot>
-          <RelativeTime date={new Date(Date.now() - 12 * 60_000)} className="text-caption text-muted-foreground" />
-          <RelativeTime date={new Date(Date.now() - 26 * 3600_000)} className="text-caption text-muted-foreground" />
+          <RelativeTime date={SAMPLE_RECENT_ISO} className="text-caption text-muted-foreground" />
+          <RelativeTime date={SAMPLE_EARLIER_ISO} className="text-caption text-muted-foreground" />
         </Demo>
         <div className="grid gap-6 lg:grid-cols-2">
           <Demo name="CopyField · CodeBlock" className="flex flex-col gap-3">

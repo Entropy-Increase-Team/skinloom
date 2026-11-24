@@ -19,4 +19,4 @@ resources:
 images:
   - name: docker.io/dnyo666/skinloom
     # newName: ghcr.io/entropy-increase-team/skinloom # uncomment to pull from GHCR instead of Docker Hub
-    newTag: latest # pin a release, e.g. 1.1.4
+    newTag: latest # pin a release, e.g. 1.1.5

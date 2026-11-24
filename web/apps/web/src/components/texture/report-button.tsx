@@ -3,17 +3,17 @@
 import { reportTexture, type ScoreRates } from '@skinloom/api-client'
 import {
   Button,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
   Field,
   FieldDescription,
   FieldLabel,
+  ResponsiveDialog,
+  ResponsiveDialogClose,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogTrigger,
   Textarea,
   toast,
 } from '@skinloom/ui'
@@ -79,23 +79,23 @@ export function ReportButton({ textureId, rates }: { textureId: number; rates: S
     .join(' ')
 
   return (
-    <Dialog
+    <ResponsiveDialog
       open={open}
       onOpenChange={(next) => {
         setOpen(next)
         if (next) setError(null)
       }}
     >
-      <DialogTrigger render={<Button variant="ghost" size="sm" className="self-start text-muted-foreground" />}>
+      <ResponsiveDialogTrigger render={<Button variant="ghost" size="sm" className="self-start text-muted-foreground" />}>
         <Flag />
         {t('open')}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-5">
-          <DialogHeader>
-            <DialogTitle>{t('title')}</DialogTitle>
-            <DialogDescription>{t('body')}</DialogDescription>
-          </DialogHeader>
+      </ResponsiveDialogTrigger>
+      <ResponsiveDialogContent className="md:max-w-md">
+        <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-5" noValidate>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>{t('title')}</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>{t('body')}</ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
           <Field>
             <FieldLabel htmlFor="report-reason">{t('reason')}</FieldLabel>
             <Textarea
@@ -110,14 +110,14 @@ export function ReportButton({ textureId, rates }: { textureId: number; rates: S
             {note && <FieldDescription>{note}</FieldDescription>}
           </Field>
           <FormError message={error} />
-          <DialogFooter>
-            <DialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</DialogClose>
+          <ResponsiveDialogFooter>
+            <ResponsiveDialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</ResponsiveDialogClose>
             <Button type="submit" variant="destructive" loading={pending} disabled={!reason.trim()}>
               {t('submit')}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

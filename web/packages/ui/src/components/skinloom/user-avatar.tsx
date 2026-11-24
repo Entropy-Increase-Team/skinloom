@@ -13,8 +13,8 @@ export function UserAvatar({
   alt = '',
   className,
 }: {
-  /** A user (version changes when they pick another avatar) or a texture. */
-  of: { user: number; version?: number } | { texture: number }
+  /** A user (version changes when they pick another avatar), a player, or a texture. */
+  of: { user: number; version?: number } | { player: string } | { texture: number }
   size?: 16 | 20 | 24 | 28 | 32 | 36 | 40 | 48 | 64
   /** The head as a cube seen from above instead of the flat face. */
   cube?: boolean

@@ -1,5 +1,5 @@
 import { ButtonLink } from '@skinloom/ui'
-import { ArrowUpRight } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
 import type * as React from 'react'
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
@@ -19,9 +19,9 @@ const projects = [
 
 function External({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-medium hover:text-primary">
+    <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium hover:text-primary">
       {children}
-      <ArrowUpRight className="size-3.5 text-faint-foreground" aria-hidden />
+      <ExternalLink className="size-3.5 text-faint-foreground" aria-hidden />
     </a>
   )
 }
@@ -33,7 +33,7 @@ export default async function AboutPage() {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-10 px-4 py-10 sm:px-6 lg:py-16">
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-medium">{t('title')}</h1>
+        <h1 className="text-2xl font-medium sm:text-3xl">{t('title')}</h1>
         <p className="text-body text-muted-foreground">{t('intro')}</p>
         <div className="flex flex-col gap-3 rounded-xl border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1">
@@ -53,7 +53,7 @@ export default async function AboutPage() {
           </div>
           <ButtonLink variant="outline" size="sm" className="w-fit shrink-0" render={<a href="https://github.com/Entropy-Increase-Team/skinloom" target="_blank" rel="noreferrer" />}>
             GitHub
-            <ArrowUpRight aria-hidden />
+            <ExternalLink aria-hidden />
           </ButtonLink>
         </div>
       </div>

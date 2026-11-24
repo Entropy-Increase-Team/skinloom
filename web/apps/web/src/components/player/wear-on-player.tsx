@@ -2,8 +2,8 @@
 
 import { type PlayerView, wearTextures } from '@skinloom/api-client'
 import { useListPlayers } from '@skinloom/api-client/query'
-import { Button, ButtonLink, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from '@skinloom/ui'
-import { Shirt } from 'lucide-react'
+import { Alert, AlertAction, AlertDescription, Button, ButtonLink, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from '@skinloom/ui'
+import { CircleAlert, Shirt } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
@@ -14,10 +14,23 @@ import { problemOf } from '@/lib/problem'
 export function WearOnPlayer({ textureId, kind }: { textureId: number; kind: 'skin' | 'cape' }) {
   const t = useTranslations('player')
   const tc = useTranslations('common')
-  const { data: players } = useListPlayers({ query: { select: (r) => r.data as PlayerView[] } })
+  const { data: players, isError, refetch } = useListPlayers({ query: { select: (r) => r.data as PlayerView[] } })
   const [chosen, setChosen] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
+  if (isError) {
+    return (
+      <Alert variant="destructive" role="alert">
+        <CircleAlert />
+        <AlertDescription>{t('loadFailed')}</AlertDescription>
+        <AlertAction>
+          <Button type="button" variant="outline" size="sm" onClick={() => void refetch()}>
+            {tc('retry')}
+          </Button>
+        </AlertAction>
+      </Alert>
+    )
+  }
   if (!players) return null
   if (players.length === 0) {
     return (

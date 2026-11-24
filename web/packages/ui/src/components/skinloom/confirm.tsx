@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useCallback, useContext, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import type * as React from 'react'
 
 import { Input } from '../ui/input'
@@ -44,6 +44,14 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const [typed, setTyped] = useState('')
   const resolver = useRef<((ok: boolean) => void) | null>(null)
+
+  useEffect(
+    () => () => {
+      resolver.current?.(false)
+      resolver.current = null
+    },
+    [],
+  )
 
   const ask = useCallback<Ask>((o) => {
     resolver.current?.(false) // a second question replaces an unanswered one

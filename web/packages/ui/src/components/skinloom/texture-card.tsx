@@ -17,6 +17,7 @@ export interface TextureCardTexture {
 
 /** Preview heights for the skin library's densities (theme layout `skinlib`). */
 const HEIGHTS = { comfortable: 150, compact: 104 } as const
+const NUM_FMT = new Intl.NumberFormat('en-US')
 
 /**
  * A texture in a grid (web/design.md §10.3): the dual view on the pixel backdrop, the
@@ -86,7 +87,8 @@ export function TextureCard({
           <span className="flex-1" />
           <span className="inline-flex shrink-0 items-center gap-1 tabular-nums" title={likesLabel}>
             <Heart className="size-3" aria-hidden />
-            {texture.likes}
+            {likesLabel && <span className="sr-only">{likesLabel} </span>}
+            {NUM_FMT.format(texture.likes)}
           </span>
         </span>
       </div>
@@ -131,7 +133,7 @@ export function PlayerCard({
       <PixelBackdrop style={{ height: h + 40 }}>{skin && <TexturePreview texture={{ id: skin.id }} type={skin.type} height={h} alt="" />}</PixelBackdrop>
       <div className="flex flex-col gap-2.5 px-2 pt-2.5 pb-2">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="truncate text-[0.9375rem] font-medium">{name}</span>
+          <span className="truncate text-body font-medium">{name}</span>
           {uuid && <span className="truncate font-mono text-xs text-faint-foreground">{uuid}</span>}
         </div>
         {details && details.length > 0 && (

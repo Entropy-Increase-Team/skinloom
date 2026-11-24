@@ -353,6 +353,25 @@ export function buildPluginSettingsPatch(
   return { patch, errors }
 }
 
+function isFieldDirty(field: PluginSettingFieldView, draftVal: unknown, initialVal: unknown): boolean {
+  if (field.type === 'secret') {
+    const s = typeof draftVal === 'string' ? draftVal.trim() : ''
+    return s !== '' && s !== '********'
+  }
+  if (field.type === 'group' && field.fields && typeof draftVal === 'object' && draftVal !== null && !Array.isArray(draftVal)) {
+    const obj = draftVal as Record<string, unknown>
+    const initObj =
+      typeof initialVal === 'object' && initialVal !== null && !Array.isArray(initialVal)
+        ? (initialVal as Record<string, unknown>)
+        : {}
+    return Object.entries(field.fields).some(([subKey, rawSub]) => {
+      const subField = groupSubfieldToView(field.key, subKey, rawSub)
+      return isFieldDirty(subField, obj[subKey], initObj[subKey])
+    })
+  }
+  return !isEqualValue(draftVal, initialVal)
+}
+
 /** Returns true when at least one setting differs from `initialDraft` or a secret is queued for clearing. */
 export function isPluginSettingsDirty(
   fields: PluginSettingFieldView[],
@@ -361,14 +380,7 @@ export function isPluginSettingsDirty(
   initialDraft: PluginSettingsDraft,
 ): boolean {
   if (clearedSecrets.size > 0) return true
-  for (const field of fields) {
-    if (field.type === 'secret') {
-      if (typeof draft[field.key] === 'string' && String(draft[field.key]).trim() !== '') return true
-      continue
-    }
-    if (!isEqualValue(draft[field.key], initialDraft[field.key])) return true
-  }
-  return false
+  return fields.some((field) => isFieldDirty(field, draft[field.key], initialDraft[field.key]))
 }
 
 /** Collects initially checked permission names when opening the package inspect dialog. */
@@ -402,11 +414,7 @@ export function canSubmitPackageInstall(
   return true
 }
 
-export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KiB`
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MiB`
-}
+export { formatBytes } from '@/lib/bytes'
 
 export function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return '0s'

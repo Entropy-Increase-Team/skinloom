@@ -40,7 +40,7 @@ export function UserBadges({ badges }: { badges?: UserBadge[] | null }) {
         if (!b.text) return null
         const Icon = b.icon ? menuIcons[b.icon] : undefined
         return (
-          <Badge key={`${b.text}-${i}`} variant={badgeVariant(b.color)} className="h-4 px-1.5 text-[0.6875rem]">
+          <Badge key={`${b.text}-${i}`} variant={badgeVariant(b.color)} className="h-5 px-1.5 text-xs">
             {Icon && <Icon aria-hidden />}
             <span className="max-w-32 truncate">{b.text}</span>
           </Badge>

@@ -2,7 +2,7 @@
 
 import { type SignInfo, type SignResult, signIn } from '@skinloom/api-client'
 import { Button, toast } from '@skinloom/ui'
-import { CalendarCheck, Check } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useFormatter, useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
@@ -32,7 +32,7 @@ export function SignInCard({ sign }: { sign: SignInfo }) {
     try {
       const res = (await signIn()).data as SignResult
       setNext(res.nextAt)
-      toast.success(t('gained', { score: res.gained }))
+      toast.success(t('gained', { score: format.number(res.gained) }))
       router.refresh()
     } catch (err) {
       const p = problemOf(err)
@@ -47,12 +47,13 @@ export function SignInCard({ sign }: { sign: SignInfo }) {
   return (
     <section className="flex flex-col gap-4 rounded-xl border bg-card p-5" aria-labelledby="sign-title">
       <div className="flex flex-col gap-1">
-        <h2 id="sign-title" className="flex items-center gap-2 text-sm font-medium">
-          <CalendarCheck className="size-4 text-muted-foreground" aria-hidden />
+        <h2 id="sign-title" className="text-sm font-medium">
           {t('title')}
         </h2>
-        <p className="text-caption text-muted-foreground">
-          {sign.min === sign.max ? t('fixed', { score: sign.min }) : t('range', { min: sign.min, max: sign.max })}
+        <p className="text-caption text-muted-foreground tabular-nums">
+          {sign.min === sign.max
+            ? t('fixed', { score: format.number(sign.min) })
+            : t('range', { min: format.number(sign.min), max: format.number(sign.max) })}
           {sign.daily ? t('daily') : t('gap', { hours: sign.gapHours })}
         </p>
       </div>

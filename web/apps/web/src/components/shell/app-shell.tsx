@@ -10,7 +10,7 @@ import { layoutOf } from '@/lib/theme'
 import type { Viewer } from '@/lib/viewer'
 
 import { AppSidebar, AppSidebarProvider, AppTabNav, type SidebarLink, type SidebarSection } from './app-sidebar'
-import { SiteHeader } from './site-header'
+import { SiteBanners, SiteHeader } from './site-header'
 import { SkipLink } from './skip-link'
 
 /**
@@ -24,6 +24,15 @@ export async function AppShell({ area, viewer, children }: { area: 'user' | 'adm
   // Like the header: "nav.*" is a message key, anything else literal text (MenuItem.title).
   const title = (key: string) => (key.startsWith('nav.') && t.has(key as 'nav.skinlib') ? t(key as 'nav.skinlib') : key)
   const plugin = (boot.menus[area] ?? []).slice().sort((a, b) => a.order - b.order).map((m) => ({ href: safeHref(m.href, '/'), label: title(m.title), icon: m.icon }))
+  const publicLinks: SidebarLink[] = [
+    { href: '/', label: t('shell.home'), icon: 'house', exact: true },
+    ...[...(boot.menus.explore ?? [])].sort((a, b) => a.order - b.order).map((m) => ({
+      href: safeHref(m.href, '/'),
+      label: title(m.title),
+      icon: m.icon || (m.href === '/skinlib' ? 'layout-grid' : undefined),
+    })),
+    { href: '/about', label: t('nav.about'), icon: 'info' },
+  ]
 
   let sections: SidebarSection[]
   let footer: SidebarLink | undefined
@@ -70,11 +79,11 @@ export async function AppShell({ area, viewer, children }: { area: 'user' | 'adm
           { href: '/admin/settings', label: t('admin.settings'), icon: 'settings' },
         ],
       },
+      { label: t('adminNav.system'), links: [{ href: '/admin/status', label: t('admin.systemStatus'), icon: 'activity' }] },
       {
         label: t('adminNav.plugins'),
         links: [{ href: '/admin/plugins', label: t('admin.plugins'), icon: 'puzzle', exact: true }, ...plugin],
       },
-      { label: t('adminNav.system'), links: [{ href: '/admin/status', label: t('admin.systemStatus'), icon: 'activity' }] },
     ]
     footer = { href: '/user', label: t('shell.backToUser'), icon: 'arrow-left', exact: true }
   }
@@ -100,10 +109,11 @@ export async function AppShell({ area, viewer, children }: { area: 'user' | 'adm
       <AppSidebarProvider initialOpen={saved === undefined ? undefined : saved === 'true'}>
         {skip}
         <SiteHeader variant="app" />
-        <Slot name="site.banner" />
         <div className="flex flex-1">
-          <AppSidebar sections={sections} footer={footer} />
+          <AppSidebar sections={sections} publicLinks={publicLinks} footer={footer} />
           <SidebarInset id="main" tabIndex={-1} className="min-w-0 scroll-mt-14 bg-background outline-none">
+            <SiteBanners />
+            <Slot name="site.banner" />
             <div className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col px-4 py-6 sm:px-6 lg:px-8 lg:py-7">{children}</div>
           </SidebarInset>
         </div>

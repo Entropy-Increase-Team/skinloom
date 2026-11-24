@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, Feather, Footprints, Pause, Play, RotateCcw, RotateCw, Square, User, Zap } from 'lucide-react'
+import { Feather, Footprints, Image as ImageIcon, Pause, Play, Rotate3d, RotateCcw, RotateCw, User, Zap } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { SkinViewer as Viewer } from 'skinview3d'
 
@@ -152,6 +152,7 @@ export function SkinViewer({
   const viewerRef = useRef<Viewer | null>(null)
   const libsRef = useRef<ViewerLibs | null>(null)
   const visibleRef = useRef(true)
+  const initializedAnimRef = useRef<ActiveAnimation | null>(null)
 
   const initialAnim: ActiveAnimation = animation === 'none' ? 'idle' : animation
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading')
@@ -232,6 +233,7 @@ export function SkinViewer({
         const a = createAnimation(libs, animRef.current)
         a.paused = pausedRef.current
         viewer.animation = a
+        initializedAnimRef.current = animRef.current
         viewer.autoRotate = rotatingRef.current && !pausedRef.current
 
         const syncPaused = () => {
@@ -252,11 +254,19 @@ export function SkinViewer({
         )
         setState('ready')
       })
-      .catch(() => !disposed && setState('failed'))
+      .catch(() => {
+        if (viewer) {
+          viewer.dispose()
+          viewer = undefined
+        }
+        viewerRef.current = null
+        if (!disposed) setState('failed')
+      })
 
     return () => {
       disposed = true
       viewerRef.current = null
+      initializedAnimRef.current = null
       cleanups.forEach((f) => f())
       viewer?.dispose()
     }
@@ -267,6 +277,11 @@ export function SkinViewer({
     const viewer = viewerRef.current
     const libs = libsRef.current
     if (!viewer || !libs || state !== 'ready') return
+    if (initializedAnimRef.current === animMode) {
+      initializedAnimRef.current = null
+      return
+    }
+    initializedAnimRef.current = null
     resetPlayerPose(viewer, backEquipRef.current, skin, cape)
     const a = createAnimation(libs, animMode)
     a.paused = pausedRef.current
@@ -304,9 +319,11 @@ export function SkinViewer({
 
   const flatTexture = skin ?? cape
 
+  const show2d = viewMode === '2d' || state === 'failed'
+
   // Fallback client-side front+back 2D preview canvas when no server previewSrc is provided (e.g. upload preview).
   useEffect(() => {
-    if (viewMode !== '2d' || previewSrc || !flatTexture) return
+    if (!show2d || previewSrc || !flatTexture) return
     let cancelled = false
     void import('skinview-utils').then(({ loadSkinToCanvas, inferModelType }) => {
       if (cancelled || !canvas2d.current) return
@@ -321,7 +338,7 @@ export function SkinViewer({
     return () => {
       cancelled = true
     }
-  }, [viewMode, previewSrc, flatTexture, skin, cape, model])
+  }, [show2d, previewSrc, flatTexture, skin, cape, model])
 
   const resetState = useCallback(() => {
     const still = prefersReducedMotion()
@@ -369,7 +386,7 @@ export function SkinViewer({
       ref={box}
       data-slot="skin-viewer"
       data-state={state}
-      data-view={viewMode}
+      data-view={show2d ? '2d' : '3d'}
       style={bg === 'transparent' ? undefined : { backgroundColor: BG_HEX[bg] }}
       className={cn(
         'sl-viewer relative h-full w-full overflow-hidden rounded-[inherit]',
@@ -382,6 +399,7 @@ export function SkinViewer({
           ref={canvas}
           role="img"
           aria-label={label}
+          aria-hidden={viewMode === '2d' || undefined}
           className={cn(
             'block h-full w-full cursor-grab transition-opacity duration-200 ease-out active:cursor-grabbing',
             state === 'ready' && viewMode === '3d' ? 'opacity-100' : 'pointer-events-none opacity-0',
@@ -389,7 +407,7 @@ export function SkinViewer({
         />
       )}
 
-      {viewMode === '2d' && (previewSrc || flatTexture) && (
+      {show2d && (previewSrc || flatTexture) && (
         <div className="absolute inset-0 flex items-center justify-center px-6 pt-16 pb-14 sm:px-12">
           {previewSrc ? (
             // eslint-disable-next-line @next/next/no-img-element -- server-rendered front+back preview (never exposes raw skin PNG)
@@ -410,6 +428,12 @@ export function SkinViewer({
         </div>
       )}
 
+      {state === 'failed' && !previewSrc && !flatTexture && (
+        <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-muted-foreground">
+          {t.previewUnavailable}
+        </div>
+      )}
+
       {controls && (
         <>
           <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex flex-wrap items-center justify-between gap-2">
@@ -417,33 +441,37 @@ export function SkinViewer({
               <Button
                 type="button"
                 size="xs"
-                variant={viewMode === '3d' ? 'secondary' : 'ghost'}
-                aria-pressed={viewMode === '3d'}
+                className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-y-2 pointer-coarse:after:inset-x-0"
+                variant={!show2d ? 'secondary' : 'ghost'}
+                aria-pressed={!show2d}
+                disabled={state === 'failed'}
                 onClick={() => setViewMode('3d')}
               >
-                <Box aria-hidden />
+                <Rotate3d aria-hidden />
                 <span>{t.mode3d}</span>
               </Button>
               <Button
                 type="button"
                 size="xs"
-                variant={viewMode === '2d' ? 'secondary' : 'ghost'}
-                aria-pressed={viewMode === '2d'}
+                className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-y-2 pointer-coarse:after:inset-x-0"
+                variant={show2d ? 'secondary' : 'ghost'}
+                aria-pressed={show2d}
                 onClick={() => setViewMode('2d')}
               >
-                <Square aria-hidden />
+                <ImageIcon aria-hidden />
                 <span>{t.mode2d}</span>
               </Button>
             </div>
 
             <div className="pointer-events-auto flex flex-wrap items-center gap-1.5">
-              {viewMode === '3d' && (
+              {!show2d && (
                 <div className="inline-flex items-center gap-0.5 rounded-lg border bg-card/90 p-0.5 shadow-xs backdrop-blur-xs">
                   {animOptions.map((opt) => (
                     <Button
                       key={opt.id}
                       type="button"
                       size="xs"
+                      className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-y-2 pointer-coarse:after:inset-x-0"
                       variant={animMode === opt.id ? 'secondary' : 'ghost'}
                       aria-pressed={animMode === opt.id}
                       aria-label={opt.label}
@@ -461,11 +489,12 @@ export function SkinViewer({
               )}
 
               <div className="inline-flex items-center gap-0.5 rounded-lg border bg-card/90 p-0.5 shadow-xs backdrop-blur-xs">
-                {viewMode === '3d' && (
+                {!show2d && (
                   <>
                     <Button
                       type="button"
                       size="icon-xs"
+                      className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-y-2 pointer-coarse:after:inset-x-0"
                       variant="ghost"
                       aria-pressed={paused}
                       aria-label={paused ? t.play : t.pause}
@@ -477,6 +506,7 @@ export function SkinViewer({
                     <Button
                       type="button"
                       size="icon-xs"
+                      className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-y-2 pointer-coarse:after:inset-x-0"
                       variant={rotating ? 'secondary' : 'ghost'}
                       aria-pressed={rotating}
                       aria-label={t.autoRotate}
@@ -492,6 +522,7 @@ export function SkinViewer({
                       <Button
                         type="button"
                         size="icon-xs"
+                        className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-y-2 pointer-coarse:after:inset-x-0"
                         variant={backEquip === 'elytra' ? 'secondary' : 'ghost'}
                         aria-pressed={backEquip === 'elytra'}
                         aria-label={t.backEquipment}
@@ -506,6 +537,7 @@ export function SkinViewer({
                 <Button
                   type="button"
                   size="icon-xs"
+                  className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-y-2 pointer-coarse:after:inset-x-0"
                   variant="ghost"
                   aria-label={t.resetView}
                   title={t.resetView}

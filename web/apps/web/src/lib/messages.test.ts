@@ -1,3 +1,4 @@
+import { defaultLabels } from '@skinloom/ui'
 import { describe, expect, it } from 'vitest'
 
 import en from '../../messages/en.json'
@@ -61,19 +62,22 @@ describe('savedOverrides', () => {
 })
 
 describe('shipped messages', () => {
-  it('have the same keys in zh-CN and en (except settingKeys.*.help, which falls back to v.doc) and matching placeholders', () => {
+  it('have identical keys in zh-CN and en (including settingKeys) and matching placeholders', () => {
     const zhMap = new Map(flatten(zh))
     const enMap = new Map(flatten(en))
-    const zhKeys = [...zhMap.keys()].filter((k) => !k.startsWith('settingKeys.'))
-    const enKeys = [...enMap.keys()].filter((k) => !k.startsWith('settingKeys.'))
-    expect(enKeys).toEqual(zhKeys)
+    expect([...enMap.keys()]).toEqual([...zhMap.keys()])
     for (const [k, zhText] of zhMap) {
       expect(overrideProblem(zhText, zhText), `zh-CN ${k}`).toBeNull()
       const enText = enMap.get(k)
-      if (enText !== undefined) {
-        expect(overrideProblem(zhText, enText), `${k}: zh-CN vs en`).toBeNull()
-      }
+      expect(enText, `en missing ${k}`).toBeDefined()
+      expect(overrideProblem(zhText, enText!), `${k}: zh-CN vs en`).toBeNull()
     }
+  })
+
+  it('provide every @skinloom/ui UiLabels key in both locales', () => {
+    const labelKeys = Object.keys(defaultLabels).toSorted()
+    expect(Object.keys(zh.ui).toSorted()).toEqual(labelKeys)
+    expect(Object.keys(en.ui).toSorted()).toEqual(labelKeys)
   })
 })
 

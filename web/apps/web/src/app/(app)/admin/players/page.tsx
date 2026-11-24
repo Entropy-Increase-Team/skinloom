@@ -15,7 +15,7 @@ export default async function AdminPlayersPage({ searchParams }: { searchParams:
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t('players')} description={t('playersIntro')} />
-      <PlayersTable key={user || 0} userId={Number.isSafeInteger(user) && user > 0 ? user : undefined} />
+      <PlayersTable userId={Number.isSafeInteger(user) && user > 0 ? user : undefined} />
     </div>
   )
 }

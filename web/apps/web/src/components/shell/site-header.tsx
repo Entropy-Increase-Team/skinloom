@@ -25,6 +25,29 @@ import { AppSidebarTrigger } from './app-sidebar'
  * Visitors: language and appearance, 登录 as a text link, 注册 as the one button.
  * Signed in: notifications and the account menu (which holds language and appearance).
  */
+/** Status banners (offline, setup pending, unverified email) kept outside the sticky 56px header so fixed sidebars are never overlapped. */
+export async function SiteBanners() {
+  const [boot, viewer, t] = await Promise.all([getBootstrap(), getViewer(), getTranslations()])
+  const showVerify = viewer && !viewer.emailVerified && (boot.auth.mail || boot.auth.requireVerification)
+  if (!boot.offline && !boot.needsSetup && !showVerify) return null
+  return (
+    <>
+      {boot.offline && <div className="bg-destructive/10 px-4 py-2 text-center text-sm text-destructive">{t('offline')}</div>}
+      {boot.needsSetup && (
+        <div className="flex flex-wrap items-center justify-center gap-3 bg-primary/10 px-4 py-2 text-center text-sm">
+          <span>{t.rich('setupPending', { code: (chunks) => <code className="font-mono">{chunks}</code> })}</span>
+          <ButtonLink render={<Link href="/setup" />} size="xs" className="pointer-coarse:h-10">
+            {t('setupPendingAction')}
+          </ButtonLink>
+        </div>
+      )}
+      {showVerify && (
+        <VerifyBanner email={viewer.email} required={boot.auth.requireVerification} canResend={boot.auth.mail} />
+      )}
+    </>
+  )
+}
+
 export async function SiteHeader({ variant = 'public' }: { variant?: 'public' | 'app' }) {
   const [boot, viewer] = await Promise.all([getBootstrap(), getViewer()])
   const t = await getTranslations()
@@ -54,7 +77,7 @@ export async function SiteHeader({ variant = 'public' }: { variant?: 'public' | 
         {app && <AppSidebarTrigger />}
         <Link href="/" className="flex min-w-0 items-center gap-2.5 rounded-md">
           <ThemeOverride name="site.logo" props={{ siteName: boot.site.name, logoUrl: logo ?? '' }} fallback={logoMark} />
-          <span className="truncate text-[0.9375rem] font-medium">{boot.site.name}</span>
+          <span className="truncate text-body font-medium">{boot.site.name}</span>
         </Link>
         <HeaderNav links={links} className="max-md:hidden" />
         <div className="ml-auto flex shrink-0 items-center gap-1">
@@ -84,20 +107,13 @@ export async function SiteHeader({ variant = 'public' }: { variant?: 'public' | 
           )}
         </div>
       </div>
-      {boot.offline && <div className="bg-destructive/10 px-4 py-2 text-center text-sm text-destructive">{t('offline')}</div>}
-      {boot.needsSetup && (
-        <div className="flex flex-wrap items-center justify-center gap-3 bg-primary/10 px-4 py-2 text-center text-sm">
-          <span>{t.rich('setupPending', { code: (chunks) => <code className="font-mono">{chunks}</code> })}</span>
-          <ButtonLink render={<Link href="/setup" />} size="xs" className="pointer-coarse:h-10">
-            {t('setupPendingAction')}
-          </ButtonLink>
-        </div>
-      )}
-      {viewer && !viewer.emailVerified && (boot.auth.mail || boot.auth.requireVerification) && (
-        <VerifyBanner email={viewer.email} required={boot.auth.requireVerification} canResend={boot.auth.mail} />
-      )}
     </header>
   )
 
-  return <ThemeOverride name="site.header" props={{ variant, siteName: boot.site.name, signedIn: Boolean(viewer) }} fallback={headerElement} />
+  return (
+    <>
+      <ThemeOverride name="site.header" props={{ variant, siteName: boot.site.name, signedIn: Boolean(viewer) }} fallback={headerElement} />
+      {!app && <SiteBanners />}
+    </>
+  )
 }

@@ -408,7 +408,7 @@ export function ThemePreviewBar({ bootstrap, onRefresh }: { bootstrap: SiteBoots
       role="region"
       aria-label={t('previewBar', { name: label })}
       data-sl-theme-preview={bootstrap.theme.id}
-      className="fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 mx-auto flex w-fit max-w-[calc(100vw-2rem)] flex-wrap items-center gap-3 rounded-xl border bg-card/95 px-4 py-2.5 text-sm text-card-foreground shadow-(--shadow-dialog) backdrop-blur"
+      className="fixed inset-x-0 top-16 z-40 mx-auto flex w-fit max-w-[calc(100vw-2rem)] flex-wrap items-center gap-3 rounded-xl border bg-card/95 px-4 py-2.5 text-sm text-card-foreground shadow-(--shadow-dialog) backdrop-blur"
     >
       <span role="status" className="font-medium">
         {t('previewBar', { name: label })}

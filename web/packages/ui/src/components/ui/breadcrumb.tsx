@@ -1,14 +1,17 @@
+"use client"
+
 import * as React from "react"
 import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
 import { cn } from "#lib/utils"
-import { SrLabel } from "#components/skinloom/labels"
+import { SrLabel, useUiLabels } from "#components/skinloom/labels"
 import { ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
 
 function Breadcrumb({ className, ...props }: React.ComponentProps<"nav">) {
+  const t = useUiLabels()
   return (
     <nav
-      aria-label="breadcrumb"
+      aria-label={t.breadcrumb}
       data-slot="breadcrumb"
       className={cn(className)}
       {...props}
@@ -99,16 +102,13 @@ function BreadcrumbEllipsis({
   return (
     <span
       data-slot="breadcrumb-ellipsis"
-      role="presentation"
-      aria-hidden="true"
       className={cn(
         "flex size-5 items-center justify-center [&>svg]:size-4",
         className
       )}
       {...props}
     >
-      <MoreHorizontalIcon
-      />
+      <MoreHorizontalIcon aria-hidden="true" />
       <SrLabel k="more" />
     </span>
   )

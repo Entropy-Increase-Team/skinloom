@@ -102,7 +102,7 @@ export function SetupWizard({ initialToken }: { initialToken: string }) {
     <Card>
       <CardHeader className="gap-4">
         <div className="flex flex-col gap-1">
-          <CardTitle>{t('title')}</CardTitle>
+          <CardTitle as="h1">{t('title')}</CardTitle>
           <CardDescription>{t('subtitle')}</CardDescription>
         </div>
         <ol className="flex flex-wrap items-center gap-2 text-xs">

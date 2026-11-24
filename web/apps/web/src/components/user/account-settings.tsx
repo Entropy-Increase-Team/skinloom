@@ -22,6 +22,7 @@ import {
 } from '@skinloom/api-client'
 import {
   Alert,
+  AlertAction,
   AlertDescription,
   Badge,
   Button,
@@ -41,7 +42,7 @@ import {
   useConfirm,
   UserAvatar,
 } from '@skinloom/ui'
-import { CircleCheck } from 'lucide-react'
+import { CircleAlert, CircleCheck } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
@@ -194,6 +195,7 @@ export function ProfileSection({ viewer, locales }: { viewer: Viewer; locales: L
     if (ok) {
       // The preference also decides the language of mail; apply it to this browser now.
       if (locale) document.cookie = `locale=${encodeURIComponent(locale)}; path=/; max-age=31536000; samesite=lax`
+      else document.cookie = 'locale=; path=/; max-age=0; samesite=lax'
       router.refresh()
     }
   }
@@ -254,7 +256,7 @@ export function PasswordSection({ viewer }: { viewer: Viewer }) {
   }
   return (
     <Section title={first ? t('setPassword') : t('password')} description={first ? t('setPasswordHint') : t('passwordHint')}>
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
         <FormError message={s.error} />
         {!first && (
           <Field id="password" label={t('currentPassword')} type="password" autoComplete="current-password" required error={s.fields.password} />
@@ -270,7 +272,7 @@ export function PasswordSection({ viewer }: { viewer: Viewer }) {
           error={s.fields.newPassword}
         />
         <Field id="confirm" label={t('confirmPassword')} type="password" autoComplete="new-password" required error={s.fields.confirm} />
-        <Button type="submit" className="self-start" loading={s.pending}>
+        <Button type="submit" variant="outline" className="self-start" loading={s.pending}>
           {first ? t('setPassword') : t('changePassword')}
         </Button>
       </form>
@@ -298,14 +300,14 @@ export function EmailSection({ viewer, mail }: { viewer: Viewer; mail: boolean }
   }
   return (
     <Section title={t('email')} description={t('currentEmail', { email: viewer.email })}>
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
         <FormError message={s.error} />
         <Field id="email" label={t('newEmail')} type="email" autoComplete="email" required error={s.fields.email} />
         {viewer.hasPassword && (
           <Field id="emailPassword" label={t('currentPassword')} type="password" autoComplete="current-password" required error={s.fields.password} />
         )}
         <p className="text-caption text-muted-foreground">{t('emailHint')}</p>
-        <Button type="submit" className="self-start" loading={s.pending}>
+        <Button type="submit" variant="outline" className="self-start" loading={s.pending}>
           {t('changeEmail')}
         </Button>
       </form>
@@ -316,43 +318,65 @@ export function EmailSection({ viewer, mail }: { viewer: Viewer; mail: boolean }
 /** Game launchers (authlib-injector): the address to give them, how many are signed in, sign them all out. */
 export function LaunchersSection() {
   const t = useTranslations('profile')
+  const tc = useTranslations('common')
   const s = useSubmit()
   const [info, setInfo] = useState<YggdrasilTokens | null>(null)
-  useEffect(() => {
-    getYggdrasil().then(
-      (r) => setInfo(r.data as YggdrasilTokens),
-      () => setInfo(null),
-    )
+  const [failed, setFailed] = useState(false)
+  const load = useCallback(async () => {
+    setFailed(false)
+    try {
+      setInfo((await getYggdrasil()).data as YggdrasilTokens)
+    } catch {
+      setFailed(true)
+    }
   }, [])
-  if (!info) return null
+  useEffect(() => {
+    void load()
+  }, [load])
   return (
     <Section title={t('launchers')} description={t('launchersHint')}>
-      <div className="flex flex-col gap-3">
-        <CopyField value={info.apiUrl} label={t('launchersAddress')} />
-        <p className="text-sm text-muted-foreground">{t('launchersSignedIn', { count: info.tokens })}</p>
-        <FormError message={s.error} />
-        <Button
-          variant="outline"
-          className="self-start"
-          loading={s.pending}
-          disabled={info.tokens === 0}
-          onClick={async () => {
-            if (await s.run(() => signOutLaunchers(), t('launchersSignedOut'))) setInfo({ ...info, tokens: 0 })
-          }}
-        >
-          {t('launchersSignOut')}
-        </Button>
-      </div>
+      {failed ? (
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertDescription>{t('errors.failed')}</AlertDescription>
+          <AlertAction>
+            <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
+              {tc('retry')}
+            </Button>
+          </AlertAction>
+        </Alert>
+      ) : !info ? (
+        <Skeleton className="h-24" />
+      ) : (
+        <div className="flex flex-col gap-3">
+          <CopyField value={info.apiUrl} label={t('launchersAddress')} />
+          <p className="text-sm text-muted-foreground">{t('launchersSignedIn', { count: info.tokens })}</p>
+          <FormError message={s.error} />
+          <Button
+            variant="outline"
+            className="self-start"
+            loading={s.pending}
+            disabled={info.tokens === 0}
+            onClick={async () => {
+              if (await s.run(() => signOutLaunchers(), t('launchersSignedOut'))) setInfo({ ...info, tokens: 0 })
+            }}
+          >
+            {t('launchersSignOut')}
+          </Button>
+        </div>
+      )}
     </Section>
   )
 }
 
 export function SessionsSection() {
   const t = useTranslations('profile')
+  const tc = useTranslations('common')
   const [list, setList] = useState<SessionView[] | null>(null)
   const [failed, setFailed] = useState(false)
   const [revoking, setRevoking] = useState<string | null>(null)
   const load = useCallback(async () => {
+    setFailed(false)
     try {
       setList((await listSessions()).data as SessionView[])
     } catch {
@@ -367,7 +391,17 @@ export function SessionsSection() {
   }, [load])
   return (
     <Section title={t('devices')} description={t('devicesHint')}>
-      {failed && <p className="text-sm text-destructive">{t('errors.failed')}</p>}
+      {failed && (
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertDescription>{t('errors.failed')}</AlertDescription>
+          <AlertAction>
+            <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
+              {tc('retry')}
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
       {list === null && !failed && <Skeleton className="h-24" />}
       {list && (
         <div className="flex flex-col gap-3">
@@ -393,8 +427,10 @@ export function SessionsSection() {
                     onClick={async () => {
                       setRevoking(x.id)
                       try {
-                        await revokeSession(x.id).catch(() => undefined)
+                        await revokeSession(x.id)
                         await load()
+                      } catch {
+                        toast.error(t('errors.failed'))
                       } finally {
                         setRevoking(null)
                       }
@@ -415,8 +451,10 @@ export function SessionsSection() {
               onClick={async () => {
                 setRevoking('others')
                 try {
-                  await revokeOtherSessions().catch(() => undefined)
+                  await revokeOtherSessions()
                   await load()
+                } catch {
+                  toast.error(t('errors.failed'))
                 } finally {
                   setRevoking(null)
                 }
@@ -433,12 +471,18 @@ export function SessionsSection() {
 
 export function DeleteSection({ viewer }: { viewer: Viewer }) {
   const t = useTranslations('profile')
+  const tf = useTranslations('fieldErrors')
   const router = useRouter()
   const confirm = useConfirm()
   const s = useSubmit()
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const f = new FormData(e.currentTarget)
+    const password = String(f.get('deletePassword') ?? '')
+    if (viewer.hasPassword && !password) {
+      s.setFields({ password: tf('required') })
+      return
+    }
     const sure = await confirm({
       title: t('deleteTitle'),
       description: t('deleteConfirm', { email: viewer.email }),
@@ -446,7 +490,7 @@ export function DeleteSection({ viewer }: { viewer: Viewer }) {
       requireText: viewer.email,
     })
     if (!sure) return
-    const ok = await s.run(() => deleteMe({ password: String(f.get('deletePassword') ?? '') }), t('deleted'))
+    const ok = await s.run(() => deleteMe({ password }), t('deleted'))
     if (ok) {
       router.replace('/')
       router.refresh()
@@ -454,12 +498,12 @@ export function DeleteSection({ viewer }: { viewer: Viewer }) {
   }
   return (
     <Section title={t('delete')} description={t('deleteHint')} danger>
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
         <FormError message={s.error} />
         {viewer.hasPassword && (
           <Field id="deletePassword" label={t('currentPassword')} type="password" autoComplete="current-password" required error={s.fields.password} />
         )}
-        <Button type="submit" variant="destructive" className="self-start" loading={s.pending}>
+        <Button type="submit" variant="destructive-soft" className="self-start" loading={s.pending}>
           {t('deleteButton')}
         </Button>
       </form>
@@ -470,21 +514,47 @@ export function DeleteSection({ viewer }: { viewer: Viewer }) {
 /** Accounts at sign-in providers linked to this one: sign in with them, link more, unlink. */
 export function SocialSection({ viewer, linked, error }: { viewer: Viewer; linked: boolean; error?: string }) {
   const t = useTranslations('social')
+  const tp = useTranslations('profile')
+  const tc = useTranslations('common')
   const locale = useLocale()
   const confirm = useConfirm()
   const s = useSubmit()
   const [info, setInfo] = useState<SocialLinks | null>(null)
+  const [failed, setFailed] = useState(false)
   const load = useCallback(async () => {
+    setFailed(false)
     try {
       setInfo((await listSocial()).data as SocialLinks)
     } catch {
-      setInfo(null)
+      setFailed(true)
     }
   }, [])
   useEffect(() => {
     void load()
   }, [load])
-  if (!info || (info.links.length === 0 && info.providers.length === 0)) return null
+  if (info && info.links.length === 0 && info.providers.length === 0) return null
+  if (!info && !failed) {
+    return (
+      <Section title={t('section.title')} description={t('section.hint')}>
+        <Skeleton className="h-16" />
+      </Section>
+    )
+  }
+  if (!info) {
+    return (
+      <Section title={t('section.title')} description={t('section.hint')}>
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertDescription>{tp('errors.failed')}</AlertDescription>
+          <AlertAction>
+            <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
+              {tc('retry')}
+            </Button>
+          </AlertAction>
+        </Alert>
+      </Section>
+    )
+  }
   const linkedIds = new Set(info.links.map((l) => l.provider))
   const unlinked = info.providers.filter((p) => !linkedIds.has(p.id))
   const when = (iso: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(iso))
@@ -496,6 +566,17 @@ export function SocialSection({ viewer, linked, error }: { viewer: Viewer; linke
   return (
     <Section title={t('section.title')} description={t('section.hint')}>
       <div className="flex flex-col gap-3">
+        {failed && (
+          <Alert variant="destructive" role="alert">
+            <CircleAlert />
+            <AlertDescription>{tp('errors.failed')}</AlertDescription>
+            <AlertAction>
+              <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
+                {tc('retry')}
+              </Button>
+            </AlertAction>
+          </Alert>
+        )}
         <SocialError code={error} />
         {linked && <Done message={t('section.linked')} />}
         <FormError message={s.error} />

@@ -19,6 +19,7 @@ export function proxy(request: NextRequest) {
   })
   const headers = new Headers(request.headers)
   headers.set('x-nonce', nonce) // replaces whatever the client sent
+  headers.set('x-pathname', request.nextUrl.pathname + request.nextUrl.search)
   headers.set('Content-Security-Policy', policy)
   const response = NextResponse.next({ request: { headers } })
   response.headers.set('Content-Security-Policy', policy)

@@ -4,14 +4,15 @@ import * as React from "react"
 import { cn } from "#lib/utils"
 import { SrLabel, useUiLabels } from "#components/skinloom/labels"
 
-import { Button } from "#components/ui/button"
+import { ButtonLink, type Button } from "#components/ui/button"
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
+  const t = useUiLabels()
   return (
     <nav
       role="navigation"
-      aria-label="pagination"
+      aria-label={t.pagination}
       data-slot="pagination"
       className={cn("mx-auto flex w-full justify-center", className)}
       {...props}
@@ -48,19 +49,14 @@ function PaginationLink({
   ...props
 }: PaginationLinkProps) {
   return (
-    <Button
+    <ButtonLink
       variant={isActive ? "outline" : "ghost"}
       size={size}
+      aria-current={isActive ? "page" : undefined}
+      data-slot="pagination-link"
+      data-active={isActive}
       className={cn(className)}
-      nativeButton={false}
-      render={
-        <a
-          aria-current={isActive ? "page" : undefined}
-          data-slot="pagination-link"
-          data-active={isActive}
-          {...props}
-        />
-      }
+      {...props}
     />
   )
 }
@@ -109,7 +105,6 @@ function PaginationEllipsis({
 }: React.ComponentProps<"span">) {
   return (
     <span
-      aria-hidden
       data-slot="pagination-ellipsis"
       className={cn(
         "flex size-8 items-center justify-center [&_svg:not([class*='size-'])]:size-4",
@@ -117,8 +112,7 @@ function PaginationEllipsis({
       )}
       {...props}
     >
-      <MoreHorizontalIcon
-      />
+      <MoreHorizontalIcon aria-hidden />
       <SrLabel k="morePages" />
     </span>
   )

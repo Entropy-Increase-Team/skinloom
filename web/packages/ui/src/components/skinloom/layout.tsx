@@ -62,11 +62,13 @@ export function StatCard({
  * How much of a limit is used (storage, score): a bar and the numbers. Turns gold from
  * 80% and red when full (web/design.md §10.3).
  */
+const NUM_FMT = new Intl.NumberFormat('en-US')
+
 export function UsageMeter({
   label,
   value,
   max,
-  format = (n) => String(n),
+  format = (n) => NUM_FMT.format(n),
   className,
 }: {
   label: React.ReactNode
@@ -77,6 +79,7 @@ export function UsageMeter({
 }) {
   const labelId = React.useId()
   const safeMax = Math.max(0, max)
+  const clampedNow = Math.min(safeMax, Math.max(0, value))
   const ratio = safeMax > 0 ? Math.min(1, Math.max(0, value / safeMax)) : 0
   const tone = ratio >= 1 ? 'bg-destructive' : ratio >= 0.8 ? 'bg-warning' : 'bg-primary'
   const textValue = `${format(value)} / ${format(max)}`
@@ -93,7 +96,7 @@ export function UsageMeter({
         aria-labelledby={labelId}
         aria-valuemin={0}
         aria-valuemax={safeMax}
-        aria-valuenow={value}
+        aria-valuenow={clampedNow}
         aria-valuetext={textValue}
         className="h-1.5 overflow-hidden rounded-full bg-muted"
       >

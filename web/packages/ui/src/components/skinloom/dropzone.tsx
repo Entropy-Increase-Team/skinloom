@@ -1,7 +1,7 @@
 'use client'
 
 import { Upload } from 'lucide-react'
-import { useId, useRef, useState } from 'react'
+import { useId, useState } from 'react'
 import type * as React from 'react'
 
 import { cn } from '../../lib/utils'
@@ -32,24 +32,27 @@ export function Dropzone({
 }) {
   const t = useUiLabels()
   const id = useId()
-  const input = useRef<HTMLInputElement>(null)
+  const hintId = useId()
+  const errorId = useId()
   const [over, setOver] = useState(false)
   const take = (files: FileList | null) => {
     const f = files?.[0]
     if (f && !disabled) onFile(f)
   }
+  const describedBy = [children == null && hint ? hintId : null, error ? errorId : null].filter(Boolean).join(' ') || undefined
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
+    <div data-slot="dropzone" className={cn('flex flex-col gap-2', className)}>
       <label
         htmlFor={id}
-        data-slot="dropzone"
         data-over={over || undefined}
         aria-disabled={disabled || undefined}
         onDragOver={(e) => {
           e.preventDefault()
           setOver(true)
         }}
-        onDragLeave={() => setOver(false)}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false)
+        }}
         onDrop={(e) => {
           e.preventDefault()
           setOver(false)
@@ -70,15 +73,20 @@ export function Dropzone({
             <span className="text-sm">
               {t.dropHint} <span className="font-medium text-primary">{t.choose}</span>
             </span>
-            {hint && <span className="text-xs text-faint-foreground">{hint}</span>}
+            {hint && (
+              <span id={hintId} className="text-xs text-faint-foreground">
+                {hint}
+              </span>
+            )}
           </>
         )}
         <input
-          ref={input}
           id={id}
           type="file"
           accept={accept}
           disabled={disabled}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
           className="sr-only"
           onChange={(e) => {
             take(e.target.files)
@@ -87,7 +95,7 @@ export function Dropzone({
         />
       </label>
       {error && (
-        <p role="alert" className="text-caption text-destructive">
+        <p id={errorId} role="alert" className="text-caption text-destructive">
           {error}
         </p>
       )}

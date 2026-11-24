@@ -72,7 +72,7 @@ export function AppSidebarTrigger() {
  * small labels, one icon column, the current page tinted with the primary colour.
  * Below the 56px header; icons only when collapsed, a sheet on phones.
  */
-export function AppSidebar({ sections, footer }: { sections: SidebarSection[]; footer?: SidebarLink }) {
+export function AppSidebar({ sections, publicLinks, footer }: { sections: SidebarSection[]; publicLinks?: SidebarLink[]; footer?: SidebarLink }) {
   const pathname = usePathname()
   const t = useTranslations('shell')
   const { isMobile, setOpenMobile } = useSidebar()
@@ -80,10 +80,10 @@ export function AppSidebar({ sections, footer }: { sections: SidebarSection[]; f
     if (isMobile) setOpenMobile(false) // a link was followed: put the sheet away
   }, [pathname, isMobile, setOpenMobile])
 
-  const item = (l: SidebarLink) => {
+  const item = (l: SidebarLink, key: string) => {
     const active = isCurrent(pathname, l.href, l.exact)
     return (
-      <SidebarMenuItem key={l.href}>
+      <SidebarMenuItem key={key}>
         <SidebarMenuButton
           isActive={active}
           aria-current={active ? 'page' : undefined}
@@ -105,15 +105,23 @@ export function AppSidebar({ sections, footer }: { sections: SidebarSection[]; f
             <SidebarGroup key={s.label ?? i} className="py-1">
               {s.label && <SidebarGroupLabel className="text-faint-foreground">{s.label}</SidebarGroupLabel>}
               <SidebarGroupContent>
-                <SidebarMenu className="gap-0.5">{s.links.map(item)}</SidebarMenu>
+                <SidebarMenu className="gap-0.5">{s.links.map((l, j) => item(l, `${l.href}:${j}`))}</SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
           ))}
+          {isMobile && publicLinks && publicLinks.length > 0 && (
+            <SidebarGroup className="mt-2 border-t pt-2 pb-1">
+              <SidebarGroupLabel className="text-faint-foreground">{t('mainNav')}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-0.5">{publicLinks.map((l, j) => item(l, `pub:${l.href}:${j}`))}</SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
         </nav>
       </SidebarContent>
       {footer && (
         <SidebarFooter className="border-t">
-          <SidebarMenu>{item(footer)}</SidebarMenu>
+          <SidebarMenu>{item(footer, `footer:${footer.href}`)}</SidebarMenu>
         </SidebarFooter>
       )}
     </Sidebar>
@@ -131,15 +139,15 @@ export function AppTabNav({ sections, footer }: { sections: SidebarSection[]; fo
   return (
     <nav aria-label={t('sectionNav')} className="sl-sidebar border-b bg-background">
       <div className="no-scrollbar mx-auto flex w-full max-w-[90rem] items-center gap-1 overflow-x-auto px-4 py-2 sm:px-6 lg:px-8">
-        {links.map((l) => {
+        {links.map((l, i) => {
           const active = isCurrent(pathname, l.href, l.exact)
           return (
             <Link
-              key={l.href}
+              key={`${l.href}:${i}`}
               href={l.href}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-3 text-sm transition-colors',
+                'inline-flex h-8 pointer-coarse:h-10 shrink-0 items-center gap-1.5 rounded-md px-3 text-sm transition-colors',
                 active ? 'bg-primary/10 font-medium text-primary' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
             >
@@ -151,7 +159,7 @@ export function AppTabNav({ sections, footer }: { sections: SidebarSection[]; fo
         {footer && (
           <Link
             href={footer.href}
-            className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="ml-auto inline-flex h-8 pointer-coarse:h-10 shrink-0 items-center gap-1.5 rounded-md px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <MenuIcon name={footer.icon} className="size-4" />
             <span>{footer.label}</span>

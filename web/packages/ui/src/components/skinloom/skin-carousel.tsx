@@ -8,7 +8,7 @@ import type { PlayerObject, SkinViewer as Viewer } from 'skinview3d'
 import { avatarUrl } from '../../lib/render'
 import { cn } from '../../lib/utils'
 import { Badge } from '../ui/badge'
-import { Button } from '../ui/button'
+import { Button, ButtonLink } from '../ui/button'
 import { fill, useUiLabels } from './labels'
 import { prefersReducedMotion } from './skin-viewer'
 import { TexturePreview } from './texture-preview'
@@ -32,6 +32,7 @@ const RETURN_MS = 400
 const FACING = -Math.PI / 6 // turned 30° to the viewer's left (design.md §9.5)
 const NEIGHBOUR_SCALE = 0.64
 const WALK_SPEED = 0.6
+const NUM_FMT = new Intl.NumberFormat('en-US')
 
 interface SlotTarget {
   x: number
@@ -93,13 +94,16 @@ export function SkinCarousel({
   const [held, setHeld] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [ready, setReady] = useState(false)
+  const [visible, setVisible] = useState(true)
   const indexRef = useRef(0)
   const playingRef = useRef(true)
   const stage = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
+  const detailLinkRef = useRef<HTMLAnchorElement | null>(null)
   const n = items.length
+  const safeIndex = n > 0 ? Math.min(index, n - 1) : 0
 
-  indexRef.current = index
+  indexRef.current = safeIndex
   playingRef.current = playing
 
   useEffect(() => {
@@ -109,15 +113,18 @@ export function SkinCarousel({
     }
   }, [])
 
-  const go = useCallback((i: number) => setIndex(((i % n) + n) % n), [n])
+  const go = useCallback((i: number) => {
+    if (n <= 0) return
+    setIndex(((i % n) + n) % n)
+  }, [n])
 
-  // Auto-advance when playing and not paused by hover/focus or active 3D dragging.
-  const running = playing && !held && !dragging && n > 1
+  // Auto-advance when visible, playing, and not paused by hover/focus or active 3D dragging.
+  const running = visible && playing && !held && !dragging && n > 1
   useEffect(() => {
     if (!running) return
-    const id = setTimeout(() => go(index + 1), interval)
+    const id = setTimeout(() => go(safeIndex + 1), interval)
     return () => clearTimeout(id)
-  }, [running, index, interval, go])
+  }, [running, safeIndex, interval, go])
 
   const skinsKey = items.map((x) => `${x.id}:${x.skin}:${x.model}`).join('|')
 
@@ -191,6 +198,17 @@ export function SkinCarousel({
         }
 
         const loadedTextures: InstanceType<typeof CanvasTexture>[] = []
+        cleanups.push(() => {
+          loadedTextures.forEach((tex) => tex.dispose())
+          for (const entry of players) {
+            entry.obj.traverse((o) => {
+              if (o instanceof Mesh) {
+                o.geometry?.dispose?.()
+                for (const m of [o.material].flat()) m?.dispose?.()
+              }
+            })
+          }
+        })
         await Promise.all(
           items.map(async (item, k) => {
             try {
@@ -212,7 +230,6 @@ export function SkinCarousel({
             }
           }),
         )
-        cleanups.push(() => loadedTextures.forEach((t) => t.dispose()))
         if (disposed) return
 
         // Snap players cleanly to whichever index is active when textures finish loading.
@@ -300,6 +317,7 @@ export function SkinCarousel({
         }
         const syncVisibility = () => {
           const active = inView && !document.hidden
+          setVisible(active)
           if (viewer) viewer.renderPaused = !active
           if (active) {
             if (!animFrame && !disposed) {
@@ -345,10 +363,11 @@ export function SkinCarousel({
         // Clicking a left or right neighbour character in the 3D scene selects it.
         let downPos: { x: number; y: number } | null = null
         const onPointerDown = (e: PointerEvent) => {
+          if (e.button !== 0) return
           downPos = { x: e.clientX, y: e.clientY }
         }
         const onPointerUp = (e: PointerEvent) => {
-          if (!downPos || !viewer || !canvas.current) return
+          if (e.button !== 0 || !downPos || !viewer || !canvas.current) return
           const dist = Math.hypot(e.clientX - downPos.x, e.clientY - downPos.y)
           downPos = null
           if (dist > 6) return
@@ -357,9 +376,13 @@ export function SkinCarousel({
           const raycaster = new Raycaster()
           raycaster.setFromCamera(pointer, viewer.camera)
           for (let k = 0; k < n; k++) {
-            if (!players[k]!.obj.visible || k === indexRef.current) continue
+            if (!players[k]!.obj.visible) continue
             if (raycaster.intersectObject(players[k]!.obj, true).length > 0) {
-              setIndex(k)
+              if (k === indexRef.current) {
+                detailLinkRef.current?.click()
+              } else {
+                setIndex(k)
+              }
               break
             }
           }
@@ -398,7 +421,7 @@ export function SkinCarousel({
   }, [n, skinsKey])
 
   if (n === 0) return null
-  const current = items[index]!
+  const current = items[safeIndex]!
 
   return (
     <section
@@ -416,7 +439,7 @@ export function SkinCarousel({
         {label && (
           <span className="inline-flex items-center gap-1.5 rounded-md border bg-card px-2.5 py-1 text-xs text-muted-foreground">
             {label}
-            <span className="font-mono tabular-nums text-faint-foreground">{fill(t.position, { current: index + 1, total: n })}</span>
+            <span className="font-mono tabular-nums text-faint-foreground">{fill(t.position, { current: safeIndex + 1, total: n })}</span>
           </span>
         )}
         <span className="flex-1" />
@@ -432,10 +455,10 @@ export function SkinCarousel({
         </Button>
         {n > 1 && (
           <>
-            <Button variant="outline" size="icon-sm" onClick={() => go(index - 1)} aria-label={t.previous} title={t.previous}>
+            <Button variant="outline" size="icon-sm" onClick={() => go(safeIndex - 1)} aria-label={t.previous} title={t.previous}>
               <ChevronLeft />
             </Button>
-            <Button variant="outline" size="icon-sm" onClick={() => go(index + 1)} aria-label={t.next} title={t.next}>
+            <Button variant="outline" size="icon-sm" onClick={() => go(safeIndex + 1)} aria-label={t.next} title={t.next}>
               <ChevronRight />
             </Button>
           </>
@@ -452,31 +475,30 @@ export function SkinCarousel({
           ref={canvas}
           role="img"
           aria-label={current.name}
-          className={cn('absolute inset-0 block size-full cursor-grab active:cursor-grabbing', ready ? 'opacity-100' : 'opacity-0')}
+          className={cn('absolute inset-0 block size-full cursor-grab transition-opacity duration-300 ease-out active:cursor-grabbing', ready ? 'opacity-100' : 'opacity-0')}
         />
       </div>
 
-      {/* Caption bar: clickable skin card button + clickable author filter chip. */}
+      {/* Caption bar: clickable skin card link + clickable author filter chip. */}
       <div className="relative z-10 flex flex-col items-center gap-2 pt-2 pb-3 text-center max-sm:hidden">
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <Button
+          <ButtonLink
+            ref={detailLinkRef}
             variant="secondary"
             size="sm"
-            nativeButton={false}
             className="h-8 gap-1.5 rounded-lg border bg-card px-3 text-sm font-medium shadow-xs hover:bg-accent"
             render={<LinkAs href={current.href} />}
           >
             <span className="max-w-56 truncate">{current.name}</span>
             {current.modelLabel && <Badge variant="secondary">{current.modelLabel}</Badge>}
             <ArrowUpRight className="size-3.5 text-muted-foreground" aria-hidden />
-          </Button>
+          </ButtonLink>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2 text-caption text-muted-foreground">
           {current.uploader && (
-            <Button
+            <ButtonLink
               variant="ghost"
               size="xs"
-              nativeButton={false}
               className="h-6 gap-1.5 rounded-md px-2 text-caption text-muted-foreground hover:bg-card hover:text-foreground"
               render={<LinkAs href={`/skinlib?q=${encodeURIComponent(current.uploader.name)}`} />}
             >
@@ -484,12 +506,13 @@ export function SkinCarousel({
                 <UserAvatar of={{ user: current.uploader.userId, version: current.uploader.avatarVersion }} size={16} />
               )}
               <span>{current.uploader.name}</span>
-            </Button>
+            </ButtonLink>
           )}
           {current.likes !== undefined && (
             <span className="inline-flex items-center gap-1 rounded-md bg-card/70 px-2 py-0.5 tabular-nums">
-              <Heart className="size-3.5 text-primary" aria-label={t.likes} />
-              {current.likes}
+              <Heart className="size-3.5 fill-primary text-primary" aria-hidden />
+              <span className="sr-only">{t.likes}</span>
+              {NUM_FMT.format(current.likes)}
             </span>
           )}
         </div>
@@ -501,7 +524,7 @@ export function SkinCarousel({
             <button
               key={item.id}
               type="button"
-              aria-current={i === index}
+              aria-current={i === safeIndex}
               aria-label={item.name}
               onClick={() => go(i)}
               className="group flex cursor-pointer flex-col items-center gap-1.5 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -512,14 +535,14 @@ export function SkinCarousel({
                 width={36}
                 height={36}
                 className={cn(
-                  'rounded-md border bg-card transition-[opacity,border-color] duration-150 [image-rendering:pixelated]',
-                  i === index ? 'border-2 border-primary' : 'opacity-55 group-hover:opacity-100',
+                  'rounded-sm border bg-card transition-[opacity,border-color] duration-150 [image-rendering:pixelated]',
+                  i === safeIndex ? 'border-2 border-primary' : 'opacity-55 group-hover:opacity-100',
                 )}
               />
               <span className="h-[3px] w-9 overflow-hidden rounded-full bg-muted">
-                {i === index && (
+                {i === safeIndex && (
                   <span
-                    key={`${index}-${running}`}
+                    key={`${safeIndex}-${running}`}
                     className="block h-full origin-left rounded-full bg-primary"
                     style={running ? { animation: `sl-carousel-progress ${interval}ms linear forwards` } : { transform: 'scaleX(0.35)' }}
                   />
@@ -530,25 +553,24 @@ export function SkinCarousel({
         </div>
       )}
       <div className="relative z-10 flex items-center justify-between gap-2 pt-2 sm:hidden">
-        <Button
+        <ButtonLink
           variant="secondary"
           size="xs"
-          nativeButton={false}
-          className="h-8 min-w-0 max-w-[54%] gap-1 rounded-md border bg-card/90 px-2.5 text-xs font-medium shadow-xs"
+          className="h-8 pointer-coarse:h-10 min-w-0 max-w-[54%] gap-1 rounded-md border bg-card/90 px-2.5 text-xs font-medium shadow-xs"
           render={<LinkAs href={current.href} />}
         >
           <span className="truncate">{current.name}</span>
           <ArrowUpRight className="size-3 shrink-0 text-muted-foreground" aria-hidden />
-        </Button>
+        </ButtonLink>
         {n > 1 && (
           <div className="flex shrink-0 items-center gap-1">
             <Button
               variant="outline"
               size="icon-sm"
-              onClick={() => go(index - 1)}
+              onClick={() => go(safeIndex - 1)}
               aria-label={t.previous}
               title={t.previous}
-              className="bg-card/90 pointer-coarse:size-9"
+              className="bg-card/90"
             >
               <ChevronLeft />
             </Button>
@@ -559,13 +581,13 @@ export function SkinCarousel({
                   type="button"
                   onClick={() => go(i)}
                   aria-label={item.name}
-                  aria-current={i === index}
-                  className="flex h-8 cursor-pointer items-center px-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 rounded-sm"
+                  aria-current={i === safeIndex}
+                  className="flex h-8 pointer-coarse:h-10 cursor-pointer items-center px-1.5 pointer-coarse:px-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 rounded-sm"
                 >
                   <span
                     className={cn(
                       'h-1.5 rounded-full transition-[width,background-color] duration-200',
-                      i === index ? 'w-4 bg-primary' : 'w-1.5 bg-input',
+                      i === safeIndex ? 'w-4 bg-primary' : 'w-1.5 bg-input',
                     )}
                   />
                 </button>
@@ -574,10 +596,10 @@ export function SkinCarousel({
             <Button
               variant="outline"
               size="icon-sm"
-              onClick={() => go(index + 1)}
+              onClick={() => go(safeIndex + 1)}
               aria-label={t.next}
               title={t.next}
-              className="bg-card/90 pointer-coarse:size-9"
+              className="bg-card/90"
             >
               <ChevronRight />
             </Button>

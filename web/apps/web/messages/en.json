@@ -10,13 +10,14 @@
     "theme": "Toggle light/dark",
     "language": "Language",
     "backHome": "Back to home",
-    "verifyFirst": "Verify your email address first: this site requires it for this.",
+    "verifyFirst": "Verify your email address first: this site requires it for this",
     "cancel": "Cancel",
     "confirm": "Confirm",
     "save": "Save",
+    "retry": "Retry",
     "loading": "Loading…"
   },
-  "offline": "The backend is unreachable right now; showing default content.",
+  "offline": "The backend is unreachable right now; showing default content",
   "hero": {
     "browse": "Browse skins",
     "join": "Create an account",
@@ -27,42 +28,42 @@
     "title": "Built for players and site owners",
     "upload": {
       "title": "Upload and share",
-      "body": "Upload skins and capes, keep them public or private, and collect others' work in your closet."
+      "body": "Upload skins and capes, keep them public or private, and collect others' work in your closet"
     },
     "players": {
       "title": "Many players, one account",
-      "body": "Manage several in-game players from one account; each has its own skin and keeps its UUID when renamed."
+      "body": "Manage several in-game players from one account; each has its own skin and keeps its UUID when renamed"
     },
     "launcher": {
       "title": "Works with launchers",
-      "body": "Compatible with authlib-injector, CustomSkinLoader and friends; migrated sites need no client changes."
+      "body": "Compatible with authlib-injector, CustomSkinLoader and friends; migrated sites need no client changes"
     },
     "selfhost": {
       "title": "Self-host in minutes",
       "body": "Unzip and run on Windows, macOS or Linux, or deploy with Docker and Kubernetes. Plugins, themes and settings reload live."
     },
-    "intro": "Players keep their skins and characters here; site owners run the whole site from one program, and moving over from Blessing Skin needs no launcher changes."
+    "intro": "Players keep their skins and characters here; site owners run the whole site from one program, and moving over from Blessing Skin needs no launcher changes"
   },
   "launcher": {
     "title": "Use it in the game",
     "body": "Three steps to show your skin from this site in the launcher",
     "copy": "Copy",
     "copied": "Copied",
-    "note": "Launchers with drag and drop (HMCL, PCL2, BakaXL and others) take the \"Drag to launcher\" link dropped into their add-server window; entering just this site’s address also works, the launcher finds the API from it.",
+    "note": "Launchers with drag and drop (HMCL, PCL2, BakaXL and others) take the \"Drag to launcher\" link dropped into their add-server window; entering just this site’s address also works, the launcher finds the API from it",
     "drag": "Drag to launcher",
     "dragHint": "Drag this into your launcher’s external login window",
     "step1": "Add an authentication server in the launcher",
-    "step1Body": "HMCL, PCL2, BakaXL, Prism Launcher and others support authlib-injector out of the box.",
+    "step1Body": "HMCL, PCL2, BakaXL, Prism Launcher and others support authlib-injector out of the box",
     "step2": "Enter this site's authentication server address",
     "step3": "Sign in with your email and password here",
-    "step3Body": "Then pick a player; its skin shows on any server."
+    "step3Body": "Then pick a player; its skin shows on any server"
   },
   "announcement": {
     "title": "Announcement"
   },
   "skinlib": {
     "title": "Skin Library",
-    "description": "Browse and search skins and capes shared by everyone.",
+    "description": "Browse and search skins and capes shared by everyone",
     "upload": "Upload",
     "category": "Category",
     "sort": "Sort",
@@ -86,7 +87,7 @@
   },
   "about": {
     "title": "About SkinLoom",
-    "intro": "SkinLoom (云织) is an open-source, self-hosted Minecraft skin site with a Go backend and a Next.js frontend, released under the MIT license.",
+    "intro": "SkinLoom (云织) is an open-source, self-hosted Minecraft skin site with a Go backend and a Next.js frontend, released under the MIT license",
     "version": "Server version",
     "thanksTitle": "Acknowledgements",
     "thanksIntro": "SkinLoom stands on the shoulders of these open-source projects:",
@@ -102,9 +103,9 @@
   },
   "notFound": {
     "title": "Page not found",
-    "body": "The page you are looking for does not exist or was removed."
+    "body": "The page you are looking for does not exist or was removed"
   },
-  "setupPending": "This site is not set up yet: open the one-time setup link printed on the server console, or run <code>skinloom setup-link</code> on the server.",
+  "setupPending": "This site is not set up yet: open the one-time setup link printed on the server console, or run <code>skinloom setup-link</code> on the server",
   "setupPendingAction": "Open setup wizard",
   "auth": {
     "email": "Email",
@@ -137,7 +138,7 @@
     "title": "Set up your site",
     "intro": "Create the first administrator account. The setup link stops working once you finish; sign in with this account afterwards.",
     "token": "Setup token",
-    "tokenHint": "Printed in the server console at startup, or run skinloom setup-link.",
+    "tokenHint": "Printed in the server console at startup, or run skinloom setup-link",
     "site": "Site",
     "siteName": "Site name",
     "siteUrl": "Site URL",
@@ -151,7 +152,7 @@
     "submit": "Finish setup",
     "wizard": {
       "title": "SkinLoom Setup Wizard",
-      "subtitle": "Configure your database, texture storage, and choose fresh install, Blessing Skin migration, or backup restore.",
+      "subtitle": "Configure your database, texture storage, and choose fresh install, Blessing Skin migration, or backup restore",
       "steps": {
         "verify": "Verify",
         "mode": "Mode",
@@ -161,41 +162,41 @@
     },
     "gate": {
       "title": "Verify server setup token",
-      "intro": "Paste the one-time setup URL or token printed in your server logs to unlock the wizard.",
+      "intro": "Paste the one-time setup URL or token printed in your server logs to unlock the wizard",
       "label": "Setup URL or token",
-      "hint": "Accepts either the full setup link (?token=...) or the raw token.",
+      "hint": "Accepts either the full setup link (?token=...) or the raw token",
       "verify": "Verify & continue",
-      "empty": "Enter your setup URL or token.",
+      "empty": "Enter your setup URL or token",
       "whereTitle": "Where to find the setup token?",
-      "whereDesc": "To prevent uninitialized instances on the public internet from being claimed, setup requires a short-lived server token.",
+      "whereDesc": "To prevent uninitialized instances on the public internet from being claimed, setup requires a short-lived server token",
       "cmdBinary": "Binary / bare metal (prints or generates a fresh link)",
       "cmdDocker": "Docker Compose container",
       "cmdSystemd": "Systemd journal lookup"
     },
     "mode": {
       "title": "Choose how to initialize",
-      "intro": "Select the path that matches how you want to bring SkinLoom online.",
+      "intro": "Select the path that matches how you want to bring SkinLoom online",
       "next": "Next",
       "fresh": {
         "title": "Fresh installation",
-        "desc": "Start clean with a new database, storage backend, and first superadmin account."
+        "desc": "Start clean with a new database, storage backend, and first superadmin account"
       },
       "bs": {
         "title": "Migrate from Blessing Skin",
-        "desc": "Interactively import accounts, players, closet items, textures, and password rules from Blessing Skin."
+        "desc": "Interactively import accounts, players, closet items, textures, and password rules from Blessing Skin"
       },
       "restore": {
         "title": "Restore from SkinLoom backup",
-        "desc": "Populate the target database and texture storage from an existing SkinLoom backup archive."
+        "desc": "Populate the target database and texture storage from an existing SkinLoom backup archive"
       }
     },
     "infra": {
       "title": "Database & Texture Storage",
       "intro": "Configure persistence for SkinLoom. Settings provided via environment variables remain locked.",
       "envLocked": "Locked by env",
-      "dbTestFailed": "Database connection test failed.",
-      "storageTestFailed": "Storage permission check failed.",
-      "connectFailed": "Failed to connect to the existing database.",
+      "dbTestFailed": "Database connection test failed",
+      "storageTestFailed": "Storage permission check failed",
+      "connectFailed": "Failed to connect to the existing database",
       "back": "Back",
       "next": "Next",
       "cancel": "Cancel",
@@ -204,7 +205,7 @@
         "title": "Database",
         "driver": "Driver",
         "sqlitePath": "SQLite file path",
-        "sqliteHint": "Relative paths are stored inside the data directory (default skinloom.db).",
+        "sqliteHint": "Relative paths are stored inside the data directory (default skinloom.db)",
         "useRawDsn": "Advanced: enter a raw DSN string",
         "host": "Host",
         "port": "Port",
@@ -222,7 +223,7 @@
         "installedDesc": "Found {users} users, {textures} textures, and {players} players. Connect this node directly without re-installing.",
         "connectExisting": "Connect existing database (skip setup)",
         "connectDialogTitle": "Connect to existing SkinLoom database?",
-        "connectDialogDesc": "This writes local config.toml and transitions directly to running mode without running setup or creating duplicate rows.",
+        "connectDialogDesc": "This writes local config.toml and transitions directly to running mode without running setup or creating duplicate rows",
         "connectExistingConfirm": "Connect & start"
       },
       "storage": {
@@ -232,7 +233,7 @@
         "local": "Local directory",
         "s3": "S3-compatible object storage",
         "localPath": "Directory path",
-        "localHint": "Relative paths are resolved inside the data directory (default textures).",
+        "localHint": "Relative paths are resolved inside the data directory (default textures)",
         "presets": "Presets",
         "presetNames": {
           "aliyun": "Aliyun OSS",
@@ -276,7 +277,7 @@
     },
     "restore": {
       "title": "Restore from SkinLoom backup",
-      "intro": "Upload a backup archive or point to a local archive path on the server to populate Step 2's empty database and storage.",
+      "intro": "Upload a backup archive or point to a local archive path on the server to populate Step 2's empty database and storage",
       "tabs": {
         "upload": "Upload archive (<= 1 GiB)",
         "path": "Server file path"
@@ -300,7 +301,7 @@
         "created": "Created",
         "version": "App version"
       },
-      "confirmRestore": "I confirm restoring this backup into the Step 2 database and texture storage and saving config.toml.",
+      "confirmRestore": "I confirm restoring this backup into the Step 2 database and texture storage and saving config.toml",
       "back": "Back",
       "startRestore": "Start restore",
       "executeFailed": "Failed to start restore job",
@@ -313,7 +314,7 @@
     },
     "bs": {
       "title": "Migrate from Blessing Skin",
-      "intro": "Connect your Blessing Skin source, run a read-only dry-run simulation, and review findings before writing anything.",
+      "intro": "Connect your Blessing Skin source, run a read-only dry-run simulation, and review findings before writing anything",
       "sourceTabs": {
         "db": "Direct DB & textures",
         "bridge": "Pull via Bridge plugin"
@@ -348,7 +349,7 @@
         "dirLabel": "storage/textures path",
         "dirHint": "Directory containing BS 64-hex hash files",
         "uploadHint": "Accepts .tar.gz / .tgz / .zip up to {max}. For larger sites, use local path, the Bridge plugin, or DB only.",
-        "uploadedReady": "Textures archive uploaded and ready.",
+        "uploadedReady": "Textures archive uploaded and ready",
         "uploading": "Uploading texture archive"
       },
       "bridge": {
@@ -372,15 +373,15 @@
       "sourceTestFailed": "Blessing Skin source test failed",
       "sourceOkTitle": "Source reachable (read-only)",
       "sourceFailTitle": "Source check failed",
-      "sourceCounts": "Found {users} users, {players} players, {textures} textures, and {closet} closet items.",
-      "textureDirCounts": "Local textures directory readable: {files} files ({size}).",
+      "sourceCounts": "Found {users} users, {players} players, {textures} textures, and {closet} closet items",
+      "textureDirCounts": "Local textures directory readable: {files} files ({size})",
       "dryRunFailed": "Could not start dry-run",
       "dryRunFailedTitle": "Dry-run failed",
       "importStartFailed": "Could not start migration",
       "executeSection": {
         "title": "Target site confirmation",
         "siteUrlLabel": "New site URL",
-        "siteUrlHint": "Pre-filled from your browser origin rather than BS .env APP_URL.",
+        "siteUrlHint": "Pre-filled from your browser origin rather than BS .env APP_URL",
         "fallbackDesc": "No active superadmin account was found in the dry-run. Create a fallback superadmin:",
         "fallbackEmail": "Fallback admin email",
         "fallbackNick": "Fallback admin nickname",
@@ -392,7 +393,7 @@
         "summary": "Users {users} · Players {players} · Textures {textures} · Checked files {files} · Copied {copied} · Superadmins {superadmins}",
         "downloadTxt": "Download .txt report",
         "blockedTitle": "Blocking issues prevent starting migration",
-        "blockedDesc": "Resolve the BLOCKING items in Blessing Skin and re-run the dry-run before importing.",
+        "blockedDesc": "Resolve the BLOCKING items in Blessing Skin and re-run the dry-run before importing",
         "failedTitle": "Migration failed (target database rolled back)",
         "tabs": {
           "all": "All ({count})",
@@ -405,14 +406,14 @@
         "badges": {
           "leftBehind": "LEFT IN BS"
         },
-        "empty": "No entries in this category."
+        "empty": "No entries in this category"
       },
       "importingTitle": "Migrating from Blessing Skin",
       "importFailedTitle": "Migration failed",
       "postChecklistTitle": "Migration complete — post-import checklist",
-      "postCheckBridge": "Revoke the export token and uninstall blessing-skin-export-bridge in your Blessing Skin admin panel.",
-      "postCheckNoneTextures": "You chose DB-only mode: after copying texture files into SkinLoom storage, open Admin -> System Status and click Rescan missing textures.",
-      "postCheckPasswords": "Blessing Skin password algorithms (MD5 / SALTED2MD5 / transition) remain supported automatically when users sign in.",
+      "postCheckBridge": "Revoke the export token and uninstall blessing-skin-export-bridge in your Blessing Skin admin panel",
+      "postCheckNoneTextures": "You chose DB-only mode: after copying texture files into SkinLoom storage, open Admin -> System Status and click Rescan missing textures",
+      "postCheckPasswords": "Blessing Skin password algorithms (MD5 / SALTED2MD5 / transition) remain supported automatically when users sign in",
       "postCheckCompare": "Optionally run the read-only parity verification command on the server:",
       "enterSite": "Continue to sign in",
       "backToConfig": "Return to migration setup"
@@ -505,7 +506,7 @@
     "wait": "Just sent one, try again later",
     "resendFailed": "Sending failed, click to retry",
     "bannerRequired": "Your email {email} is not verified yet. This site requires it before you manage players, upload textures or report.",
-    "noMail": "This site has no mail set up yet; ask an administrator."
+    "noMail": "This site has no mail set up yet; ask an administrator"
   },
   "profile": {
     "title": "Profile",
@@ -513,11 +514,11 @@
     "nickname": "Nickname",
     "language": "Language",
     "followBrowser": "Follow the browser",
-    "languageHint": "Also the language of the mail this site sends you.",
+    "languageHint": "Also the language of the mail this site sends you",
     "save": "Save",
     "saved": "Saved",
     "password": "Change password",
-    "passwordHint": "Your other devices will be signed out; this one stays signed in.",
+    "passwordHint": "Your other devices will be signed out; this one stays signed in",
     "currentPassword": "Current password",
     "newPassword": "New password",
     "confirmPassword": "Confirm new password",
@@ -526,7 +527,7 @@
     "email": "Change email",
     "currentEmail": "Current email: {email}",
     "newEmail": "New email",
-    "emailHint": "Your other devices will be signed out, and your old address gets a notice.",
+    "emailHint": "Your other devices will be signed out, and your old address gets a notice",
     "changeEmail": "Change email",
     "emailChanged": "Email changed",
     "emailChangedMail": "Email changed. Check your new inbox for the verification link.",
@@ -547,15 +548,15 @@
       "failed": "Something went wrong. Check your connection and try again."
     },
     "avatar": "Avatar",
-    "avatarHint": "Your avatar is the head of a skin in your closet.",
+    "avatarHint": "Your avatar is the head of a skin in your closet",
     "chooseAvatar": "Choose in the closet",
     "removeAvatar": "Remove avatar",
     "avatarRemoved": "Avatar removed",
     "launchers": "Game launchers",
-    "launchersHint": "In a launcher that supports authlib-injector, add an external login server with this address and sign in with your email (or a player name) and password.",
+    "launchersHint": "In a launcher that supports authlib-injector, add an external login server with this address and sign in with your email (or a player name) and password",
     "launchersSignedIn": "{count, plural, =0 {No launcher is signed in.} one {One launcher is signed in to this account.} other {# launchers are signed in to this account.}}",
     "launchersSignOut": "Sign all launchers out",
-    "launchersSignedOut": "All launchers are signed out; sign in again in the launcher.",
+    "launchersSignedOut": "All launchers are signed out; sign in again in the launcher",
     "setPassword": "Set a password",
     "setPasswordHint": "Your account signs in through a provider. With a password you can also sign in with your email, and in game launchers.",
     "passwordSet": "Password set. You can now sign in with your email and password too.",
@@ -584,7 +585,7 @@
     "save": "Save",
     "delete": "Delete",
     "passwordHint": "Leave empty to keep",
-    "saveHint": "Banning a user or setting a password signs them out everywhere; a new email needs verifying again.",
+    "saveHint": "Banning a user or setting a password signs them out everywhere; a new email needs verifying again",
     "deleteConfirm": "The account, its players and closet are deleted at once and for good. Type their email {email} to confirm.",
     "roles": {
       "user": "User",
@@ -607,6 +608,7 @@
     },
     "filter": "Filter",
     "actionHint": "Action, e.g. auth.login or admin.",
+    "actorHint": "Actor user ID",
     "time": "Time",
     "action": "Action",
     "actor": "Actor",
@@ -633,8 +635,8 @@
     "deleteTitle": "Delete the user {name}?",
     "deleted": "Deleted {name}",
     "usersIntro": "Search, edit and ban accounts. Administrators manage ordinary users only.",
-    "playersIntro": "Every user's players: rename, give to another user, dress or delete.",
-    "auditIntro": "Sign-ins, settings changes and admin actions, newest first.",
+    "playersIntro": "Every user's players: rename, give to another user, dress or delete",
+    "auditIntro": "Sign-ins, settings changes and admin actions, newest first",
     "emptyAudit": "No records"
   },
   "texture": {
@@ -647,7 +649,7 @@
     "deletedUser": "Deleted user",
     "likes": "Likes",
     "notAvailable": "Texture not available",
-    "privateNotice": "This texture is private; only its uploader can see it.",
+    "privateNotice": "This texture is private; only its uploader can see it",
     "loadFailed": "Could not load; please try again later",
     "back": "Back to the library",
     "preview": "3D preview of {name}",
@@ -670,8 +672,8 @@
     "deleteConfirm": "It is removed from the skin library, every closet and every player. This cannot be undone.",
     "errors": {
       "score": "Not enough score: check in or upload textures to earn more",
-      "duplicate": "The same image is already public in the skin library.",
-      "shape": "An image of this size cannot be used as that type.",
+      "duplicate": "The same image is already public in the skin library",
+      "shape": "An image of this size cannot be used as that type",
       "name": "The name does not follow the site’s naming rule",
       "failed": "Something went wrong. Please try again."
     },
@@ -679,8 +681,8 @@
       "open": "Report",
       "reason": "Reason",
       "placeholder": "For example: someone else’s work, inappropriate content…",
-      "cost": "Reporting costs {score} score, refunded if the report is upheld.",
-      "earn": "Reporting earns {score} score (taken back if it is rejected).",
+      "cost": "Reporting costs {score} score, refunded if the report is upheld",
+      "earn": "Reporting earns {score} score (taken back if it is rejected)",
       "reward": "An upheld report earns {score} more",
       "submit": "Send report",
       "sent": "Sent. An administrator will look at it soon.",
@@ -692,7 +694,7 @@
         "failed": "Could not send. Please try again."
       },
       "title": "Report this texture",
-      "body": "Say what is wrong; an administrator will look into it."
+      "body": "Say what is wrong; an administrator will look into it"
     },
     "uploadedOn": "Uploaded {date}",
     "signInToFavorite": "Sign in to favorite",
@@ -700,7 +702,7 @@
     "frontBack": "Front and back",
     "name": "Name",
     "renameTitle": "Rename texture",
-    "renameBody": "The new name shows in the skin library and in every closet that has it.",
+    "renameBody": "The new name shows in the skin library and in every closet that has it",
     "privateTitle": "Make “{name}” private?",
     "publicTitle": "Make “{name}” public?",
     "madePrivate": "Made private",
@@ -710,9 +712,9 @@
   },
   "upload": {
     "title": "Upload a texture",
-    "intro": "PNG skins and capes. You have {score} points.",
+    "intro": "PNG skins and capes. You have {score} score.",
     "noPreview": "Pick an image to preview it in 3D here",
-    "duplicate": "This image is already in the library: nothing was uploaded or charged.",
+    "duplicate": "This image is already in the library: nothing was uploaded or charged",
     "viewExisting": "View it",
     "picked": "{w} × {h} pixels",
     "fileHint": "PNG, at most {kb} KB and {width} pixels wide",
@@ -720,8 +722,8 @@
     "type": "Type",
     "typeHint": "Chosen from the image; change it if needed. Slim skins have 3-pixel arms.",
     "public": "Public",
-    "cost": "About {cost} points (you have {score}); the server counts the size after recompressing.",
-    "rates": "Per KB: {pub} points public, {priv} private",
+    "cost": "About {cost} score (you have {score}); the server counts the size after recompressing",
+    "rates": "Per KB: {pub} score public, {priv} private",
     "submit": "Upload",
     "errors": {
       "notPng": "Only PNG images are accepted",
@@ -743,6 +745,7 @@
     "search": "Search by name",
     "loadFailed": "Could not load; please try again later",
     "noMatch": "Nothing found",
+    "clearSearch": "Clear search",
     "empty": "Your closet is empty",
     "browse": "Browse the library",
     "upload": "Upload",
@@ -756,9 +759,9 @@
     "avatarSet": "“{name}” is now your avatar",
     "category": "Category",
     "itemMenu": "More actions for {name}",
-    "emptyBody": "Favorite textures in the skin library, or upload your own, and they show up here.",
+    "emptyBody": "Favorite textures in the skin library, or upload your own, and they show up here",
     "renameTitle": "Rename",
-    "renameBody": "This only changes its name in your closet, not the texture itself.",
+    "renameBody": "This only changes its name in your closet, not the texture itself",
     "name": "Name",
     "removeTitle": "Remove “{name}” from your closet?",
     "removeBody": "Players wearing it take it off. You can favorite it again in the skin library."
@@ -769,13 +772,13 @@
     "loadFailed": "Could not load; please try again later",
     "none": "No players yet",
     "create": "Create player",
-    "cost": "A player costs {cost} points (you have {score})",
+    "cost": "A player costs {cost} score (you have {score})",
     "refundHint": "Deleting a player gives back what it cost",
     "rules": {
-      "official": "Letters, digits and underscores only, {min} to {max} characters.",
-      "cjk": "Chinese characters, letters, digits and underscores, {min} to {max} characters.",
+      "official": "Letters, digits and underscores only, {min} to {max} characters",
+      "cjk": "Chinese characters, letters, digits and underscores, {min} to {max} characters",
       "utf8": "No spaces and none of /  ? # %, {min} to {max} characters.",
-      "custom": "Must follow the site's naming rule, {min} to {max} characters."
+      "custom": "Must follow the site's naming rule, {min} to {max} characters"
     },
     "rename": "Rename",
     "copyUUID": "Copy UUID",
@@ -803,13 +806,13 @@
     "noneBody": "A player's name is your name in the game. Create one, then dress it in a skin from your closet.",
     "more": "More actions for {name}",
     "createTitle": "Create a player",
-    "createBody": "Use the name you play with: launchers find the player by its name.",
+    "createBody": "Use the name you play with: launchers find the player by its name",
     "renameTitle": "Rename {name}",
-    "renameBody": "After renaming, sign in to the game with the new name to show these textures.",
+    "renameBody": "After renaming, sign in to the game with the new name to show these textures",
     "name": "Player name",
     "created": "Created {name}",
     "deleteTitle": "Delete the player {name}?",
-    "deleteBody": "The skin and cape it wears stay in your closet.",
+    "deleteBody": "The skin and cape it wears stay in your closet",
     "deleteRefund": "The score it cost is refunded",
     "deleted": "Deleted {name}",
     "pickSkinTitle": "Choose a skin for {name}",
@@ -854,6 +857,7 @@
     "players": "Players",
     "textures": "Textures",
     "publicTextures": "{count} public",
+    "last30dDelta": "+{count} in last 31d",
     "closetItems": "Closet items",
     "storage": "Storage",
     "files": "{count} files",
@@ -885,11 +889,11 @@
     },
     "confirm": {
       "delete": "Users who favorited it get their score back and players wearing it take it off. This cannot be undone.",
-      "ban": "They are signed out on every device and cannot sign in again until you lift the ban."
+      "ban": "They are signed out on every device and cannot sign in again until you lift the ban"
     },
     "errors": {
       "load": "Could not load. Please refresh.",
-      "forbidden": "You may not do this (administrators manage ordinary users only).",
+      "forbidden": "You may not do this (administrators manage ordinary users only)",
       "reviewed": "This report has been reviewed already",
       "failed": "Something went wrong. Please try again."
     },
@@ -941,7 +945,7 @@
       "taken": "That name is taken",
       "name": "The name does not follow the site’s rule",
       "owner": "There is no such user",
-      "texture": "The texture does not exist, is of the wrong kind, or is not in the owner’s closet.",
+      "texture": "The texture does not exist, is of the wrong kind, or is not in the owner’s closet",
       "save": "Could not save"
     },
     "menu": "More actions for {name}",
@@ -954,7 +958,7 @@
   },
   "myReports": {
     "title": "My reports",
-    "intro": "The reports you sent and what became of them.",
+    "intro": "The reports you sent and what became of them",
     "loadFailed": "Could not load. Please try again later.",
     "empty": "You have not reported any textures",
     "textureGone": "Texture deleted or no longer public",
@@ -977,6 +981,7 @@
     "unread": "{count} unread",
     "readAll": "Mark all read",
     "loadFailed": "Could not load. Please try again later.",
+    "actionFailed": "Could not update notification status; please try again",
     "empty": "No notifications yet",
     "announcement": "Announcement",
     "read": "read",
@@ -995,7 +1000,7 @@
     "targetHint": "e.g. 42 or user@example.com",
     "titleField": "Title",
     "content": "Text",
-    "contentHint": "Markdown: **bold**, [links](https://…), lists and so on; HTML is not applied.",
+    "contentHint": "Markdown: **bold**, [links](https://…), lists and so on; HTML is not applied",
     "send": "Send",
     "sentAll": "Sent. Users see it when they next open their notifications.",
     "sentOne": "Sent",
@@ -1020,10 +1025,10 @@
     "deny": "Deny",
     "redirecting": "Returning to the application…",
     "invalidTitle": "Cannot authorize",
-    "invalidHint": "This authorization request is broken; contact the application’s developer.",
+    "invalidHint": "This authorization request is broken; contact the application’s developer",
     "failed": "Something went wrong. Try again later.",
     "manageTitle": "Apps & tokens",
-    "manageHint": "Let other sites and programs sign in with your account or read your data (OAuth 2.0), or create personal access tokens for your own scripts.",
+    "manageHint": "Let other sites and programs sign in with your account or read your data (OAuth 2.0), or create personal access tokens for your own scripts",
     "shownOnce": "Shown only this once: copy it now",
     "edit": "Edit",
     "apps": {
@@ -1042,9 +1047,9 @@
       "create": "Register",
       "secret": "Client secret",
       "resetSecret": "Reset secret",
-      "resetConfirm": "The old secret stops working at once; services using it need the new one.",
+      "resetConfirm": "The old secret stops working at once; services using it need the new one",
       "deleteConfirm": "Every user's authorization of it and every token it issued stop working. This cannot be undone.",
-      "newBody": "You get a client_id; a server application also gets a secret, shown once.",
+      "newBody": "You get a client_id; a server application also gets a secret, shown once",
       "editTitle": "Edit {name}",
       "delete": "Delete application",
       "deleted": "Deleted {name}",
@@ -1057,13 +1062,13 @@
       "none": "You have not authorized any applications",
       "since": "authorized <t></t>",
       "revoke": "Revoke",
-      "revokeConfirm": "It can no longer access your account; using it again needs a new authorization.",
+      "revokeConfirm": "It can no longer access your account; using it again needs a new authorization",
       "revokeTitle": "Revoke access for {name}?",
       "revoked": "Revoked access for {name}"
     },
     "tokens": {
       "title": "Personal access tokens",
-      "hint": "For your own scripts: call the Blessing Skin compatible API like applications do, for example {api} (header Authorization: Bearer token).",
+      "hint": "For your own scripts: call the Blessing Skin compatible API like applications do, for example {api} (header Authorization: Bearer token)",
       "none": "No tokens yet",
       "new": "Create a token",
       "name": "What it is for",
@@ -1078,7 +1083,7 @@
       "never": "never expires",
       "lastUsed": "last used <t></t>",
       "unused": "never used",
-      "deleteConfirm": "Scripts using it can no longer access your account.",
+      "deleteConfirm": "Scripts using it can no longer access your account",
       "newBody": "The token is shown only once, right after it is created. Tick only the scopes your script needs.",
       "delete": "Delete token",
       "deleted": "Deleted the token {name}",
@@ -1086,13 +1091,13 @@
     },
     "device": {
       "pageTitle": "Authorize a device",
-      "enterCodeHint": "Enter the 8-character code shown on your Minecraft launcher or device to continue.",
+      "enterCodeHint": "Enter the 8-character code shown on your Minecraft launcher or device to continue",
       "codeLabel": "Device code",
       "continue": "Continue",
       "useAnotherCode": "Enter another code",
       "phishingWarning": "Confirm that your device shows code {code}. Only approve if you started this sign-in yourself.",
       "approvedTitle": "Device authorized",
-      "approvedHint": "You can now return to your launcher or device and safely close this tab.",
+      "approvedHint": "You can now return to your launcher or device and safely close this tab",
       "deniedTitle": "Authorization denied",
       "deniedHint": "The device was not granted access to your account. You can close this tab."
     },
@@ -1140,7 +1145,7 @@
       "already": "You have already linked an account of this provider. Unlink it first."
     },
     "pending": {
-      "title": "Welcome",
+      "title": "Finish signing in",
       "intro": "One more step to use {site}",
       "expired": "This sign-in has expired. Please start again.",
       "again": "Back to sign in",
@@ -1150,10 +1155,10 @@
       "createHint": "New here? Create an account. You can set a password later.",
       "email": "Email",
       "emailVerified": "Verified by {provider}",
-      "emailMail": "We will send a verification link to this address.",
+      "emailMail": "We will send a verification link to this address",
       "nickname": "Nickname",
       "create": "Create account",
-      "closed": "Registration is closed on this site; only existing accounts can be linked.",
+      "closed": "Registration is closed on this site; only existing accounts can be linked",
       "haveAccount": "Already have an account?",
       "signInToLink": "Sign in to link {provider}",
       "emailTaken": "This email is already registered. Sign in to link the account instead.",
@@ -1179,51 +1184,51 @@
     "sections": {
       "site": {
         "title": "Site",
-        "intro": "Name, address, time zone and announcement."
+        "intro": "Name, address, time zone and announcement"
       },
       "auth": {
         "title": "Accounts",
-        "intro": "Registration, email verification and captcha."
+        "intro": "Registration, email verification and captcha"
       },
       "social": {
         "title": "Social sign-in",
-        "intro": "GitHub, Microsoft and any OpenID Connect provider."
+        "intro": "GitHub, Microsoft and any OpenID Connect provider"
       },
       "mail": {
         "title": "Mail",
-        "intro": "Needed for email verification and password reset."
+        "intro": "Needed for email verification and password reset"
       },
       "score": {
         "title": "Score",
-        "intro": "Prices and awards of uploads, closets, players and check-ins."
+        "intro": "Prices and awards of uploads, closets, players and check-ins"
       },
       "texture": {
         "title": "Textures",
-        "intro": "Upload limits and private textures."
+        "intro": "Upload limits and private textures"
       },
       "player": {
         "title": "Players and game APIs",
-        "intro": "Player name rules and the APIs game clients load skins from."
+        "intro": "Player name rules and the APIs game clients load skins from"
       },
       "yggdrasil": {
         "title": "Launcher sign-in",
-        "intro": "The Yggdrasil API that authlib-injector launchers use."
+        "intro": "The Yggdrasil API that authlib-injector launchers use"
       },
       "oauth": {
         "title": "Open platform",
-        "intro": "OAuth tokens of third-party applications."
+        "intro": "OAuth tokens of third-party applications"
       },
       "other": {
         "title": "Other",
-        "intro": "Settings of other modules."
+        "intro": "Settings of other modules"
       },
       "branding": {
         "title": "Branding and footer",
-        "intro": "Logo, tab icon, footer text and keywords for search engines."
+        "intro": "Logo, tab icon, footer text and keywords for search engines"
       },
       "customCss": {
         "title": "Custom CSS",
-        "intro": "Added after the theme's styles on every page; only super administrators may change it."
+        "intro": "Added after the theme's styles on every page; only super administrators may change it"
       },
       "customJs": {
         "title": "Custom JavaScript",
@@ -1241,6 +1246,24 @@
     "saved": "Saved; in effect now",
     "reset": "Reset to default",
     "willReset": "Resets to the default when saved",
+    "unsavedTitle": "Discard unsaved changes?",
+    "unsavedBody": "Unsaved changes in this section will be lost",
+    "unsavedConfirm": "Discard",
+    "hiddenFieldError": "Related field “{field}” failed validation: {detail}",
+    "testMail": {
+      "title": "Send test email",
+      "placeholder": "Leave blank to send to your email",
+      "button": "Send test",
+      "sent": "Test email sent",
+      "failed": "Could not send test email"
+    },
+    "purgeCdn": {
+      "title": "Purge CDN cache",
+      "placeholder": "Player names separated by commas or spaces",
+      "button": "Purge now",
+      "done": "Requested purge of {urls} CDN URLs",
+      "failed": "Could not purge CDN"
+    },
     "clear": "Clear",
     "willClear": "Cleared when saved",
     "secretSet": "Set; leave empty to keep it",
@@ -1272,61 +1295,75 @@
     "plugins": {
       "trusted_keys": {
         "label": "Trusted plugin signing keys",
-        "help": "Additional Ed25519 public keys (SPKI PEM, base64, or 64-hex) trusted to sign .slp plugin packages alongside the official key."
+        "help": "Additional Ed25519 public keys (SPKI PEM, base64, or 64-hex) trusted to sign .slp plugin packages alongside the official key"
       }
     },
     "site": {
       "name": {
-        "label": "Site name"
+        "label": "Site name",
+        "help": "Shown in the header, page titles, and launcher metadata"
       },
       "description": {
-        "label": "Site description"
+        "label": "Site description",
+        "help": "Short one-line summary shown on the home page and in search results"
       },
       "url": {
-        "label": "Site URL"
+        "label": "Site URL",
+        "help": "Public base URL, e.g. https://skin.example.com. Email verification, password reset, and social sign-in links rely on it and stay unavailable while empty."
       },
       "timezone": {
-        "label": "Time zone"
+        "label": "Time zone",
+        "help": "IANA time zone name, e.g. Asia/Shanghai or UTC: controls when a new check-in day starts and how overview charts bucket dates"
       },
       "announcement": {
-        "label": "Announcement"
+        "label": "Announcement",
+        "help": "Shown on the home page and user dashboard; supports Markdown"
       },
       "logo": {
-        "label": "Logo"
+        "label": "Logo",
+        "help": "Header logo image URL or site path (e.g. /logo.png); leave empty to use the active theme’s mark"
       },
       "favicon": {
-        "label": "Tab icon"
+        "label": "Tab icon",
+        "help": "Browser tab icon URL or site path; leave empty to use the built-in icon"
       },
       "copyright": {
-        "label": "Footer text"
+        "label": "Footer text",
+        "help": "Footer text (supports Markdown); leave empty to show © year and site name"
       }
     },
     "auth": {
       "registration": {
         "label": "Registration",
+        "help": "When closed, only administrators can create accounts",
         "options": {
           "open": "Open",
           "closed": "Closed"
         }
       },
       "registrations_per_ip": {
-        "label": "Accounts per address per day"
+        "label": "Accounts per address per day",
+        "help": "Maximum accounts created per IP (IPv6 counted by /64) within 24 hours; 0 disables the limit"
       },
       "require_email_verification": {
-        "label": "Require a verified email"
+        "label": "Require a verified email",
+        "help": "Unverified accounts cannot manage players, upload or edit textures, submit reports, create OAuth apps or tokens, or sign in via launchers. Requires mail and site URL to be configured."
       },
       "login_captcha_after": {
-        "label": "Captcha after failed logins"
+        "label": "Captcha after failed logins",
+        "help": "Require a CAPTCHA after this many failed sign-in attempts from the same client; 0 always requires it. Ignored when CAPTCHA is off."
       },
       "social": {
         "providers": {
-          "label": "Sign-in providers"
+          "label": "Sign-in providers",
+          "help": "JSON array of provider definitions (see the Social Sign-In guide). Register callback URL as Site URL + /api/v1/auth/social/provider-id/callback; providers appear once Site URL is set. Saved clientSecret values appear as ******** and stay unchanged unless edited."
         }
       }
     },
     "captcha": {
       "provider": {
         "label": "Captcha",
+        "help": "Shown on registration and after repeated failed sign-ins",
         "options": {
           "none": "None",
           "image": "Built-in image captcha",
@@ -1337,32 +1374,39 @@
       },
       "turnstile": {
         "site_key": {
-          "label": "Turnstile site key"
+          "label": "Turnstile site key",
+          "help": "Public site key used by the browser widget"
         },
         "secret_key": {
-          "label": "Turnstile secret key"
+          "label": "Turnstile secret key",
+          "help": "Kept on the server only; hidden after saving"
         }
       },
       "recaptcha": {
         "site_key": {
-          "label": "reCAPTCHA site key"
+          "label": "reCAPTCHA site key",
+          "help": "Public site key used by the browser widget"
         },
         "secret_key": {
-          "label": "reCAPTCHA secret key"
+          "label": "reCAPTCHA secret key",
+          "help": "Kept on the server only; hidden after saving"
         }
       },
       "hcaptcha": {
         "site_key": {
-          "label": "hCaptcha site key"
+          "label": "hCaptcha site key",
+          "help": "Public site key used by the browser widget"
         },
         "secret_key": {
-          "label": "hCaptcha secret key"
+          "label": "hCaptcha secret key",
+          "help": "Kept on the server only; hidden after saving"
         }
       }
     },
     "mail": {
       "driver": {
         "label": "Delivery",
+        "help": "When off, email verification and password reset are unavailable; log mode writes emails to server logs for debugging without sending",
         "options": {
           "none": "Off",
           "smtp": "SMTP",
@@ -1370,23 +1414,29 @@
         }
       },
       "from": {
-        "label": "Sender"
+        "label": "Sender",
+        "help": "Sender address, e.g. noreply@skin.example.com, optionally with a display name"
       },
       "smtp": {
         "host": {
-          "label": "SMTP server"
+          "label": "SMTP server",
+          "help": "SMTP server hostname, e.g. smtp.example.com"
         },
         "port": {
-          "label": "Port"
+          "label": "Port",
+          "help": "Usually 465 for TLS or 587 for STARTTLS"
         },
         "username": {
-          "label": "User name"
+          "label": "User name",
+          "help": "Usually your mailbox address"
         },
         "password": {
-          "label": "Password"
+          "label": "Password",
+          "help": "SMTP password or app token; kept on the server only and hidden after saving"
         },
         "encryption": {
           "label": "Encryption",
+          "help": "Plaintext is only suitable for a local mail relay on the same host",
           "options": {
             "tls": "TLS",
             "starttls": "STARTTLS",
@@ -1397,75 +1447,96 @@
     },
     "score": {
       "initial": {
-        "label": "Score of a new account"
+        "label": "Score of a new account",
+        "help": "Starting score granted to newly registered users"
       },
       "per_storage": {
-        "label": "Score per KB, public"
+        "label": "Score per KB, public",
+        "help": "Score charged per KB (rounded up) when uploading a public texture"
       },
       "private_per_storage": {
-        "label": "Score per KB, private"
+        "label": "Score per KB, private",
+        "help": "Score charged per KB when uploading a private texture or switching one to private"
       },
       "per_closet_item": {
-        "label": "Score to add to a closet"
+        "label": "Score to add to a closet",
+        "help": "Score charged when adding a texture to your closet, including your own uploads"
       },
       "award_per_texture": {
-        "label": "Award for a public upload"
+        "label": "Award for a public upload",
+        "help": "Bonus score awarded only when uploading a public texture"
       },
       "per_player": {
-        "label": "Score to create a player"
+        "label": "Score to create a player",
+        "help": "Score charged each time a user creates a new player"
       },
       "award_per_like": {
-        "label": "Award when added to a closet"
+        "label": "Award when added to a closet",
+        "help": "Score awarded to the uploader when another user adds their texture to a closet"
       },
       "sign_min": {
-        "label": "Least check-in score"
+        "label": "Least check-in score",
+        "help": "Minimum score awarded per daily check-in"
       },
       "sign_max": {
-        "label": "Most check-in score"
+        "label": "Most check-in score",
+        "help": "Maximum score awarded per daily check-in; cannot be less than the minimum"
       },
       "sign_gap_hours": {
-        "label": "Hours between check-ins"
+        "label": "Hours between check-ins",
+        "help": "Minimum hours between check-ins when “once per calendar day” is disabled"
       },
       "sign_daily": {
-        "label": "Check in once a day"
+        "label": "Check in once a day",
+        "help": "Reset check-ins at midnight in the site time zone instead of waiting a fixed number of hours"
       },
       "return_on_delete": {
-        "label": "Give back on deletion"
+        "label": "Give back on deletion",
+        "help": "Refund the score originally spent when deleting a player, removing a closet item, or deleting a texture"
       },
       "reporter_modification": {
-        "label": "Score change for a report"
+        "label": "Score change for a report",
+        "help": "Negative: deposit charged on submit and refunded if upheld; positive: reward on submit and reclaimed if rejected"
       },
       "reporter_reward": {
-        "label": "Award for an upheld report"
+        "label": "Award for an upheld report",
+        "help": "Bonus score awarded to the reporter when the reported texture is deleted or its uploader is banned"
       }
     },
     "texture": {
       "max_size_kb": {
-        "label": "Largest file (KB)"
+        "label": "Largest file (KB)",
+        "help": "Maximum file size allowed for a single uploaded PNG texture"
       },
       "max_width": {
-        "label": "Widest texture (pixels)"
+        "label": "Widest texture (pixels)",
+        "help": "Maximum pixel width allowed for HD skins or capes (standard skin width is 64)"
       },
       "name_regexp": {
-        "label": "Texture name rule"
+        "label": "Texture name rule",
+        "help": "Regular expression texture names must match (Go RE2 syntax); leave empty for no restriction"
       },
       "allow_download": {
-        "label": "Allow downloading originals"
+        "label": "Allow downloading originals",
+        "help": "When disabled, /raw no longer serves original texture files"
       },
       "private_status": {
         "label": "Status for private textures",
+        "help": "HTTP status code returned when another user requests a private texture",
         "options": {
           "403": "403 Forbidden",
           "404": "404 Not Found"
         }
       },
       "content_policy": {
-        "label": "Content policy"
+        "label": "Content policy",
+        "help": "Shown on the upload page; supports Markdown"
       }
     },
     "player": {
       "name_rule": {
         "label": "Player name rule",
+        "help": "Allowed character set when creating or renaming a player",
         "options": {
           "official": "Letters, digits and underscore",
           "cjk": "Also Chinese characters",
@@ -1474,13 +1545,16 @@
         }
       },
       "name_regexp": {
-        "label": "Custom player name rule"
+        "label": "Custom player name rule",
+        "help": "Used when the player name rule is set to “Custom regular expression” (Go RE2 syntax)"
       },
       "name_length_min": {
-        "label": "Shortest player name"
+        "label": "Shortest player name",
+        "help": "Minimum number of characters in a player name"
       },
       "name_length_max": {
-        "label": "Longest player name"
+        "label": "Longest player name",
+        "help": "Maximum number of characters in a player name"
       },
       "keep_uuid_on_rename": {
         "label": "Keep UUID on player rename",
@@ -1489,66 +1563,78 @@
     },
     "delivery": {
       "profile_cache_seconds": {
-        "label": "Profile cache time (seconds)"
+        "label": "Profile cache time (seconds)",
+        "help": "How long game clients and CDNs may cache player profile JSON responses"
       },
       "missing_player_status": {
         "label": "Unknown players answer",
+        "help": "HTTP status code returned when a client queries a player name that does not exist",
         "options": {
-          "404": "404",
-          "204": "204, try the next skin site"
+          "204": "204, try the next skin site",
+          "404": "404"
         }
       }
     },
     "yggdrasil": {
       "uuid_algorithm": {
         "label": "UUIDs of new players",
+        "help": "UUID generation for new players: v3 matches offline-mode servers and changes on rename; v4 is random and stays fixed on rename",
         "options": {
           "v3": "v3, from the name",
           "v4": "v4, random"
         }
       },
       "token_valid_seconds": {
-        "label": "Token lifetime (seconds)"
+        "label": "Token lifetime (seconds)",
+        "help": "How long launcher sign-in tokens stay valid (default 3 days)"
       },
       "token_refresh_seconds": {
-        "label": "Token refresh window (seconds)"
+        "label": "Token refresh window (seconds)",
+        "help": "How long after issuance an expired token can still be refreshed (default 7 days)"
       },
       "tokens_per_user": {
-        "label": "Tokens per account"
+        "label": "Tokens per account",
+        "help": "Signing in beyond this limit revokes the user’s oldest launcher token"
       },
       "search_profile_max": {
-        "label": "Names per bulk lookup"
+        "label": "Names per bulk lookup",
+        "help": "Maximum number of player names accepted in a single batch lookup"
       },
       "skin_domains": {
-        "label": "Extra texture domains"
+        "label": "Extra texture domains",
+        "help": "Additional trusted texture hostnames, comma-separated; this site and its public storage host are always included"
       },
       "enable_ali": {
-        "label": "Send the API location header"
+        "label": "Send the API location header",
+        "help": "Send X-Authlib-Injector-API-Location on every page so launchers only need the site URL"
       },
       "disable_authserver": {
         "label": "Disable legacy Yggdrasil AuthServer",
-        "help": "Disable /api/yggdrasil/authserver/* password sign-in so launchers authenticate via OIDC / Yggdrasil Connect instead."
+        "help": "Disable /api/yggdrasil/authserver/* password sign-in so launchers authenticate via OIDC / Yggdrasil Connect instead"
       }
     },
     "oauth": {
       "access_token_ttl_seconds": {
-        "label": "Access token lifetime (seconds)"
+        "label": "Access token lifetime (seconds)",
+        "help": "How long OAuth access tokens stay valid (default 1 day) before a refresh token is needed"
       },
       "refresh_token_ttl_seconds": {
-        "label": "Refresh token lifetime (seconds)"
+        "label": "Refresh token lifetime (seconds)",
+        "help": "How long unused refresh tokens stay valid (default 30 days); each refresh rotates the token"
       },
       "enable_oidc": {
         "label": "Enable built-in OIDC / Yggdrasil Connect",
-        "help": "Serve OpenID Connect, Yggdrasil Connect character selection, and Device Authorization Grant natively at /oauth/.well-known/openid-configuration (issuer path: /oauth, zero Janus) and advertise it in /api/yggdrasil metadata."
+        "help": "Serve OpenID Connect, Yggdrasil Connect character selection, and Device Authorization Grant natively at /oauth/.well-known/openid-configuration (issuer path: /oauth, zero Janus) and advertise it in /api/yggdrasil metadata"
       },
       "enable_dcr": {
         "label": "Allow launcher dynamic client registration (DCR)",
-        "help": "Allow native launchers to dynamically register public PKCE clients via RFC 7591 (POST /oauth/register, restricted to loopback HTTP or custom app schemes)."
+        "help": "Allow native launchers to dynamically register public PKCE clients via RFC 7591 (POST /oauth/register, restricted to loopback HTTP or custom app schemes)"
       }
     },
     "seo": {
       "keywords": {
-        "label": "Search keywords"
+        "label": "Search keywords",
+        "help": "Comma-separated meta keywords for search engines; page descriptions use the site description"
       }
     },
     "theme": {
@@ -1557,7 +1643,8 @@
         "help": "Theme IDs allowed to load Level-5 client override JS bundles"
       },
       "custom_css": {
-        "label": "Custom CSS"
+        "label": "Custom CSS",
+        "help": "Loaded as a separate stylesheet after the theme’s CSS (max 64 KB); superadmins only"
       },
       "custom_js": {
         "label": "Custom JavaScript",
@@ -1567,6 +1654,7 @@
     "cdn": {
       "provider": {
         "label": "CDN",
+        "help": "Select the CDN in front of this site. Webhook POSTs purge URLs to your own endpoint for custom CDNs.",
         "options": {
           "none": "Off",
           "cloudflare": "Cloudflare",
@@ -1576,44 +1664,53 @@
         }
       },
       "base_url": {
-        "label": "Site address on the CDN"
+        "label": "Site address on the CDN",
+        "help": "Public URL served by the CDN, e.g. https://skin.example.com; leave empty to use the site URL"
       },
       "cloudflare": {
         "zone_id": {
-          "label": "Cloudflare zone ID"
+          "label": "Cloudflare zone ID",
+          "help": "Found on the domain’s Overview page in Cloudflare"
         },
         "api_token": {
-          "label": "Cloudflare API token"
+          "label": "Cloudflare API token",
+          "help": "Requires “Zone → Cache Purge” permission; hidden after saving"
         }
       },
       "aliyun": {
         "access_key_id": {
-          "label": "Alibaba Cloud AccessKey ID"
+          "label": "Alibaba Cloud AccessKey ID",
+          "help": "Use a RAM user restricted to cdn:RefreshObjectCaches"
         },
         "access_key_secret": {
-          "label": "Alibaba Cloud AccessKey secret"
+          "label": "Alibaba Cloud AccessKey secret",
+          "help": "Hidden after saving"
         }
       },
       "tencent": {
         "secret_id": {
-          "label": "Tencent Cloud SecretId"
+          "label": "Tencent Cloud SecretId",
+          "help": "Use a sub-account restricted to cdn:PurgeUrlsCache"
         },
         "secret_key": {
-          "label": "Tencent Cloud SecretKey"
+          "label": "Tencent Cloud SecretKey",
+          "help": "Hidden after saving"
         }
       },
       "webhook": {
         "url": {
-          "label": "Webhook URL"
+          "label": "Webhook URL",
+          "help": "Endpoint that receives POST requests containing the purge URL list (urls) and trigger event (event)"
         },
         "secret": {
-          "label": "Webhook signing secret"
+          "label": "Webhook signing secret",
+          "help": "When set, requests include an X-SkinLoom-Signature header with sha256= HMAC-SHA256 of the body; hidden after saving"
         }
       }
     }
   },
   "appearance": {
-    "intro": "Changes reach every visitor as soon as they are saved, without a restart.",
+    "intro": "Changes reach every visitor as soon as they are saved, without a restart",
     "errors": {
       "load": "Could not load the appearance settings"
     },
@@ -1636,7 +1733,8 @@
       "applyPreview": "Apply sitewide",
       "exitPreview": "Exit preview",
       "loadingPlugin": "Loading extension…",
-      "pluginNotFound": "Plugin page not found or inactive.",
+      "pluginNotFound": "Plugin page not found or inactive",
+      "pluginCrashed": "This plugin page failed to render",
       "browseMarket": "Browse theme market"
     },
     "tabs": {
@@ -1680,12 +1778,14 @@
     },
     "home": {
       "title": "Home page",
-      "intro": "The home page is made of blocks, top to bottom.",
+      "intro": "The home page is made of blocks, top to bottom",
       "usingTheme": "It is the home page of the theme “{theme}”",
       "custom": "It is a custom home page",
       "empty": "The home page has no blocks",
       "add": "Add block",
       "useTheme": "Use the theme's home page",
+      "useThemeTitle": "Revert to theme default home page?",
+      "useThemeConfirm": "Your custom home page blocks will be cleared, and future theme switches will use each theme's default home page",
       "moveUp": "Move up",
       "moveDown": "Move down",
       "remove": "Remove",
@@ -1702,11 +1802,11 @@
     "blockTypes": {
       "hero": {
         "name": "Hero",
-        "help": "The site's name, description and two buttons, with an optional background image."
+        "help": "The site's name, description and two buttons, with an optional background image"
       },
       "announcement": {
         "name": "Announcement",
-        "help": "The site announcement; hidden when there is none."
+        "help": "The site announcement; hidden when there is none"
       },
       "features": {
         "name": "Features",
@@ -1714,7 +1814,7 @@
       },
       "stats": {
         "name": "Site figures",
-        "help": "How many accounts, players and public textures there are."
+        "help": "How many accounts, players and public textures there are"
       },
       "latest-textures": {
         "name": "Latest textures",
@@ -1734,11 +1834,11 @@
       },
       "buttons": {
         "name": "Buttons",
-        "help": "Up to 6 link buttons; the first is the primary one."
+        "help": "Up to 6 link buttons; the first is the primary one"
       },
       "launcher-guide": {
         "name": "Launcher guide",
-        "help": "The launcher sign-in address and how to set it up."
+        "help": "The launcher sign-in address and how to set it up"
       }
     },
     "props": {
@@ -1786,6 +1886,9 @@
     "search": "Search",
     "searchHint": "Key or text, like nav.skinlib",
     "changedOnly": "Reworded only",
+    "allLocales": "All languages",
+    "reset": "Reset",
+    "matchedCount": "{matched} of {total} matched",
     "count": "{count} reworded",
     "changed": "Reworded",
     "keep": "Empty keeps the original",
@@ -1794,15 +1897,15 @@
     "saved": "Saved and applied",
     "fixFirst": "{count} to fix first",
     "problems": {
-      "syntax": "This text is not well-formed: check that the braces pair up and each form is complete.",
-      "placeholders": "Keep the placeholders in braces and the tags of the original: the page fills them in."
+      "syntax": "This text is not well-formed: check that the braces pair up and each form is complete",
+      "placeholders": "Keep the placeholders in braces and the tags of the original: the page fills them in"
     },
     "errors": {
       "load": "Could not load",
       "save": "Could not save; try again",
       "invalid": "Not saved: {detail}"
     },
-    "noDefault": "This language has no such text (the server's description is shown); a reworded one would not appear."
+    "noDefault": "This language has no such text (the server's description is shown); a reworded one would not appear"
   },
   "adminStatus": {
     "intro": "The state of this server. With several instances, their versions and start times may differ.",
@@ -1814,29 +1917,30 @@
     },
     "checks": {
       "title": "Checks",
+      "goSettings": "Open settings",
       "database": {
         "ok": "The database answers",
         "problem": "The database cannot be reached"
       },
       "migrations": {
         "ok": "The database schema is up to date",
-        "problem": "Some migrations have not run; restart the server."
+        "problem": "Some migrations have not run; restart the server"
       },
       "jobs_overdue": {
         "ok": "Background jobs run on time",
-        "problem": "Background jobs are over a minute late; see the server log."
+        "problem": "Background jobs are over a minute late; see the server log"
       },
       "jobs_failed": {
         "ok": "No background job failed in the last 7 days",
-        "problem": "Background jobs failed after their retries in the last 7 days; see the server log."
+        "problem": "Background jobs failed after their retries in the last 7 days; see the server log"
       },
       "mail": {
         "ok": "Mail is set up",
-        "problem": "Mail is not set up: no email verification or password reset."
+        "problem": "Mail is not set up: no email verification or password reset"
       },
       "site_url": {
         "ok": "The site URL is set",
-        "problem": "The site URL is not set: no mail links or social sign-in."
+        "problem": "The site URL is not set: no mail links or social sign-in"
       }
     },
     "server": {
@@ -1865,7 +1969,8 @@
       "files": "Files",
       "size": "Size",
       "rescan": "Rescan missing textures",
-      "rescanDone": "Checked {checked} missing blobs: recovered {updated}, still missing {missing}.",
+      "rescanDone": "Checked {checked} missing blobs: recovered {updated}, still missing {missing}",
+      "rescanInvalid": "({invalid} invalid)",
       "rescanFailed": "Texture rescan failed. Try again later."
     },
     "jobs": {
@@ -1906,7 +2011,7 @@
     "next": "Next",
     "position": "{current} / {total}",
     "private": "Private",
-    "likes": "Favourites",
+    "likes": "Likes",
     "search": "Search",
     "noMatch": "No textures match",
     "all": "All",
@@ -1933,7 +2038,16 @@
     "bgWhite": "White background",
     "bgGray": "Gray background",
     "bgBlack": "Black background",
-    "backEquipment": "Switch cape / elytra"
+    "backEquipment": "Switch cape / elytra",
+    "breadcrumb": "Breadcrumb",
+    "pagination": "Pagination",
+    "clear": "Clear",
+    "remove": "Remove",
+    "openOptions": "Open options",
+    "commandPalette": "Command palette",
+    "commandSearch": "Search for a command to run…",
+    "unsavedChanges": "Unsaved changes",
+    "previewUnavailable": "3D preview unavailable"
   },
   "componentPreview": {
     "title": "Components",
@@ -1969,24 +2083,24 @@
       "remember": "Remember me",
       "volume": "Volume",
       "alertTitle": "Maintenance",
-      "alertBody": "The database is serviced on Saturday from 02:00 to 04:00; uploads are paused meanwhile.",
+      "alertBody": "The database is serviced on Saturday from 02:00 to 04:00; uploads are paused meanwhile",
       "errorTitle": "Upload failed",
-      "errorBody": "The file is not a PNG; try another one.",
+      "errorBody": "The file is not a PNG; try another one",
       "emptyTitle": "Your closet is empty",
-      "emptyBody": "Save the textures you like from the skin library.",
+      "emptyBody": "Save the textures you like from the skin library",
       "browse": "Browse the skin library",
       "toast": "Saved",
       "showToast": "Show a toast",
       "confirmTitle": "Delete the player “Steve”?",
-      "confirmBody": "Launchers using this player will no longer show its skin. 10 points are refunded.",
+      "confirmBody": "Launchers using this player will no longer show its skin. 10 score is refunded.",
       "confirmAction": "Delete player",
       "askConfirm": "Delete…",
       "askTyped": "Delete account…",
       "typedTitle": "Delete your account?",
-      "typedBody": "Your account, players and uploads are removed for good.",
+      "typedBody": "Your account, players and uploads are removed for good",
       "typedAction": "Delete account",
       "dialog": "Dialog",
-      "dialogBody": "Short edits go in a dialog, longer ones in a side sheet.",
+      "dialogBody": "Short edits go in a dialog, longer ones in a side sheet",
       "sheet": "Side sheet",
       "drawer": "Bottom drawer",
       "popover": "Popover",
@@ -1998,8 +2112,8 @@
       "tab1": "OAuth apps",
       "tab2": "Access tokens",
       "question": "What is the authentication server?",
-      "answer": "It lets launchers sign in with your account here and show this site's skins on servers.",
-      "noTextures": "The skin library has no public textures yet; upload one to see real previews here.",
+      "answer": "It lets launchers sign in with your account here and show this site's skins on servers",
+      "noTextures": "The skin library has no public textures yet; upload one to see real previews here",
       "carousel": "Latest uploads",
       "pick": "Choose a texture",
       "picked": "Chosen: {name}",
@@ -2095,40 +2209,41 @@
       "local": "Local dev"
     },
     "nativeRunningPid": "PID {pid}",
+    "nativeSuperadminOnly": "Only superadmins can manage native plugins",
     "circuitAlert": "Auto-disabled after {count} consecutive runtime failures",
     "noPermissions": "No special permissions",
     "permissionDescriptions": {
-      "storage_kv": "Read and write plugin-scoped key/value data.",
-      "storage_docs": "Read and write plugin-scoped structured documents.",
-      "storage_files": "Read and write files in the plugin's private file space.",
-      "cron": "Schedule recurring background jobs.",
-      "admin_ui": "Register custom pages under the admin panel.",
-      "users_read": "Query basic account information.",
-      "players_read": "Query player profiles and worn textures.",
-      "textures_read": "Read skin and cape metadata or image bytes.",
-      "notify_send": "Send in-site notifications or announcements.",
-      "http_fetch": "Make outbound HTTP requests to declared http.allow hosts.",
-      "mail_send": "Send emails via the host mail queue.",
-      "players_write": "Create, rename, equip, or delete players.",
-      "textures_write": "Create, edit, or delete textures.",
-      "closet_write": "Modify user closets.",
-      "score_write": "Credit or debit user score balances through the ledger.",
-      "users_write": "Update limited user profile fields or preferences.",
-      "routes_public": "Mount public routes at site root patterns.",
-      "yggdrasil_extend": "Extend Yggdrasil profiles and metadata.",
-      "cdn_provider": "Register a CDN cache purger provider.",
-      "captcha_provider": "Register a CAPTCHA verification provider.",
-      "storage_sql": "Access the host-allocated isolated SQL database space (plg_*_ prefix).",
-      "http_stream": "Expose a local HTTP/WebSocket streaming reverse proxy endpoint.",
-      "provider_search": "Register a custom full-text texture search engine provider.",
-      "provider_render": "Register a custom 2D/3D avatar and texture preview render provider.",
-      "users_ban": "Ban or unban user accounts.",
-      "auth_provider": "Register a login / sign-in identity provider.",
-      "auth_password": "Register an external password verification algorithm.",
-      "provider_storage": "Register a custom texture object storage driver provider.",
-      "native_exec": "Execute as a native OS subprocess outside the WASM sandbox.",
-      "yggdrasil_key_write": "Replace the site's 4096-bit Yggdrasil RSA signing key and invalidate cached signatures.",
-      "players_uuid_write": "Remap a player's UUID and invalidate bound game sessions and tokens."
+      "storage_kv": "Read and write plugin-scoped key/value data",
+      "storage_docs": "Read and write plugin-scoped structured documents",
+      "storage_files": "Read and write files in the plugin's private file space",
+      "cron": "Schedule recurring background jobs",
+      "admin_ui": "Register custom pages under the admin panel",
+      "users_read": "Query basic account information",
+      "players_read": "Query player profiles and worn textures",
+      "textures_read": "Read skin and cape metadata or image bytes",
+      "notify_send": "Send in-site notifications or announcements",
+      "http_fetch": "Make outbound HTTP requests to declared http.allow hosts",
+      "mail_send": "Send emails via the host mail queue",
+      "players_write": "Create, rename, equip, or delete players",
+      "textures_write": "Create, edit, or delete textures",
+      "closet_write": "Modify user closets",
+      "score_write": "Credit or debit user score balances through the ledger",
+      "users_write": "Update limited user profile fields or preferences",
+      "routes_public": "Mount public routes at site root patterns",
+      "yggdrasil_extend": "Extend Yggdrasil profiles and metadata",
+      "cdn_provider": "Register a CDN cache purger provider",
+      "captcha_provider": "Register a CAPTCHA verification provider",
+      "storage_sql": "Access the host-allocated isolated SQL database space (plg_*_ prefix)",
+      "http_stream": "Expose a local HTTP/WebSocket streaming reverse proxy endpoint",
+      "provider_search": "Register a custom full-text texture search engine provider",
+      "provider_render": "Register a custom 2D/3D avatar and texture preview render provider",
+      "users_ban": "Ban or unban user accounts",
+      "auth_provider": "Register a login / sign-in identity provider",
+      "auth_password": "Register an external password verification algorithm",
+      "provider_storage": "Register a custom texture object storage driver provider",
+      "native_exec": "Execute as a native OS subprocess outside the WASM sandbox",
+      "yggdrasil_key_write": "Replace the site's 4096-bit Yggdrasil RSA signing key and invalidate cached signatures",
+      "players_uuid_write": "Remap a player's UUID and invalidate bound game sessions and tokens"
     },
     "actions": {
       "refresh": "Refresh",
@@ -2187,6 +2302,10 @@
       "empty": "This plugin declares no configurable settings",
       "save": "Save settings",
       "cancel": "Cancel",
+      "readOnlyHint": "Only superadmins can edit native plugin settings",
+      "discardTitle": "Discard unsaved changes?",
+      "discardBody": "Your changes in this drawer have not been saved and will be lost",
+      "discardConfirm": "Discard",
       "secretSetPlaceholder": "Stored secret (leave blank or ******** to keep unchanged)",
       "secretUnsetPlaceholder": "Enter secret value",
       "secretSetBadge": "Set",
@@ -2241,6 +2360,10 @@
       "usageKv": "KV keys",
       "usageDocs": "Documents",
       "usageFiles": "Private files",
+      "metaTitle": "Package info",
+      "metaAuthors": "Authors",
+      "metaHomepage": "Homepage",
+      "metaSha256": "Package SHA-256",
       "noLogs": "No recent runtime logs recorded",
       "noRoutes": "This plugin registers no HTTP routes",
       "authLevels": {
@@ -2260,6 +2383,7 @@
       "title": "Uninstall {name}?",
       "description": "This disables the plugin and removes its runtime code. Your stored settings and data are kept unless you choose Purge.",
       "purgeLabel": "Also purge plugin KV, document collections, and private files (irreversible)",
+      "confirmIdLabel": "Type plugin ID “{id}” to confirm purging data",
       "confirm": "Uninstall",
       "cancel": "Cancel"
     },
@@ -2300,16 +2424,16 @@
       "reinstallButton": "Reinstall",
       "changelogButton": "Versions & changelog",
       "emptyTitle": "No matching market packages",
-      "emptyDescription": "Try clearing filters or unchecking “Compatible only” to browse all packages.",
+      "emptyDescription": "Try clearing filters or unchecking “Compatible only” to browse all packages",
       "registryErrorTitle": "Market source error ({name})",
       "cascadeTitle": "Cascade dependencies to install",
       "cascadeHint": "The following required dependencies will be downloaded, verified, and installed first:",
       "changelogDrawerTitle": "Versions & changelog: {name}",
-      "changelogDrawerDescription": "Select a compatible release to inspect and install, or review release notes.",
-      "noChangelog": "No release notes provided for this version.",
+      "changelogDrawerDescription": "Select a compatible release to inspect and install, or review release notes",
+      "noChangelog": "No release notes provided for this version",
       "yankedBadge": "Yanked",
       "installVersion": "Install v{version}",
-      "downloading": "Downloading & verifying package from registry… Large native packages may take a few minutes.",
+      "downloading": "Downloading & verifying package from registry… Large native packages may take a few minutes",
       "installing": "Downloading & installing…",
       "retryInspect": "Retry download"
     }

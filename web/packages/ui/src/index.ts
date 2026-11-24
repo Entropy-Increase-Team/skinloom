@@ -59,7 +59,18 @@ export { defaultLabels, fill, type UiLabels, UiLabelsProvider, useUiLabels } fro
 export { Markdown, PageHeader, StatCard, type Status, StatusDot, UsageMeter } from './components/skinloom/layout'
 export { PixelBackdrop } from './components/skinloom/pixel-backdrop'
 export { formatRelative, RelativeTime } from './components/skinloom/relative-time'
+export {
+  ResponsiveDialog,
+  ResponsiveDialogClose,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogTrigger,
+} from './components/skinloom/responsive-dialog'
 export { SaveBar } from './components/skinloom/save-bar'
+export { useIsMobile } from './hooks/use-mobile'
 export { type CarouselSkin, SkinCarousel } from './components/skinloom/skin-carousel'
 export { prefersReducedMotion, SkinViewer, type SkinViewerAnimation, type SkinViewerBackground } from './components/skinloom/skin-viewer'
 export { PlayerCard, TextureCard, type TextureCardTexture } from './components/skinloom/texture-card'

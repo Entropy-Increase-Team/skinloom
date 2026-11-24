@@ -1,7 +1,7 @@
 'use client'
 
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, Skeleton } from '@skinloom/ui'
-import { Puzzle } from 'lucide-react'
+import { Button, Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle, Skeleton } from '@skinloom/ui'
+import { Puzzle, TriangleAlert } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 import { useBootstrap } from '@/components/providers'
@@ -76,6 +76,7 @@ export function PluginPageHost({
   area?: 'explore' | 'user' | 'admin'
 }) {
   const t = useTranslations('appearance.themes')
+  const tc = useTranslations('common')
   const boot = useBootstrap()
   const { pluginsById, loading } = usePluginRuntime()
   const entry = pluginsById.get(pluginId)
@@ -109,10 +110,15 @@ export function PluginPageHost({
         <Empty className="border border-dashed border-destructive/40 py-16">
           <EmptyHeader>
             <EmptyMedia variant="icon">
-              <Puzzle className="text-destructive" />
+              <TriangleAlert className="text-destructive" />
             </EmptyMedia>
-            <EmptyTitle>{t('pluginNotFound')}</EmptyTitle>
+            <EmptyTitle>{t('pluginCrashed')}</EmptyTitle>
           </EmptyHeader>
+          <EmptyContent>
+            <Button type="button" variant="outline" size="sm" onClick={() => window.location.reload()}>
+              {tc('retry')}
+            </Button>
+          </EmptyContent>
         </Empty>
       }
     >

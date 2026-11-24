@@ -24,7 +24,7 @@ export async function FeaturesBlock() {
         {items.map(({ key, Icon }) => (
           <li key={key} className="flex gap-3.5">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
-              <Icon className="size-[18px] text-foreground" aria-hidden />
+              <Icon className="size-4 text-foreground" aria-hidden />
             </span>
             <div className="flex flex-col gap-1.5">
               <h3 className="text-base font-medium">{t(`${key}.title`)}</h3>

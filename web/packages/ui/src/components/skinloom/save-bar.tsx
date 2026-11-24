@@ -12,6 +12,7 @@ import { fill, useUiLabels } from './labels'
 export function SaveBar({
   count,
   saving = false,
+  disabled = false,
   onSave,
   onDiscard,
   className,
@@ -19,6 +20,8 @@ export function SaveBar({
   /** Changed values; the bar hides at 0. */
   count: number
   saving?: boolean
+  /** Keeps Discard available while blocking Save (e.g. when validation errors exist). */
+  disabled?: boolean
   onSave: () => void
   onDiscard: () => void
   className?: string
@@ -29,17 +32,18 @@ export function SaveBar({
     <div
       data-slot="save-bar"
       role="region"
+      aria-label={t.unsavedChanges}
       aria-live="polite"
       className={cn(
         'sticky bottom-0 z-30 -mx-4 mt-6 flex items-center gap-3 border-t bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur animate-in fade-in-0 slide-in-from-bottom-2 duration-200 sm:mx-0 sm:rounded-xl sm:border sm:shadow-(--shadow-popover)',
         className,
       )}
     >
-      <span className="flex-1 text-sm text-muted-foreground">{fill(t.unsaved, { count })}</span>
+      <span className="flex-1 text-sm text-muted-foreground tabular-nums">{fill(t.unsaved, { count })}</span>
       <Button variant="ghost" onClick={onDiscard} disabled={saving}>
         {t.discard}
       </Button>
-      <Button onClick={onSave} loading={saving}>
+      <Button onClick={onSave} loading={saving} disabled={disabled}>
         {t.save}
       </Button>
     </div>

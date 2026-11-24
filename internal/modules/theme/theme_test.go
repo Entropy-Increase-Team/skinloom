@@ -698,3 +698,27 @@ func TestRegistryWatchAllowsStagingRenameAndDelete(t *testing.T) {
 		t.Fatalf("RemoveAll theme dir while Watch active: %v", err)
 	}
 }
+
+func TestResolveSyncsWarningFromHighlightOverride(t *testing.T) {
+	r := builtin(t)
+
+	// Overriding highlight mirrors onto warning when warning is not explicitly overridden.
+	snap := snapshotWith(t, map[string]string{
+		"theme.active": `"default"`,
+		"theme.overrides": `{
+			"light": {"highlight": "oklch(0.75 0.16 65)", "highlight-foreground": "oklch(0.2 0.04 50)"},
+			"dark": {"highlight": "oklch(0.84 0.15 70)", "warning": "oklch(0.78 0.18 40)"}
+		}`,
+	})
+	got := r.Resolve(snap)
+	if got.Tokens.Light["warning"] != "oklch(0.75 0.16 65)" {
+		t.Fatalf("light warning did not mirror highlight override: got %q", got.Tokens.Light["warning"])
+	}
+	if got.Tokens.Light["warning-foreground"] != "oklch(0.2 0.04 50)" {
+		t.Fatalf("light warning-foreground did not mirror highlight-foreground override: got %q", got.Tokens.Light["warning-foreground"])
+	}
+	// Explicit warning override must be preserved.
+	if got.Tokens.Dark["warning"] != "oklch(0.78 0.18 40)" {
+		t.Fatalf("dark explicit warning override was overwritten: got %q", got.Tokens.Dark["warning"])
+	}
+}

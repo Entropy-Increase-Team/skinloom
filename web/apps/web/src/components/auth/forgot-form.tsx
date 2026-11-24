@@ -38,8 +38,12 @@ export function ForgotForm({ captcha }: { captcha: CaptchaInfo }) {
       setFields(
         Object.fromEntries(Object.keys(p.fields).map((k) => [k, k === 'captcha' ? tf('captchaWrong') : tf.has(k) ? tf(k as 'email') : p.fields[k]])),
       )
-      const key = { 429: 'tooMany', 503: 'unavailable' }[p.status] ?? (p.status === 422 ? null : 'failed')
-      setError(key ? t(`errors.${key}` as 'errors.failed') : null)
+      if (p.status === 422 && Object.keys(p.fields).length === 0) {
+        setError(p.detail || t('errors.failed'))
+      } else {
+        const key = { 429: 'tooMany', 503: 'unavailable' }[p.status] ?? (p.status === 422 ? null : 'failed')
+        setError(key ? t(`errors.${key}` as 'errors.failed') : null)
+      }
       setAnswer(null)
       setResetKey((k) => k + 1)
     } finally {

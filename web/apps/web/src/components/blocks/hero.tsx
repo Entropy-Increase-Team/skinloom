@@ -45,16 +45,22 @@ export async function HeroBlock({ props }: { props: Props }) {
 
   const banner = layout === 'banner'
   const background = banner ? safeImageUrl(props.background) : undefined
+  // A solid brand banner uses primary-foreground over --brand-gradient; an image banner uses
+  // a themed background scrim so foreground text and controls stay readable in light and dark mode.
+  const brandBanner = banner && !background
   const actions = (
     <div className={cn('flex flex-wrap gap-3', layout === 'centered' && 'justify-center', 'max-sm:flex-col max-sm:items-stretch')}>
-      <ButtonLink size="lg" className={cn(banner && 'bg-primary-foreground text-primary hover:bg-primary-foreground/90')} render={<Link href={safeHref(props.primaryAction, '/skinlib')} />}>
+      <ButtonLink size="lg" className={cn(brandBanner && 'bg-primary-foreground text-primary hover:bg-primary-foreground/90')} render={<Link href={safeHref(props.primaryAction, '/skinlib')} />}>
         {t('hero.browse')}
       </ButtonLink>
       {showJoin && (
         <ButtonLink
           size="lg"
           variant="outline"
-          className={cn(banner && 'border-primary-foreground/50 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground')}
+          className={cn(
+            brandBanner && 'border-primary-foreground/50 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground',
+            banner && background && 'bg-background/80 backdrop-blur-xs',
+          )}
           render={<Link href={join} />}
         >
           {t('hero.join')}
@@ -65,7 +71,7 @@ export async function HeroBlock({ props }: { props: Props }) {
   const text = (
     <div className={cn('flex flex-col gap-5', layout === 'centered' && 'items-center text-center')}>
       <h1 className="font-display text-[2rem] leading-tight font-semibold sm:text-5xl sm:leading-[1.15]">{title}</h1>
-      {subtitle && <p className={cn('max-w-md text-lg leading-relaxed', banner ? 'text-primary-foreground/85' : 'text-muted-foreground')}>{subtitle}</p>}
+      {subtitle && <p className={cn('max-w-md text-lg leading-relaxed', brandBanner ? 'text-primary-foreground/85' : 'text-muted-foreground')}>{subtitle}</p>}
       <div className="pt-2">{actions}</div>
     </div>
   )
@@ -93,9 +99,14 @@ export async function HeroBlock({ props }: { props: Props }) {
       </section>
     ) : (
       <section
-        className={cn('sl-block-hero', banner && 'sl-hero relative isolate overflow-hidden bg-cover bg-center text-primary-foreground')}
+        className={cn(
+          'sl-block-hero',
+          banner && 'relative isolate overflow-hidden bg-cover bg-center',
+          brandBanner && 'sl-hero text-primary-foreground',
+        )}
         style={background ? { backgroundImage: `url(${JSON.stringify(background)})` } : undefined}
       >
+        {banner && background && <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/75 to-background/65" />}
         <div className={cn(CONTAINER, 'relative z-10 py-16 sm:py-24', layout === 'centered' && 'max-w-3xl')}>{text}</div>
       </section>
     )

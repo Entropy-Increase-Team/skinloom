@@ -87,7 +87,7 @@ export function DeviceConsent({ initialCode }: { initialCode: string }) {
           ) : (
             <XCircle className="size-10 text-muted-foreground" aria-hidden />
           )}
-          <h1 className="text-lg font-semibold">{done === 'approved' ? t('device.approvedTitle') : t('device.deniedTitle')}</h1>
+          <h1 className="text-lg font-medium">{done === 'approved' ? t('device.approvedTitle') : t('device.deniedTitle')}</h1>
           <p className="text-sm text-muted-foreground">{done === 'approved' ? t('device.approvedHint') : t('device.deniedHint')}</p>
         </CardContent>
       </Card>

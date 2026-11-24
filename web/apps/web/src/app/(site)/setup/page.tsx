@@ -17,7 +17,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
   const { token } = await searchParams
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8 sm:py-12">
+    <div data-sl-area="auth" className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8 sm:py-12">
       <SetupWizard initialToken={typeof token === 'string' ? token : ''} />
     </div>
   )

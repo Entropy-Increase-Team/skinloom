@@ -10,6 +10,9 @@ import {
   updateUser,
 } from '@skinloom/api-client'
 import {
+  Alert,
+  AlertAction,
+  AlertDescription,
   Badge,
   Button,
   Checkbox,
@@ -18,6 +21,10 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
   Field,
   FieldDescription,
   FieldLabel,
@@ -51,9 +58,9 @@ import {
   useConfirm,
   UserAvatar,
 } from '@skinloom/ui'
-import { MoreHorizontal, Pencil, Search, Trash2, Users } from 'lucide-react'
+import { CircleAlert, MoreHorizontal, Pencil, PersonStanding, Search, Trash2, Users } from 'lucide-react'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 
 import { FormError } from '@/components/auth/field'
@@ -69,18 +76,23 @@ const DOT: Record<AdminUserView['status'], Status> = { active: 'ok', banned: 'er
 
 export function UsersTable({ viewerId, superadmin }: { viewerId: number; superadmin: boolean }) {
   const t = useTranslations('admin')
+  const tc = useTranslations('common')
+  const format = useFormatter()
   const confirm = useConfirm()
   const [filter, setFilter] = useState<ListUsersParams>({})
+  const [searchInput, setSearchInput] = useState('')
   const [users, setUsers] = useState<AdminUserView[] | null>(null)
   const [next, setNext] = useState(0)
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState<AdminUserView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const latest = useRef(0)
+  const lastBeforeRef = useRef<number | undefined>(undefined)
 
   const load = useCallback(
     async (before?: number) => {
       const seq = ++latest.current
+      lastBeforeRef.current = before
       setLoading(true)
       setError(null)
       try {
@@ -122,7 +134,7 @@ export function UsersTable({ viewerId, superadmin }: { viewerId: number; superad
 
   function onSearch(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const q = String(new FormData(e.currentTarget).get('q') ?? '').trim()
+    const q = searchInput.trim()
     setFilter((f) => ({ ...f, q: q || undefined }))
   }
 
@@ -157,7 +169,7 @@ export function UsersTable({ viewerId, superadmin }: { viewerId: number; superad
             </DropdownMenuItem>
           )}
           <DropdownMenuItem render={<Link href={`/admin/players?user=${u.id}`} />}>
-            <Users />
+            <PersonStanding />
             {t('playersOf')}
           </DropdownMenuItem>
           {manageable(u) && u.id !== viewerId && u.role !== 'superadmin' && (
@@ -185,7 +197,7 @@ export function UsersTable({ viewerId, superadmin }: { viewerId: number; superad
         <span className="flex min-w-0 items-center gap-1.5 text-caption text-muted-foreground">
           <span className="truncate">{u.email}</span>
           {!u.emailVerified && (
-            <Badge variant="outline" className="h-4 px-1 text-[0.6875rem]">
+            <Badge variant="outline" className="h-5 px-1.5 text-xs">
               {t('unverified')}
             </Badge>
           )}
@@ -203,7 +215,17 @@ export function UsersTable({ viewerId, superadmin }: { viewerId: number; superad
             <InputGroupAddon>
               <Search aria-hidden />
             </InputGroupAddon>
-            <InputGroupInput type="search" name="q" placeholder={t('searchHint')} aria-label={t('search')} />
+            <InputGroupInput
+              type="search"
+              name="q"
+              value={searchInput}
+              onChange={(e) => {
+                setSearchInput(e.target.value)
+                if (e.target.value === '' && filter.q) setFilter((f) => ({ ...f, q: undefined }))
+              }}
+              placeholder={t('searchHint')}
+              aria-label={t('search')}
+            />
           </InputGroup>
         </form>
         <FilterSelect
@@ -221,10 +243,30 @@ export function UsersTable({ viewerId, superadmin }: { viewerId: number; superad
           options={STATUSES.map((s) => ({ value: s, label: t(`statuses.${s}`) }))}
         />
       </div>
-      <FormError message={error} />
+      {error && (
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <Button type="button" variant="outline" size="sm" onClick={() => void load(lastBeforeRef.current)}>
+              {tc('retry')}
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
 
       {users === null && !error && <Skeleton className="h-64 rounded-xl" />}
-      {users && (
+      {users && users.length === 0 && (
+        <Empty className="border border-dashed py-16">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Users />
+            </EmptyMedia>
+            <EmptyTitle>{t('empty')}</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
+      )}
+      {users && users.length > 0 && (
         <>
           {/* Phones: one card per user. */}
           <ul className="flex flex-col divide-y rounded-xl border bg-card md:hidden">
@@ -232,18 +274,17 @@ export function UsersTable({ viewerId, superadmin }: { viewerId: number; superad
               <li key={u.id} className="flex items-center gap-3 p-3">
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   {who(u)}
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-[2.375rem]">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-10">
                     <StatusDot status={DOT[u.status]}>{t(`statuses.${u.status}`)}</StatusDot>
                     {u.role !== 'user' && <Badge variant="secondary">{t(`roles.${u.role}`)}</Badge>}
                     <span className="text-caption text-muted-foreground tabular-nums">
-                      {t('score')} {u.score}
+                      {t('score')} {format.number(u.score)}
                     </span>
                   </div>
                 </div>
                 {menu(u)}
               </li>
             ))}
-            {users.length === 0 && <li className="p-6 text-center text-sm text-muted-foreground">{t('empty')}</li>}
           </ul>
           <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
             <Table>
@@ -268,7 +309,7 @@ export function UsersTable({ viewerId, superadmin }: { viewerId: number; superad
                     <TableCell>
                       <StatusDot status={DOT[u.status]}>{t(`statuses.${u.status}`)}</StatusDot>
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{u.score}</TableCell>
+                    <TableCell className="text-right tabular-nums">{format.number(u.score)}</TableCell>
                     <TableCell className="text-caption">
                       <RelativeTime date={u.createdAt} />
                       <div className="font-mono text-faint-foreground">{u.registerIp}</div>
@@ -277,13 +318,6 @@ export function UsersTable({ viewerId, superadmin }: { viewerId: number; superad
                     <TableCell className="pr-3 text-right">{menu(u)}</TableCell>
                   </TableRow>
                 ))}
-                {users.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
-                      {t('empty')}
-                    </TableCell>
-                  </TableRow>
-                )}
               </TableBody>
             </Table>
           </div>
@@ -348,7 +382,10 @@ function EditUser({
     if (str('email') !== u.email) body.email = str('email')
     if (superadmin && !self && role !== u.role) body.role = role as UpdateUserInputBody['role']
     if (!self && status !== u.status) body.status = status as UpdateUserInputBody['status']
-    if (Number(str('score')) !== u.score) body.score = Number(str('score'))
+    const rawScore = str('score').trim()
+    if (rawScore !== '' && Number.isFinite(Number(rawScore)) && Number(rawScore) !== u.score) {
+      body.score = Number(rawScore)
+    }
     if (body.email !== undefined || verified !== u.emailVerified) body.emailVerified = verified
     if (str('password')) body.password = str('password')
     if (Object.keys(body).length === 0) return onChanged(u)

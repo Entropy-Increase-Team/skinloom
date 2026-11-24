@@ -1,8 +1,8 @@
 'use client'
 
 import { listMyReports, type ReportPage, type ReportView } from '@skinloom/api-client'
-import { Button, Empty, EmptyHeader, EmptyMedia, EmptyTitle, PixelBackdrop, RelativeTime, Skeleton, type Status, StatusDot, TexturePreview } from '@skinloom/ui'
-import { Flag, ImageOff } from 'lucide-react'
+import { Alert, AlertAction, AlertDescription, Button, Empty, EmptyHeader, EmptyMedia, EmptyTitle, PixelBackdrop, RelativeTime, Skeleton, type Status, StatusDot, TexturePreview } from '@skinloom/ui'
+import { CircleAlert, Flag, ImageOff } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
@@ -12,6 +12,7 @@ const STATUS: Record<ReportView['status'], Status> = { pending: 'warn', resolved
 /** The signed-in user's reports and what became of them. */
 export function MyReports() {
   const t = useTranslations('myReports')
+  const tc = useTranslations('common')
   const [reports, setReports] = useState<ReportView[] | null>(null)
   const [next, setNext] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -34,7 +35,19 @@ export function MyReports() {
     void load()
   }, [load])
 
-  if (failed) return <p className="text-center text-sm text-destructive">{t('loadFailed')}</p>
+  if (reports === null && failed) {
+    return (
+      <Alert variant="destructive" role="alert">
+        <CircleAlert />
+        <AlertDescription>{t('loadFailed')}</AlertDescription>
+        <AlertAction>
+          <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
+            {tc('retry')}
+          </Button>
+        </AlertAction>
+      </Alert>
+    )
+  }
   if (reports === null) return <Skeleton className="h-40 rounded-xl" />
   if (reports.length === 0) {
     return (
@@ -85,6 +98,17 @@ export function MyReports() {
           </li>
         ))}
       </ul>
+      {failed && (
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertDescription>{t('loadFailed')}</AlertDescription>
+          <AlertAction>
+            <Button type="button" variant="outline" size="sm" onClick={() => void load(next || undefined)}>
+              {tc('retry')}
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
       {next > 0 && (
         <Button variant="outline" className="self-center" loading={loading} onClick={() => void load(next)}>
           {t('more')}

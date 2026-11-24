@@ -10,11 +10,11 @@ import {
   type MarketListResult,
   type MarketPackageView,
   type MarketRefreshResult,
-  type PermissionItem,
   refreshMarketPackages,
 } from '@skinloom/api-client'
 import {
   Alert,
+  AlertAction,
   AlertDescription,
   AlertTitle,
   Badge,
@@ -25,7 +25,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-  Checkbox,
+  cn,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -43,11 +43,9 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  Input,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-  Label,
   Sheet,
   SheetContent,
   SheetDescription,
@@ -57,12 +55,14 @@ import {
   Spinner,
   Switch,
   toast,
+  useIsMobile,
 } from '@skinloom/ui'
 import {
   ArrowUpCircle,
   BadgeCheck,
   Box,
   CheckCircle2,
+  CircleAlert,
   Cpu,
   Download,
   Globe,
@@ -73,8 +73,6 @@ import {
   Search,
   Server,
   ShieldAlert,
-  ShieldCheck,
-  ShieldQuestion,
   Store,
 } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
@@ -84,10 +82,15 @@ import { FormError } from '@/components/auth/field'
 import { problemOf } from '@/lib/problem'
 
 import {
+  PackageInspectHeader,
+  PackagePermissionsPanel,
+  PackageTrustAndRiskAlerts,
+  TypedConfirmPluginId,
+} from './plugins-package-inspect'
+import {
   apiProblemMessage,
   canSubmitPackageInstall,
   collectInitialGrantedPermissions,
-  formatBytes,
   permissionMessageKey,
 } from './plugins-settings-form'
 
@@ -104,18 +107,6 @@ const CATEGORIES = [
 ] as const
 
 export type MarketCategory = (typeof CATEGORIES)[number]
-
-function useIsPhoneViewport() {
-  const [mobile, setMobile] = useState(false)
-  useEffect(() => {
-    const mql = window.matchMedia('(max-width: 767px)')
-    const update = () => setMobile(mql.matches)
-    update()
-    mql.addEventListener('change', update)
-    return () => mql.removeEventListener('change', update)
-  }, [])
-  return mobile
-}
 
 export function summarizePlatformFamilies(platforms: string[] | undefined): ('any' | 'linux' | 'windows' | 'macos')[] {
   if (!platforms || platforms.length === 0) return ['any']
@@ -141,6 +132,7 @@ export function PluginsMarket({
 }) {
   const t = useTranslations('adminPlugins')
   const tm = useTranslations('adminPlugins.market')
+  const tc = useTranslations('common')
   const locale = useLocale()
   const loadErrRef = useRef(t('errors.load'))
   loadErrRef.current = t('errors.load')
@@ -149,6 +141,8 @@ export function PluginsMarket({
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const marketSeqRef = useRef(0)
+  const marketAbortRef = useRef<AbortController | null>(null)
 
   const [compatibleOnly, setCompatibleOnly] = useState(true)
   const [category, setCategory] = useState<MarketCategory>(initialCategory)
@@ -165,21 +159,28 @@ export function PluginsMarket({
   }, [initialCategory])
 
   const loadMarket = useCallback(async () => {
+    marketAbortRef.current?.abort()
+    const ctl = new AbortController()
+    marketAbortRef.current = ctl
+    const seq = ++marketSeqRef.current
     setLoading(true)
     setError(null)
     try {
-      const res = await listMarketPackages({ compatibleOnly: false })
+      const res = await listMarketPackages({ compatibleOnly: false }, { signal: ctl.signal })
+      if (seq !== marketSeqRef.current) return
       setMarket(res.data as MarketListResult)
     } catch (err) {
+      if (ctl.signal.aborted || seq !== marketSeqRef.current) return
       setError(apiProblemMessage(problemOf(err).detail, err, loadErrRef.current))
     } finally {
-      setLoading(false)
+      if (seq === marketSeqRef.current) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     void locale
     void loadMarket()
+    return () => marketAbortRef.current?.abort()
   }, [loadMarket, locale])
 
   async function handleForceRefresh() {
@@ -302,14 +303,18 @@ export function PluginsMarket({
 
       {/* Category pills and search box */}
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-        <div className="no-scrollbar flex min-w-0 max-w-full items-center gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
+        <div role="group" aria-label={tm('categories.all')} className="no-scrollbar flex min-w-0 max-w-full items-center gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
           {CATEGORIES.map((cat) => (
             <Button
               key={cat}
               type="button"
               size="sm"
-              variant={category === cat ? 'default' : 'outline'}
-              className="shrink-0 pointer-coarse:h-10"
+              aria-pressed={category === cat}
+              variant={category === cat ? 'secondary' : 'outline'}
+              className={cn(
+                'shrink-0 pointer-coarse:h-10',
+                category === cat && 'border border-primary/40 bg-primary/10 text-primary hover:bg-primary/15',
+              )}
               onClick={() => setCategory(cat)}
             >
               {tm(`categories.${cat}`)}
@@ -331,7 +336,17 @@ export function PluginsMarket({
         </InputGroup>
       </div>
 
-      <FormError message={error} />
+      {error ? (
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <Button type="button" variant="outline" size="sm" onClick={() => void loadMarket()}>
+              {tc('retry')}
+            </Button>
+          </AlertAction>
+        </Alert>
+      ) : null}
 
       {failedRegistries.map((reg) => (
         <Alert key={reg.id} variant="destructive">
@@ -352,7 +367,7 @@ export function PluginsMarket({
           <Skeleton className="h-48 rounded-xl" />
           <Skeleton className="h-48 rounded-xl" />
         </div>
-      ) : filteredPackages.length === 0 ? (
+      ) : !market ? null : filteredPackages.length === 0 ? (
         <Empty className="border border-dashed border-border py-16">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -401,13 +416,13 @@ export function PluginsMarket({
                                 : 'gap-1 text-muted-foreground'
                             }
                           >
-                            {isNative ? <Cpu className="size-3" /> : <Box className="size-3" />}
+                            {isNative ? <Cpu className="size-3" aria-hidden /> : <Box className="size-3" aria-hidden />}
                             {t(`runtimes.${isNative ? 'native' : 'js'}`)}
                           </Badge>
                         ) : null}
                         {pkg.official ? (
                           <Badge variant="outline" className="gap-1 border-success/40 bg-success/10 text-success">
-                            <BadgeCheck className="size-3" />
+                            <BadgeCheck className="size-3" aria-hidden />
                             {tm('officialBadge')}
                           </Badge>
                         ) : null}
@@ -418,12 +433,12 @@ export function PluginsMarket({
                     {pkg.installed ? (
                       pkg.upgradeAvailable ? (
                         <Badge className="shrink-0 gap-1">
-                          <ArrowUpCircle className="size-3" />
+                          <ArrowUpCircle className="size-3" aria-hidden />
                           {tm('upgradeBadge', { version: recVer })}
                         </Badge>
                       ) : (
                         <Badge variant="secondary" className="shrink-0 gap-1">
-                          <CheckCircle2 className="size-3" />
+                          <CheckCircle2 className="size-3" aria-hidden />
                           {tm('installedBadge', { version: pkg.installedVersion || recVer })}
                         </Badge>
                       )
@@ -437,13 +452,13 @@ export function PluginsMarket({
                     {families.map((fam) => (
                       <Badge key={fam} variant="secondary" className="gap-1 text-xs">
                         {fam === 'any' ? (
-                          <Globe className="size-3" />
+                          <Globe className="size-3" aria-hidden />
                         ) : fam === 'linux' ? (
-                          <Server className="size-3" />
+                          <Server className="size-3" aria-hidden />
                         ) : fam === 'windows' ? (
-                          <Monitor className="size-3" />
+                          <Monitor className="size-3" aria-hidden />
                         ) : (
-                          <Laptop className="size-3" />
+                          <Laptop className="size-3" aria-hidden />
                         )}
                         {fam === 'any'
                           ? tm('platformAny')
@@ -468,12 +483,12 @@ export function PluginsMarket({
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     {isCompat ? (
                       <span className="inline-flex items-center gap-1 font-medium text-success">
-                        <CheckCircle2 className="size-3.5 shrink-0" />
+                        <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
                         {tm('compatOk', { version: recVer })}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 font-medium text-destructive">
-                        <ShieldAlert className="size-3.5 shrink-0" />
+                        <ShieldAlert className="size-3.5 shrink-0" aria-hidden />
                         {tm('compatIncompatible', { reason: firstIssue })}
                       </span>
                     )}
@@ -510,12 +525,12 @@ export function PluginsMarket({
                 <CardFooter className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     className="pointer-coarse:h-10"
                     onClick={() => setChangelogPkg(pkg)}
                   >
-                    <History />
+                    <History aria-hidden />
                     {tm('changelogButton')}
                   </Button>
 
@@ -524,11 +539,11 @@ export function PluginsMarket({
                       type="button"
                       size="sm"
                       className="pointer-coarse:h-10"
-                      variant={pkg.installed && !pkg.upgradeAvailable ? 'outline' : 'default'}
+                      variant="outline"
                       disabled={!isCompat}
                       onClick={() => setInstallTarget({ pkg, version: recVer })}
                     >
-                      <Download />
+                      <Download aria-hidden />
                       {pkg.upgradeAvailable
                         ? tm('upgradeButton')
                         : pkg.installed
@@ -587,7 +602,7 @@ function MarketChangelogDrawer({
   onSelectInstall: (pkg: MarketPackageView, version: string) => void
 }) {
   const tm = useTranslations('adminPlugins.market')
-  const isPhone = useIsPhoneViewport()
+  const isPhone = useIsMobile()
 
   const versionsList = pkg ? (
     <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
@@ -595,7 +610,7 @@ function MarketChangelogDrawer({
         <div key={ver.version} className="space-y-2 rounded-xl border border-border bg-card p-3.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <span className="font-mono text-sm font-semibold text-foreground">v{ver.version}</span>
+              <span className="font-mono text-sm font-medium text-foreground">v{ver.version}</span>
               {ver.yanked ? <Badge variant="destructive">{tm('yankedBadge')}</Badge> : null}
               {ver.compatible ? (
                 <Badge variant="outline" className="border-success/40 bg-success/10 text-success">
@@ -686,7 +701,7 @@ function MarketInstallDialog({
   const locale = useLocale()
   const inspectErrRef = useRef(te('errors.inspect'))
   inspectErrRef.current = te('errors.inspect')
-  const isPhone = useIsPhoneViewport()
+  const isPhone = useIsMobile()
 
   const [inspecting, setInspecting] = useState(false)
   const [installing, setInstalling] = useState(false)
@@ -787,11 +802,6 @@ function MarketInstallDialog({
   const isNative = inspect?.runtime === 'native'
   const nativeBlocked = Boolean(inspect?.nativeInstallBlocked)
   const platformIncompatible = Boolean(isNative && inspect && !inspect.platformCompatible)
-  const totalPermissions =
-    (inspect?.permissions.normal.length ?? 0) +
-    (inspect?.permissions.sensitive.length ?? 0) +
-    (inspect?.permissions.high_risk.length ?? 0)
-  const warnings = inspect?.warnings ? Array.from(new Set(inspect.warnings)) : []
   const hasHighRiskDep = Boolean(
     inspect?.dependenciesToInstall?.some((d) => d.requiresHighRiskConfirm || d.runtime === 'native'),
   )
@@ -823,50 +833,7 @@ function MarketInstallDialog({
         </div>
       ) : inspect ? (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-border bg-card p-3">
-            <div className="min-w-0 space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-semibold text-foreground">{inspect.name}</span>
-                <Badge variant="outline" className="h-auto min-w-0 max-w-full whitespace-normal break-all font-mono">
-                  {inspect.id} v{inspect.version}
-                </Badge>
-                <Badge variant="secondary">
-                  {te.has(`kinds.${inspect.kind}`) ? te(`kinds.${inspect.kind}`) : inspect.kind}
-                </Badge>
-                {inspect.kind === 'plugin' ? (
-                  <Badge
-                    variant="outline"
-                    className={
-                      isNative
-                        ? 'gap-1 border-primary/40 bg-primary/10 text-primary'
-                        : 'gap-1 text-muted-foreground'
-                    }
-                  >
-                    {isNative ? <Cpu className="size-3" /> : <Box className="size-3" />}
-                    {te(`runtimes.${isNative ? 'native' : 'js'}`)}
-                  </Badge>
-                ) : null}
-                {inspect.verification.official && inspect.verification.trusted ? (
-                  <Badge variant="outline" className="gap-1 border-success/40 bg-success/10 text-success">
-                    <BadgeCheck className="size-3" />
-                    {t('officialVerified')}
-                  </Badge>
-                ) : null}
-                {inspect.isUpgrade && inspect.currentVersion ? (
-                  <Badge variant="outline">{t('upgradeBadge', { version: inspect.currentVersion })}</Badge>
-                ) : null}
-              </div>
-              {inspect.description ? <p className="text-xs text-muted-foreground">{inspect.description}</p> : null}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground tabular-nums">
-                <span>
-                  {t('packageSize')}: {formatBytes(inspect.archiveBytes)}
-                </span>
-                {isNative && inspect.hostPlatform ? (
-                  <span className="font-mono">{t('hostPlatformLabel', { platform: inspect.hostPlatform })}</span>
-                ) : null}
-              </div>
-            </div>
-          </div>
+          <PackageInspectHeader inspect={inspect} />
 
           {inspect.dependenciesToInstall && inspect.dependenciesToInstall.length > 0 ? (
             <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
@@ -879,7 +846,7 @@ function MarketInstallDialog({
                     variant="secondary"
                     className="h-auto min-w-0 max-w-full gap-1 whitespace-normal break-all font-mono text-xs"
                   >
-                    {dep.runtime === 'native' ? <Cpu className="size-3 shrink-0 text-primary" /> : <Box className="size-3 shrink-0" />}
+                    {dep.runtime === 'native' ? <Cpu className="size-3 shrink-0 text-primary" aria-hidden /> : <Box className="size-3 shrink-0" aria-hidden />}
                     <span>
                       {dep.name} ({dep.id} v{dep.version})
                     </span>
@@ -889,129 +856,28 @@ function MarketInstallDialog({
             </div>
           ) : null}
 
-          {inspect.verification.trusted ? (
-            <Alert className="border-success/30 bg-success/10 text-success">
-              <ShieldCheck />
-              <AlertTitle>
-                {t('sigTrusted', {
-                  signer:
-                    inspect.verification.official &&
-                    (!inspect.verification.signer || inspect.verification.signer === 'SkinLoom Official')
-                      ? t('officialSigner')
-                      : inspect.verification.signer || inspect.verification.keyId || 'Ed25519',
-                })}
-              </AlertTitle>
-            </Alert>
-          ) : nativeBlocked ? (
-            <Alert variant="destructive">
-              <ShieldAlert />
-              <AlertTitle>{t('nativeBlockedTitle')}</AlertTitle>
-              <AlertDescription className="pt-1">
-                {inspect.nativeBlockReason || t('nativeBlockedDefault')}
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <Alert variant="destructive">
-              <ShieldQuestion />
-              <AlertTitle>{inspect.verification.signed ? t('sigUntrusted') : t('sigUnsigned')}</AlertTitle>
-              <AlertDescription className="space-y-3 pt-1">
-                <p>{t('sigUntrustedWarning')}</p>
-                <label className="flex min-h-8 cursor-pointer items-start gap-2 text-xs text-foreground pointer-coarse:min-h-10">
-                  <Checkbox checked={allowUnsigned} disabled={installing} onCheckedChange={(c) => setAllowUnsigned(Boolean(c))} />
-                  <span>{t('allowUnsignedToggle')}</span>
-                </label>
-              </AlertDescription>
-            </Alert>
-          )}
+          <PackageTrustAndRiskAlerts
+            inspect={inspect}
+            allowUnsigned={allowUnsigned}
+            disabled={installing}
+            onAllowUnsignedChange={setAllowUnsigned}
+          />
 
-          {platformIncompatible ? (
-            <Alert variant="destructive">
-              <ShieldAlert />
-              <AlertTitle>{t('platformIncompatibleTitle', { platform: inspect.hostPlatform })}</AlertTitle>
-              <AlertDescription className="pt-1">
-                {t('platformIncompatibleDescription', {
-                  platform: inspect.hostPlatform,
-                  supported: (inspect.supportedPlatforms ?? []).join(', ') || '—',
-                })}
-              </AlertDescription>
-            </Alert>
-          ) : null}
-
-          {isNative && !nativeBlocked ? (
-            <Alert variant="destructive">
-              <Cpu />
-              <AlertTitle>{t('nativeRiskTitle')}</AlertTitle>
-              <AlertDescription className="pt-1">{t('nativeRiskDescription')}</AlertDescription>
-            </Alert>
-          ) : null}
-
-          {warnings.length > 0 ? (
-            <div className="space-y-1 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-foreground">
-              {warnings.map((w, i) => (
-                <p key={i} className="break-words">
-                  {w}
-                </p>
-              ))}
-            </div>
-          ) : null}
-
-          {totalPermissions > 0 ? (
-            <div className="space-y-3">
-              <div>
-                <h4 className="text-sm font-medium text-foreground">{t('permissionsTitle')}</h4>
-                <p className="text-xs text-muted-foreground">{t('permissionsHint')}</p>
-              </div>
-              <MarketPermissionTierSection
-                label={t('tierNormal')}
-                tone="normal"
-                items={inspect.permissions.normal}
-                granted={granted}
-                lockedNames={[]}
-                disabled={installing}
-                newBadge={t('newPermission')}
-                requiredBadge={t('requiredPermission')}
-                onToggle={togglePermission}
-              />
-              <MarketPermissionTierSection
-                label={t('tierSensitive')}
-                tone="sensitive"
-                items={inspect.permissions.sensitive}
-                granted={granted}
-                lockedNames={[]}
-                disabled={installing}
-                newBadge={t('newPermission')}
-                requiredBadge={t('requiredPermission')}
-                onToggle={togglePermission}
-              />
-              <MarketPermissionTierSection
-                label={t('tierHighRisk')}
-                tone="high_risk"
-                items={inspect.permissions.high_risk}
-                granted={granted}
-                lockedNames={isNative ? ['native.exec'] : []}
-                disabled={installing}
-                newBadge={t('newPermission')}
-                requiredBadge={t('requiredPermission')}
-                onToggle={togglePermission}
-              />
-            </div>
-          ) : null}
+          <PackagePermissionsPanel
+            inspect={inspect}
+            granted={granted}
+            disabled={installing}
+            onToggle={togglePermission}
+          />
 
           {needsTypedId ? (
-            <div className="space-y-1.5 rounded-lg border border-destructive/40 bg-destructive/10 p-3">
-              <Label htmlFor="market-confirm-plugin-id" className="text-xs leading-snug font-medium break-words text-destructive">
-                {t('confirmIdLabel', { id: inspect.id })}
-              </Label>
-              <Input
-                id="market-confirm-plugin-id"
-                className="font-mono"
-                autoComplete="off"
-                disabled={installing}
-                value={confirmId}
-                placeholder={inspect.id}
-                onChange={(e) => setConfirmId(e.target.value)}
-              />
-            </div>
+            <TypedConfirmPluginId
+              id={inspect.id}
+              inputId="market-confirm-plugin-id"
+              value={confirmId}
+              disabled={installing}
+              onChange={setConfirmId}
+            />
           ) : null}
         </div>
       ) : null}
@@ -1047,7 +913,7 @@ function MarketInstallDialog({
           onClick={() => void handleConfirmInstall()}
           disabled={!canInstall || inspecting}
         >
-          {installing ? tm('installing') : t('confirmInstall')}
+          {t('confirmInstall')}
         </Button>
       )}
     </>
@@ -1080,70 +946,5 @@ function MarketInstallDialog({
         <DialogFooter>{footer}</DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function MarketPermissionTierSection({
-  label,
-  tone,
-  items,
-  granted,
-  lockedNames,
-  disabled,
-  newBadge,
-  requiredBadge,
-  onToggle,
-}: {
-  label: string
-  tone: 'normal' | 'sensitive' | 'high_risk'
-  items: PermissionItem[]
-  granted: string[]
-  lockedNames: string[]
-  disabled?: boolean
-  newBadge: string
-  requiredBadge: string
-  onToggle: (name: string, enabled: boolean) => void
-}) {
-  const te = useTranslations('adminPlugins')
-  if (items.length === 0) return null
-  const borderTone =
-    tone === 'high_risk'
-      ? 'border-destructive/40 bg-destructive/5'
-      : tone === 'sensitive'
-        ? 'border-warning/40 bg-warning/5'
-        : 'border-border'
-
-  return (
-    <div className={`space-y-2 rounded-lg border p-3 ${borderTone}`}>
-      <p className="text-xs font-medium text-foreground">{label}</p>
-      <div className="space-y-2">
-        {items.map((item) => {
-          const locked = lockedNames.includes(item.name)
-          const itemDisabled = locked || Boolean(disabled)
-          const permKey = `permissionDescriptions.${permissionMessageKey(item.name)}`
-          const desc = te.has(permKey) ? te(permKey) : item.description
-          return (
-            <label
-              key={item.name}
-              className={`flex items-start gap-2.5 text-sm pointer-coarse:min-h-10 ${itemDisabled ? 'cursor-default' : 'cursor-pointer'}`}
-            >
-              <Checkbox
-                checked={locked || granted.includes(item.name)}
-                disabled={itemDisabled}
-                onCheckedChange={(c) => onToggle(item.name, Boolean(c))}
-              />
-              <div className="min-w-0 flex-1 space-y-0.5">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <code className="min-w-0 break-all text-xs font-medium text-foreground">{item.name}</code>
-                  {locked ? <Badge variant="destructive">{requiredBadge}</Badge> : null}
-                  {item.added ? <Badge variant="secondary">{newBadge}</Badge> : null}
-                </div>
-                <p className="text-xs text-muted-foreground">{desc}</p>
-              </div>
-            </label>
-          )
-        })}
-      </div>
-    </div>
   )
 }

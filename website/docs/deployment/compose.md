@@ -69,7 +69,7 @@ docker compose up -d --scale web=2
 | `SKINLOOM_IMAGE` | `dnyo666/skinloom` | `minimal` 镜像地址；切到 GHCR 设为 `ghcr.io/entropy-increase-team/skinloom` |
 | `SKINLOOM_SERVER_IMAGE` | `dnyo666/skinloom-server` | `standard` / `postgres` 后端镜像；切到 GHCR 设为 `ghcr.io/entropy-increase-team/server` |
 | `SKINLOOM_WEB_IMAGE` | `dnyo666/skinloom-web` | `standard` / `postgres` 前端镜像；切到 GHCR 设为 `ghcr.io/entropy-increase-team/web` |
-| `SKINLOOM_VERSION` | `latest` | 镜像版本：`1.1.4` 这样的正式版本、`latest`（最新发布）或 `edge`（main 分支最新构建） |
+| `SKINLOOM_VERSION` | `latest` | 镜像版本：`1.1.5` 这样的正式版本、`latest`（最新发布）或 `edge`（main 分支最新构建） |
 | `SKINLOOM_BIND` | `0.0.0.0` | 宿主机监听地址；若前方有本机 Nginx / Caddy / 宝塔 / 1Panel 反代，建议设为 `127.0.0.1` 避免公网绕过 HTTPS 直连 |
 | `SKINLOOM_PORT` | `17546` | 宿主机端口 |
 | `TZ` | `Asia/Shanghai` | 时区 |

@@ -1,6 +1,6 @@
 import { listTextures, type TexturePage } from '@skinloom/api-client'
-import { ButtonLink, cn, InputGroup, InputGroupAddon, InputGroupInput, PageHeader } from '@skinloom/ui'
-import { Search, Upload } from 'lucide-react'
+import { Alert, AlertAction, AlertDescription, ButtonLink, cn, InputGroup, InputGroupAddon, InputGroupInput, PageHeader } from '@skinloom/ui'
+import { CircleAlert, Search, Upload } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
@@ -45,7 +45,7 @@ function Segment({ href, active, children }: { href: string; active: boolean; ch
       href={href}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'inline-flex h-8 shrink-0 items-center rounded-md px-3 text-sm transition-colors pointer-coarse:h-9',
+        'inline-flex h-8 shrink-0 items-center rounded-md px-3 text-sm transition-colors pointer-coarse:h-10',
         active ? 'bg-card font-medium text-foreground shadow-xs ring-1 ring-border' : 'text-muted-foreground hover:text-foreground',
       )}
     >
@@ -56,7 +56,14 @@ function Segment({ href, active, children }: { href: string; active: boolean; ch
 
 export default async function SkinLibraryPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const filter = parseFilter(await searchParams)
-  const [page, viewer, t, boot] = await Promise.all([firstPage(filter), getViewer(), getTranslations('skinlib'), getBootstrap()])
+  const [page, viewer, t, tc, boot] = await Promise.all([
+    firstPage(filter),
+    getViewer(),
+    getTranslations('skinlib'),
+    getTranslations('common'),
+    getBootstrap(),
+  ])
+  const uploadHref = viewer ? '/skinlib/upload' : '/auth/login?next=/skinlib/upload'
 
   return (
     <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
@@ -64,7 +71,7 @@ export default async function SkinLibraryPage({ searchParams }: { searchParams: 
         title={t('title')}
         description={t('description')}
         actions={
-          <ButtonLink render={<Link href={viewer ? '/skinlib/upload' : '/auth/login?next=/skinlib/upload'} />}>
+          <ButtonLink render={<Link href={uploadHref} />}>
             <Upload />
             {t('upload')}
           </ButtonLink>
@@ -91,14 +98,14 @@ export default async function SkinLibraryPage({ searchParams }: { searchParams: 
             ))}
           </nav>
           {/* A plain GET form: searching works without JavaScript and keeps the URL shareable. */}
-          <form action="/skinlib" role="search" className="min-w-0 flex-1 lg:w-60 lg:flex-none">
+          <form action="/skinlib" role="search" className="min-w-44 flex-1 lg:w-60 lg:flex-none">
             {filter.category && <input type="hidden" name="category" value={filter.category} />}
             {filter.sort !== 'time' && <input type="hidden" name="sort" value={filter.sort} />}
             <InputGroup>
               <InputGroupAddon>
                 <Search aria-hidden />
               </InputGroupAddon>
-              <InputGroupInput type="search" name="q" defaultValue={filter.q} placeholder={t('search')} aria-label={t('search')} maxLength={50} />
+              <InputGroupInput key={filter.q} type="search" name="q" defaultValue={filter.q} placeholder={t('search')} aria-label={t('search')} maxLength={50} />
             </InputGroup>
           </form>
         </div>
@@ -106,9 +113,17 @@ export default async function SkinLibraryPage({ searchParams }: { searchParams: 
 
       {page ? (
         // Keyed by the filter, so changing it starts the list over.
-        <TextureGrid key={filterHref(filter)} initial={page} filter={filter} density={layoutOf(boot.theme.layout, 'skinlib')} />
+        <TextureGrid key={filterHref(filter)} initial={page} filter={filter} density={layoutOf(boot.theme.layout, 'skinlib')} uploadHref={uploadHref} />
       ) : (
-        <p className="py-16 text-center text-muted-foreground">{t('loadFailed')}</p>
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertDescription>{t('loadFailed')}</AlertDescription>
+          <AlertAction>
+            <ButtonLink variant="outline" size="sm" render={<a href={filterHref(filter)} />}>
+              {tc('retry')}
+            </ButtonLink>
+          </AlertAction>
+        </Alert>
       )}
     </div>
   )

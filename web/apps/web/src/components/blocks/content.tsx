@@ -11,7 +11,9 @@ export function MarkdownBlock({ props }: { props: Props }) {
   if (!html) return null
   return (
     <section className={cn(CONTAINER, 'sl-block-markdown py-8')}>
-      <Markdown html={html} className="text-body" />
+      <div className="max-w-[45rem]">
+        <Markdown html={html} />
+      </div>
     </section>
   )
 }
@@ -26,9 +28,15 @@ export function ImageBlock({ props }: { props: Props }) {
   return (
     <section className={cn(CONTAINER, 'sl-block-image py-8')}>
       {href ? (
-        <a href={href} className="block" rel={href.startsWith('/') ? undefined : 'noreferrer'}>
-          {img}
-        </a>
+        href.startsWith('/') ? (
+          <Link href={href} className="block">
+            {img}
+          </Link>
+        ) : (
+          <a href={href} className="block" rel="noreferrer">
+            {img}
+          </a>
+        )
       ) : (
         img
       )}

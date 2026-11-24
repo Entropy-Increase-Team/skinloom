@@ -23,7 +23,7 @@ import {
 import { Coins, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import { type FormEvent, useEffect, useState } from 'react'
 import { inferModelType, loadSkinToCanvas } from 'skinview-utils'
 
@@ -77,6 +77,7 @@ export function UploadForm({ rules, score }: { rules: TextureRules; score: numbe
   const tt = useTranslations('texture')
   const tc = useTranslations('common')
   const tf = useTranslations('fieldErrors')
+  const format = useFormatter()
   const boot = useBootstrap()
   const router = useRouter()
   const [file, setFile] = useState<File | null>(null)
@@ -165,7 +166,7 @@ export function UploadForm({ rules, score }: { rules: TextureRules; score: numbe
 
   return (
     <form onSubmit={onSubmit} className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]" noValidate>
-      <PixelBackdrop className="hidden h-[32rem] rounded-xl border lg:flex">
+      <PixelBackdrop className={picked ? 'flex h-72 rounded-xl border sm:h-96 lg:h-[32rem]' : 'hidden h-[32rem] rounded-xl border lg:flex'}>
         {picked ? (
           <SkinViewer
             key={`${picked.url}-${type}`}
@@ -244,8 +245,10 @@ export function UploadForm({ rules, score }: { rules: TextureRules; score: numbe
 
         <div className="flex items-start gap-2.5 rounded-lg bg-muted px-3.5 py-3 text-sm">
           <Coins className="mt-0.5 size-4 shrink-0 text-highlight" aria-hidden />
-          <p className="text-muted-foreground">
-            {file ? t('cost', { cost, score }) : t('rates', { pub: rules.rates.perStorage, priv: rules.rates.privatePerStorage })}
+          <p className="text-muted-foreground tabular-nums">
+            {file
+              ? t('cost', { cost: format.number(cost), score: format.number(score) })
+              : t('rates', { pub: format.number(rules.rates.perStorage), priv: format.number(rules.rates.privatePerStorage) })}
           </p>
         </div>
 

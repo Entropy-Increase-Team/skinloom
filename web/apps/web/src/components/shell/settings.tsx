@@ -13,7 +13,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '@skinloom/ui'
-import { Languages, Monitor, Moon, Palette, Sun } from 'lucide-react'
+import { Languages, Monitor, Moon, Sun } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useTheme } from 'next-themes'
@@ -132,13 +132,18 @@ export function AppearanceMenu() {
   )
 }
 
-/** The header's language and appearance buttons for visitors (split into two controls). */
+/** Combined language and appearance dropdown for visitors (design.md §9.2). */
 export function SettingsMenu() {
+  const t = useTranslations('shell')
   return (
-    <>
-      <LanguageMenu />
-      <AppearanceMenu />
-    </>
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label={t('settings')} title={t('settings')} />}>
+        <Languages />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <SettingsMenuItems />
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
@@ -158,10 +163,7 @@ export function SettingsToggles() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <span className="flex items-center gap-1.5 text-xs font-medium text-faint-foreground">
-          <Languages className="size-3.5" aria-hidden />
-          {t('language')}
-        </span>
+        <span className="text-xs font-medium text-faint-foreground">{t('language')}</span>
         <ToggleGroup
           variant="outline"
           spacing={0}
@@ -173,7 +175,7 @@ export function SettingsToggles() {
             <ToggleGroupItem
               key={l.code}
               value={l.code}
-              className="h-9 flex-1 text-xs pointer-coarse:h-10 sm:text-[0.8125rem]"
+              className="h-9 flex-1 text-xs pointer-coarse:h-10 sm:text-caption"
               disabled={lang.pending}
             >
               {l.name}
@@ -183,10 +185,7 @@ export function SettingsToggles() {
       </div>
       {canSwitchColor && (
         <div className="flex flex-col gap-2">
-          <span className="flex items-center gap-1.5 text-xs font-medium text-faint-foreground">
-            <Palette className="size-3.5" aria-hidden />
-            {t('appearance')}
-          </span>
+          <span className="text-xs font-medium text-faint-foreground">{t('appearance')}</span>
           <ToggleGroup
             variant="outline"
             spacing={0}
@@ -200,7 +199,7 @@ export function SettingsToggles() {
                 <ToggleGroupItem
                   key={m}
                   value={m}
-                  className="h-9 flex-1 gap-1.5 px-2 text-xs pointer-coarse:h-10 sm:text-[0.8125rem]"
+                  className="h-9 flex-1 gap-1.5 px-2 text-xs pointer-coarse:h-10 sm:text-caption"
                 >
                   <Icon className="size-3.5" aria-hidden />
                   <span>{t(m)}</span>

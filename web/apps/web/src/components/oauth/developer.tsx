@@ -24,19 +24,13 @@ import {
 } from '@skinloom/api-client'
 import {
   Alert,
+  AlertAction,
   AlertDescription,
   AlertTitle,
   Badge,
   Button,
   Checkbox,
   CopyField,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -58,6 +52,13 @@ import {
   RadioGroup,
   RadioGroupItem,
   RelativeTime,
+  ResponsiveDialog,
+  ResponsiveDialogClose,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
   Select,
   SelectContent,
   SelectItem,
@@ -72,7 +73,7 @@ import {
   toast,
   useConfirm,
 } from '@skinloom/ui'
-import { AppWindow, KeyRound, KeySquare, MoreHorizontal, Pencil, Plus, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react'
+import { CircleAlert, CodeXml, KeyRound, MoreHorizontal, Pencil, Plus, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from 'react'
 
@@ -111,7 +112,15 @@ function useFailure() {
     fail: (err: unknown) => {
       const p = problemOf(err)
       setFields(p.fields)
-      setError(p.unverified ? tc('verifyFirst') : p.status === 422 ? null : t('failed'))
+      setError(
+        p.unverified
+          ? tc('verifyFirst')
+          : p.status === 422 && Object.keys(p.fields).length > 0
+            ? null
+            : p.status === 422 && p.detail
+              ? p.detail
+              : t('failed'),
+      )
     },
   }
 }
@@ -190,17 +199,20 @@ export function Developer({ admin, origin }: { admin: boolean; origin: string })
 
 function AppsSection({ origin }: { origin: string }) {
   const t = useTranslations('oauth')
+  const tc = useTranslations('common')
   const confirm = useConfirm()
   const failed = useToastFailure()
   const [apps, setApps] = useState<OAuthClientView[] | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [secret, setSecret] = useState<{ id: number; value: string } | null>(null)
   const [editing, setEditing] = useState<OAuthClientView | 'new' | null>(null)
 
   const load = useCallback(async () => {
+    setLoadFailed(false)
     try {
       setApps(((await listOAuthClients()).data as OAuthClientList).clients)
     } catch {
-      setApps([])
+      setLoadFailed(true)
     }
   }, [])
   useEffect(() => void load(), [load])
@@ -247,8 +259,19 @@ function AppsSection({ origin }: { origin: string }) {
         </div>
         {apps && apps.length > 0 && create}
       </div>
-      {apps === null && <Loading />}
-      {apps?.length === 0 && <Nothing icon={<AppWindow />} title={t('apps.none')} action={create} />}
+      {loadFailed && (
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertDescription>{t('failed')}</AlertDescription>
+          <AlertAction>
+            <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
+              {tc('retry')}
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
+      {apps === null && !loadFailed && <Loading />}
+      {apps?.length === 0 && !loadFailed && <Nothing icon={<CodeXml />} title={t('apps.none')} action={create} />}
       {apps && apps.length > 0 && (
         <ul className="flex flex-col divide-y rounded-xl border bg-card">
           {apps.map((app) => (
@@ -259,7 +282,17 @@ function AppsSection({ origin }: { origin: string }) {
               meta={<RelativeTime date={app.createdAt} />}
               actions={
                 <DropdownMenu>
-                  <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t('menu', { name: app.name })} title={t('menu', { name: app.name })} />}>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="pointer-coarse:size-10"
+                        aria-label={t('menu', { name: app.name })}
+                        title={t('menu', { name: app.name })}
+                      />
+                    }
+                  >
                     <MoreHorizontal />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44">
@@ -347,7 +380,7 @@ function AppDialog({
   }
 
   return (
-    <Dialog
+    <ResponsiveDialog
       open={editing !== null}
       onOpenChange={(open) => {
         if (!open) {
@@ -357,12 +390,12 @@ function AppDialog({
         f.clear()
       }}
     >
-      <DialogContent className="flex max-h-[90dvh] flex-col overflow-hidden sm:max-w-md">
-        <form key={editing === null ? 'closed' : (app?.id ?? 'new')} onSubmit={(e) => void submit(e)} className="flex min-h-0 flex-1 flex-col gap-5">
-          <DialogHeader>
-            <DialogTitle>{app ? t('apps.editTitle', { name: app.name }) : t('apps.new')}</DialogTitle>
-            {!app && <DialogDescription>{t('apps.newBody')}</DialogDescription>}
-          </DialogHeader>
+      <ResponsiveDialogContent className="flex max-h-[90dvh] flex-col overflow-hidden md:max-w-md">
+        <form key={editing === null ? 'closed' : (app?.id ?? 'new')} onSubmit={(e) => void submit(e)} className="flex min-h-0 flex-1 flex-col gap-5" noValidate>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>{app ? t('apps.editTitle', { name: app.name }) : t('apps.new')}</ResponsiveDialogTitle>
+            {!app && <ResponsiveDialogDescription>{t('apps.newBody')}</ResponsiveDialogDescription>}
+          </ResponsiveDialogHeader>
           <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-1">
             <FormError message={f.error} />
             <Field id="app-name" name="name" label={t('apps.name')} defaultValue={app?.name} required maxLength={64} error={f.fields.name} />
@@ -397,28 +430,31 @@ function AppDialog({
               </FieldSet>
             )}
           </div>
-          <DialogFooter>
-            <DialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</DialogClose>
+          <ResponsiveDialogFooter>
+            <ResponsiveDialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</ResponsiveDialogClose>
             <Button type="submit" loading={pending}>
               {app ? tc('save') : t('apps.create')}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }
 
 function GrantsSection() {
   const t = useTranslations('oauth')
+  const tc = useTranslations('common')
   const confirm = useConfirm()
   const failed = useToastFailure()
   const [grants, setGrants] = useState<OAuthGrantView[] | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
   const load = useCallback(async () => {
+    setLoadFailed(false)
     try {
       setGrants(((await listOAuthGrants()).data as OAuthGrantList).grants)
     } catch {
-      setGrants([])
+      setLoadFailed(true)
     }
   }, [])
   useEffect(() => void load(), [load])
@@ -438,8 +474,19 @@ function GrantsSection() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">{t('grants.hint')}</p>
-      {grants === null && <Loading />}
-      {grants?.length === 0 && <Nothing icon={<ShieldCheck />} title={t('grants.none')} />}
+      {loadFailed && (
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertDescription>{t('failed')}</AlertDescription>
+          <AlertAction>
+            <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
+              {tc('retry')}
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
+      {grants === null && !loadFailed && <Loading />}
+      {grants?.length === 0 && !loadFailed && <Nothing icon={<ShieldCheck />} title={t('grants.none')} />}
       {grants && grants.length > 0 && (
         <ul className="flex flex-col divide-y rounded-xl border bg-card">
           {grants.map((g) => (
@@ -454,7 +501,7 @@ function GrantsSection() {
                 </>
               }
               actions={
-                <Button size="sm" variant="outline" onClick={() => void revoke(g)}>
+                <Button size="sm" variant="outline" className="pointer-coarse:h-10" onClick={() => void revoke(g)}>
                   {t('grants.revoke')}
                 </Button>
               }
@@ -472,18 +519,21 @@ const expiries = [7, 30, 90, 365, 0]
 
 function TokensSection({ admin, origin }: { admin: boolean; origin: string }) {
   const t = useTranslations('oauth')
+  const tc = useTranslations('common')
   const confirm = useConfirm()
   const failed = useToastFailure()
   const [tokens, setTokens] = useState<PersonalTokenView[] | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [scopes, setScopes] = useState<OAuthScopes['scopes']>([])
   const [created, setCreated] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
 
   const load = useCallback(async () => {
+    setLoadFailed(false)
     try {
       setTokens(((await listPersonalTokens()).data as PersonalTokenList).tokens)
     } catch {
-      setTokens([])
+      setLoadFailed(true)
     }
   }, [])
   useEffect(() => {
@@ -520,8 +570,19 @@ function TokensSection({ admin, origin }: { admin: boolean; origin: string }) {
         {tokens && tokens.length > 0 && create}
       </div>
       {created && <OneTimeSecret label={t('tokens.created')} value={created} />}
-      {tokens === null && <Loading />}
-      {tokens?.length === 0 && <Nothing icon={<KeySquare />} title={t('tokens.none')} action={create} />}
+      {loadFailed && (
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertDescription>{t('failed')}</AlertDescription>
+          <AlertAction>
+            <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
+              {tc('retry')}
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
+      {tokens === null && !loadFailed && <Loading />}
+      {tokens?.length === 0 && !loadFailed && <Nothing icon={<KeyRound />} title={t('tokens.none')} action={create} />}
       {tokens && tokens.length > 0 && (
         <ul className="flex flex-col divide-y rounded-xl border bg-card">
           {tokens.map((tok) => (
@@ -538,7 +599,14 @@ function TokensSection({ admin, origin }: { admin: boolean; origin: string }) {
                 </>
               }
               actions={
-                <Button size="icon-sm" variant="ghost" aria-label={t('tokens.deleteTitle', { name: tok.name })} title={t('tokens.delete')} onClick={() => void remove(tok)}>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  className="pointer-coarse:size-10"
+                  aria-label={t('tokens.deleteTitle', { name: tok.name })}
+                  title={t('tokens.delete')}
+                  onClick={() => void remove(tok)}
+                >
                   <Trash2 />
                 </Button>
               }
@@ -605,7 +673,7 @@ function TokenDialog({
   }
 
   return (
-    <Dialog
+    <ResponsiveDialog
       open={open}
       onOpenChange={(next) => {
         if (!next) {
@@ -615,12 +683,12 @@ function TokenDialog({
         f.clear()
       }}
     >
-      <DialogContent className="flex max-h-[90dvh] flex-col sm:max-w-md">
-        <form key={open ? 'open' : 'closed'} onSubmit={(e) => void submit(e)} className="flex min-h-0 flex-col gap-5">
-          <DialogHeader>
-            <DialogTitle>{t('tokens.new')}</DialogTitle>
-            <DialogDescription>{t('tokens.newBody')}</DialogDescription>
-          </DialogHeader>
+      <ResponsiveDialogContent className="flex max-h-[90dvh] flex-col md:max-w-md">
+        <form key={open ? 'open' : 'closed'} onSubmit={(e) => void submit(e)} className="flex min-h-0 flex-col gap-5" noValidate>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>{t('tokens.new')}</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>{t('tokens.newBody')}</ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
           <div className="-mx-1 flex min-h-0 flex-col gap-5 overflow-y-auto px-1">
             <FormError message={f.error} />
             <Field id="token-name" name="name" label={t('tokens.name')} required maxLength={64} error={f.fields.name} />
@@ -661,14 +729,14 @@ function TokenDialog({
               </Select>
             </UiField>
           </div>
-          <DialogFooter>
-            <DialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</DialogClose>
+          <ResponsiveDialogFooter>
+            <ResponsiveDialogClose render={<Button type="button" variant="ghost" />}>{tc('cancel')}</ResponsiveDialogClose>
             <Button type="submit" loading={pending}>
               {t('tokens.create')}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

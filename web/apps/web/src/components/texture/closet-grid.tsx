@@ -2,16 +2,11 @@
 
 import { type ClosetItemView, type ClosetPage, listCloset, removeFromCloset, renameClosetItem, setAvatar, type Unfavorited } from '@skinloom/api-client'
 import {
+  Alert,
+  AlertAction,
+  AlertDescription,
   Button,
   ButtonLink,
-  cn,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -24,25 +19,37 @@ import {
   EmptyMedia,
   EmptyTitle,
   Field,
+  FieldError,
   FieldLabel,
   Input,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
+  ResponsiveDialog,
+  ResponsiveDialogClose,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
   Skeleton,
   TextureCard,
+  ToggleGroup,
+  ToggleGroupItem,
   toast,
   useConfirm,
 } from '@skinloom/ui'
-import { MoreHorizontal, Pencil, Search, Shirt, Trash2, UserRound } from 'lucide-react'
+import { CircleAlert, MoreHorizontal, Pencil, Search, Shirt, Trash2, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 
+import { useBootstrap } from '@/components/providers'
 import { Slot } from '@/components/slot'
 import { ThemeOverride } from '@/components/theme-override'
 import { problemOf } from '@/lib/problem'
+import { layoutOf, textureGridClass } from '@/lib/theme'
 
 type Category = 'skin' | 'cape'
 
@@ -51,9 +58,12 @@ export function ClosetGrid() {
   const t = useTranslations('closet')
   const tt = useTranslations('texture')
   const tc = useTranslations('common')
+  const boot = useBootstrap()
   const router = useRouter()
   const confirm = useConfirm()
+  const density = layoutOf(boot.theme.layout, 'skinlib')
   const [category, setCategory] = useState<Category>('skin')
+  const [searchInput, setSearchInput] = useState('')
   const [query, setQuery] = useState('')
   const [items, setItems] = useState<ClosetItemView[] | null>(null)
   const [next, setNext] = useState(0)
@@ -67,6 +77,10 @@ export function ClosetGrid() {
   const load = useCallback(
     async (before?: number) => {
       const seq = ++latest.current
+      if (!before) {
+        setItems(null)
+        setNext(0)
+      }
       setLoading(true)
       setFailed(false)
       try {
@@ -115,41 +129,72 @@ export function ClosetGrid() {
 
   function onSearch(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setQuery(String(new FormData(e.currentTarget).get('q') ?? '').trim())
+    setQuery(searchInput.trim())
+  }
+
+  function clearSearch() {
+    setSearchInput('')
+    setQuery('')
   }
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex gap-0.5 rounded-lg bg-muted p-0.5" role="group" aria-label={t('category')}>
+        <ToggleGroup
+          value={[category]}
+          onValueChange={(v) => {
+            const nextCat = v[0] as Category | undefined
+            if (nextCat) setCategory(nextCat)
+          }}
+          spacing={1}
+          aria-label={t('category')}
+          className="rounded-lg bg-muted p-0.5"
+        >
           {(['skin', 'cape'] as const).map((c) => (
-            <button
+            <ToggleGroupItem
               key={c}
-              type="button"
-              aria-pressed={category === c}
-              onClick={() => setCategory(c)}
-              className={cn(
-                'inline-flex h-8 items-center rounded-md px-3 text-sm transition-colors pointer-coarse:h-9',
-                category === c ? 'bg-card font-medium text-foreground shadow-xs ring-1 ring-border' : 'text-muted-foreground hover:text-foreground',
-              )}
+              value={c}
+              size="sm"
+              className="rounded-md px-3 text-sm text-muted-foreground hover:bg-transparent hover:text-foreground aria-pressed:bg-card aria-pressed:font-medium aria-pressed:text-foreground aria-pressed:shadow-xs aria-pressed:ring-1 aria-pressed:ring-border"
             >
               {t(c === 'skin' ? 'skins' : 'capes')}
-            </button>
+            </ToggleGroupItem>
           ))}
-        </div>
-        <form onSubmit={onSearch} role="search" className="min-w-0 flex-1 sm:max-w-60 sm:flex-none">
+        </ToggleGroup>
+        <form onSubmit={onSearch} role="search" className="min-w-44 flex-1 sm:max-w-60 sm:flex-none">
           <InputGroup>
             <InputGroupAddon>
               <Search aria-hidden />
             </InputGroupAddon>
-            <InputGroupInput type="search" name="q" placeholder={t('search')} aria-label={t('search')} maxLength={50} />
+            <InputGroupInput
+              type="search"
+              name="q"
+              value={searchInput}
+              onChange={(e) => {
+                setSearchInput(e.target.value)
+                if (e.target.value === '' && query !== '') setQuery('')
+              }}
+              placeholder={t('search')}
+              aria-label={t('search')}
+              maxLength={50}
+            />
           </InputGroup>
         </form>
       </div>
 
-      {failed && <p className="text-center text-sm text-destructive">{t('loadFailed')}</p>}
+      {failed && (
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertDescription>{t('loadFailed')}</AlertDescription>
+          <AlertAction>
+            <Button type="button" variant="outline" size="sm" onClick={() => void load(items && items.length > 0 ? next : undefined)}>
+              {tc('retry')}
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
       {items === null && !failed && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
+        <div className={textureGridClass(density)}>
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-60 rounded-xl" />
           ))}
@@ -164,28 +209,35 @@ export function ClosetGrid() {
             <EmptyTitle>{query ? t('noMatch') : t('empty')}</EmptyTitle>
             {!query && <EmptyDescription>{t('emptyBody')}</EmptyDescription>}
           </EmptyHeader>
-          {!query && (
-            <EmptyContent className="flex-row justify-center">
-              <ButtonLink render={<Link href="/skinlib" />}>{t('browse')}</ButtonLink>
-              <ButtonLink variant="outline" render={<Link href="/skinlib/upload" />}>
-                {t('upload')}
-              </ButtonLink>
-            </EmptyContent>
-          )}
+          <EmptyContent className="flex-row justify-center">
+            {query ? (
+              <Button type="button" variant="outline" size="sm" onClick={clearSearch}>
+                {t('clearSearch')}
+              </Button>
+            ) : (
+              <>
+                <ButtonLink render={<Link href="/skinlib" />}>{t('browse')}</ButtonLink>
+                <ButtonLink variant="outline" render={<Link href="/skinlib/upload" />}>
+                  {t('upload')}
+                </ButtonLink>
+              </>
+            )}
+          </EmptyContent>
         </Empty>
       )}
       {items && items.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
+        <div className={textureGridClass(density)}>
           {items.map((it) => (
             // The card is a link; the menu sits over it as a sibling (links cannot hold buttons).
             <div key={it.id} className="relative">
               <ThemeOverride
                 name="texture.card"
-                props={{ texture: it.texture, name: it.name, href: `/skinlib/show/${it.texture.id}` }}
+                props={{ texture: it.texture, name: it.name, density, href: `/skinlib/show/${it.texture.id}` }}
                 fallback={
                   <TextureCard
                     linkAs={Link}
                     href={`/skinlib/show/${it.texture.id}`}
+                    density={density}
                     texture={{ ...it.texture, name: it.name, uploader: null }}
                     meta={<span className="truncate">{tt(`types.${it.texture.type}`)}</span>}
                     privateLabel={tt('private')}
@@ -238,8 +290,8 @@ export function ClosetGrid() {
         </Button>
       )}
 
-      <Dialog open={renaming !== null} onOpenChange={(open) => !open && setRenaming(null)}>
-        <DialogContent className="sm:max-w-sm">
+      <ResponsiveDialog open={renaming !== null} onOpenChange={(open) => !open && setRenaming(null)}>
+        <ResponsiveDialogContent className="md:max-w-sm">
           {renaming && (
             <RenameForm
               item={renaming}
@@ -251,8 +303,8 @@ export function ClosetGrid() {
               save={tc('save')}
             />
           )}
-        </DialogContent>
-      </Dialog>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </div>
   )
 }
@@ -260,38 +312,46 @@ export function ClosetGrid() {
 /** The name of a closet item is the user's own: it does not rename the texture. */
 function RenameForm({ item, onDone, cancel, save }: { item: ClosetItemView; onDone: (updated: ClosetItemView) => void; cancel: string; save: string }) {
   const t = useTranslations('closet')
+  const tf = useTranslations('fieldErrors')
   const [pending, setPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const name = String(new FormData(e.currentTarget).get('name') ?? '').trim()
-    if (!name || name === item.name) return onDone(item)
+    if (!name) {
+      setError(tf('required'))
+      return
+    }
+    if (name === item.name) return onDone(item)
     setPending(true)
+    setError(null)
     try {
       onDone((await renameClosetItem(item.texture.id, { name })).data as ClosetItemView)
     } catch (err) {
       const p = problemOf(err)
-      toast.error(p.status === 422 && p.detail ? p.detail : t('changeFailed'))
+      setError(p.fields.name ?? (p.status === 422 && p.detail ? p.detail : t('changeFailed')))
       setPending(false)
     }
   }
 
   return (
-    <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-5">
-      <DialogHeader>
-        <DialogTitle>{t('renameTitle')}</DialogTitle>
-        <DialogDescription>{t('renameBody')}</DialogDescription>
-      </DialogHeader>
-      <Field>
+    <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-5" noValidate>
+      <ResponsiveDialogHeader>
+        <ResponsiveDialogTitle>{t('renameTitle')}</ResponsiveDialogTitle>
+        <ResponsiveDialogDescription>{t('renameBody')}</ResponsiveDialogDescription>
+      </ResponsiveDialogHeader>
+      <Field data-invalid={error ? true : undefined}>
         <FieldLabel htmlFor="closet-name">{t('name')}</FieldLabel>
-        <Input id="closet-name" name="name" defaultValue={item.name} required maxLength={50} autoFocus autoComplete="off" />
+        <Input id="closet-name" name="name" defaultValue={item.name} required maxLength={50} autoFocus autoComplete="off" aria-invalid={error ? true : undefined} />
+        {error && <FieldError>{error}</FieldError>}
       </Field>
-      <DialogFooter>
-        <DialogClose render={<Button type="button" variant="ghost" />}>{cancel}</DialogClose>
+      <ResponsiveDialogFooter>
+        <ResponsiveDialogClose render={<Button type="button" variant="ghost" />}>{cancel}</ResponsiveDialogClose>
         <Button type="submit" loading={pending}>
           {save}
         </Button>
-      </DialogFooter>
+      </ResponsiveDialogFooter>
     </form>
   )
 }

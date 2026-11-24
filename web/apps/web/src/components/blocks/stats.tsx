@@ -28,7 +28,7 @@ export async function StatsBlock({ props }: { props: Props }) {
       {title && <h2 className="mb-4 text-lg font-medium">{title}</h2>}
       <dl className="grid grid-cols-3 border-y">
         {items.map(([key, n], i) => (
-          <div key={key} className={cn('flex flex-col-reverse justify-end gap-1 py-5', i > 0 && 'border-l pl-4 sm:pl-6')}>
+          <div key={key} className={cn('flex min-w-0 flex-col-reverse justify-end gap-1 py-5', i > 0 && 'border-l pl-4 sm:pl-6')}>
             <dt className="text-xs text-muted-foreground sm:text-caption">{t(key)}</dt>
             <dd className="text-xl font-medium tabular-nums sm:text-[1.75rem] sm:leading-tight">{format.format(n)}</dd>
           </div>

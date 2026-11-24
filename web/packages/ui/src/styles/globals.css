@@ -293,12 +293,25 @@
   .lucide {
     stroke-width: 1.75;
   }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+    }
+    .animate-pulse,
+    [class*='animate-in'],
+    [class*='animate-out'],
+    [class*='animate-accordion-'] {
+      animation: none !important;
+    }
+  }
 }
 
 /* Markdown rendered on the server (announcements, notifications, copyright). */
 @layer components {
   .sl-markdown {
-    @apply text-sm leading-relaxed;
+    @apply text-body;
   }
   .sl-markdown > * + * {
     @apply mt-2;

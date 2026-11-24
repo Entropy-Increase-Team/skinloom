@@ -85,12 +85,15 @@ export function LoginForm({
       router.refresh()
     } catch (err) {
       const p = problemOf(err)
-      setFields(p.fields)
+      const mapped = Object.fromEntries(
+        Object.entries(p.fields).map(([k, v]) => [k, tf.has(k) ? tf(k as 'email') : v]),
+      )
+      setFields(mapped)
       if (p.fields.captcha) {
         setCaptchaError(needCaptcha ? tf('captchaWrong') : tf('captchaRequired'))
         setNeedCaptcha(true)
-      } else if (p.status === 422 && p.detail && Object.keys(p.fields).length === 0) {
-        setError(p.detail)
+      } else if (p.status === 422 && Object.keys(p.fields).length === 0) {
+        setError(p.detail || t('errors.failed'))
       } else if (p.status === 422 && Object.keys(p.fields).length > 0) {
         setError(null)
       } else {
@@ -109,8 +112,8 @@ export function LoginForm({
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
       <FormError message={error} />
-      <Field id="email" label={t('email')} type="email" autoComplete="username" required autoFocus />
-      <Field id="password" label={t('password')} type="password" autoComplete="current-password" required />
+      <Field id="email" label={t('email')} type="email" autoComplete="username" required autoFocus error={fields.email} />
+      <Field id="password" label={t('password')} type="password" autoComplete="current-password" required error={fields.password} />
       <PluginForms scope="auth.login" values={extraForm} onChange={setExtraForm} errors={fields} />
       {needCaptcha && <Captcha config={captcha} onChange={setAnswer} resetKey={resetKey} error={captchaError} />}
       <Label className="w-fit gap-2 font-normal text-muted-foreground">

@@ -10,6 +10,9 @@ import {
   adminWearPlayer,
 } from '@skinloom/api-client'
 import {
+  Alert,
+  AlertAction,
+  AlertDescription,
   Badge,
   Button,
   DropdownMenu,
@@ -17,6 +20,10 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
   Field,
   FieldLabel,
   Input,
@@ -42,8 +49,9 @@ import {
   toast,
   useConfirm,
 } from '@skinloom/ui'
-import { MoreHorizontal, Pencil, Search, Trash2, X } from 'lucide-react'
+import { CircleAlert, MoreHorizontal, Pencil, PersonStanding, Search, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 
@@ -54,18 +62,27 @@ import { dashedUUID } from '@/lib/uuid'
 /** All players: search by name, UUID or id, or one user's; rename, give away, dress, delete. */
 export function PlayersTable({ userId }: { userId?: number }) {
   const t = useTranslations('adminPlayers')
+  const tc = useTranslations('common')
+  const router = useRouter()
   const confirm = useConfirm()
   const [filter, setFilter] = useState<AdminListPlayersParams>(userId ? { user: userId } : {})
+  const [searchInput, setSearchInput] = useState('')
   const [players, setPlayers] = useState<AdminPlayerView[] | null>(null)
   const [next, setNext] = useState(0)
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState<AdminPlayerView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const latest = useRef(0)
+  const lastBeforeRef = useRef<number | undefined>(undefined)
+
+  useEffect(() => {
+    setFilter((prev) => (prev.user === userId ? prev : { ...(prev.q ? { q: prev.q } : {}), ...(userId ? { user: userId } : {}) }))
+  }, [userId])
 
   const load = useCallback(
     async (before?: number) => {
       const seq = ++latest.current
+      lastBeforeRef.current = before
       setLoading(true)
       setError(null)
       try {
@@ -102,13 +119,15 @@ export function PlayersTable({ userId }: { userId?: number }) {
 
   function onSearch(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const q = String(new FormData(e.currentTarget).get('q') ?? '').trim()
+    const q = searchInput.trim()
     setFilter({ ...(q ? { q } : {}), ...(filter.user ? { user: filter.user } : {}) })
   }
 
   const menu = (p: AdminPlayerView) => (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t('menu', { name: p.name })} title={t('menu', { name: p.name })} />}>
+      <DropdownMenuTrigger
+        render={<Button variant="ghost" size="icon-sm" className="pointer-coarse:size-10" aria-label={t('menu', { name: p.name })} title={t('menu', { name: p.name })} />}
+      >
         <MoreHorizontal />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
@@ -139,27 +158,64 @@ export function PlayersTable({ userId }: { userId?: number }) {
             <InputGroupAddon>
               <Search aria-hidden />
             </InputGroupAddon>
-            <InputGroupInput type="search" name="q" placeholder={t('searchHint')} aria-label={t('search')} maxLength={64} />
+            <InputGroupInput
+              type="search"
+              name="q"
+              value={searchInput}
+              onChange={(e) => {
+                setSearchInput(e.target.value)
+                if (e.target.value === '' && filter.q) {
+                  setFilter({ ...(filter.user ? { user: filter.user } : {}) })
+                }
+              }}
+              placeholder={t('searchHint')}
+              aria-label={t('search')}
+              maxLength={64}
+            />
           </InputGroup>
         </form>
         {filter.user && (
-          <Badge variant="secondary" className="h-8 gap-1 pr-1 pl-2.5 text-sm">
+          <Badge variant="secondary" className="h-8 gap-1 pr-1 pl-2.5 text-sm pointer-coarse:h-10">
             {t('ofUser', { id: filter.user })}
             <Button
               variant="ghost"
               size="icon-xs"
+              className="pointer-coarse:size-9"
               aria-label={t('clearUser')}
-              onClick={() => setFilter({ ...(filter.q ? { q: filter.q } : {}) })}
+              onClick={() => {
+                setFilter({ ...(filter.q ? { q: filter.q } : {}) })
+                router.replace('/admin/players')
+              }}
             >
               <X />
             </Button>
           </Badge>
         )}
       </div>
-      <FormError message={error} />
+      {error && (
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <Button type="button" variant="outline" size="sm" onClick={() => void load(lastBeforeRef.current)}>
+              {tc('retry')}
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
 
       {players === null && !error && <Skeleton className="h-64 rounded-xl" />}
-      {players && (
+      {players && players.length === 0 && (
+        <Empty className="border border-dashed py-16">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <PersonStanding />
+            </EmptyMedia>
+            <EmptyTitle>{t('empty')}</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
+      )}
+      {players && players.length > 0 && (
         <>
           <ul className="flex flex-col divide-y rounded-xl border bg-card md:hidden">
             {players.map((p) => (
@@ -172,7 +228,6 @@ export function PlayersTable({ userId }: { userId?: number }) {
                 {menu(p)}
               </li>
             ))}
-            {players.length === 0 && <li className="p-6 text-center text-sm text-muted-foreground">{t('empty')}</li>}
           </ul>
           <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
             <Table>
@@ -196,7 +251,7 @@ export function PlayersTable({ userId }: { userId?: number }) {
                         {figure(p)}
                         <div className="flex min-w-0 flex-col">
                           <span className="font-medium">{p.name}</span>
-                          <span className="font-mono text-[0.6875rem] text-faint-foreground">{dashedUUID(p.uuid)}</span>
+                          <span className="font-mono text-xs text-faint-foreground">{dashedUUID(p.uuid)}</span>
                         </div>
                       </div>
                     </TableCell>
@@ -220,13 +275,6 @@ export function PlayersTable({ userId }: { userId?: number }) {
                     <TableCell className="pr-3 text-right">{menu(p)}</TableCell>
                   </TableRow>
                 ))}
-                {players.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                      {t('empty')}
-                    </TableCell>
-                  </TableRow>
-                )}
               </TableBody>
             </Table>
           </div>
@@ -244,7 +292,10 @@ export function PlayersTable({ userId }: { userId?: number }) {
             <EditPlayer
               key={editing.id}
               p={editing}
-              onUpdated={(updated) => changed(editing, updated)}
+              onUpdated={(updated) => {
+                changed(editing, updated)
+                setEditing(updated)
+              }}
               onDone={(updated) => {
                 changed(editing, updated)
                 setEditing(null)

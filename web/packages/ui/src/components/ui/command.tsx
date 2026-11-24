@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Command as CommandPrimitive } from "cmdk"
 import { cn } from "#lib/utils"
+import { useUiLabels } from "#components/skinloom/labels"
 
 import {
   Dialog,
@@ -34,8 +35,8 @@ function Command({
 }
 
 function CommandDialog({
-  title = "Command Palette",
-  description = "Search for a command to run...",
+  title,
+  description,
   children,
   className,
   showCloseButton = false,
@@ -47,12 +48,9 @@ function CommandDialog({
   showCloseButton?: boolean
   children: React.ReactNode
 }) {
+  const t = useUiLabels()
   return (
     <Dialog {...props}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
-      </DialogHeader>
       <DialogContent
         className={cn(
           "top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0",
@@ -60,6 +58,10 @@ function CommandDialog({
         )}
         showCloseButton={showCloseButton}
       >
+        <DialogHeader className="sr-only">
+          <DialogTitle>{title ?? t.commandPalette}</DialogTitle>
+          <DialogDescription>{description ?? t.commandSearch}</DialogDescription>
+        </DialogHeader>
         {children}
       </DialogContent>
     </Dialog>

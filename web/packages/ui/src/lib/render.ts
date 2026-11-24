@@ -29,11 +29,20 @@ export function previewWidth(type: 'steve' | 'alex' | 'cape', height: number): n
 }
 
 /**
- * A head (the face of the skin), for a user's chosen avatar or for a texture, at `size`
- * CSS pixels. `version` changes the URL when a user picks another avatar.
+ * A head (the face of the skin), for a user's chosen avatar, a player, or a texture, at
+ * `size` CSS pixels. `version` changes the URL when a user picks another avatar.
  */
-export function avatarUrl(of: { user: number; version?: number } | { texture: number }, size: number, cube = false): string {
+export function avatarUrl(
+  of: { user: number; version?: number } | { player: string } | { texture: number },
+  size: number,
+  cube = false,
+): string {
   const s = snapUp(size * 2, AVATAR_SIZES)
-  const base = 'user' in of ? `/avatar/user/${of.user}?size=${s}&v=${of.version ?? 0}` : `/avatar/${of.texture}?size=${s}`
+  const base =
+    'user' in of
+      ? `/avatar/user/${of.user}?size=${s}&v=${of.version ?? 0}`
+      : 'player' in of
+        ? `/avatar/player/${encodeURIComponent(of.player)}?size=${s}`
+        : `/avatar/${of.texture}?size=${s}`
   return cube ? `${base}&3d` : base
 }

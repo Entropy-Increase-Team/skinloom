@@ -655,6 +655,20 @@ func defaultWarning(m map[string]string) {
 	}
 }
 
+// syncWarningFromOverride mirrors highlight overrides onto warning unless warning
+// itself was explicitly overridden, keeping the documented highlight/warning alias in sync.
+func syncWarningFromOverride(tokens, override map[string]string) {
+	if tokens == nil || override == nil {
+		return
+	}
+	if override["highlight"] != "" && override["warning"] == "" {
+		tokens["warning"] = tokens["highlight"]
+	}
+	if override["highlight-foreground"] != "" && override["warning-foreground"] == "" {
+		tokens["warning-foreground"] = tokens["highlight-foreground"]
+	}
+}
+
 func load(files fs.FS, source string) (*Theme, error) {
 	t, _, err := loadWithPartial(files, source)
 	return t, err
@@ -1161,6 +1175,13 @@ func (r *Registry) ResolveTheme(s *settings.Snapshot, overrideID string, webTrus
 			if def.Token != "" {
 				tokens.Light[def.Token] = strVal
 				tokens.Dark[def.Token] = strVal
+				if def.Token == "highlight" {
+					tokens.Light["warning"] = strVal
+					tokens.Dark["warning"] = strVal
+				} else if def.Token == "highlight-foreground" {
+					tokens.Light["warning-foreground"] = strVal
+					tokens.Dark["warning-foreground"] = strVal
+				}
 			} else {
 				resolvedSettings[name] = strVal
 			}
@@ -1171,6 +1192,8 @@ func (r *Registry) ResolveTheme(s *settings.Snapshot, overrideID string, webTrus
 	_ = json.Unmarshal(s.Raw("theme.overrides"), &overrides)
 	tokens.Light = merge(tokens.Light, overrides.Light)
 	tokens.Dark = merge(tokens.Dark, overrides.Dark)
+	syncWarningFromOverride(tokens.Light, overrides.Light)
+	syncWarningFromOverride(tokens.Dark, overrides.Dark)
 	tokens.Fonts = merge(tokens.Fonts, overrides.Fonts)
 	tokens.Viewer = merge(tokens.Viewer, overrides.Viewer)
 

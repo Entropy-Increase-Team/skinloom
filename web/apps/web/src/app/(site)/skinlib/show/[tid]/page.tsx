@@ -1,6 +1,6 @@
 import { ApiError, getTexture, getTextureRules, type TextureDetail, type TextureRules } from '@skinloom/api-client'
-import { Badge, ButtonLink, CopyField, PixelBackdrop, previewUrl, SkinViewer, TexturePreview, UserAvatar } from '@skinloom/ui'
-import { ArrowLeft, Download, Lock } from 'lucide-react'
+import { Alert, AlertDescription, Badge, ButtonLink, cn, CopyField, PixelBackdrop, previewUrl, SkinViewer, TexturePreview, UserAvatar } from '@skinloom/ui'
+import { ArrowLeft, CircleAlert, Download, Lock, TriangleAlert } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -51,17 +51,30 @@ export async function generateMetadata({ params }: { params: Promise<{ tid: stri
 }
 
 export default async function TexturePage({ params }: { params: Promise<{ tid: string }> }) {
-  const loaded = await load((await params).tid)
-  const t = await getTranslations('texture')
+  const { tid } = await params
+  const loaded = await load(tid)
+  const [t, tc] = await Promise.all([getTranslations('texture'), getTranslations('common')])
   if (!('texture' in loaded)) {
     if (loaded.status === 404) notFound()
+    const isPrivate = loaded.status === 403
     return (
       <div className="mx-auto flex max-w-md flex-col items-center gap-4 px-4 py-24 text-center">
-        <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-body">{loaded.status === 403 ? t('privateNotice') : t('loadFailed')}</p>
-        <ButtonLink variant="outline" render={<Link href="/skinlib" />}>
-          {t('back')}
-        </ButtonLink>
+        {isPrivate ? (
+          <Lock className="size-8 text-muted-foreground" aria-hidden />
+        ) : (
+          <TriangleAlert className="size-8 text-destructive" aria-hidden />
+        )}
+        <p className="text-body">{isPrivate ? t('privateNotice') : t('loadFailed')}</p>
+        <div className="flex flex-wrap justify-center gap-2">
+          {!isPrivate && (
+            <ButtonLink render={<a href={`/skinlib/show/${encodeURIComponent(tid)}`} />}>
+              {tc('retry')}
+            </ButtonLink>
+          )}
+          <ButtonLink variant="outline" render={<Link href="/skinlib" />}>
+            {t('back')}
+          </ButtonLink>
+        </div>
       </div>
     )
   }
@@ -75,137 +88,179 @@ export default async function TexturePage({ params }: { params: Promise<{ tid: s
   const canManage = x.mine || (viewer !== null && viewer.role !== 'user')
   const src = `/textures/${x.hash}`
   const stacked = layoutOf(boot.theme.layout, 'texture') === 'stacked'
+  const showStickyAction = !viewer || rules !== null
 
   return (
-    <div className={stacked ? 'mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8 lg:py-8' : 'mx-auto flex w-full max-w-[75rem] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8 lg:py-8'}>
-      <ButtonLink variant="ghost" size="sm" className="-ml-2.5 w-fit text-muted-foreground pointer-coarse:h-10" render={<Link href="/skinlib" />}>
-        <ArrowLeft aria-hidden />
-        {t('back')}
-      </ButtonLink>
-      <div className={stacked ? 'flex flex-col gap-6' : 'grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10'}>
-        {/* The single view: interactive 3D/2D player preview (design.md §8.1). */}
-        <PixelBackdrop className={stacked ? 'h-[24rem] rounded-xl border sm:h-[30rem]' : 'h-[24rem] rounded-xl border sm:h-[30rem] lg:h-[36rem]'}>
-          <SkinViewer
-            skin={x.type === 'cape' ? null : src}
-            cape={x.type === 'cape' ? src : null}
-            previewSrc={previewUrl({ id: x.id }, 256)}
-            model={x.type === 'alex' ? 'slim' : 'default'}
-            autoRotate
-            controls
-            label={t('preview', { name: x.name })}
-          />
-        </PixelBackdrop>
+    <>
+      <div
+        className={cn(
+          'mx-auto flex w-full flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8 lg:py-8',
+          stacked ? 'max-w-3xl' : 'max-w-[75rem]',
+          showStickyAction && 'pb-24 sm:pb-6 lg:pb-8',
+        )}
+      >
+        <ButtonLink variant="ghost" size="sm" className="-ml-2.5 w-fit text-muted-foreground pointer-coarse:h-10" render={<Link href="/skinlib" />}>
+          <ArrowLeft aria-hidden />
+          {t('back')}
+        </ButtonLink>
+        <div className={stacked ? 'flex flex-col gap-6' : 'grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10'}>
+          {/* The single view: interactive 3D/2D player preview (design.md §8.1, §9.4: 60% viewport on phones). */}
+          <PixelBackdrop
+            className={
+              stacked
+                ? 'h-[60svh] min-h-72 rounded-xl border sm:h-[30rem]'
+                : 'h-[60svh] min-h-72 rounded-xl border sm:h-[30rem] lg:h-[36rem]'
+            }
+          >
+            <SkinViewer
+              skin={x.type === 'cape' ? null : src}
+              cape={x.type === 'cape' ? src : null}
+              previewSrc={previewUrl({ id: x.id }, 256)}
+              model={x.type === 'alex' ? 'slim' : 'default'}
+              autoRotate
+              controls
+              label={t('preview', { name: x.name })}
+            />
+          </PixelBackdrop>
 
-        <div className="flex flex-col gap-6">
-          <div className="flex items-start gap-3">
-            <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <h1 className="text-2xl font-medium break-words">{x.name}</h1>
-              <div className="flex flex-wrap gap-1.5">
-                <Badge variant="secondary">{t(`types.${x.type}`)}</Badge>
-                {!x.public && (
-                  <Badge variant="outline">
-                    <Lock aria-hidden />
-                    {t('private')}
-                  </Badge>
-                )}
-                {x.inCloset && <Badge variant="outline">{t('inCloset')}</Badge>}
+          <div className="flex flex-col gap-6">
+            <div className="flex items-start gap-3">
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <h1 className="text-2xl font-medium break-words sm:text-3xl">{x.name}</h1>
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge variant="secondary">{t(`types.${x.type}`)}</Badge>
+                  {!x.public && (
+                    <Badge variant="outline">
+                      <Lock aria-hidden />
+                      {t('private')}
+                    </Badge>
+                  )}
+                  {x.inCloset && <Badge variant="outline">{t('inCloset')}</Badge>}
+                </div>
               </div>
+              {canManage && rules && (
+                <div className="flex max-w-full shrink-0 flex-wrap items-center gap-1">
+                  {viewer && viewer.role !== 'user' && (
+                    <Slot
+                      name="admin.texture.actions"
+                      props={{ textureId: x.id, name: x.name, public: x.public, uploaderId: x.uploader?.id ?? null }}
+                    />
+                  )}
+                  <OwnerMenu texture={x} rates={rules.rates} charged={x.mine} />
+                </div>
+              )}
             </div>
-            {canManage && rules && (
-              <div className="flex max-w-full shrink-0 flex-wrap items-center gap-1">
-                {viewer && viewer.role !== 'user' && (
-                  <Slot
-                    name="admin.texture.actions"
-                    props={{ textureId: x.id, name: x.name, public: x.public, uploaderId: x.uploader?.id ?? null }}
-                  />
-                )}
-                <OwnerMenu texture={x} rates={rules.rates} charged={x.mine} />
+
+            {x.uploader ? (
+              <Link
+                href={`/skinlib?q=${encodeURIComponent(x.uploader.nickname)}`}
+                className="group -mx-2 flex w-fit items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted"
+              >
+                <UserAvatar of={{ user: x.uploader.id }} size={36} />
+                <div className="flex min-w-0 flex-col">
+                  <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                    <span className="truncate text-sm font-medium group-hover:text-primary">{x.uploader.nickname}</span>
+                    <UserBadges badges={x.uploader.badges} />
+                  </span>
+                  <span className="text-caption text-muted-foreground">
+                    {t('uploadedOn', { date: format.dateTime(new Date(x.createdAt), { dateStyle: 'medium' }) })}
+                  </span>
+                </div>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-3">
+                <span className="size-9 shrink-0 rounded-sm bg-muted" aria-hidden />
+                <div className="flex min-w-0 flex-col">
+                  <span className="truncate text-sm font-medium">{t('deletedUser')}</span>
+                  <span className="text-caption text-muted-foreground">
+                    {t('uploadedOn', { date: format.dateTime(new Date(x.createdAt), { dateStyle: 'medium' }) })}
+                  </span>
+                </div>
               </div>
             )}
-          </div>
 
-          {x.uploader ? (
-            <Link
-              href={`/skinlib?q=${encodeURIComponent(x.uploader.nickname)}`}
-              className="group -mx-2 flex w-fit items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted"
-            >
-              <UserAvatar of={{ user: x.uploader.id }} size={36} />
-              <div className="flex min-w-0 flex-col">
-                <span className="flex min-w-0 flex-wrap items-center gap-1.5">
-                  <span className="truncate text-sm font-medium group-hover:text-primary">{x.uploader.nickname}</span>
-                  <UserBadges badges={x.uploader.badges} />
-                </span>
-                <span className="text-caption text-muted-foreground">
-                  {t('uploadedOn', { date: format.dateTime(new Date(x.createdAt), { dateStyle: 'medium' }) })}
-                </span>
-              </div>
-            </Link>
-          ) : (
-            <div className="flex items-center gap-3">
-              <span className="size-9 shrink-0 rounded-sm bg-muted" aria-hidden />
-              <div className="flex min-w-0 flex-col">
-                <span className="truncate text-sm font-medium">{t('deletedUser')}</span>
-                <span className="text-caption text-muted-foreground">
-                  {t('uploadedOn', { date: format.dateTime(new Date(x.createdAt), { dateStyle: 'medium' }) })}
-                </span>
-              </div>
+            {viewer && rules === null && (
+              <Alert variant="destructive" role="alert">
+                <CircleAlert />
+                <AlertDescription>{t('loadFailed')}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex flex-col gap-2.5">
+              {viewer && rules && <FavoriteButton texture={x} rates={rules.rates} className="hidden sm:flex" />}
+              {!viewer && (
+                <ButtonLink
+                  size="lg"
+                  className="hidden sm:inline-flex"
+                  render={<Link href={`/auth/login?next=${encodeURIComponent(`/skinlib/show/${x.id}`)}`} />}
+                >
+                  {t('signInToFavorite')}
+                </ButtonLink>
+              )}
+              {x.inCloset && <WearOnPlayer textureId={x.id} kind={x.type === 'cape' ? 'cape' : 'skin'} />}
+              {viewer && rules?.allowDownload && (
+                <ButtonLink variant="ghost" className="text-muted-foreground" render={<a href={`/raw/${x.id}.png`} download={`${x.name}.png`} />}>
+                  <Download />
+                  {t('download')}
+                </ButtonLink>
+              )}
             </div>
-          )}
 
-          <div className="flex flex-col gap-2.5">
-            {viewer && rules && <FavoriteButton texture={x} rates={rules.rates} />}
-            {!viewer && (
-              <ButtonLink size="lg" render={<Link href={`/auth/login?next=${encodeURIComponent(`/skinlib/show/${x.id}`)}`} />}>
-                {t('signInToFavorite')}
-              </ButtonLink>
-            )}
-            {x.inCloset && <WearOnPlayer textureId={x.id} kind={x.type === 'cape' ? 'cape' : 'skin'} />}
-            {viewer && rules?.allowDownload && (
-              <ButtonLink variant="ghost" className="text-muted-foreground" render={<a href={`/raw/${x.id}.png`} download={`${x.name}.png`} />}>
-                <Download />
-                {t('download')}
-              </ButtonLink>
-            )}
+            <dl className="grid grid-cols-2 border-y text-sm">
+              {(
+                [
+                  [t('likes'), format.number(x.likes)],
+                  [t('size'), `${kb(x.size)} KB`],
+                ] as const
+              ).map(([label, value], i) => (
+                <div key={label} className={i > 0 ? 'flex flex-col-reverse gap-0.5 border-l py-3 pl-4' : 'flex flex-col-reverse gap-0.5 py-3'}>
+                  <dt className="text-caption text-muted-foreground">{label}</dt>
+                  <dd className="font-medium tabular-nums">{value}</dd>
+                </div>
+              ))}
+            </dl>
+
+            {/* The dual view, as launchers and link previews show it. */}
+            <div className="flex flex-col gap-2">
+              <span className="text-caption text-muted-foreground">{x.type === 'cape' ? t('flat') : t('frontBack')}</span>
+              <PixelBackdrop className="h-36 rounded-lg border py-3">
+                <TexturePreview texture={{ id: x.id }} type={x.type} height={112} alt="" />
+              </PixelBackdrop>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <span className="text-caption text-muted-foreground">{t('hash')}</span>
+              <CopyField value={x.hash} label={t('hash')} />
+            </div>
+
+            {viewer && !x.mine && rules && <ReportButton textureId={x.id} rates={rules.rates} />}
+            <Slot
+              name="skinlib.detail.sidebar"
+              props={{ textureId: x.id, name: x.name, type: x.type, public: x.public, uploaderId: x.uploader?.id ?? null }}
+            />
           </div>
-
-          <dl className="grid grid-cols-2 border-y text-sm">
-            {(
-              [
-                [t('likes'), format.number(x.likes)],
-                [t('size'), `${kb(x.size)} KB`],
-              ] as const
-            ).map(([label, value], i) => (
-              <div key={label} className={i > 0 ? 'flex flex-col-reverse gap-0.5 border-l py-3 pl-4' : 'flex flex-col-reverse gap-0.5 py-3'}>
-                <dt className="text-caption text-muted-foreground">{label}</dt>
-                <dd className="font-medium tabular-nums">{value}</dd>
-              </div>
-            ))}
-          </dl>
-
-          {/* The dual view, as launchers and link previews show it. */}
-          <div className="flex flex-col gap-2">
-            <span className="text-caption text-muted-foreground">{x.type === 'cape' ? t('flat') : t('frontBack')}</span>
-            <PixelBackdrop className="h-36 rounded-lg border py-3">
-              <TexturePreview texture={{ id: x.id }} type={x.type} height={112} alt="" />
-            </PixelBackdrop>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <span className="text-caption text-muted-foreground">{t('hash')}</span>
-            <CopyField value={x.hash} label={t('hash')} />
-          </div>
-
-          {viewer && !x.mine && rules && <ReportButton textureId={x.id} rates={rules.rates} />}
-          <Slot
-            name="skinlib.detail.sidebar"
-            props={{ textureId: x.id, name: x.name, type: x.type, public: x.public, uploaderId: x.uploader?.id ?? null }}
-          />
         </div>
+        <Slot
+          name="skinlib.detail.below"
+          props={{ textureId: x.id, name: x.name, type: x.type, public: x.public }}
+        />
       </div>
-      <Slot
-        name="skinlib.detail.below"
-        props={{ textureId: x.id, name: x.name, type: x.type, public: x.public }}
-      />
-    </div>
+
+      {showStickyAction && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:hidden">
+          {viewer && rules ? (
+            <FavoriteButton texture={x} rates={rules.rates} />
+          ) : (
+            <ButtonLink
+              size="lg"
+              className="w-full"
+              render={<Link href={`/auth/login?next=${encodeURIComponent(`/skinlib/show/${x.id}`)}`} />}
+            >
+              {t('signInToFavorite')}
+            </ButtonLink>
+          )}
+        </div>
+      )}
+    </>
   )
 }
