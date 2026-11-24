@@ -39,6 +39,7 @@ kubectl -n skinloom logs deploy/skinloom | grep setup   # 一次性安装链接
 | 参数 | 说明 |
 |---|---|
 | `mode` | `allInOne`：一个 Pod 跑前后端；`split`：前后端分开，前端可以扩容（带 PDB，可选 HPA `web.autoscaling.enabled`） |
+| `image.registry` | 镜像源前缀，默认 `docker.io/dnyo666`（Docker Hub）；改用 GHCR 时设 `--set image.registry=ghcr.io/entropy-increase-team`（仓库名自动匹配） |
 | `database.driver` / `database.existingSecret` | `postgres` 或 `mysql` 时，DSN 放在你创建的 Secret 里（键 `dsn`） |
 | `persistence.*` | 数据卷大小、StorageClass、已有的 PVC；卸载 Chart 时数据卷会保留 |
 | `ingress.*` | Ingress 类、域名、注解（如 cert-manager）、TLS |
@@ -99,7 +100,7 @@ kubectl -n skinloom scale deploy/skinloom-web --replicas=3   # 扩容前端
 - **Ingress 类**：非 k3s 集群在 `ingress.yaml` 里设置 `ingressClassName`（例如 `nginx`）。
 - **HTTPS**：装了 cert-manager 时，取消 `ingress.yaml` 里 `tls` 与 `cert-manager.io/cluster-issuer` 注解的注释。
 - **存储**：PVC 使用集群的默认 StorageClass；需要时在 `pvc.yaml` / `server.yaml` 里指定 `storageClassName`。
-- **版本**：改 `kustomization.yaml` 里 `images` 的 `newTag`（`split` 的 server 与 web 保持同一版本）。
+- **镜像源与版本**：默认从 Docker Hub（`docker.io/dnyo666/...`）拉取；改用 GHCR 时取消 `kustomization.yaml` 里 `images[].newName` 的注释。固定版本修改 `newTag`（`split` 的 server 与 web 保持同一版本）。
 - **站点地址**：完成安装后在后台设置 `site.url`（例如 `https://skins.example.com`）。
 
 ## 现状与限制

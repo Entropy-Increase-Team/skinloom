@@ -35,7 +35,7 @@ spec:
         {{- include "skinloom.podSecurity" (dict "uid" (ternary 65532 1000 $split)) | nindent 8 }}
       containers:
         - name: server
-          image: {{ include "skinloom.image" (dict "root" . "name" (ternary "server" "skinloom" $split)) }}
+          image: {{ include "skinloom.image" (dict "root" . "key" (ternary "server" "allInOne" $split)) }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args: ["up"]
           ports:

@@ -15,6 +15,18 @@ sidebar_position: 2
 
 所有容器都设置了 `restart: unless-stopped`：Docker 开机自启后，站点随之启动；崩溃后自动重启。
 
+## 镜像源选择（Docker Hub / GHCR 二选一）
+
+所有 Compose 模板**默认从 Docker Hub 拉取**（可直接受益于国内常见的 Docker Hub 镜像加速服务），同时 CI 会双推到 **GHCR**（内容完全一致）。如需切换为 GHCR，无需改 `compose.yaml`，只需在 `.env` 或启动命令前设置镜像变量：
+
+- **`minimal`**：在同目录 `.env` 中写入（或命令前加）`SKINLOOM_IMAGE=ghcr.io/entropy-increase-team/skinloom`
+- **`standard` / `postgres`**：取消 `.env` 中以下两行的注释：
+
+```dotenv
+SKINLOOM_SERVER_IMAGE=ghcr.io/entropy-increase-team/server
+SKINLOOM_WEB_IMAGE=ghcr.io/entropy-increase-team/web
+```
+
 ## 最小部署
 
 ```bash
@@ -54,6 +66,9 @@ docker compose up -d --scale web=2
 
 | 变量 | 默认 | 说明 |
 |---|---|---|
+| `SKINLOOM_IMAGE` | `dnyo666/skinloom` | `minimal` 镜像地址；切到 GHCR 设为 `ghcr.io/entropy-increase-team/skinloom` |
+| `SKINLOOM_SERVER_IMAGE` | `dnyo666/skinloom-server` | `standard` / `postgres` 后端镜像；切到 GHCR 设为 `ghcr.io/entropy-increase-team/server` |
+| `SKINLOOM_WEB_IMAGE` | `dnyo666/skinloom-web` | `standard` / `postgres` 前端镜像；切到 GHCR 设为 `ghcr.io/entropy-increase-team/web` |
 | `SKINLOOM_VERSION` | `latest` | 镜像版本：`1.1.3` 这样的正式版本、`latest`（最新发布）或 `edge`（main 分支最新构建） |
 | `SKINLOOM_BIND` | `0.0.0.0` | 宿主机监听地址；若前方有本机 Nginx / Caddy / 宝塔 / 1Panel 反代，建议设为 `127.0.0.1` 避免公网绕过 HTTPS 直连 |
 | `SKINLOOM_PORT` | `17546` | 宿主机端口 |

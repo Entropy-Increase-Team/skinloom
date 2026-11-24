@@ -8,7 +8,7 @@ name: skinloom
 
 services:
   server:
-    image: ghcr.io/entropy-increase-team/server:${SKINLOOM_VERSION:-latest}
+    image: ${SKINLOOM_SERVER_IMAGE:-dnyo666/skinloom-server}:${SKINLOOM_VERSION:-latest}
     command: ["up"]
     environment:
       TZ: ${TZ:-Asia/Shanghai}
@@ -26,7 +26,7 @@ services:
     restart: unless-stopped
 
   web:
-    image: ghcr.io/entropy-increase-team/web:${SKINLOOM_VERSION:-latest}
+    image: ${SKINLOOM_WEB_IMAGE:-dnyo666/skinloom-web}:${SKINLOOM_VERSION:-latest}
     environment:
       TZ: ${TZ:-Asia/Shanghai}
       SKINLOOM_API_INTERNAL: http://server:17546

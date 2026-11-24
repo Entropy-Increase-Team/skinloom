@@ -7,7 +7,8 @@
 <p align="center">
   <a href="https://github.com/Entropy-Increase-Team/skinloom/releases"><img src="https://img.shields.io/github/v/release/Entropy-Increase-Team/skinloom?style=flat-square&logo=github" alt="Release"></a>
   <a href="https://github.com/Entropy-Increase-Team/skinloom/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Entropy-Increase-Team/skinloom/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI" alt="CI"></a>
-  <a href="https://github.com/Entropy-Increase-Team/skinloom/pkgs/container/skinloom"><img src="https://img.shields.io/badge/GHCR-skinloom-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker GHCR"></a>
+  <a href="https://hub.docker.com/r/dnyo666/skinloom"><img src="https://img.shields.io/badge/Docker_Hub-dnyo666%2Fskinloom-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker Hub"></a>
+  <a href="https://github.com/Entropy-Increase-Team/skinloom/pkgs/container/skinloom"><img src="https://img.shields.io/badge/GHCR-skinloom-2496ED?style=flat-square&logo=github&logoColor=white" alt="Docker GHCR"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Entropy-Increase-Team/skinloom?style=flat-square" alt="License"></a>
   <a href="https://github.com/Entropy-Increase-Team/skinloom/stargazers"><img src="https://img.shields.io/github/stars/Entropy-Increase-Team/skinloom?style=flat-square&logo=github" alt="GitHub Stars"></a>
 </p>

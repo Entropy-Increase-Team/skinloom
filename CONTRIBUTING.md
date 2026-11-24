@@ -72,7 +72,7 @@ CI 会检查生成的文件（ent 代码、三种数据库的迁移、OpenAPI、
 
 ## 发布
 
-推送 `v*` 标签后，[Release 工作流](.github/workflows/release.yml) 构建六个平台的发行包（Windows / macOS / Linux × amd64 / arm64）、仅后端的单文件程序与 `checksums.txt`，发布到 Releases（带 `-` 的标签标记为预发布），并推送多架构镜像 `ghcr.io/entropy-increase-team/{skinloom,server,web}`。main 分支的每次提交更新 `edge` 镜像。
+推送 `v*` 标签后，[Release 工作流](.github/workflows/release.yml) 构建六个平台的发行包（Windows / macOS / Linux × amd64 / arm64）、仅后端的单文件程序与 `checksums.txt`，发布到 Releases（带 `-` 的标签标记为预发布），并同时向 Docker Hub（`dnyo666/{skinloom,skinloom-server,skinloom-web}`）与 GHCR（`ghcr.io/entropy-increase-team/{skinloom,server,web}`）双推多架构镜像。main 分支的每次提交更新 `edge` 镜像。
 
 ## 行为准则
 

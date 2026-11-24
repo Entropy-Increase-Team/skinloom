@@ -30,7 +30,7 @@ spec:
         {{- include "skinloom.podSecurity" (dict "uid" 1000) | nindent 8 }}
       containers:
         - name: web
-          image: {{ include "skinloom.image" (dict "root" . "name" "web") }}
+          image: {{ include "skinloom.image" (dict "root" . "key" "web") }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http

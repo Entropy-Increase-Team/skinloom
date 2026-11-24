@@ -38,7 +38,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: server
-          image: ghcr.io/entropy-increase-team/server
+          image: docker.io/dnyo666/skinloom-server
           args: ["up"]
           ports:
             - name: http

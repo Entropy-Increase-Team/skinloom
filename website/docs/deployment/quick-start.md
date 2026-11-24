@@ -9,7 +9,7 @@ sidebar_position: 0
 
 ## 1. 启动
 
-**有 Docker**（推荐）：
+**有 Docker**（推荐，默认从 Docker Hub 拉取镜像；如需切换为 GHCR 见 [Docker Compose](./compose.md)）：
 
 ```bash
 mkdir skinloom && cd skinloom

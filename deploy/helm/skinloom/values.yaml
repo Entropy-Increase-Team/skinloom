@@ -2,12 +2,22 @@
 # runs one pod with SQLite on a 5 GiB volume. See the docs site, "Kubernetes / k3s".
 
 # allInOne: one pod with backend and frontend (image "skinloom").
-# split: backend and frontend in their own Deployments (images "server" and "web");
-#        the frontend scales, the backend needs PostgreSQL or MySQL to scale.
+# split: backend and frontend in their own Deployments (images "skinloom-server"/"skinloom-web"
+#        on Docker Hub, or "server"/"web" on GHCR); the frontend scales, the backend needs
+#        PostgreSQL or MySQL to scale.
 mode: allInOne
 
 image:
-  registry: ghcr.io/entropy-increase-team
+  # Default: Docker Hub (docker.io/dnyo666/{skinloom,skinloom-server,skinloom-web}).
+  # To pull from GHCR instead, set:
+  #   registry: ghcr.io/entropy-increase-team
+  registry: docker.io/dnyo666
+  # Optional repository name overrides; leave empty to auto-match the registry
+  # (Docker Hub: skinloom / skinloom-server / skinloom-web; GHCR: skinloom / server / web).
+  repositories:
+    allInOne: ""
+    server: ""
+    web: ""
   tag: "" # default: the chart's appVersion
   pullPolicy: IfNotPresent
   pullSecrets: []

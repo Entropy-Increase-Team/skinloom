@@ -23,7 +23,19 @@ app.kubernetes.io/component: {{ .component }}
 {{- end -}}
 
 {{- define "skinloom.image" -}}
-{{- printf "%s/%s:%s" .root.Values.image.registry .name (.root.Values.image.tag | default .root.Chart.AppVersion) -}}
+{{- $reg := trimSuffix "/" .root.Values.image.registry -}}
+{{- $repos := .root.Values.image.repositories | default dict -}}
+{{- $repo := index $repos .key | default "" -}}
+{{- if not $repo -}}
+  {{- if eq .key "allInOne" -}}
+    {{- $repo = "skinloom" -}}
+  {{- else if hasSuffix "/entropy-increase-team" $reg -}}
+    {{- $repo = .key -}}
+  {{- else -}}
+    {{- $repo = printf "skinloom-%s" .key -}}
+  {{- end -}}
+{{- end -}}
+{{- printf "%s/%s:%s" $reg $repo (.root.Values.image.tag | default .root.Chart.AppVersion) -}}
 {{- end -}}
 
 {{/* The settings that make no sense together fail the install with a reason. */}}

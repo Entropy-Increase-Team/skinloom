@@ -62,20 +62,20 @@ jobs:
             images: skinloom:all-in-one
           - name: split, PostgreSQL
             values: --set mode=split --set database.driver=postgres --set database.existingSecret=skinloom-db
-            images: server:server web:web
+            images: skinloom-server:server skinloom-web:web
     steps:
       - uses: actions/checkout@v7
       - name: Build images
         run: |
           for i in ${{ matrix.images }}; do
-            docker build -t ghcr.io/entropy-increase-team/${i%%:*}:ci -f deploy/docker/${i#*:}.Dockerfile .
+            docker build -t docker.io/dnyo666/${i%%:*}:ci -f deploy/docker/${i#*:}.Dockerfile .
           done
       - uses: helm/kind-action@v1
         with:
           cluster_name: skinloom
       - uses: azure/setup-helm@v4
       - name: Load images
-        run: for i in ${{ matrix.images }}; do kind load docker-image ghcr.io/entropy-increase-team/${i%%:*}:ci --name skinloom; done
+        run: for i in ${{ matrix.images }}; do kind load docker-image docker.io/dnyo666/${i%%:*}:ci --name skinloom; done
       - name: PostgreSQL (split only)
         if: contains(matrix.values, 'postgres')
         run: |

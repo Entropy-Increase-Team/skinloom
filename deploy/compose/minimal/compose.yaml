@@ -6,12 +6,14 @@
 #   → http://localhost:17546
 #
 # Pin a release with SKINLOOM_VERSION=1.1.3 (default: latest release; "edge" = main).
+# Pulls from Docker Hub by default; to use GHCR instead, set:
+#   SKINLOOM_IMAGE=ghcr.io/entropy-increase-team/skinloom
 # Behind a host reverse proxy (Nginx/Caddy/1Panel), set SKINLOOM_BIND=127.0.0.1.
 name: skinloom
 
 services:
   skinloom:
-    image: ghcr.io/entropy-increase-team/skinloom:${SKINLOOM_VERSION:-latest}
+    image: ${SKINLOOM_IMAGE:-dnyo666/skinloom}:${SKINLOOM_VERSION:-latest}
     ports:
       - "${SKINLOOM_BIND:-0.0.0.0}:${SKINLOOM_PORT:-17546}:17546"
     volumes:
