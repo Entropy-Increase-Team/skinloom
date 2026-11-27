@@ -3,6 +3,8 @@ package httpapi
 import (
 	"context"
 	"crypto/subtle"
+	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -75,6 +77,20 @@ type Deps struct {
 	// WebReady reports whether the frontend this process runs answers; /readyz waits for
 	// it, so a probe does not send visitors to a site whose pages still fail. Nil = ready.
 	WebReady func() bool
+	// WebStatus optionally reports the supervised frontend's lifecycle and failure state
+	// for /readyz responses (plain text and Accept: application/json).
+	WebStatus func() WebStatusInfo
+}
+
+// WebStatusInfo describes the supervised frontend's state for /readyz diagnostics.
+type WebStatusInfo struct {
+	Mode        string   `json:"mode,omitempty"`
+	State       string   `json:"state,omitempty"`
+	Attempts    int      `json:"attempts,omitempty"`
+	Failures    int      `json:"failures,omitempty"`
+	LastErr     string   `json:"lastError,omitempty"`
+	NextRetryIn int      `json:"nextRetryIn,omitempty"`
+	Output      []string `json:"output,omitempty"`
 }
 
 // RuntimeInfo is how this process was started.
@@ -152,18 +168,84 @@ func New(d Deps) (http.Handler, huma.API) {
 
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok")) })
 	r.Get("/readyz", func(w http.ResponseWriter, req *http.Request) {
+		backendOK := true
+		backendErr := ""
 		if d.DB != nil {
 			ctx, cancel := context.WithTimeout(req.Context(), 2*time.Second)
 			defer cancel()
 			if d.DB.SQL.PingContext(ctx) != nil {
-				http.Error(w, "database unavailable", http.StatusServiceUnavailable)
-				return
+				backendOK = false
+				backendErr = "database unavailable"
 			}
 		} else if d.Setup == nil {
-			http.Error(w, "database unavailable", http.StatusServiceUnavailable)
+			backendOK = false
+			backendErr = "database unavailable"
+		}
+		webOK := d.WebReady == nil || d.WebReady()
+		var ws WebStatusInfo
+		if d.WebStatus != nil {
+			ws = d.WebStatus()
+			// Never leak raw process errors or output outside local dev mode.
+			if ws.Mode != "dev" {
+				ws.LastErr = ""
+				ws.Output = nil
+			}
+		}
+		if strings.Contains(strings.ToLower(req.Header.Get("Accept")), "application/json") {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-store")
+			ready := backendOK && webOK
+			if !ready {
+				w.WriteHeader(http.StatusServiceUnavailable)
+			}
+			type backendPayload struct {
+				OK    bool   `json:"ok"`
+				Error string `json:"error,omitempty"`
+			}
+			type frontendPayload struct {
+				Ready       bool     `json:"ready"`
+				Mode        string   `json:"mode,omitempty"`
+				State       string   `json:"state,omitempty"`
+				Attempts    int      `json:"attempts,omitempty"`
+				Failures    int      `json:"failures,omitempty"`
+				LastError   string   `json:"lastError,omitempty"`
+				NextRetryIn int      `json:"nextRetryIn,omitempty"`
+				Output      []string `json:"output,omitempty"`
+			}
+			_ = json.NewEncoder(w).Encode(struct {
+				Ready    bool            `json:"ready"`
+				Backend  backendPayload  `json:"backend"`
+				Frontend frontendPayload `json:"frontend"`
+			}{
+				Ready:   ready,
+				Backend: backendPayload{OK: backendOK, Error: backendErr},
+				Frontend: frontendPayload{
+					Ready:       webOK,
+					Mode:        ws.Mode,
+					State:       ws.State,
+					Attempts:    ws.Attempts,
+					Failures:    ws.Failures,
+					LastError:   ws.LastErr,
+					NextRetryIn: ws.NextRetryIn,
+					Output:      ws.Output,
+				},
+			})
 			return
 		}
-		if d.WebReady != nil && !d.WebReady() {
+		if !backendOK {
+			http.Error(w, backendErr, http.StatusServiceUnavailable)
+			return
+		}
+		if !webOK {
+			if ws.State == "restarting" || ws.Failures > 0 {
+				fails := max(ws.Failures, 1)
+				if ws.Mode == "dev" && ws.LastErr != "" {
+					http.Error(w, fmt.Sprintf("frontend failed (%d failures): %s", fails, ws.LastErr), http.StatusServiceUnavailable)
+					return
+				}
+				http.Error(w, fmt.Sprintf("frontend failed (%d failures)", fails), http.StatusServiceUnavailable)
+				return
+			}
 			http.Error(w, "frontend starting", http.StatusServiceUnavailable)
 			return
 		}

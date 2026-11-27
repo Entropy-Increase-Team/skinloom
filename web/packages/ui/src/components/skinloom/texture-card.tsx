@@ -55,14 +55,20 @@ export function TextureCard({
       data-slot="texture-card"
       data-density={density}
       className={cn(
-        'sl-texture-card group flex flex-col rounded-xl border bg-card p-1 text-card-foreground outline-none transition-colors duration-150 hover:border-input hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50',
+        'sl-texture-card group flex flex-col rounded-xl border bg-card p-1.5 text-card-foreground shadow-xs outline-none transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-sm focus-visible:ring-3 focus-visible:ring-ring/50',
         className,
       )}
     >
-      <PixelBackdrop className="relative" style={{ height: h + (density === 'compact' ? 24 : 40) }}>
-        <TexturePreview texture={{ id: texture.id }} type={texture.type} height={h} alt="" />
+      <PixelBackdrop className="relative overflow-hidden" style={{ height: h + (density === 'compact' ? 24 : 40) }}>
+        <TexturePreview
+          texture={{ id: texture.id }}
+          type={texture.type}
+          height={h}
+          alt=""
+          className="transition-transform duration-200 group-hover:scale-[1.03]"
+        />
         {texture.public === false && (
-          <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 rounded-sm bg-card/90 px-1.5 py-0.5 text-xs text-muted-foreground">
+          <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 rounded-md border bg-card/90 px-1.5 py-0.5 text-xs text-muted-foreground shadow-xs">
             <Lock className="size-3" aria-hidden />
             {privateLabel}
           </span>
@@ -70,7 +76,7 @@ export function TextureCard({
       </PixelBackdrop>
       <div className={cn('flex flex-col gap-1.5', density === 'compact' ? 'px-1.5 pt-2 pb-1.5' : 'px-2 pt-2.5 pb-2')}>
         <div className="flex min-w-0 items-center gap-1.5">
-          <span className="min-w-0 flex-1 truncate text-sm font-medium">{texture.name}</span>
+          <span className="min-w-0 flex-1 truncate text-sm font-medium transition-colors group-hover:text-primary">{texture.name}</span>
           {badges ? (
             <span className="flex min-w-0 max-w-[45%] shrink-0 items-center gap-1 overflow-hidden">{badges}</span>
           ) : null}
@@ -85,8 +91,8 @@ export function TextureCard({
             </>
           )}
           <span className="flex-1" />
-          <span className="inline-flex shrink-0 items-center gap-1 tabular-nums" title={likesLabel}>
-            <Heart className="size-3" aria-hidden />
+          <span className="inline-flex shrink-0 items-center gap-1 tabular-nums transition-colors group-hover:text-foreground" title={likesLabel}>
+            <Heart className="size-3 transition-colors group-hover:text-primary" aria-hidden />
             {likesLabel && <span className="sr-only">{likesLabel} </span>}
             {NUM_FMT.format(texture.likes)}
           </span>
@@ -150,13 +156,13 @@ export function PlayerCard({
       </div>
     </>
   )
-  const frame = 'sl-player-card flex flex-col rounded-xl border bg-card p-1 text-card-foreground'
+  const frame = 'sl-player-card group flex flex-col rounded-xl border bg-card p-1.5 text-card-foreground shadow-xs'
   if (href && !actions) {
     return (
       <LinkAs
         href={href}
         data-slot="player-card"
-        className={cn(frame, 'outline-none transition-colors duration-150 hover:border-input hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50', className)}
+        className={cn(frame, 'outline-none transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-sm focus-visible:ring-3 focus-visible:ring-ring/50', className)}
       >
         {body}
       </LinkAs>

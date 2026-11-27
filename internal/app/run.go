@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -160,6 +161,37 @@ func Run(ctx context.Context, o RunOptions) error {
 	}
 	gw = gateway.New(http.NotFoundHandler(), log.With("component", "gateway"), resolver)
 	web := launcher.NewWeb(log.With("component", "launcher"), log.With("component", "web"))
+	gw.SetWebStatus(func() gateway.WebStatus {
+		st := web.Status()
+		return gateway.WebStatus{
+			Mode:      st.Mode,
+			State:     st.State,
+			Attempts:  st.Attempts,
+			Failures:  st.Failures,
+			StartedAt: st.StartedAt,
+			LastErr:   st.LastErr,
+			NextRetry: st.NextRetry,
+			Output:    st.Output,
+		}
+	})
+	webStatusInfo := func() httpapi.WebStatusInfo {
+		st := web.Status()
+		var nextRetryIn int
+		if !st.NextRetry.IsZero() {
+			if rem := time.Until(st.NextRetry); rem > 0 {
+				nextRetryIn = int(math.Ceil(rem.Seconds()))
+			}
+		}
+		return httpapi.WebStatusInfo{
+			Mode:        st.Mode,
+			State:       st.State,
+			Attempts:    st.Attempts,
+			Failures:    st.Failures,
+			LastErr:     st.LastErr,
+			NextRetryIn: nextRetryIn,
+			Output:      st.Output,
+		}
+	}
 
 	var applyWeb func(config.Config)
 	startConfigWatch := func(c *Core) {
@@ -212,6 +244,7 @@ func Run(ctx context.Context, o RunOptions) error {
 			Storage: cmp.Or(nextCfg.Storage.Driver, "local"),
 		}
 		deps.WebReady = webReady
+		deps.WebStatus = webStatusInfo
 		fullAPI, _ := httpapi.New(deps)
 
 		gw.SetHeaders(func(h http.Header) {
@@ -286,6 +319,7 @@ func Run(ctx context.Context, o RunOptions) error {
 			ClientInfo:  func(r *http.Request) realip.Info { return gw.ClientInfo(r) },
 			Runtime:     httpapi.RuntimeInfo{Started: time.Now(), Role: cfg.Server.Role, Web: cfg.Web.Mode, Storage: cmp.Or(cfg.Storage.Driver, "local")},
 			WebReady:    webReady,
+			WebStatus:   webStatusInfo,
 		}
 		setupAPI, _ := httpapi.New(setupDeps)
 		gw.SetAPI(setupAPI)
@@ -359,7 +393,23 @@ func Run(ctx context.Context, o RunOptions) error {
 		open = link
 	}
 	if o.Open {
-		launcher.OpenBrowser(open)
+		go func(target string) {
+			deadline := time.NewTimer(3 * time.Second)
+			defer deadline.Stop()
+			tick := time.NewTicker(150 * time.Millisecond)
+			defer tick.Stop()
+			for !webReady() {
+				select {
+				case <-runCtx.Done():
+					return
+				case <-deadline.C:
+					launcher.OpenBrowser(target)
+					return
+				case <-tick.C:
+				}
+			}
+			launcher.OpenBrowser(target)
+		}(open)
 	}
 	if o.Ready != nil {
 		o.Ready(ln.Addr())

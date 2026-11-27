@@ -71,6 +71,7 @@ export {
 } from './components/skinloom/responsive-dialog'
 export { SaveBar } from './components/skinloom/save-bar'
 export { useIsMobile } from './hooks/use-mobile'
+export { DemoSkinShowcase, type DemoSkinShowcaseProps } from './components/skinloom/demo-skin-showcase'
 export { type CarouselSkin, SkinCarousel } from './components/skinloom/skin-carousel'
 export { prefersReducedMotion, SkinViewer, type SkinViewerAnimation, type SkinViewerBackground } from './components/skinloom/skin-viewer'
 export { PlayerCard, TextureCard, type TextureCardTexture } from './components/skinloom/texture-card'
